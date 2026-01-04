@@ -1,4 +1,10 @@
 import { create } from 'zustand';
+import {
+  saveTradesToStorage,
+  loadTradesFromStorage,
+  saveSettingsToStorage,
+  loadSettingsFromStorage
+} from '../hooks/useLocalStorage';
 
 export interface Trade {
   id: string;
@@ -51,12 +57,16 @@ interface TradingState {
   selectedTimePeriod: TimePeriod;
   sidebarCollapsed: boolean;
   currentView: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal';
-  hasImportedData: boolean; // Track if user has imported real data
-  lastImportTime: number; // Track when data was last imported
-  
+  hasImportedData: boolean;
+  lastImportTime: number;
+
   // Actions
+  addTrade: (trade: Omit<Trade, 'id'>) => void;
+  updateTrade: (id: string, trade: Partial<Trade>) => void;
+  deleteTrade: (id: string) => void;
+  deleteTrades: (ids: string[]) => void;
   addTrades: (trades: Trade[]) => void;
-  replaceTrades: (trades: Trade[]) => void; // New method to replace all trades
+  replaceTrades: (trades: Trade[]) => void;
   updateMetrics: () => void;
   setTimePeriod: (period: TimePeriod) => void;
   toggleSidebar: () => void;
@@ -623,46 +633,145 @@ const calculateComprehensiveMetrics = (trades: Trade[]): TradingMetrics => {
   };
 };
 
+// Initialize with stored data or generate demo data
+const getInitialState = () => {
+  const storedTrades = loadTradesFromStorage();
+  const storedSettings = loadSettingsFromStorage();
+
+  if (storedTrades && storedTrades.length > 0 && storedSettings?.hasImportedData) {
+    return {
+      trades: storedTrades,
+      metrics: calculateComprehensiveMetrics(storedTrades),
+      hasImportedData: true,
+      lastImportTime: storedSettings.lastImportTime || 0
+    };
+  }
+
+  const demoTrades = generateJune2025TradingData();
+  return {
+    trades: demoTrades,
+    metrics: calculateComprehensiveMetrics(demoTrades),
+    hasImportedData: false,
+    lastImportTime: 0
+  };
+};
+
+const initialState = getInitialState();
+
 export const useTradingStore = create<TradingState>((set, get) => ({
-  trades: generateJune2025TradingData(),
-  metrics: calculateComprehensiveMetrics(generateJune2025TradingData()),
+  trades: initialState.trades,
+  metrics: initialState.metrics,
   isLoading: false,
   selectedTimePeriod: 'ALL',
   sidebarCollapsed: false,
   currentView: 'dashboard',
-  hasImportedData: false,
-  lastImportTime: 0,
+  hasImportedData: initialState.hasImportedData,
+  lastImportTime: initialState.lastImportTime,
 
   getFilteredTrades: () => {
     const { trades, selectedTimePeriod } = get();
     return filterTradesByPeriod(trades, selectedTimePeriod);
   },
 
-  addTrades: (newTrades: Trade[]) => {
+  addTrade: (tradeData: Omit<Trade, 'id'>) => {
     const { trades } = get();
-    
+    const newTrade: Trade = {
+      ...tradeData,
+      id: `trade-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    };
+
+    const allTrades = [newTrade, ...trades].sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    const newMetrics = calculateComprehensiveMetrics(allTrades);
+
+    set({
+      trades: allTrades,
+      metrics: newMetrics,
+      hasImportedData: true
+    });
+
+    saveTradesToStorage(allTrades);
+    saveSettingsToStorage({ hasImportedData: true, lastImportTime: Date.now() });
+  },
+
+  updateTrade: (id: string, updates: Partial<Trade>) => {
+    const { trades } = get();
+    const updatedTrades = trades.map(trade =>
+      trade.id === id ? { ...trade, ...updates } : trade
+    ).sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    const newMetrics = calculateComprehensiveMetrics(updatedTrades);
+
+    set({
+      trades: updatedTrades,
+      metrics: newMetrics
+    });
+
+    saveTradesToStorage(updatedTrades);
+  },
+
+  deleteTrade: (id: string) => {
+    const { trades } = get();
+    const updatedTrades = trades.filter(trade => trade.id !== id);
+    const newMetrics = calculateComprehensiveMetrics(updatedTrades);
+
+    set({
+      trades: updatedTrades,
+      metrics: newMetrics
+    });
+
+    saveTradesToStorage(updatedTrades);
+  },
+
+  deleteTrades: (ids: string[]) => {
+    const { trades } = get();
+    const idsSet = new Set(ids);
+    const updatedTrades = trades.filter(trade => !idsSet.has(trade.id));
+    const newMetrics = calculateComprehensiveMetrics(updatedTrades);
+
+    set({
+      trades: updatedTrades,
+      metrics: newMetrics
+    });
+
+    saveTradesToStorage(updatedTrades);
+  },
+
+  addTrades: (newTrades: Trade[]) => {
+    const { trades, hasImportedData } = get();
+
     // Remove duplicates based on date, symbol, and netPL
     const existingTradeKeys = new Set(
       trades.map(t => `${t.date}-${t.symbol}-${t.netPL}-${t.time}`)
     );
-    
-    const uniqueNewTrades = newTrades.filter(t => 
+
+    const uniqueNewTrades = newTrades.filter(t =>
       !existingTradeKeys.has(`${t.date}-${t.symbol}-${t.netPL}-${t.time}`)
     );
-    
+
     if (uniqueNewTrades.length > 0) {
-      const allTrades = [...trades, ...uniqueNewTrades].sort((a, b) => 
+      const allTrades = [...trades, ...uniqueNewTrades].sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
-      
+
       const newMetrics = calculateComprehensiveMetrics(allTrades);
-      
-      set({ 
+      const now = Date.now();
+
+      set({
         trades: allTrades,
         metrics: newMetrics,
-        lastImportTime: Date.now()
+        lastImportTime: now,
+        hasImportedData: true
       });
-      
+
+      // Persist to localStorage
+      saveTradesToStorage(allTrades);
+      saveSettingsToStorage({ hasImportedData: true, lastImportTime: now });
+
       console.log(`Added ${uniqueNewTrades.length} new trades. Total trades: ${allTrades.length}`);
     } else {
       console.log('No new unique trades to add');
@@ -671,26 +780,30 @@ export const useTradingStore = create<TradingState>((set, get) => ({
 
   replaceTrades: (newTrades: Trade[]) => {
     // Sort trades by date (most recent first)
-    const sortedTrades = newTrades.sort((a, b) => 
+    const sortedTrades = newTrades.sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-    
+
     const newMetrics = calculateComprehensiveMetrics(sortedTrades);
-    
-    set({ 
+    const now = Date.now();
+
+    set({
       trades: sortedTrades,
       metrics: newMetrics,
       hasImportedData: true,
-      selectedTimePeriod: 'ALL', // Reset to show all imported data
-      lastImportTime: Date.now()
+      selectedTimePeriod: 'ALL',
+      lastImportTime: now
     });
-    
+
+    // Persist to localStorage
+    saveTradesToStorage(sortedTrades);
+    saveSettingsToStorage({ hasImportedData: true, lastImportTime: now });
+
     console.log(`Replaced all trades with ${sortedTrades.length} imported trades`);
-    
+
     // Trigger a view update if we're on the trades page
     const { currentView } = get();
     if (currentView === 'trades') {
-      // Force a re-render by updating the store
       set({ currentView: 'trades' });
     }
   },
@@ -973,13 +1086,3 @@ export const useTradingStore = create<TradingState>((set, get) => ({
     }
   }
 }));
-
-// Initialize with June 2025 data only if no imported data exists
-const initialTrades = generateJune2025TradingData();
-useTradingStore.setState({
-  trades: initialTrades,
-  metrics: calculateComprehensiveMetrics(initialTrades),
-  hasImportedData: false,
-  selectedTimePeriod: 'ALL',
-  lastImportTime: 0
-});

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Filter, 
-  Download, 
-  Plus, 
-  Search, 
+import {
+  Filter,
+  Download,
+  Plus,
+  Search,
   Calendar,
   TrendingUp,
   TrendingDown,
@@ -12,9 +12,11 @@ import {
   Eye,
   Edit,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { Trade, useTradingStore } from '../store/tradingStore';
+import { TradeFormModal } from './common/TradeFormModal';
 import clsx from 'clsx';
 
 interface TradeLogProps {
@@ -23,11 +25,20 @@ interface TradeLogProps {
 
 export const TradeLog: React.FC<TradeLogProps> = ({ trades: propTrades }) => {
   // Get trades from store to ensure we have the latest data
-  const { trades: storeTrades, hasImportedData, isLoading, refreshData } = useTradingStore();
-  
+  const {
+    trades: storeTrades,
+    hasImportedData,
+    isLoading,
+    refreshData,
+    addTrade,
+    updateTrade,
+    deleteTrade,
+    deleteTrades
+  } = useTradingStore();
+
   // Use store trades if available, otherwise use prop trades
   const trades = storeTrades.length > 0 ? storeTrades : propTrades;
-  
+
   const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
   const [sortField, setSortField] = useState<keyof Trade>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -35,6 +46,12 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades: propTrades }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [tradesPerPage, setTradesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Modal states
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [tradeToDelete, setTradeToDelete] = useState<string | null>(null);
 
   // Reset pagination when trades change (e.g., after import)
   useEffect(() => {
@@ -163,6 +180,52 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades: propTrades }) => {
     window.URL.revokeObjectURL(url);
   };
 
+  // Handle add/edit trade
+  const handleOpenAddModal = () => {
+    setEditingTrade(null);
+    setShowTradeModal(true);
+  };
+
+  const handleOpenEditModal = (trade: Trade) => {
+    setEditingTrade(trade);
+    setShowTradeModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowTradeModal(false);
+    setEditingTrade(null);
+  };
+
+  const handleSubmitTrade = (tradeData: Omit<Trade, 'id'>) => {
+    if (editingTrade) {
+      updateTrade(editingTrade.id, tradeData);
+    } else {
+      addTrade(tradeData);
+    }
+    handleCloseModal();
+  };
+
+  // Handle delete
+  const handleDeleteClick = (tradeId: string) => {
+    setTradeToDelete(tradeId);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (tradeToDelete) {
+      deleteTrade(tradeToDelete);
+      setTradeToDelete(null);
+    }
+    setShowDeleteConfirm(false);
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedTrades.length > 0) {
+      deleteTrades(selectedTrades);
+      setSelectedTrades([]);
+    }
+  };
+
   return (
     <div 
       className="rounded-xl border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
@@ -209,7 +272,10 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades: propTrades }) => {
                 <Download className="h-4 w-4" />
                 <span>Export</span>
               </button>
-              <button className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all">
+              <button
+                onClick={handleOpenAddModal}
+                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
+              >
                 <Plus className="h-4 w-4" />
                 <span>Add Trade</span>
               </button>
@@ -452,13 +518,18 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades: propTrades }) => {
                   </td>
                   <td className="p-4 text-center">
                     <div className="flex items-center justify-center space-x-2">
-                      <button className="p-1 text-[#8B94A7] hover:text-[#E5E7EB] transition-colors">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button className="p-1 text-[#8B94A7] hover:text-[#E5E7EB] transition-colors">
+                      <button
+                        onClick={() => handleOpenEditModal(trade)}
+                        className="p-1 text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
+                        title="Edit trade"
+                      >
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button className="p-1 text-[#8B94A7] hover:text-[#F45B69] transition-colors">
+                      <button
+                        onClick={() => handleDeleteClick(trade.id)}
+                        className="p-1 text-[#8B94A7] hover:text-[#F45B69] transition-colors"
+                        title="Delete trade"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -533,6 +604,55 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades: propTrades }) => {
           </div>
         </div>
       </div>
+
+      {/* Trade Form Modal */}
+      <TradeFormModal
+        isOpen={showTradeModal}
+        onClose={handleCloseModal}
+        onSubmit={handleSubmitTrade}
+        trade={editingTrade}
+        mode={editingTrade ? 'edit' : 'add'}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowDeleteConfirm(false)}
+          />
+          <div
+            className="relative w-full max-w-md mx-4 rounded-2xl border border-[#1F2937] p-6"
+            style={{
+              background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
+            }}
+          >
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-2 rounded-full bg-[#F45B69]/20">
+                <AlertTriangle className="h-6 w-6 text-[#F45B69]" />
+              </div>
+              <h3 className="text-lg font-bold text-[#E5E7EB]">Delete Trade</h3>
+            </div>
+            <p className="text-[#8B94A7] mb-6">
+              Are you sure you want to delete this trade? This action cannot be undone.
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2 rounded-lg border border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 py-2 rounded-lg bg-[#F45B69] text-white font-medium hover:opacity-90 transition-all"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
