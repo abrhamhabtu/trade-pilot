@@ -170,11 +170,12 @@ This document outlines the comprehensive development roadmap for TradePilot, org
 ## Technical Priorities by Impact
 
 ### High Impact (Do First)
-1. Refactor App.tsx into smaller components
-2. Add localStorage persistence
-3. Implement Add/Edit/Delete trade functionality
+1. ✅ Refactor App.tsx into smaller components
+2. ✅ Add localStorage persistence
+3. ✅ Implement Add/Edit/Delete trade functionality
 4. Add React.memo and performance optimizations
-5. Create API client layer
+5. ✅ Multi-account support for prop firms
+6. Create API client layer
 
 ### Medium Impact
 1. Design system tokens and component library

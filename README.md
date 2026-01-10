@@ -1,174 +1,152 @@
-# TradePilot - Advanced Trading Analytics Dashboard
+# TradePilot
 
-**Built on Bolt** - A comprehensive trading analytics platform for professional traders.
+A powerful trading analytics dashboard for prop firm traders and active traders. Track your performance across multiple accounts, analyze your trades, and improve your trading with data-driven insights.
 
-## 🏆 World's Largest Hackathon Submission
+![TradePilot Dashboard](https://img.shields.io/badge/Status-Active%20Development-brightgreen)
+![License](https://img.shields.io/badge/License-MIT-blue)
+![React](https://img.shields.io/badge/React-18.3-61dafb)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178c6)
 
-This project was built for the World's Largest Hackathon presented by Bolt, showcasing the power and capabilities of the Bolt.new platform for building complex, production-ready applications.
+## Features
 
-## 🚀 Features
+### 📊 Multi-Account Management
+- **Track multiple prop firm accounts** - Topstep, Apex, FTMO, and more
+- **Per-account analytics** - See performance metrics for each account
+- **Combined view** - Analyze all accounts together or individually
+- **Quick account switching** - Dropdown selector always accessible
 
-### 📊 **Comprehensive Analytics Dashboard**
+### 📈 Comprehensive Analytics
+- **Key Metrics**: Net P&L, Profit Factor, Win Rate, Expectancy
+- **Advanced Stats**: Sharpe Ratio, Max Drawdown, Recovery Factor
+- **Consistency Score**: AI-powered trading score based on multiple factors
+- **Streak Tracking**: Current and max consecutive wins/losses
 
-- **Real-time Performance Metrics**: Net P&L, Profit Factor, Win Rate, Expectancy, Current Streak
-- **Advanced Trading Score**: AI-powered consistency scoring based on multiple performance factors
-- **Interactive Charts**: Cumulative P&L, Daily P&L, Radar charts for performance visualization
+### 📅 Performance Visualization
+- **Interactive Charts**: Cumulative P&L, Daily P&L, Performance Radar
+- **Calendar View**: Daily P&L heatmap for pattern recognition
+- **Time Analysis**: Identify your most profitable trading hours
+- **Duration Analysis**: Optimize your trade holding times
 
-### 📈 **Performance Analysis**
+### 📋 Trade Management
+- **Complete Trade Log**: Filterable, sortable trade history
+- **Import Support**: TradingView, ProjectX (Topstep, TopOne Futures)
+- **Time Filtering**: View trades by day, week, month, or all time
+- **Notes & Tags**: Add context to your trades
 
-- **Time-based Performance**: Analyze profitability by trading hours to optimize your schedule
-- **Duration Analysis**: Understand how trade holding periods affect your returns
-- **Calendar View**: Visual P&L calendar with daily performance tracking
-- **AI-Powered Insights**: Personalized coaching tips based on your trading patterns
+### 🎯 Trading Playbooks
+- **Strategy Tracking**: Create and monitor different trading strategies
+- **Per-Strategy Metrics**: Compare performance across playbooks
+- **Rule Documentation**: Define your trading rules
 
-### 📋 **Trade Management**
+### 📓 Trading Journal
+- **Daily Reflections**: Document your trading mindset
+- **Trade Reviews**: Link journal entries to specific trades
+- **Pattern Recognition**: Track recurring themes in your trading
 
-- **Complete Trade Log**: Detailed trade history with filtering and sorting
-- **TradingView Integration**: Import trades directly from TradingView CSV exports
-- **Real-time Data Processing**: Automatic calculation of all trading metrics
-- **Export Capabilities**: Export filtered trade data for external analysis
+## Tech Stack
 
-### 🎯 **Trading Playbooks**
+- **Frontend**: React 18 + TypeScript
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **Charts**: Recharts
+- **File Processing**: Papa Parse, XLSX
+- **Build Tool**: Vite
 
-- **Strategy Management**: Create and track performance of different trading strategies
-- **Detailed Analytics**: Per-strategy performance metrics and insights
-- **Rule-based Trading**: Define and track adherence to trading rules
+## Getting Started
 
-### 🤖 **AI Trading Coach**
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
 
-- **Personalized Tips**: Data-driven coaching based on your actual performance
-- **Pattern Recognition**: Identifies optimal trading times and durations
-- **Performance Insights**: Actionable recommendations for improvement
+### Installation
 
-## 🛠 **Technical Implementation**
+```bash
+# Clone the repository
+git clone https://github.com/abrhamhabtu/trade-pilot.git
 
-### **Built with Bolt.new**
+# Navigate to project directory
+cd trade-pilot
 
-- **Primary Development**: Core functionality developed entirely within Bolt.new
-- **React + TypeScript**: Modern, type-safe frontend development
-- **Tailwind CSS**: Beautiful, responsive design system
-- **Zustand**: Efficient state management
-- **Recharts**: Interactive data visualization
+# Install dependencies
+npm install
 
-### **Key Technologies**
+# Start development server
+npm run dev
+```
 
-- **File Processing**: CSV/Excel import with Papa Parse and XLSX
-- **Data Analysis**: Advanced statistical calculations for trading metrics
-- **Responsive Design**: Mobile-first approach with beautiful UI/UX
-- **Performance Optimization**: Efficient data processing and rendering
+The app will be available at `http://localhost:5173`
 
-## 📱 **User Experience**
+### Building for Production
 
-### **Beautiful Design**
+```bash
+npm run build
+npm run preview
+```
 
-- **Dark Theme**: Professional trading interface optimized for long sessions
-- **Gradient Accents**: Modern visual design with green/purple gradient theme
-- **Micro-interactions**: Smooth animations and hover effects
-- **Responsive Layout**: Works perfectly on desktop, tablet, and mobile
+## Usage
 
-### **Intuitive Navigation**
+### Adding Accounts
+1. Click **Accounts** in the sidebar
+2. Click **Add new account**
+3. Enter account name and select broker
+4. Start importing trades
 
-- **Collapsible Sidebar**: Clean navigation with tooltips
-- **Time Period Filtering**: Analyze performance across different timeframes
-- **Smart Data Display**: Contextual information and helpful tooltips
+### Importing Trades
+1. Export trades from your platform (CSV format)
+2. Click the **+** button on an account or use **Import Trades**
+3. Drag & drop or select your file
+4. Trades are automatically parsed and added
 
-## 🎯 **Target Audience**
+### Supported Import Formats
+- **TradingView**: Account History export
+- **ProjectX Platforms**: Topstep, TopOne Futures, etc.
+- **Generic CSV**: With standard column headers
 
-- **Day Traders**: Real-time performance tracking and optimization
-- **Swing Traders**: Long-term performance analysis and strategy development
-- **Professional Traders**: Comprehensive analytics for institutional trading
-- **Trading Educators**: Teaching tools for trading psychology and performance
+## Project Structure
 
-## 🏅 **Hackathon Categories**
+```
+src/
+├── components/
+│   ├── accounts/       # Account management
+│   ├── charts/         # Chart components
+│   ├── common/         # Shared components
+│   ├── dashboard/      # Dashboard views
+│   └── journal/        # Journal feature
+├── hooks/              # Custom React hooks
+├── store/              # Zustand stores
+├── types/              # TypeScript types
+└── utils/              # Utility functions
+```
 
-This project is eligible for multiple hackathon categories:
+## Roadmap
 
-- **🏆 Global Prizes**: Comprehensive trading platform with advanced analytics
-- **💡 Most Beautiful UI**: Professional design with attention to detail
-- **🔧 Uniquely Useful Tool**: Solves real problems for active traders
-- **🚀 Future Unicorn**: Scalable platform with clear monetization path
-- **🎯 Sharpest Problem Fit**: Addresses specific pain points in trading analytics
+- [ ] Real-time broker integrations
+- [ ] Advanced AI coaching insights
+- [ ] Mobile app (React Native)
+- [ ] Cloud sync & backup
+- [ ] Social features & leaderboards
+- [ ] API for third-party integrations
 
-## 🌟 **Innovation & Impact**
+## Contributing
 
-### **Problem Solved**
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-Most trading platforms provide basic P&L tracking, but lack the deep analytics and AI-powered insights that professional traders need to improve their performance. TradePilot fills this gap with:
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- **Advanced Performance Metrics**: Beyond basic win/loss tracking
-- **AI-Powered Coaching**: Personalized insights based on trading patterns
-- **Time & Duration Analysis**: Optimize when and how long to hold trades
-- **Beautiful Visualization**: Make complex data easy to understand
+## License
 
-### **Market Potential**
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- **$7.5B Trading Software Market**: Growing rapidly with retail trading boom
-- **40M+ Active Traders Globally**: Large addressable market
-- **Subscription Model**: Recurring revenue potential
-- **B2B Opportunities**: White-label solutions for brokers and prop firms
+## Author
 
-## 🚀 **Getting Started**
+**Abrham Habtu**
 
-1. **Visit the Live Demo**: [TradePilot Dashboard](https://bolt.new/~/sb1-your-project-url)
-2. **Import Your Data**: Use the TradingView CSV import feature
-3. **Explore Analytics**: Navigate through different views and insights
-4. **Optimize Performance**: Use AI coaching tips to improve your trading
-
-## 📊 **Demo Data**
-
-The application includes realistic demo data for June 2025 trading activity:
-
-- **28 Trades** across multiple symbols (AAPL, MSFT, GOOGL, etc.)
-- **$8,458 Net P&L** with 68% win rate
-- **Realistic Trading Patterns** including time-of-day and duration analysis
-- **Multiple Trading Days** with varying performance
-
-## 🔧 **Technical Highlights**
-
-### **Data Processing**
-
-- **Smart CSV Parsing**: Handles various TradingView export formats
-- **Real-time Calculations**: All metrics calculated dynamically
-- **Error Handling**: Robust import process with detailed error reporting
-
-### **Performance Optimization**
-
-- **Efficient Filtering**: Time period filtering without data duplication
-- **Memoized Calculations**: Optimized chart data generation
-- **Lazy Loading**: Components load only when needed
-
-### **Code Quality**
-
-- **TypeScript**: Full type safety throughout the application
-- **Modular Architecture**: Clean separation of concerns
-- **Responsive Design**: Mobile-first approach with Tailwind CSS
-
-## 🎨 **Design Philosophy**
-
-- **Professional**: Dark theme optimized for trading environments
-- **Intuitive**: Clear information hierarchy and navigation
-- **Beautiful**: Attention to detail with smooth animations
-- **Functional**: Every element serves a purpose for traders
-
-## 🏆 **Why This Project Stands Out**
-
-1. **Real-World Application**: Solves actual problems for active traders
-2. **Technical Excellence**: Advanced data processing and visualization
-3. **Beautiful Design**: Professional UI/UX worthy of production use
-4. **Scalable Architecture**: Built to handle growth and additional features
-5. **AI Integration**: Smart insights that provide real value
-6. **Complete Solution**: End-to-end trading analytics platform
-
-## 📈 **Future Roadmap**
-
-- **Real-time Broker Integration**: Live trade tracking
-- **Social Features**: Share strategies and compete with other traders
-- **Advanced AI**: Machine learning for trade prediction
-- **Mobile App**: Native iOS/Android applications
-- **API Platform**: Allow third-party integrations
+- GitHub: [@abrhamhabtu](https://github.com/abrhamhabtu)
 
 ---
 
-**Built with ❤️ on Bolt.new for the World's Largest Hackathon**
-
-_TradePilot represents the future of trading analytics - where beautiful design meets powerful functionality to help traders achieve consistent profitability._
+*TradePilot - Trade smarter, not harder.*

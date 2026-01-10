@@ -297,6 +297,70 @@ toast.info("Message")    // Purple info icon
 
 ---
 
+---
+
+## Phase 3: Multi-Account Support (January 2026)
+
+### What We Did
+
+#### 1. Multi-Account System
+**Before:** Single account, all trades in one place
+**After:** Track multiple prop firm accounts separately
+
+**Features:**
+- Create unlimited trading accounts
+- Support for major prop firms (Topstep, Apex, FTMO, etc.)
+- Per-account trade storage and metrics
+- Quick account switching via dropdown
+- "All Accounts" combined view
+
+**How it works:**
+```
+User adds account
+    ↓
+Account saved to accountStore + localStorage
+    ↓
+User imports trades to specific account
+    ↓
+Trades stored in account.trades array
+    ↓
+Dashboard shows selected account's data
+    ↓
+Switch accounts via dropdown to see different data
+```
+
+**Files created:**
+| File | Purpose |
+|------|---------|
+| `src/store/accountStore.ts` | Account state management |
+| `src/components/accounts/AccountsPage.tsx` | Account management UI |
+| `src/components/accounts/AccountSelector.tsx` | Quick account switcher |
+
+**Account data structure:**
+```typescript
+{
+  id: "account-123",
+  name: "My Topstep Account",
+  broker: "Topstep",
+  balance: 14742,        // Calculated from trades
+  lastUpdate: "01/09/2026 3:30 PM",
+  type: "file_upload",   // or "demo", "manual"
+  trades: [...]          // All trades for this account
+}
+```
+
+#### 2. Updated Import Flow
+**Before:** Import replaced all trades
+**After:** Import adds trades to specific account
+
+**Flow:**
+1. Click + on account row (or open Import modal)
+2. Modal shows target account
+3. Import trades from CSV/XLSX
+4. Trades added to that account only
+
+---
+
 ## Summary of All Changes
 
 | Phase | Feature | Files Added |
@@ -308,6 +372,7 @@ toast.info("Message")    // Purple info icon
 | 1 | Journal feature | Journal.tsx |
 | 2 | Theme toggle | themeStore.ts |
 | 2 | Toast notifications | Toast.tsx, toastStore.ts |
+| 3 | Multi-account support | accountStore.ts, AccountsPage.tsx, AccountSelector.tsx |
 
 ---
 

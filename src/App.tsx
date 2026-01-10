@@ -7,7 +7,6 @@ import { Calendar } from './components/Calendar';
 import { Journal } from './components/journal';
 import { ImportModal } from './components/ImportModal';
 import { AccountsPage, AccountSelector } from './components/accounts';
-import { BuiltOnBoltBadge } from './components/BuiltOnBoltBadge';
 import { ToastContainer } from './components/common/Toast';
 import { useTradingStore, Trade, TimePeriod } from './store/tradingStore';
 import { useAccountStore } from './store/accountStore';
@@ -326,8 +325,6 @@ function App() {
         targetAccountId={importTargetAccountId}
         onImportComplete={handleImportComplete}
       />
-
-      <BuiltOnBoltBadge />
 
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>

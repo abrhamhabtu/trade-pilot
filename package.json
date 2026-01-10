@@ -1,8 +1,15 @@
 {
-  "name": "tradepilot-dashboard",
+  "name": "trade-pilot",
+  "version": "1.0.0",
+  "description": "Trading analytics dashboard for prop firm traders",
+  "author": "Abrham Habtu",
+  "license": "MIT",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abrhamhabtu/trade-pilot.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
