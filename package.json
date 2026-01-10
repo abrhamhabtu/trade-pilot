@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Trading analytics dashboard for prop firm traders",
   "author": "Abrham Habtu",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "private": true,
   "type": "module",
   "repository": {
