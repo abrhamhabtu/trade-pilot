@@ -1,20 +1,24 @@
 import React from 'react';
-import { 
-  BarChart3, 
-  Calendar, 
-  TrendingUp, 
-  BookOpen, 
-  Plus, 
+import {
+  BarChart3,
+  Calendar,
+  TrendingUp,
+  BookOpen,
   Search,
   Menu,
   Activity,
-  Target
+  Target,
+  Sun,
+  Moon,
+  Users
 } from 'lucide-react';
 import { useTradingStore } from '../store/tradingStore';
+import { useThemeStore } from '../store/themeStore';
 import clsx from 'clsx';
 
 const navigation = [
   { name: 'Dashboard', icon: BarChart3, view: 'dashboard' as const },
+  { name: 'Accounts', icon: Users, view: 'accounts' as const },
   { name: 'Calendar', icon: Calendar, view: 'calendar' as const },
   { name: 'Trades', icon: TrendingUp, view: 'trades' as const },
   { name: 'Playbooks', icon: Target, view: 'playbooks' as const },
@@ -23,6 +27,7 @@ const navigation = [
 
 export const Sidebar: React.FC = () => {
   const { sidebarCollapsed, toggleSidebar, currentView, setCurrentView } = useTradingStore();
+  const { theme, toggleTheme } = useThemeStore();
 
   return (
     <div 
@@ -129,11 +134,41 @@ export const Sidebar: React.FC = () => {
         })}
       </nav>
 
-      {/* Footer - This will stick to the bottom */}
+      {/* Footer - Theme toggle and version */}
       <div className={clsx(
         'border-t border-[#1F2937] transition-all duration-300 flex-shrink-0',
         sidebarCollapsed ? 'p-3' : 'p-4'
       )}>
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className={clsx(
+            'w-full flex items-center justify-center mb-3 rounded-lg transition-all duration-200 group relative',
+            sidebarCollapsed ? 'p-3' : 'px-3 py-2',
+            'text-[#94A3B8] hover:text-[#E5E7EB] hover:bg-gradient-to-r hover:from-[#3BF68A]/10 hover:to-[#A78BFA]/10'
+          )}
+        >
+          {theme === 'dark' ? (
+            <>
+              <Sun className={clsx(sidebarCollapsed ? 'h-6 w-6' : 'h-5 w-5')} />
+              {!sidebarCollapsed && <span className="ml-3 text-sm">Light Mode</span>}
+            </>
+          ) : (
+            <>
+              <Moon className={clsx(sidebarCollapsed ? 'h-6 w-6' : 'h-5 w-5')} />
+              {!sidebarCollapsed && <span className="ml-3 text-sm">Dark Mode</span>}
+            </>
+          )}
+
+          {/* Tooltip for collapsed state */}
+          {sidebarCollapsed && (
+            <div className="absolute left-full ml-4 px-3 py-2 bg-gradient-to-r from-[#15181F] to-[#1A1D25] text-[#E5E7EB] text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap z-50 border border-[#3BF68A]/30 shadow-lg">
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </div>
+          )}
+        </button>
+
+        {/* Version */}
         {!sidebarCollapsed ? (
           <div className="text-xs text-[#8B94A7] text-center">
             <span className="bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] bg-clip-text text-transparent font-medium">

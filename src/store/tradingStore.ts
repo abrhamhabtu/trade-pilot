@@ -5,6 +5,7 @@ import {
   saveSettingsToStorage,
   loadSettingsFromStorage
 } from '../hooks/useLocalStorage';
+import { toast } from './toastStore';
 
 export interface Trade {
   id: string;
@@ -56,7 +57,7 @@ interface TradingState {
   isLoading: boolean;
   selectedTimePeriod: TimePeriod;
   sidebarCollapsed: boolean;
-  currentView: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal';
+  currentView: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts';
   hasImportedData: boolean;
   lastImportTime: number;
 
@@ -72,7 +73,7 @@ interface TradingState {
   toggleSidebar: () => void;
   importTrades: (file: File) => Promise<ImportResult>;
   refreshData: () => void;
-  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal') => void;
+  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts') => void;
   getFilteredTrades: () => Trade[];
 }
 
@@ -231,6 +232,76 @@ const extractPositionDetails = (actionText: string) => {
   }
   
   return details;
+};
+
+// Parse ProjectX date format (e.g., "12/17/2025 09:53:12 -08:00")
+const parseProjectXDate = (dateTimeStr: string): { date: string; time: string } => {
+  if (!dateTimeStr) {
+    return { date: new Date().toISOString().split('T')[0], time: '10:00 AM' };
+  }
+
+  try {
+    // ProjectX format: "12/17/2025 09:53:12 -08:00"
+    const parts = dateTimeStr.split(' ');
+    const datePart = parts[0]; // "12/17/2025"
+    const timePart = parts[1]; // "09:53:12"
+
+    // Parse date (MM/DD/YYYY) to YYYY-MM-DD
+    const [month, day, year] = datePart.split('/');
+    const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+    // Parse time to 12-hour format
+    const [hours, minutes] = timePart.split(':');
+    const hour = parseInt(hours);
+    let displayHour = hour;
+    let ampm = 'AM';
+
+    if (hour === 0) {
+      displayHour = 12;
+      ampm = 'AM';
+    } else if (hour === 12) {
+      displayHour = 12;
+      ampm = 'PM';
+    } else if (hour > 12) {
+      displayHour = hour - 12;
+      ampm = 'PM';
+    }
+
+    const formattedTime = `${displayHour}:${minutes} ${ampm}`;
+
+    return {
+      date: formattedDate,
+      time: formattedTime
+    };
+  } catch (error) {
+    console.warn('Error parsing ProjectX date:', dateTimeStr, error);
+    return { date: new Date().toISOString().split('T')[0], time: '10:00 AM' };
+  }
+};
+
+// Parse ProjectX duration format (e.g., "00:10:17.2437970") to minutes
+const parseProjectXDuration = (durationStr: string): number => {
+  if (!durationStr) return 30; // Default 30 minutes
+
+  try {
+    // Format: "HH:MM:SS.milliseconds"
+    const [timePart] = durationStr.split('.');
+    const [hours, minutes, seconds] = timePart.split(':').map(Number);
+
+    // Convert to total minutes
+    const totalMinutes = hours * 60 + minutes + (seconds > 30 ? 1 : 0);
+    return Math.max(1, totalMinutes); // Minimum 1 minute
+  } catch (error) {
+    console.warn('Error parsing ProjectX duration:', durationStr, error);
+    return 30;
+  }
+};
+
+// Detect if data is from ProjectX (Topstep, TopOne Futures, etc.)
+const isProjectXFormat = (columns: string[]): boolean => {
+  const projectXColumns = ['ContractName', 'EnteredAt', 'ExitedAt', 'EntryPrice', 'ExitPrice', 'PnL', 'Size', 'Type'];
+  const matchCount = projectXColumns.filter(col => columns.includes(col)).length;
+  return matchCount >= 5; // At least 5 matching columns
 };
 
 // Calculate realistic duration based on P&L and position type
@@ -694,6 +765,8 @@ export const useTradingStore = create<TradingState>((set, get) => ({
 
     saveTradesToStorage(allTrades);
     saveSettingsToStorage({ hasImportedData: true, lastImportTime: Date.now() });
+
+    toast.success(`Trade added: ${tradeData.symbol}`);
   },
 
   updateTrade: (id: string, updates: Partial<Trade>) => {
@@ -712,6 +785,8 @@ export const useTradingStore = create<TradingState>((set, get) => ({
     });
 
     saveTradesToStorage(updatedTrades);
+
+    toast.success('Trade updated');
   },
 
   deleteTrade: (id: string) => {
@@ -725,6 +800,8 @@ export const useTradingStore = create<TradingState>((set, get) => ({
     });
 
     saveTradesToStorage(updatedTrades);
+
+    toast.success('Trade deleted');
   },
 
   deleteTrades: (ids: string[]) => {
@@ -739,6 +816,8 @@ export const useTradingStore = create<TradingState>((set, get) => ({
     });
 
     saveTradesToStorage(updatedTrades);
+
+    toast.success(`${ids.length} trade${ids.length > 1 ? 's' : ''} deleted`);
   },
 
   addTrades: (newTrades: Trade[]) => {
@@ -828,7 +907,7 @@ export const useTradingStore = create<TradingState>((set, get) => ({
     set(state => ({ sidebarCollapsed: !state.sidebarCollapsed }));
   },
 
-  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal') => {
+  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts') => {
     set({ currentView: view });
   },
 
@@ -951,16 +1030,113 @@ export const useTradingStore = create<TradingState>((set, get) => ({
         throw new Error('No data found in file');
       }
 
-      // Check for TradingView specific columns based on your exact CSV structure
       const firstRow = data[0];
       const availableColumns = Object.keys(firstRow);
-      
+
       console.log('Available columns:', availableColumns);
       console.log('First row sample:', firstRow);
-      
-      // Required columns from your TradingView CSV
+
+      // Check if this is ProjectX format (Topstep, TopOne Futures, etc.)
+      if (isProjectXFormat(availableColumns)) {
+        console.log('Detected ProjectX format (Prop Firm export)');
+        return processProjectXData(data, errors, newTrades);
+      }
+
+      // Otherwise, process as TradingView format
+      console.log('Processing as TradingView format');
+      return processTradingViewData(data, errors, newTrades);
+    }
+
+    // Process ProjectX/Prop Firm data (Topstep, TopOne Futures, etc.)
+    function processProjectXData(data: any[], errors: string[], newTrades: Trade[]): ImportResult {
+      let successfulImports = 0;
+
+      data.forEach((row, index) => {
+        try {
+          // Extract data from ProjectX CSV format
+          const contractName = row['ContractName'] || '';
+          const enteredAt = row['EnteredAt'] || '';
+          const exitedAt = row['ExitedAt'] || '';
+          const entryPrice = parseNumber(row['EntryPrice']);
+          const exitPrice = parseNumber(row['ExitPrice']);
+          const fees = parseNumber(row['Fees']) || 0;
+          const pnl = parseNumber(row['PnL']);
+          const size = parseNumber(row['Size']) || 1;
+          const type = row['Type'] || 'Long'; // Long or Short
+          const tradeDuration = row['TradeDuration'] || '';
+          const commissions = parseNumber(row['Commissions']) || 0;
+
+          // Skip rows with no P&L or contract name
+          if (!contractName || pnl === 0) {
+            return;
+          }
+
+          // Parse entry date/time
+          const { date, time } = parseProjectXDate(enteredAt);
+
+          // Parse duration from ProjectX format or calculate from entry/exit times
+          let duration = parseProjectXDuration(tradeDuration);
+          if (duration === 0 || duration === 30) {
+            // Fallback: calculate from entry and exit times
+            duration = calculateRealisticDuration(pnl, type);
+          }
+
+          // Normalize the side value
+          const side: 'Long' | 'Short' = type.toLowerCase() === 'short' ? 'Short' : 'Long';
+
+          // Total fees (fees + commissions)
+          const totalFees = fees + commissions;
+
+          // Create trade object
+          const trade: Trade = {
+            id: `projectx-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+            date: date,
+            symbol: contractName,
+            entryPrice: Math.round(entryPrice * 1000000) / 1000000, // Keep precision for futures
+            exitPrice: Math.round(exitPrice * 1000000) / 1000000,
+            quantity: size,
+            netPL: Math.round(pnl * 100) / 100,
+            duration: duration,
+            outcome: pnl > 0 ? 'win' : 'loss',
+            time: time,
+            side: side,
+            commission: Math.round(totalFees * 100) / 100,
+            notes: `Imported from ProjectX (Prop Firm)`
+          };
+
+          newTrades.push(trade);
+          successfulImports++;
+
+        } catch (error) {
+          errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      });
+
+      console.log(`Processed ${newTrades.length} trades from ProjectX import`);
+      console.log('Sample imported trades:', newTrades.slice(0, 3));
+
+      // Replace all trades with imported data
+      if (newTrades.length > 0) {
+        get().replaceTrades(newTrades);
+        console.log('All trades replaced with ProjectX imported data');
+      }
+
+      return {
+        totalRows: data.length,
+        successfulImports,
+        errors: errors.slice(0, 10)
+      };
+    }
+
+    // Process TradingView data
+    function processTradingViewData(data: any[], errors: string[], newTrades: Trade[]): ImportResult {
+      let successfulImports = 0;
+      const firstRow = data[0];
+      const availableColumns = Object.keys(firstRow);
+
+      // Required columns from TradingView CSV
       const requiredColumns = ['Time', 'Realized P&L (value)', 'Action'];
-      const missingColumns = requiredColumns.filter(col => 
+      const missingColumns = requiredColumns.filter(col =>
         !availableColumns.includes(col)
       );
 
@@ -1024,11 +1200,11 @@ export const useTradingStore = create<TradingState>((set, get) => ({
           // Calculate entry and exit prices (estimated from P&L and quantity)
           const quantity = positionDetails.quantity || 100;
           const avgPrice = positionDetails.price || 5000; // Default for futures
-          
+
           // For futures, the P&L is already calculated, so we estimate prices
           let entryPrice = avgPrice;
           let exitPrice = avgPrice;
-          
+
           // Estimate price movement based on P&L
           if (quantity > 0) {
             const priceChange = netPL / quantity;

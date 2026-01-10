@@ -226,13 +226,88 @@ trades.reduce((sum, t) => sum + t.netPL, 0)  // Total P&L
 
 ---
 
-## What's Next?
+---
 
-Phase 2 will focus on UI/UX improvements:
-- Theme toggle (dark/light mode)
-- Keyboard shortcuts
-- Better animations
-- Chart improvements
+## Phase 2: UI/UX Improvements (January 2026)
+
+### What We Did
+
+#### 1. Theme Toggle (Dark/Light Mode)
+**Before:** Only dark mode
+**After:** Users can switch between dark and light themes
+
+**How it works:**
+```
+User clicks Sun/Moon icon in sidebar
+    ↓
+toggleTheme() function runs
+    ↓
+Theme state changes in themeStore
+    ↓
+CSS variables update via data-theme attribute
+    ↓
+All colors smoothly transition
+```
+
+**Files created:**
+| File | Purpose |
+|------|---------|
+| `src/store/themeStore.ts` | Stores theme preference |
+| `src/index.css` | CSS variables for colors |
+
+**Key concepts:**
+- **CSS Variables**: Colors like `--bg-primary` change based on theme
+- **data-theme attribute**: Applied to `<html>` element
+- **Smooth transitions**: CSS transitions on color changes
+
+#### 2. Toast Notifications
+**Before:** No feedback when actions happen
+**After:** Success/error messages slide in from the right
+
+**When toasts appear:**
+- Add a trade → "Trade added: AAPL"
+- Edit a trade → "Trade updated"
+- Delete a trade → "Trade deleted"
+
+**How it works:**
+```
+User adds a trade
+    ↓
+addTrade() in store calls toast.success()
+    ↓
+Toast added to toastStore array
+    ↓
+ToastContainer renders the toast
+    ↓
+After 4 seconds, toast auto-removes
+```
+
+**Files created:**
+| File | Purpose |
+|------|---------|
+| `src/store/toastStore.ts` | Manages toast messages |
+| `src/components/common/Toast.tsx` | Toast UI component |
+
+**Toast types:**
+```typescript
+toast.success("Message") // Green checkmark
+toast.error("Message")   // Red X
+toast.info("Message")    // Purple info icon
+```
+
+---
+
+## Summary of All Changes
+
+| Phase | Feature | Files Added |
+|-------|---------|-------------|
+| 1 | Refactor App.tsx | 5 dashboard components |
+| 1 | Custom hooks | 3 hook files |
+| 1 | localStorage persistence | useLocalStorage.ts |
+| 1 | Trade CRUD | TradeFormModal.tsx |
+| 1 | Journal feature | Journal.tsx |
+| 2 | Theme toggle | themeStore.ts |
+| 2 | Toast notifications | Toast.tsx, toastStore.ts |
 
 ---
 
