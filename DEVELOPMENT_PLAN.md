@@ -260,6 +260,71 @@ src/
 
 ---
 
+## Phase 5: Enterprise Edition & Monetization
+
+### 5.1 Licensing Model (Papermark-style)
+
+**Current Setup:**
+- AGPL-3.0 license for the entire codebase
+- All features are open source and free
+- Self-hosters can use everything for free
+- Competitors could fork and host as SaaS (though AGPL requires source disclosure)
+
+**Future Setup (like [Papermark](https://github.com/mfts/papermark)):**
+- AGPL-3.0 for the **core** codebase (stays free forever)
+- New `/ee` folder with **commercial license** for premium features
+- This protects premium features while keeping core open source
+
+**Folder Structure to Add:**
+```
+/ee
+├── LICENSE                    # Commercial/Enterprise license
+├── README.md                  # What's in Enterprise Edition
+└── features/
+    ├── cloud-sync/            # Sync trades across devices
+    ├── team-accounts/         # Multiple users per account
+    ├── advanced-analytics/    # AI insights, pattern detection
+    ├── broker-integrations/   # Direct API connections
+    └── white-label/           # Custom branding for firms
+```
+
+**How It Works:**
+| Feature | Core (AGPL) | Enterprise (/ee) |
+|---------|-------------|------------------|
+| Local trade import | ✅ Free | - |
+| Multi-account support | ✅ Free | - |
+| Calendar & charts | ✅ Free | - |
+| Playbooks & journal | ✅ Free | - |
+| Cloud sync | - | 💰 Paid |
+| Team/firm accounts | - | 💰 Paid |
+| AI pattern detection | - | 💰 Paid |
+| Broker API connections | - | 💰 Paid |
+| Priority support | - | 💰 Paid |
+
+**Benefits:**
+- ✅ Self-hosters always get core free
+- ✅ Revenue from hosted version + premium features
+- ✅ Competitors can't just fork and compete as SaaS
+- ✅ Clear separation between free and paid code
+
+### 5.2 Implementation Steps
+- [x] Create `/ee` directory structure
+- [x] Add commercial license file to `/ee`
+- [x] Document which features go in core vs enterprise
+- [ ] Set up hosted version infrastructure
+- [ ] Implement license key validation for `/ee` features
+- [ ] Create pricing page and payment integration
+
+### 5.3 Hosted Version Features
+- [ ] User authentication (email, Google, GitHub)
+- [ ] Cloud database for trade storage
+- [ ] Automatic backups
+- [ ] Cross-device sync
+- [ ] Team workspaces for prop firms
+- [ ] Usage analytics dashboard
+
+---
+
 ## Development Guidelines
 
 ### Code Standards

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import clsx from 'clsx';
-import { useAccountStore } from '../store/accountStore';
+import { Trade } from '../store/tradingStore';
 
 interface CalendarData {
   date: string;
@@ -11,6 +11,7 @@ interface CalendarData {
 
 interface CalendarProps {
   data: CalendarData[];
+  trades: Trade[];
 }
 
 interface TradePreviewModalProps {
@@ -92,7 +93,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
         {/* Trades List */}
         <div className="p-6 max-h-[60vh] overflow-y-auto">
           <div className="space-y-3">
-            {trades.map((trade, index) => (
+            {trades.map((trade) => (
               <div
                 key={trade.id}
                 className="p-4 rounded-lg border border-[#1F2937] hover:border-[#3BF68A]/30 transition-all duration-200"
@@ -158,7 +159,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
   );
 };
 
-export const Calendar: React.FC<CalendarProps> = ({ data }) => {
+export const Calendar: React.FC<CalendarProps> = ({ data, trades }) => {
   // Start with the month that has the most recent trade data
   const getInitialDate = () => {
     if (data.length === 0) {
@@ -232,12 +233,6 @@ export const Calendar: React.FC<CalendarProps> = ({ data }) => {
     return date > today;
   };
   
-  // Helper function to check if we're viewing the current month
-  const isCurrentMonth = () => {
-    const today = new Date();
-    return year === today.getFullYear() && month === today.getMonth();
-  };
-  
   // Get day data from the actual data prop passed from App.tsx
   const getDayData = (day: number) => {
     const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -247,7 +242,6 @@ export const Calendar: React.FC<CalendarProps> = ({ data }) => {
   // Get trades for a specific date
   const getTradesForDate = (day: number) => {
     const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const trades = useAccountStore.getState().getAllTrades();
     return trades.filter(trade => trade.date === dateString);
   };
   
@@ -255,10 +249,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data }) => {
   const calculateDayWinRate = (dayData: CalendarData | undefined) => {
     if (!dayData || dayData.trades === 0) return 0;
     
-    // Get trades from the account store
-    const trades = useAccountStore.getState().getAllTrades();
-    
-    // Get all trades for this specific date
+    // Get all trades for this specific date from the trades prop
     const dayTrades = trades.filter(trade => trade.date === dayData.date);
     
     if (dayTrades.length === 0) return 0;

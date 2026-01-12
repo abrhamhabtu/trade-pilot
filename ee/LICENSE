@@ -1,0 +1,42 @@
+TradePilot Enterprise Edition License
+
+Copyright (c) 2026 Abrham Habtu
+
+The TradePilot Enterprise Edition (all files in the /ee directory) is NOT 
+open source and is licensed under a commercial license.
+
+Enterprise Edition Terms:
+-------------------------
+
+1. You may NOT use, copy, modify, or distribute the code in this directory
+   without a valid commercial license from TradePilot.
+
+2. Self-hosting the Enterprise Edition features requires a valid license key.
+
+3. The Enterprise Edition is available as part of:
+   - TradePilot Pro subscription (hosted version)
+   - TradePilot Enterprise license (self-hosted with support)
+
+4. For licensing inquiries, contact: [your-email@example.com]
+
+---
+
+The core TradePilot application (all files OUTSIDE the /ee directory) is 
+licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+See the LICENSE file in the root directory for details.
+
+---
+
+WHY THIS STRUCTURE?
+
+This dual-licensing model allows us to:
+- Keep the core trading journal FREE and open source forever
+- Fund development through premium features
+- Prevent competitors from simply forking and competing as SaaS
+- Provide enterprise support for prop firms and institutions
+
+This approach is used by successful open-source companies like:
+- GitLab (MIT + EE)
+- Sentry (BSL)
+- Cal.com (AGPLv3 + EE)
+- Papermark (AGPLv3 + EE)

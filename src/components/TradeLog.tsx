@@ -23,10 +23,9 @@ interface TradeLogProps {
   trades: Trade[];
 }
 
-export const TradeLog: React.FC<TradeLogProps> = ({ trades: propTrades }) => {
-  // Get trades from store to ensure we have the latest data
+export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
+  // Get action functions from store (these still work but will need refactoring for account-based actions)
   const {
-    trades: storeTrades,
     hasImportedData,
     isLoading,
     refreshData,
@@ -36,8 +35,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades: propTrades }) => {
     deleteTrades
   } = useTradingStore();
 
-  // Use store trades if available, otherwise use prop trades
-  const trades = storeTrades.length > 0 ? storeTrades : propTrades;
+  // Use trades prop directly - these are already filtered by account in App.tsx
 
   const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
   const [sortField, setSortField] = useState<keyof Trade>('date');

@@ -76,7 +76,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Calendar Section */}
       <div className="mb-8">
-        <Calendar data={calendarData} />
+        <Calendar data={calendarData} trades={trades} />
       </div>
 
       <CoachingTipCard

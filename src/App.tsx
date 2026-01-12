@@ -194,7 +194,13 @@ function App() {
     setTimePeriod
   } = useTradingStore();
 
-  const { getAllTrades, addTradesToAccount, selectedAccountId } = useAccountStore();
+  const { 
+    getAllTrades, 
+    addTradesToAccount, 
+    selectedAccountId, 
+    showAllAccounts,
+    accounts 
+  } = useAccountStore();
   
   const [showImportModal, setShowImportModal] = useState(false);
   const [importTargetAccountId, setImportTargetAccountId] = useState<string | null>(null);
@@ -202,8 +208,10 @@ function App() {
   const { theme } = useThemeStore();
   const { toasts, removeToast } = useToastStore();
 
-  // Get trades from account store
-  const allAccountTrades = getAllTrades();
+  // Get trades from account store - re-compute when selectedAccountId or accounts change
+  const allAccountTrades = useMemo(() => {
+    return getAllTrades();
+  }, [selectedAccountId, showAllAccounts, accounts, getAllTrades]);
   
   // Filter trades by time period
   const displayTrades = useMemo(() => {
@@ -258,7 +266,7 @@ function App() {
       case 'calendar':
         return (
           <div className="p-6">
-            <Calendar data={calendarData} />
+            <Calendar data={calendarData} trades={displayTrades} />
           </div>
         );
 
