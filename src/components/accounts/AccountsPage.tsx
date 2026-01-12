@@ -171,6 +171,332 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
   );
 };
 
+// Edit Account Modal
+interface EditAccountModalProps {
+  account: Account | null;
+  onClose: () => void;
+  onSave: (id: string, name: string, broker: string) => void;
+  onDelete: (account: Account) => void;
+  onImport: (accountId: string) => void;
+  onClearTrades: (accountId: string) => void;
+}
+
+const EditAccountModal: React.FC<EditAccountModalProps> = ({ 
+  account, 
+  onClose, 
+  onSave, 
+  onDelete,
+  onImport,
+  onClearTrades
+}) => {
+  const [name, setName] = useState(account?.name || '');
+  const [broker, setBroker] = useState(account?.broker || '');
+  const [showBrokerDropdown, setShowBrokerDropdown] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const { theme } = useThemeStore();
+
+  // Update state when account changes
+  React.useEffect(() => {
+    if (account) {
+      setName(account.name);
+      setBroker(account.broker);
+    }
+  }, [account]);
+
+  if (!account) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim() && broker.trim()) {
+      onSave(account.id, name.trim(), broker.trim());
+      onClose();
+    }
+  };
+
+  const handleDelete = () => {
+    onDelete(account);
+    onClose();
+  };
+
+  const handleClearTrades = () => {
+    onClearTrades(account.id);
+    setShowClearConfirm(false);
+    toast.success(`Cleared all trades from ${account.name}`);
+  };
+
+  const handleImport = () => {
+    onImport(account.id);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div 
+        className={clsx(
+          'rounded-xl border max-w-md w-full',
+          theme === 'dark' 
+            ? 'bg-[#15181F] border-[#1F2937]' 
+            : 'bg-white border-gray-200'
+        )}
+      >
+        {/* Header */}
+        <div className={clsx(
+          'p-6 border-b',
+          theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+        )}>
+          <h2 className={clsx(
+            'text-xl font-bold',
+            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+          )}>Edit Account</h2>
+          <p className={clsx(
+            'text-sm mt-1',
+            theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+          )}>Update account details or manage trades</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Account Name */}
+          <div>
+            <label className={clsx(
+              'block text-sm font-medium mb-2',
+              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+            )}>
+              Account Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., My Topstep Account"
+              className={clsx(
+                'w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
+                theme === 'dark'
+                  ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                  : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
+              )}
+              required
+            />
+          </div>
+
+          {/* Broker Dropdown */}
+          <div>
+            <label className={clsx(
+              'block text-sm font-medium mb-2',
+              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+            )}>
+              Broker / Platform
+            </label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowBrokerDropdown(!showBrokerDropdown)}
+                className={clsx(
+                  'w-full px-4 py-3 rounded-lg border text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
+                  theme === 'dark'
+                    ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB]'
+                    : 'bg-gray-50 border-gray-300 text-gray-900'
+                )}
+              >
+                <span className={!broker ? (theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400') : ''}>
+                  {broker || 'Select a broker'}
+                </span>
+                <ChevronDown className={clsx(
+                  'h-5 w-5 transition-transform',
+                  showBrokerDropdown && 'rotate-180'
+                )} />
+              </button>
+
+              {showBrokerDropdown && (
+                <div className={clsx(
+                  'absolute z-10 w-full mt-1 rounded-lg border shadow-xl max-h-48 overflow-y-auto',
+                  theme === 'dark'
+                    ? 'bg-[#15181F] border-[#1F2937]'
+                    : 'bg-white border-gray-200'
+                )}>
+                  {BROKER_OPTIONS.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => {
+                        setBroker(option);
+                        setShowBrokerDropdown(false);
+                      }}
+                      className={clsx(
+                        'w-full px-4 py-2 text-left text-sm transition-colors',
+                        theme === 'dark'
+                          ? 'text-[#E5E7EB] hover:bg-[#1F2937]'
+                          : 'text-gray-700 hover:bg-gray-100',
+                        broker === option && (theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-100')
+                      )}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Account Stats */}
+          <div className={clsx(
+            'rounded-lg p-4 border',
+            theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+          )}>
+            <div className="flex justify-between items-center mb-2">
+              <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>Total Trades</span>
+              <span className={clsx('font-semibold', theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900')}>
+                {account.trades.length}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>Balance</span>
+              <span className={clsx('font-semibold', account.balance >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]')}>
+                ${Math.abs(account.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={handleImport}
+              className={clsx(
+                'w-full px-4 py-3 rounded-lg border font-medium flex items-center justify-center space-x-2 transition-all',
+                theme === 'dark'
+                  ? 'border-[#3BF68A]/30 text-[#3BF68A] hover:bg-[#3BF68A]/10'
+                  : 'border-green-300 text-green-600 hover:bg-green-50'
+              )}
+            >
+              <Upload className="h-4 w-4" />
+              <span>Import Trades</span>
+            </button>
+
+            {account.trades.length > 0 && (
+              <>
+                {!showClearConfirm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowClearConfirm(true)}
+                    className={clsx(
+                      'w-full px-4 py-3 rounded-lg border font-medium flex items-center justify-center space-x-2 transition-all',
+                      theme === 'dark'
+                        ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50'
+                        : 'border-gray-300 text-gray-600 hover:text-gray-900'
+                    )}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>Clear All Trades</span>
+                  </button>
+                ) : (
+                  <div className={clsx(
+                    'p-3 rounded-lg border',
+                    theme === 'dark' ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-yellow-50 border-yellow-200'
+                  )}>
+                    <p className={clsx('text-sm mb-2', theme === 'dark' ? 'text-yellow-400' : 'text-yellow-700')}>
+                      Clear all {account.trades.length} trades? This cannot be undone.
+                    </p>
+                    <div className="flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={handleClearTrades}
+                        className="flex-1 px-3 py-2 bg-yellow-500 text-black text-sm font-medium rounded-lg hover:bg-yellow-400 transition-all"
+                      >
+                        Yes, Clear
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowClearConfirm(false)}
+                        className={clsx(
+                          'flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-all',
+                          theme === 'dark'
+                            ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB]'
+                            : 'border-gray-300 text-gray-600 hover:text-gray-900'
+                        )}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Delete Account Section */}
+          {account.type !== 'demo' && (
+            <div className={clsx(
+              'pt-4 border-t',
+              theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+            )}>
+              {!showDeleteConfirm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full px-4 py-3 rounded-lg border border-red-500/30 text-red-500 font-medium flex items-center justify-center space-x-2 hover:bg-red-500/10 transition-all"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Delete Account</span>
+                </button>
+              ) : (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                  <p className="text-sm text-red-400 mb-2">
+                    Delete this account and all its trades? This cannot be undone.
+                  </p>
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      className="flex-1 px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-all"
+                    >
+                      Yes, Delete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className={clsx(
+                        'flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-all',
+                        theme === 'dark'
+                          ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB]'
+                          : 'border-gray-300 text-gray-600 hover:text-gray-900'
+                      )}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Form Buttons */}
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className={clsx(
+                'flex-1 px-4 py-3 rounded-lg border font-medium transition-all',
+                theme === 'dark'
+                  ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50'
+                  : 'border-gray-300 text-gray-600 hover:text-gray-900 hover:border-purple-300'
+              )}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 interface AccountActionsMenuProps {
   account: Account;
   onEdit: () => void;
@@ -276,7 +602,7 @@ interface AccountsPageProps {
 }
 
 export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }) => {
-  const { accounts, addAccount, deleteAccount, selectAccount, selectedAccountId } = useAccountStore();
+  const { accounts, addAccount, updateAccount, deleteAccount, selectAccount, selectedAccountId } = useAccountStore();
   const { theme } = useThemeStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -287,11 +613,18 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
     selectAccount(id);
   };
 
+  const handleSaveAccount = (id: string, name: string, broker: string) => {
+    updateAccount(id, { name, broker });
+    toast.success(`Account "${name}" updated`);
+  };
+
+  const handleClearTrades = (accountId: string) => {
+    updateAccount(accountId, { trades: [], balance: 0 });
+  };
+
   const handleDeleteAccount = (account: Account) => {
-    if (window.confirm(`Are you sure you want to delete "${account.name}"? This will remove all associated trades.`)) {
-      deleteAccount(account.id);
-      toast.success(`Account "${account.name}" deleted`);
-    }
+    deleteAccount(account.id);
+    toast.success(`Account "${account.name}" deleted`);
   };
 
   const formatBalance = (balance: number) => {
@@ -554,6 +887,19 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddAccount}
+      />
+
+      {/* Edit Account Modal */}
+      <EditAccountModal
+        account={editingAccount}
+        onClose={() => setEditingAccount(null)}
+        onSave={handleSaveAccount}
+        onDelete={handleDeleteAccount}
+        onImport={(accountId) => {
+          setEditingAccount(null);
+          onImportForAccount(accountId);
+        }}
+        onClearTrades={handleClearTrades}
       />
     </div>
   );
