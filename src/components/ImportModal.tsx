@@ -172,7 +172,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         const tradeDuration = row['TradeDuration'] || '';
         const commissions = parseNumber(row['Commissions']) || 0;
 
-        if (!contractName || pnl === 0) return;
+        // Skip rows without contract name - but allow pnl of 0 (rare but possible)
+        if (!contractName) return;
 
         const { date, time } = parseProjectXDate(enteredAt);
         let duration = parseProjectXDuration(tradeDuration);
@@ -182,6 +183,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
         const side: 'Long' | 'Short' = type.toLowerCase() === 'short' ? 'Short' : 'Long';
         const totalFees = fees + commissions;
+        
+        // PnL from Topstep/ProjectX is gross P&L - subtract fees to get net
+        const netPnL = pnl - totalFees;
 
         trades.push({
           id: `import-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
@@ -190,9 +194,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           entryPrice: Math.round(entryPrice * 1000000) / 1000000,
           exitPrice: Math.round(exitPrice * 1000000) / 1000000,
           quantity: size,
-          netPL: Math.round(pnl * 100) / 100,
+          netPL: Math.round(netPnL * 100) / 100,
           duration,
-          outcome: pnl > 0 ? 'win' : 'loss',
+          outcome: netPnL > 0 ? 'win' : 'loss',
           time,
           side,
           commission: Math.round(totalFees * 100) / 100,

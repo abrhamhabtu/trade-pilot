@@ -180,12 +180,29 @@ interface AccountActionsMenuProps {
 
 const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit, onDelete, onImport }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
   const { theme } = useThemeStore();
 
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8,
+        left: rect.right - 192 // 192px = w-48 (12rem)
+      });
+    }
+    
+    setIsOpen(!isOpen);
+  };
+
   return (
-    <div className="relative">
+    <div className="relative" onClick={(e) => e.stopPropagation()}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={handleToggle}
         className={clsx(
           'p-2 rounded-lg transition-colors',
           theme === 'dark'
@@ -199,15 +216,18 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
       {isOpen && (
         <>
           <div 
-            className="fixed inset-0 z-10" 
+            className="fixed inset-0 z-40" 
             onClick={() => setIsOpen(false)}
           />
-          <div className={clsx(
-            'absolute right-0 mt-2 w-48 rounded-lg border shadow-xl z-20',
-            theme === 'dark'
-              ? 'bg-[#15181F] border-[#1F2937]'
-              : 'bg-white border-gray-200'
-          )}>
+          <div 
+            className={clsx(
+              'fixed w-48 rounded-lg border shadow-xl z-50',
+              theme === 'dark'
+                ? 'bg-[#15181F] border-[#1F2937]'
+                : 'bg-white border-gray-200'
+            )}
+            style={{ top: menuPosition.top, left: menuPosition.left }}
+          >
             <button
               onClick={() => { onImport(); setIsOpen(false); }}
               className={clsx(

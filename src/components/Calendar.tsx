@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import clsx from 'clsx';
-import { useTradingStore } from '../store/tradingStore';
+import { useAccountStore } from '../store/accountStore';
 
 interface CalendarData {
   date: string;
@@ -247,7 +247,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data }) => {
   // Get trades for a specific date
   const getTradesForDate = (day: number) => {
     const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const { trades } = useTradingStore.getState();
+    const trades = useAccountStore.getState().getAllTrades();
     return trades.filter(trade => trade.date === dateString);
   };
   
@@ -255,8 +255,8 @@ export const Calendar: React.FC<CalendarProps> = ({ data }) => {
   const calculateDayWinRate = (dayData: CalendarData | undefined) => {
     if (!dayData || dayData.trades === 0) return 0;
     
-    // Get trades from the trading store
-    const { trades } = useTradingStore.getState();
+    // Get trades from the account store
+    const trades = useAccountStore.getState().getAllTrades();
     
     // Get all trades for this specific date
     const dayTrades = trades.filter(trade => trade.date === dayData.date);
