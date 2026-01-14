@@ -21,6 +21,8 @@ export interface Trade {
   side?: 'Long' | 'Short';
   commission?: number;
   notes?: string;
+  strategy?: string;
+  rMultiple?: number;
 }
 
 export interface TradingMetrics {
@@ -57,7 +59,7 @@ interface TradingState {
   isLoading: boolean;
   selectedTimePeriod: TimePeriod;
   sidebarCollapsed: boolean;
-  currentView: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts';
+  currentView: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine';
   hasImportedData: boolean;
   lastImportTime: number;
 
@@ -73,7 +75,7 @@ interface TradingState {
   toggleSidebar: () => void;
   importTrades: (file: File) => Promise<ImportResult>;
   refreshData: () => void;
-  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts') => void;
+  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine') => void;
   getFilteredTrades: () => Trade[];
 }
 
@@ -907,7 +909,7 @@ export const useTradingStore = create<TradingState>((set, get) => ({
     set(state => ({ sidebarCollapsed: !state.sidebarCollapsed }));
   },
 
-  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts') => {
+  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine') => {
     set({ currentView: view });
   },
 

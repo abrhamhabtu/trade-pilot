@@ -18,6 +18,7 @@ interface DashboardProps {
   isLoading: boolean;
   onRefresh: () => void;
   onImport: () => void;
+  onNavigateToRoutine?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -28,7 +29,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onTimePeriodChange,
   isLoading,
   onRefresh,
-  onImport
+  onImport,
+  onNavigateToRoutine
 }) => {
   const {
     radarData,
@@ -72,6 +74,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         durationPerformanceData={durationPerformanceData}
         trades={trades}
         consistencyScore={metrics.consistency}
+        onNavigateToRoutine={onNavigateToRoutine}
       />
 
       {/* Calendar Section */}

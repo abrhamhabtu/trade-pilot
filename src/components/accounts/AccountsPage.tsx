@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, MoreVertical, Upload, Trash2, Edit2, ChevronDown } from 'lucide-react';
-import { useAccountStore, Account } from '../../store/accountStore';
+import { Plus, MoreVertical, Upload, Trash2, Edit2, ChevronDown, FileText, Calendar, DollarSign, AlertTriangle, History, X } from 'lucide-react';
+import { useAccountStore, Account, ImportHistoryEntry } from '../../store/accountStore';
 import { useThemeStore } from '../../store/themeStore';
 import { toast } from '../../store/toastStore';
 import clsx from 'clsx';
@@ -171,6 +171,476 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
   );
 };
 
+// GitHub-style Delete Confirmation Modal
+interface DeleteConfirmModalProps {
+  isOpen: boolean;
+  account: Account | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ isOpen, account, onClose, onConfirm }) => {
+  const [confirmText, setConfirmText] = useState('');
+  const { theme } = useThemeStore();
+
+  if (!isOpen || !account) return null;
+
+  const isConfirmValid = confirmText === account.name;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isConfirmValid) {
+      onConfirm();
+      setConfirmText('');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+      <div className={clsx(
+        'rounded-xl border max-w-lg w-full',
+        theme === 'dark' ? 'bg-[#15181F] border-[#1F2937]' : 'bg-white border-gray-200'
+      )}>
+        {/* Warning Header */}
+        <div className={clsx(
+          'p-6 border-b',
+          theme === 'dark' ? 'border-[#1F2937] bg-red-500/5' : 'border-gray-200 bg-red-50'
+        )}>
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-full bg-red-500/20">
+              <AlertTriangle className="h-6 w-6 text-red-500" />
+            </div>
+            <div>
+              <h2 className={clsx(
+                'text-xl font-bold',
+                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+              )}>Delete Account</h2>
+              <p className={clsx(
+                'text-sm',
+                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+              )}>This action cannot be undone</p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Warning Message */}
+          <div className={clsx(
+            'p-4 rounded-lg border',
+            theme === 'dark' ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200'
+          )}>
+            <p className={clsx('text-sm', theme === 'dark' ? 'text-red-400' : 'text-red-600')}>
+              This will permanently delete the account <strong>"{account.name}"</strong> including:
+            </p>
+            <ul className={clsx('mt-2 space-y-1 text-sm', theme === 'dark' ? 'text-red-400/80' : 'text-red-500')}>
+              <li>• {account.trades.length} trade{account.trades.length !== 1 ? 's' : ''}</li>
+              <li>• {(account.importHistory || []).length} import record{(account.importHistory || []).length !== 1 ? 's' : ''}</li>
+              <li>• All account statistics and history</li>
+            </ul>
+          </div>
+
+          {/* Confirmation Input */}
+          <div>
+            <label className={clsx(
+              'block text-sm font-medium mb-2',
+              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+            )}>
+              To confirm, type <span className="font-mono font-bold text-red-500">"{account.name}"</span> below:
+            </label>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Type account name to confirm..."
+              className={clsx(
+                'w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-all font-mono',
+                isConfirmValid 
+                  ? 'focus:ring-red-500/50 border-red-500'
+                  : 'focus:ring-[#3BF68A]/50',
+                theme === 'dark'
+                  ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                  : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
+              )}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex space-x-3 pt-2">
+            <button
+              type="button"
+              onClick={() => { onClose(); setConfirmText(''); }}
+              className={clsx(
+                'flex-1 px-4 py-3 rounded-lg border font-medium transition-all',
+                theme === 'dark'
+                  ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB]'
+                  : 'border-gray-300 text-gray-600 hover:text-gray-900'
+              )}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!isConfirmValid}
+              className={clsx(
+                'flex-1 px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center space-x-2',
+                isConfirmValid
+                  ? 'bg-red-500 text-white hover:bg-red-600'
+                  : 'bg-red-500/30 text-red-500/50 cursor-not-allowed'
+              )}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Delete Forever</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Import History Modal
+interface ImportHistoryModalProps {
+  isOpen: boolean;
+  account: Account | null;
+  onClose: () => void;
+  onDeleteEntry: (entryId: string) => void;
+}
+
+const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account, onClose, onDeleteEntry }) => {
+  const { theme } = useThemeStore();
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
+  const [confirmInput, setConfirmInput] = React.useState('');
+
+  // Reset confirmation when modal closes or confirmDeleteId changes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setConfirmDeleteId(null);
+      setConfirmInput('');
+    }
+  }, [isOpen]);
+
+  React.useEffect(() => {
+    setConfirmInput('');
+  }, [confirmDeleteId]);
+
+  if (!isOpen || !account) return null;
+
+  const importHistory = account.importHistory || [];
+  const entryToDelete = confirmDeleteId ? importHistory.find(e => e.id === confirmDeleteId) : null;
+
+  const formatCurrency = (value: number) => {
+    const formatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(Math.abs(value));
+    return value < 0 ? `-${formatted}` : formatted;
+  };
+
+  const handleConfirmDelete = () => {
+    if (confirmDeleteId && entryToDelete && confirmInput.toUpperCase() === 'DELETE') {
+      onDeleteEntry(confirmDeleteId);
+      setConfirmDeleteId(null);
+      setConfirmInput('');
+    }
+  };
+
+  const isDeleteEnabled = confirmInput.toUpperCase() === 'DELETE';
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className={clsx(
+        'rounded-xl border max-w-2xl w-full max-h-[80vh] overflow-hidden',
+        theme === 'dark' ? 'bg-[#15181F] border-[#1F2937]' : 'bg-white border-gray-200'
+      )}>
+        {/* Header */}
+        <div className={clsx(
+          'p-6 border-b flex items-center justify-between',
+          theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+        )}>
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-[#A78BFA]/10">
+              <History className="h-5 w-5 text-[#A78BFA]" />
+            </div>
+            <div>
+              <h2 className={clsx(
+                'text-xl font-bold',
+                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+              )}>Import History</h2>
+              <p className={clsx(
+                'text-sm',
+                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+              )}>{account.name} • {importHistory.length} import{importHistory.length !== 1 ? 's' : ''}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className={clsx(
+              'p-2 rounded-lg transition-colors',
+              theme === 'dark'
+                ? 'text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937]'
+                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+            )}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto max-h-[60vh]">
+          {importHistory.length === 0 ? (
+            <div className={clsx(
+              'text-center py-12 rounded-lg border',
+              theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+            )}>
+              <FileText className={clsx('h-12 w-12 mx-auto mb-3', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')} />
+              <p className={clsx('text-sm font-medium', theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700')}>
+                No import history recorded
+              </p>
+              <p className={clsx('text-xs mt-2 max-w-sm mx-auto', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+                Import history tracking was just added. Your next CSV import will be recorded here with file name, date, trades count, and P&L.
+              </p>
+              <div className={clsx(
+                'mt-4 p-3 rounded-lg text-xs text-left max-w-sm mx-auto',
+                theme === 'dark' ? 'bg-[#1F2937]/50' : 'bg-gray-100'
+              )}>
+                <p className={clsx('font-medium mb-1', theme === 'dark' ? 'text-[#A78BFA]' : 'text-purple-600')}>
+                  What gets tracked:
+                </p>
+                <ul className={clsx('space-y-1', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+                  <li>• File name (e.g., trades_jan2026.csv)</li>
+                  <li>• Import date & time</li>
+                  <li>• Number of trades imported</li>
+                  <li>• Total P&L from those trades</li>
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {importHistory.slice().reverse().map((entry) => (
+                <div
+                  key={entry.id}
+                  className={clsx(
+                    'p-4 rounded-lg border transition-all',
+                    theme === 'dark'
+                      ? 'bg-[#0B0D10] border-[#1F2937] hover:border-[#3BF68A]/30'
+                      : 'bg-gray-50 border-gray-200 hover:border-purple-300'
+                  )}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3">
+                      <div className={clsx(
+                        'p-2 rounded-lg',
+                        theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-200'
+                      )}>
+                        <FileText className={clsx('h-5 w-5', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')} />
+                      </div>
+                      <div>
+                        <p className={clsx(
+                          'font-medium text-sm',
+                          theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                        )}>
+                          {entry.fileName}
+                        </p>
+                        <p className={clsx(
+                          'text-xs mt-1',
+                          theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                        )}>
+                          Imported on {entry.importedAt}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setConfirmDeleteId(entry.id)}
+                      className={clsx(
+                        'p-1.5 rounded-lg transition-colors',
+                        theme === 'dark'
+                          ? 'text-[#8B94A7] hover:text-red-400 hover:bg-red-500/10'
+                          : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                      )}
+                      title="Remove from history"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  {/* Stats */}
+                  <div className="grid grid-cols-3 gap-4 mt-4">
+                    <div className={clsx(
+                      'p-3 rounded-lg',
+                      theme === 'dark' ? 'bg-[#15181F]' : 'bg-white border border-gray-200'
+                    )}>
+                      <p className={clsx('text-xs', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+                        Trades
+                      </p>
+                      <p className={clsx(
+                        'text-lg font-bold mt-1',
+                        theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                      )}>
+                        {entry.tradesImported}
+                      </p>
+                    </div>
+                    <div className={clsx(
+                      'p-3 rounded-lg',
+                      theme === 'dark' ? 'bg-[#15181F]' : 'bg-white border border-gray-200'
+                    )}>
+                      <p className={clsx('text-xs', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+                        P&L
+                      </p>
+                      <p className={clsx(
+                        'text-lg font-bold mt-1',
+                        entry.totalPnL >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                      )}>
+                        {formatCurrency(entry.totalPnL)}
+                      </p>
+                    </div>
+                    <div className={clsx(
+                      'p-3 rounded-lg',
+                      theme === 'dark' ? 'bg-[#15181F]' : 'bg-white border border-gray-200'
+                    )}>
+                      <p className={clsx('text-xs', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+                        Date Range
+                      </p>
+                      <p className={clsx(
+                        'text-sm font-medium mt-1',
+                        theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                      )}>
+                        {entry.dateRange 
+                          ? `${entry.dateRange.from.slice(5)} - ${entry.dateRange.to.slice(5)}`
+                          : '—'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Delete Confirmation Overlay */}
+        {confirmDeleteId && entryToDelete && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-[60]">
+            <div className={clsx(
+              'rounded-xl border max-w-md w-full shadow-2xl',
+              theme === 'dark' ? 'bg-[#15181F] border-[#1F2937]' : 'bg-white border-gray-200'
+            )}>
+              {/* Header */}
+              <div className={clsx(
+                'p-5 border-b',
+                theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+              )}>
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-lg bg-red-500/10">
+                    <AlertTriangle className="h-5 w-5 text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className={clsx(
+                      'text-lg font-bold',
+                      theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                    )}>Delete Import Record</h3>
+                    <p className={clsx(
+                      'text-sm',
+                      theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                    )}>This action cannot be undone</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-5">
+                <div className={clsx(
+                  'p-4 rounded-lg mb-4',
+                  theme === 'dark' ? 'bg-red-500/10 border border-red-500/20' : 'bg-red-50 border border-red-200'
+                )}>
+                  <p className={clsx(
+                    'text-sm',
+                    theme === 'dark' ? 'text-red-400' : 'text-red-700'
+                  )}>
+                    You are about to delete the import record for:
+                  </p>
+                  <p className={clsx(
+                    'font-mono font-bold mt-2 text-sm break-all',
+                    theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                  )}>
+                    {entryToDelete.fileName}
+                  </p>
+                  <p className={clsx(
+                    'text-xs mt-2',
+                    theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                  )}>
+                    {entryToDelete.tradesImported} trades • {formatCurrency(entryToDelete.totalPnL)} P&L
+                  </p>
+                </div>
+
+                <p className={clsx(
+                  'text-sm mb-3',
+                  theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600'
+                )}>
+                  To confirm, type <span className="font-bold text-red-500">DELETE</span> below:
+                </p>
+
+                <input
+                  type="text"
+                  value={confirmInput}
+                  onChange={(e) => setConfirmInput(e.target.value)}
+                  placeholder="DELETE"
+                  className={clsx(
+                    'w-full px-4 py-3 rounded-lg border text-sm',
+                    theme === 'dark'
+                      ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#4B5563]'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400',
+                    'focus:outline-none focus:ring-2 focus:ring-red-500/50'
+                  )}
+                  autoFocus
+                />
+              </div>
+
+              {/* Footer */}
+              <div className={clsx(
+                'p-5 border-t flex justify-end space-x-3',
+                theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+              )}>
+                <button
+                  onClick={() => {
+                    setConfirmDeleteId(null);
+                    setConfirmInput('');
+                  }}
+                  className={clsx(
+                    'px-4 py-2 rounded-lg font-medium transition-colors',
+                    theme === 'dark'
+                      ? 'text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937]'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  )}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={!isDeleteEnabled}
+                  className={clsx(
+                    'px-4 py-2 rounded-lg font-medium transition-colors',
+                    isDeleteEnabled
+                      ? 'bg-red-500 text-white hover:bg-red-600'
+                      : theme === 'dark'
+                        ? 'bg-[#1F2937] text-[#4B5563] cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  )}
+                >
+                  Delete Forever
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Edit Account Modal
 interface EditAccountModalProps {
   account: Account | null;
@@ -179,6 +649,8 @@ interface EditAccountModalProps {
   onDelete: (account: Account) => void;
   onImport: (accountId: string) => void;
   onClearTrades: (accountId: string) => void;
+  onShowImportHistory: (account: Account) => void;
+  onShowDeleteConfirm: (account: Account) => void;
 }
 
 const EditAccountModal: React.FC<EditAccountModalProps> = ({ 
@@ -187,12 +659,13 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
   onSave, 
   onDelete,
   onImport,
-  onClearTrades
+  onClearTrades,
+  onShowImportHistory,
+  onShowDeleteConfirm
 }) => {
   const [name, setName] = useState(account?.name || '');
   const [broker, setBroker] = useState(account?.broker || '');
   const [showBrokerDropdown, setShowBrokerDropdown] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { theme } = useThemeStore();
 
@@ -214,11 +687,6 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
     }
   };
 
-  const handleDelete = () => {
-    onDelete(account);
-    onClose();
-  };
-
   const handleClearTrades = () => {
     onClearTrades(account.id);
     setShowClearConfirm(false);
@@ -229,6 +697,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
     onImport(account.id);
     onClose();
   };
+
+  const importCount = (account.importHistory || []).length;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -349,11 +819,25 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 {account.trades.length}
               </span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-2">
               <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>Balance</span>
               <span className={clsx('font-semibold', account.balance >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]')}>
                 ${Math.abs(account.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>CSV Imports</span>
+              <button
+                type="button"
+                onClick={() => onShowImportHistory(account)}
+                className={clsx(
+                  'font-semibold flex items-center space-x-1 hover:underline',
+                  theme === 'dark' ? 'text-[#A78BFA]' : 'text-purple-600'
+                )}
+              >
+                <span>{importCount}</span>
+                {importCount > 0 && <History className="h-3 w-3" />}
+              </button>
             </div>
           </div>
 
@@ -371,6 +855,20 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
             >
               <Upload className="h-4 w-4" />
               <span>Import Trades</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onShowImportHistory(account)}
+              className={clsx(
+                'w-full px-4 py-3 rounded-lg border font-medium flex items-center justify-center space-x-2 transition-all',
+                theme === 'dark'
+                  ? 'border-[#A78BFA]/30 text-[#A78BFA] hover:bg-[#A78BFA]/10'
+                  : 'border-purple-300 text-purple-600 hover:bg-purple-50'
+              )}
+            >
+              <History className="h-4 w-4" />
+              <span>{importCount > 0 ? `View Import History (${importCount})` : 'View Import History'}</span>
             </button>
 
             {account.trades.length > 0 && (
@@ -430,43 +928,14 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
               'pt-4 border-t',
               theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
             )}>
-              {!showDeleteConfirm ? (
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full px-4 py-3 rounded-lg border border-red-500/30 text-red-500 font-medium flex items-center justify-center space-x-2 hover:bg-red-500/10 transition-all"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Delete Account</span>
-                </button>
-              ) : (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                  <p className="text-sm text-red-400 mb-2">
-                    Delete this account and all its trades? This cannot be undone.
-                  </p>
-                  <div className="flex space-x-2">
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      className="flex-1 px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-all"
-                    >
-                      Yes, Delete
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteConfirm(false)}
-                      className={clsx(
-                        'flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-all',
-                        theme === 'dark'
-                          ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB]'
-                          : 'border-gray-300 text-gray-600 hover:text-gray-900'
-                      )}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => onShowDeleteConfirm(account)}
+                className="w-full px-4 py-3 rounded-lg border border-red-500/30 text-red-500 font-medium flex items-center justify-center space-x-2 hover:bg-red-500/10 transition-all"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete Account</span>
+              </button>
             </div>
           )}
 
@@ -602,10 +1071,12 @@ interface AccountsPageProps {
 }
 
 export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }) => {
-  const { accounts, addAccount, updateAccount, deleteAccount, selectAccount, selectedAccountId } = useAccountStore();
+  const { accounts, addAccount, updateAccount, deleteAccount, selectAccount, selectedAccountId, deleteImportHistoryEntry } = useAccountStore();
   const { theme } = useThemeStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [showImportHistory, setShowImportHistory] = useState<Account | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<Account | null>(null);
 
   const handleAddAccount = (name: string, broker: string) => {
     const id = addAccount({ name, broker, type: 'file_upload' });
@@ -619,12 +1090,26 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
   };
 
   const handleClearTrades = (accountId: string) => {
-    updateAccount(accountId, { trades: [], balance: 0 });
+    updateAccount(accountId, { trades: [], balance: 0, importHistory: [] });
   };
 
   const handleDeleteAccount = (account: Account) => {
     deleteAccount(account.id);
+    setShowDeleteConfirm(null);
+    setEditingAccount(null);
     toast.success(`Account "${account.name}" deleted`);
+  };
+
+  const handleDeleteImportEntry = (entryId: string) => {
+    if (showImportHistory) {
+      deleteImportHistoryEntry(showImportHistory.id, entryId);
+      // Refresh the account data
+      const updatedAccount = accounts.find(a => a.id === showImportHistory.id);
+      if (updatedAccount) {
+        setShowImportHistory(updatedAccount);
+      }
+      toast.success('Import record removed');
+    }
   };
 
   const formatBalance = (balance: number) => {
@@ -815,7 +1300,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                   <AccountActionsMenu
                     account={account}
                     onEdit={() => setEditingAccount(account)}
-                    onDelete={() => handleDeleteAccount(account)}
+                    onDelete={() => setShowDeleteConfirm(account)}
                     onImport={() => onImportForAccount(account.id)}
                   />
                 </div>
@@ -900,6 +1385,33 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           onImportForAccount(accountId);
         }}
         onClearTrades={handleClearTrades}
+        onShowImportHistory={(account) => {
+          setEditingAccount(null);
+          setShowImportHistory(account);
+        }}
+        onShowDeleteConfirm={(account) => {
+          setShowDeleteConfirm(account);
+        }}
+      />
+
+      {/* Import History Modal */}
+      <ImportHistoryModal
+        isOpen={showImportHistory !== null}
+        account={showImportHistory}
+        onClose={() => setShowImportHistory(null)}
+        onDeleteEntry={handleDeleteImportEntry}
+      />
+
+      {/* Delete Confirmation Modal (GitHub-style) */}
+      <DeleteConfirmModal
+        isOpen={showDeleteConfirm !== null}
+        account={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(null)}
+        onConfirm={() => {
+          if (showDeleteConfirm) {
+            handleDeleteAccount(showDeleteConfirm);
+          }
+        }}
       />
     </div>
   );

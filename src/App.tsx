@@ -7,6 +7,7 @@ import { Calendar } from './components/Calendar';
 import { Journal } from './components/journal';
 import { ImportModal } from './components/ImportModal';
 import { AccountsPage, AccountSelector } from './components/accounts';
+import { RoutinePage } from './components/routine';
 import { ToastContainer } from './components/common/Toast';
 import { useTradingStore, Trade, TimePeriod } from './store/tradingStore';
 import { useAccountStore } from './store/accountStore';
@@ -191,7 +192,8 @@ function App() {
     isLoading,
     currentView,
     selectedTimePeriod,
-    setTimePeriod
+    setTimePeriod,
+    setCurrentView
   } = useTradingStore();
 
   const { 
@@ -249,6 +251,11 @@ function App() {
           <AccountsPage onImportForAccount={handleImportForAccount} />
         );
 
+      case 'routine':
+        return (
+          <RoutinePage />
+        );
+
       case 'trades':
         return (
           <div className="p-6">
@@ -288,6 +295,7 @@ function App() {
             isLoading={isLoading}
             onRefresh={refreshData}
             onImport={handleOpenImport}
+            onNavigateToRoutine={() => setCurrentView('routine')}
           />
         );
     }

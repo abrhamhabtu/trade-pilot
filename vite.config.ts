@@ -7,4 +7,8 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  server: {
+    port: 5173, // Always use this port for consistent localStorage
+    strictPort: true, // Fail if port is busy instead of using another one
+  },
 });

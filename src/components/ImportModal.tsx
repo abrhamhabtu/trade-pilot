@@ -343,9 +343,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         throw new Error('No valid trades found in file. Please check the file format.');
       }
 
-      // Add trades to target account
+      // Add trades to target account with filename for import history
       if (targetAccountId) {
-        addTradesToAccount(targetAccountId, result.trades);
+        addTradesToAccount(targetAccountId, result.trades, file.name);
       }
 
       // Call the callback if provided
@@ -361,7 +361,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         trades: result.trades
       });
 
-      toast.success(`Successfully imported ${result.trades.length} trades`);
+      toast.success(`Successfully imported ${result.trades.length} trades from ${file.name}`);
 
     } catch (error) {
       console.error('Error importing trades:', error);

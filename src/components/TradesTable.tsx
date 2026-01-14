@@ -46,13 +46,13 @@ export const TradesTable: React.FC<TradesTableProps> = ({ trades }) => {
       </div>
       
       <div className="relative z-10 h-full flex flex-col">
-        {/* Tab Headers - Compact like screenshot */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex items-center space-x-6">
+        {/* Tab Headers - Compact */}
+        <div className="px-4 pt-3 pb-1">
+          <div className="flex items-center space-x-4">
             <button
               onClick={() => setActiveTab('recent')}
               className={clsx(
-                'text-sm font-medium pb-1 border-b-2 transition-all duration-200 relative',
+                'text-xs font-medium pb-1 border-b-2 transition-all duration-200 relative',
                 activeTab === 'recent'
                   ? 'text-[#E5E7EB]'
                   : 'text-[#8B94A7] hover:text-[#E5E7EB]'
@@ -69,7 +69,7 @@ export const TradesTable: React.FC<TradesTableProps> = ({ trades }) => {
             <button
               onClick={() => setActiveTab('open')}
               className={clsx(
-                'text-sm font-medium pb-1 border-b-2 transition-all duration-200 relative',
+                'text-xs font-medium pb-1 border-b-2 transition-all duration-200 relative',
                 activeTab === 'open'
                   ? 'text-[#E5E7EB]'
                   : 'text-[#8B94A7] hover:text-[#E5E7EB]'
@@ -86,41 +86,41 @@ export const TradesTable: React.FC<TradesTableProps> = ({ trades }) => {
           </div>
         </div>
         
-        {/* Table Area - Takes up most space like screenshot */}
-        <div className="flex-1 px-4 pb-4 overflow-hidden">
+        {/* Table Area - Compact */}
+        <div className="flex-1 px-3 pb-2 overflow-hidden">
           <div className="h-full overflow-y-auto">
             <table className="w-full">
               <thead className="sticky top-0" style={{ background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)' }}>
                 <tr className="border-b border-[#1F2937]">
-                  <th className="text-left py-2 text-[#8B94A7] text-xs font-medium">
+                  <th className="text-left py-1.5 text-[#8B94A7] text-[10px] font-medium">
                     <button className="flex items-center space-x-1 hover:text-[#E5E7EB] transition-colors">
                       <span>Close Date</span>
-                      <ArrowUpDown className="h-3 w-3" />
+                      <ArrowUpDown className="h-2.5 w-2.5" />
                     </button>
                   </th>
-                  <th className="text-center py-2 text-[#8B94A7] text-xs font-medium">
+                  <th className="text-center py-1.5 text-[#8B94A7] text-[10px] font-medium">
                     Symbol
                   </th>
-                  <th className="text-right py-2 text-[#8B94A7] text-xs font-medium">
+                  <th className="text-right py-1.5 text-[#8B94A7] text-[10px] font-medium">
                     Net P&L
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {trades.map((trade, index) => (
+                {trades.map((trade) => (
                   <tr
                     key={trade.id}
                     className="border-b border-[#1F2937]/30 hover:bg-gradient-to-r hover:from-[#3BF68A]/5 hover:to-[#A78BFA]/5 transition-all duration-200"
                   >
-                    <td className="py-3 text-[#8B94A7] text-sm">
+                    <td className="py-2 text-[#8B94A7] text-xs">
                       {formatDate(trade.date)}
                     </td>
-                    <td className="py-3 text-center text-[#E5E7EB] text-sm font-medium">
+                    <td className="py-2 text-center text-[#E5E7EB] text-xs font-medium">
                       {trade.symbol}
                     </td>
-                    <td className="py-3 text-right">
+                    <td className="py-2 text-right">
                       <span className={clsx(
-                        'text-sm font-semibold',
+                        'text-xs font-semibold',
                         trade.netPL >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
                       )}>
                         {formatCurrency(trade.netPL)}
