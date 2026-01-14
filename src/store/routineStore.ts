@@ -100,6 +100,7 @@ interface RoutineState {
   
   // Rule compliance actions
   updateRuleCompliance: (date: string, ruleId: string, followed: boolean | null, notes?: string) => void;
+  batchUpdateRuleCompliance: (date: string, updates: Record<string, boolean>) => void;
   getRuleComplianceStats: (days?: number) => { ruleId: string; text: string; followedCount: number; totalDays: number; percentage: number }[];
   
   // Persistence
@@ -233,7 +234,12 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
 
   getGamePlan: (date) => {
     const { gamePlans } = get();
-    return gamePlans[date] || createEmptyGamePlan(date);
+    const plan = gamePlans[date] || createEmptyGamePlan(date);
+    // Ensure critical fields exist (defensive against old data)
+    if (!plan.ruleCompliance) plan.ruleCompliance = [];
+    if (!plan.keyLevels) plan.keyLevels = { support: [], resistance: [] };
+    if (!plan.watchlist) plan.watchlist = [];
+    return plan;
   },
 
   updateGamePlan: (date, plan) => {
@@ -388,15 +394,17 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
   updateRuleCompliance: (date, ruleId, followed, notes = '') => {
     set((state) => {
       const existing = state.gamePlans[date] || createEmptyGamePlan(date);
-      const complianceIndex = existing.ruleCompliance.findIndex((c) => c.ruleId === ruleId);
+      // Ensure ruleCompliance exists and is an array (defensive against old data)
+      const currentCompliance = Array.isArray(existing.ruleCompliance) ? existing.ruleCompliance : [];
+      const complianceIndex = currentCompliance.findIndex((c) => c.ruleId === ruleId);
       
       let newCompliance: DailyRuleCompliance[];
       if (complianceIndex >= 0) {
-        newCompliance = existing.ruleCompliance.map((c, i) =>
+        newCompliance = currentCompliance.map((c, i) =>
           i === complianceIndex ? { ...c, followed, notes } : c
         );
       } else {
-        newCompliance = [...existing.ruleCompliance, { ruleId, followed, notes }];
+        newCompliance = [...currentCompliance, { ruleId, followed, notes }];
       }
       
       const updated = { ...existing, ruleCompliance: newCompliance };
@@ -406,6 +414,33 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
         localStorage.setItem(GAMEPLAN_STORAGE_KEY, JSON.stringify(newPlans));
       } catch (e) {
         console.error('Failed to save rule compliance:', e);
+      }
+      return { gamePlans: newPlans };
+    });
+  },
+
+  batchUpdateRuleCompliance: (date, updates) => {
+    set((state) => {
+      const existing = state.gamePlans[date] || createEmptyGamePlan(date);
+      // Ensure ruleCompliance exists and is an array (defensive against old data)
+      let newCompliance = Array.isArray(existing.ruleCompliance) ? [...existing.ruleCompliance] : [];
+
+      Object.entries(updates).forEach(([ruleId, followed]) => {
+        const index = newCompliance.findIndex((c) => c.ruleId === ruleId);
+        if (index >= 0) {
+          newCompliance[index] = { ...newCompliance[index], followed, notes: '' };
+        } else {
+          newCompliance.push({ ruleId, followed, notes: '' });
+        }
+      });
+
+      const updated = { ...existing, ruleCompliance: newCompliance };
+      const newPlans = { ...state.gamePlans, [date]: updated };
+
+      try {
+        localStorage.setItem(GAMEPLAN_STORAGE_KEY, JSON.stringify(newPlans));
+      } catch (e) {
+        console.error('Failed to save batch rule compliance:', e);
       }
       return { gamePlans: newPlans };
     });

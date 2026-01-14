@@ -4,7 +4,6 @@ import { DashboardHeader } from './DashboardHeader';
 import { MetricsGrid } from './MetricsGrid';
 import { CoachingTipCard } from './CoachingTipCard';
 import { ChartsContainer } from './ChartsContainer';
-import { Calendar } from '../Calendar';
 import { useChartData } from '../../hooks/useChartData';
 import { useCoachingTips } from '../../hooks/useCoachingTips';
 import { Trade, TradingMetrics, TimePeriod } from '../../store/tradingStore';
@@ -70,17 +69,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
         radarData={radarData}
         cumulativePLData={cumulativePLData}
         dailyPLData={dailyPLData}
+        calendarData={calendarData}
         timePerformanceData={timePerformanceData}
         durationPerformanceData={durationPerformanceData}
         trades={trades}
         consistencyScore={metrics.consistency}
         onNavigateToRoutine={onNavigateToRoutine}
       />
-
-      {/* Calendar Section */}
-      <div className="mb-8">
-        <Calendar data={calendarData} trades={trades} />
-      </div>
 
       <CoachingTipCard
         title="Performance Insights"

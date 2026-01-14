@@ -6,11 +6,13 @@ import { ProgressTracker } from '../charts/ProgressTracker';
 import { TradesTable } from '../TradesTable';
 import { TimePerformanceChart } from '../charts/TimePerformanceChart';
 import { DurationPerformanceChart } from '../charts/DurationPerformanceChart';
+import { Calendar } from '../Calendar';
 import { Trade } from '../../store/tradingStore';
 import {
   RadarDataPoint,
   CumulativePLDataPoint,
   DailyPLDataPoint,
+  CalendarDataPoint,
   TimePerformanceDataPoint,
   DurationPerformanceDataPoint
 } from '../../hooks/useChartData';
@@ -19,6 +21,7 @@ interface ChartsContainerProps {
   radarData: RadarDataPoint[];
   cumulativePLData: CumulativePLDataPoint[];
   dailyPLData: DailyPLDataPoint[];
+  calendarData: CalendarDataPoint[];
   timePerformanceData: TimePerformanceDataPoint[];
   durationPerformanceData: DurationPerformanceDataPoint[];
   trades: Trade[];
@@ -30,6 +33,7 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
   radarData,
   cumulativePLData,
   dailyPLData,
+  calendarData,
   timePerformanceData,
   durationPerformanceData,
   trades,
@@ -52,22 +56,27 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
       {/* Third Row - Net daily P&L, Progress Tracker, and Recent trades */}
       <div className="grid grid-cols-12 gap-6 mb-6">
         {/* Net daily P&L - Square like TradeZilla */}
-        <div className="col-span-12 lg:col-span-4 h-[320px]">
+        <div className="col-span-12 lg:col-span-4 h-[360px]">
           <BarChartComponent
             data={dailyPLData}
             title="Net daily P&L"
           />
         </div>
-        
+
         {/* Progress Tracker - GitHub style heatmap */}
-        <div className="col-span-12 lg:col-span-4 h-[320px]">
+        <div className="col-span-12 lg:col-span-4 h-[360px]">
           <ProgressTracker onViewMore={onNavigateToRoutine} />
         </div>
-        
+
         {/* Recent Trades */}
-        <div className="col-span-12 lg:col-span-4 h-[320px]">
+        <div className="col-span-12 lg:col-span-4 h-[360px]">
           <TradesTable trades={trades.slice(0, 6)} />
         </div>
+      </div>
+
+      {/* Calendar Section - Moved above performance charts */}
+      <div className="mb-6">
+        <Calendar data={calendarData} trades={trades} />
       </div>
 
       {/* Performance Analysis Section - Condensed 2-column layout */}
