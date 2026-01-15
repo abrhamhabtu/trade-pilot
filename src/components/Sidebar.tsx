@@ -11,7 +11,8 @@ import {
   Sun,
   Moon,
   Users,
-  ClipboardCheck
+  ClipboardCheck,
+  Compass
 } from 'lucide-react';
 import { useTradingStore } from '../store/tradingStore';
 import { useThemeStore } from '../store/themeStore';
@@ -20,6 +21,7 @@ import clsx from 'clsx';
 const navigation = [
   { name: 'Dashboard', icon: BarChart3, view: 'dashboard' as const },
   { name: 'Accounts', icon: Users, view: 'accounts' as const },
+  { name: 'Journey', icon: Compass, view: 'journey' as const },
   { name: 'Routine', icon: ClipboardCheck, view: 'routine' as const },
   { name: 'Calendar', icon: Calendar, view: 'calendar' as const },
   { name: 'Trades', icon: TrendingUp, view: 'trades' as const },

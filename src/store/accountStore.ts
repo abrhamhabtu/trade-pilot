@@ -24,6 +24,11 @@ export interface Account {
   trades: Trade[];
   createdAt: string;
   importHistory: ImportHistoryEntry[];
+  // Journey fields
+  isFunded?: boolean;
+  profitTarget?: number;
+  startingBalance?: number;
+  pacingPreference?: 'conservative' | 'moderate' | 'aggressive';
 }
 
 interface AccountState {

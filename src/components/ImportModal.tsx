@@ -82,6 +82,31 @@ const isProjectXFormat = (columns: string[]): boolean => {
   return matchCount >= 5;
 };
 
+// Detect Tradovate format
+const isTradovateFormat = (columns: string[]): boolean => {
+  const tradovateColumns = ['orderId', 'execId', 'contractId', 'action', 'qty', 'price', 'filledQty', 'avgFillPrice'];
+  const altColumns = ['Account', 'B/S', 'Contract', 'Product', 'Qty', 'Price', 'P/L'];
+  const matchCount = tradovateColumns.filter(col => columns.some(c => c.toLowerCase().includes(col.toLowerCase()))).length;
+  const altMatchCount = altColumns.filter(col => columns.some(c => c.includes(col))).length;
+  return matchCount >= 4 || altMatchCount >= 4;
+};
+
+// Detect NinjaTrader format
+const isNinjaTraderFormat = (columns: string[]): boolean => {
+  const ninjaColumns = ['Instrument', 'Market pos.', 'Qty', 'Entry price', 'Exit price', 'Profit', 'Commission'];
+  const altColumns = ['Entry time', 'Exit time', 'Entry name', 'Exit name'];
+  const matchCount = ninjaColumns.filter(col => columns.some(c => c.includes(col))).length;
+  const altMatchCount = altColumns.filter(col => columns.some(c => c.includes(col))).length;
+  return matchCount >= 4 || (matchCount >= 2 && altMatchCount >= 2);
+};
+
+// Detect TradingView format
+const isTradingViewFormat = (columns: string[]): boolean => {
+  const tvColumns = ['Time', 'Action', 'Realized P&L', 'Balance'];
+  const matchCount = tvColumns.filter(col => columns.some(c => c.includes(col))).length;
+  return matchCount >= 2;
+};
+
 // Calculate realistic duration
 const calculateRealisticDuration = (netPL: number): number => {
   const absPL = Math.abs(netPL);
@@ -278,6 +303,151 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     return { trades, errors };
   };
 
+  const processTradovateData = (data: any[]): { trades: Trade[]; errors: string[] } => {
+    const trades: Trade[] = [];
+    const errors: string[] = [];
+
+    data.forEach((row, index) => {
+      try {
+        // Tradovate exports can have various column names
+        const symbol = row['Contract'] || row['contractId'] || row['Product'] || 'FUTURES';
+        const pnl = row['P/L'] || row['Profit'] || row['realizedPnl'] || 0;
+        const qty = row['Qty'] || row['qty'] || row['filledQty'] || 1;
+        const entryPrice = row['Entry Price'] || row['avgFillPrice'] || row['price'] || 0;
+        const exitPrice = row['Exit Price'] || row['price'] || 0;
+        const commission = row['Commission'] || row['commission'] || row['Fees'] || 0;
+        const dateTime = row['Date'] || row['timestamp'] || row['Time'] || '';
+        const action = row['B/S'] || row['action'] || row['Side'] || '';
+
+        const netPL = parseNumber(pnl);
+        if (netPL === 0 && !symbol) return;
+
+        // Parse date/time
+        let date = new Date().toISOString().split('T')[0];
+        let time = '10:00 AM';
+        
+        if (dateTime) {
+          try {
+            const dateObj = new Date(dateTime);
+            if (!isNaN(dateObj.getTime())) {
+              date = dateObj.toISOString().split('T')[0];
+              const hours = dateObj.getHours();
+              const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+              const ampm = hours >= 12 ? 'PM' : 'AM';
+              const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+              time = `${displayHour}:${minutes} ${ampm}`;
+            }
+          } catch {
+            // Use defaults
+          }
+        }
+
+        // Determine side
+        let side: 'Long' | 'Short' = 'Long';
+        const actionLower = action.toString().toLowerCase();
+        if (actionLower.includes('sell') || actionLower.includes('short') || actionLower === 's') {
+          side = 'Short';
+        }
+
+        const duration = calculateRealisticDuration(netPL);
+        const totalCommission = parseNumber(commission);
+
+        trades.push({
+          id: `import-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+          date,
+          symbol: symbol.toString(),
+          entryPrice: parseNumber(entryPrice),
+          exitPrice: parseNumber(exitPrice),
+          quantity: parseNumber(qty),
+          netPL: Math.round((netPL - totalCommission) * 100) / 100,
+          duration,
+          outcome: (netPL - totalCommission) > 0 ? 'win' : 'loss',
+          time,
+          side,
+          commission: Math.round(totalCommission * 100) / 100,
+          notes: ''
+        });
+      } catch (error) {
+        errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
+
+    return { trades, errors };
+  };
+
+  const processNinjaTraderData = (data: any[]): { trades: Trade[]; errors: string[] } => {
+    const trades: Trade[] = [];
+    const errors: string[] = [];
+
+    data.forEach((row, index) => {
+      try {
+        // NinjaTrader column names
+        const instrument = row['Instrument'] || row['Symbol'] || '';
+        const profit = row['Profit'] || row['Net profit'] || row['P&L'] || 0;
+        const qty = row['Qty'] || row['Quantity'] || 1;
+        const entryPrice = row['Entry price'] || row['Avg entry'] || 0;
+        const exitPrice = row['Exit price'] || row['Avg exit'] || 0;
+        const commission = row['Commission'] || row['Comm'] || 0;
+        const entryTime = row['Entry time'] || row['Time'] || '';
+        const marketPos = row['Market pos.'] || row['Position'] || row['Side'] || '';
+
+        if (!instrument) return;
+
+        const netPL = parseNumber(profit);
+        const totalCommission = parseNumber(commission);
+
+        // Parse date/time from entry time
+        let date = new Date().toISOString().split('T')[0];
+        let time = '10:00 AM';
+        
+        if (entryTime) {
+          try {
+            const dateObj = new Date(entryTime);
+            if (!isNaN(dateObj.getTime())) {
+              date = dateObj.toISOString().split('T')[0];
+              const hours = dateObj.getHours();
+              const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+              const ampm = hours >= 12 ? 'PM' : 'AM';
+              const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+              time = `${displayHour}:${minutes} ${ampm}`;
+            }
+          } catch {
+            // Use defaults
+          }
+        }
+
+        // Determine side from market position
+        let side: 'Long' | 'Short' = 'Long';
+        const posLower = marketPos.toString().toLowerCase();
+        if (posLower.includes('short') || posLower.includes('sell') || posLower === 's') {
+          side = 'Short';
+        }
+
+        const duration = calculateRealisticDuration(netPL);
+
+        trades.push({
+          id: `import-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+          date,
+          symbol: instrument.toString(),
+          entryPrice: parseNumber(entryPrice),
+          exitPrice: parseNumber(exitPrice),
+          quantity: parseNumber(qty),
+          netPL: Math.round((netPL - totalCommission) * 100) / 100,
+          duration,
+          outcome: (netPL - totalCommission) > 0 ? 'win' : 'loss',
+          time,
+          side,
+          commission: Math.round(totalCommission * 100) / 100,
+          notes: ''
+        });
+      } catch (error) {
+        errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
+
+    return { trades, errors };
+  };
+
   const handleFileImport = async (file: File) => {
     setImportStatus('processing');
     setImportResults(null);
@@ -333,9 +503,17 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       const columns = Object.keys(data[0]);
       let result: { trades: Trade[]; errors: string[] };
 
+      // Detect format and process accordingly
       if (isProjectXFormat(columns)) {
         result = processProjectXData(data);
+      } else if (isTradovateFormat(columns)) {
+        result = processTradovateData(data);
+      } else if (isNinjaTraderFormat(columns)) {
+        result = processNinjaTraderData(data);
+      } else if (isTradingViewFormat(columns)) {
+        result = processTradingViewData(data);
       } else {
+        // Fallback to TradingView parser as it's most flexible
         result = processTradingViewData(data);
       }
 
@@ -489,9 +667,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     <h4 className="text-[#E5E7EB] font-medium mb-2">Supported Platforms</h4>
                     <ul className="text-[#8B94A7] text-sm space-y-1">
                       <li>• <strong>TradingView:</strong> Export from Account History</li>
-                      <li>• <strong>ProjectX Prop Firms:</strong> Topstep, TopOne Futures, and others using ProjectX</li>
-                      <li>• <strong>Supported formats:</strong> CSV, XLSX, XLS (max 10MB)</li>
-                      <li>• <strong>Auto-detected:</strong> Format is automatically detected from column headers</li>
+                      <li>• <strong>Tradovate:</strong> Reports → Trade Activity → Export</li>
+                      <li>• <strong>NinjaTrader:</strong> Control Center → Account Data → Export</li>
+                      <li>• <strong>ProjectX Prop Firms:</strong> Topstep, TopOne Futures, and others</li>
+                      <li>• <strong>Formats:</strong> CSV, XLSX, XLS (max 10MB, auto-detected)</li>
                     </ul>
                   </div>
                 </div>

@@ -59,7 +59,7 @@ interface TradingState {
   isLoading: boolean;
   selectedTimePeriod: TimePeriod;
   sidebarCollapsed: boolean;
-  currentView: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine';
+  currentView: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine' | 'journey';
   hasImportedData: boolean;
   lastImportTime: number;
 
@@ -75,7 +75,7 @@ interface TradingState {
   toggleSidebar: () => void;
   importTrades: (file: File) => Promise<ImportResult>;
   refreshData: () => void;
-  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine') => void;
+  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine' | 'journey') => void;
   getFilteredTrades: () => Trade[];
 }
 

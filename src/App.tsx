@@ -7,7 +7,7 @@ import { Calendar } from './components/Calendar';
 import { Journal } from './components/journal';
 import { ImportModal } from './components/ImportModal';
 import { AccountsPage, AccountSelector } from './components/accounts';
-import { RoutinePage } from './components/routine';
+import { RoutinePage, JourneyPage } from './components/routine';
 import { ToastContainer } from './components/common/Toast';
 import { useTradingStore, Trade, TimePeriod } from './store/tradingStore';
 import { useAccountStore } from './store/accountStore';
@@ -254,6 +254,11 @@ function App() {
       case 'routine':
         return (
           <RoutinePage />
+        );
+
+      case 'journey':
+        return (
+          <JourneyPage />
         );
 
       case 'trades':
