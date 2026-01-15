@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, MoreVertical, Upload, Trash2, Edit2, ChevronDown, FileText, Calendar, DollarSign, AlertTriangle, History, X } from 'lucide-react';
-import { useAccountStore, Account, ImportHistoryEntry } from '../../store/accountStore';
+import { Plus, MoreVertical, Upload, Trash2, Edit2, ChevronDown, FileText, AlertTriangle, History, X, Download, HardDrive } from 'lucide-react';
+import { useAccountStore, Account } from '../../store/accountStore';
 import { useThemeStore } from '../../store/themeStore';
 import { toast } from '../../store/toastStore';
+import { exportAllData, importBackupData, getStorageUsage } from '../../hooks/useLocalStorage';
 import clsx from 'clsx';
 
 interface AddAccountModalProps {
@@ -1364,6 +1365,155 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           )}>
             {accounts.reduce((sum, a) => sum + a.trades.length, 0)}
           </p>
+        </div>
+      </div>
+
+      {/* Data Management Section */}
+      <div className={clsx(
+        'rounded-xl border mt-6 overflow-hidden',
+        theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+      )}>
+        <div className={clsx(
+          'px-6 py-4 border-b',
+          theme === 'dark' 
+            ? 'bg-[#15181F] border-[#1F2937]' 
+            : 'bg-gray-50 border-gray-200'
+        )}>
+          <div className="flex items-center space-x-2">
+            <HardDrive className={clsx(
+              'h-5 w-5',
+              theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+            )} />
+            <h2 className={clsx(
+              'text-lg font-semibold',
+              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+            )}>
+              Data Management
+            </h2>
+          </div>
+          <p className={clsx(
+            'text-sm mt-1',
+            theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+          )}>
+            Backup and restore your trading data
+          </p>
+        </div>
+
+        <div className={clsx(
+          'p-6',
+          theme === 'dark' ? 'bg-[#0B0D10]' : 'bg-white'
+        )}>
+          {/* Storage Usage */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className={clsx(
+                'text-sm font-medium',
+                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              )}>
+                Storage Used
+              </span>
+              <span className={clsx(
+                'text-sm',
+                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+              )}>
+                {(getStorageUsage().used / 1024).toFixed(1)} KB / {(getStorageUsage().total / 1024 / 1024).toFixed(0)} MB
+              </span>
+            </div>
+            <div className={clsx(
+              'h-2 rounded-full overflow-hidden',
+              theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-200'
+            )}>
+              <div 
+                className="h-full bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] transition-all"
+                style={{ width: `${Math.min(getStorageUsage().percentage, 100)}%` }}
+              />
+            </div>
+            <p className={clsx(
+              'text-xs mt-1',
+              theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+            )}>
+              {getStorageUsage().percentage < 80 
+                ? 'Plenty of space available' 
+                : getStorageUsage().percentage < 95 
+                  ? 'Consider backing up and clearing old data'
+                  : 'Storage almost full - backup recommended'}
+            </p>
+          </div>
+
+          {/* Backup Buttons */}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => {
+                try {
+                  exportAllData();
+                  toast.success('Backup downloaded successfully');
+                } catch (error) {
+                  toast.error('Failed to export data');
+                }
+              }}
+              className={clsx(
+                'flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all',
+                theme === 'dark'
+                  ? 'bg-[#3BF68A]/10 text-[#3BF68A] hover:bg-[#3BF68A]/20 border border-[#3BF68A]/30'
+                  : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
+              )}
+            >
+              <Download className="h-4 w-4" />
+              <span>Export Backup</span>
+            </button>
+
+            <label className={clsx(
+              'flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all cursor-pointer',
+              theme === 'dark'
+                ? 'bg-[#A78BFA]/10 text-[#A78BFA] hover:bg-[#A78BFA]/20 border border-[#A78BFA]/30'
+                : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+            )}>
+              <Upload className="h-4 w-4" />
+              <span>Restore from Backup</span>
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      const result = importBackupData(event.target?.result as string);
+                      if (result.success) {
+                        toast.success(`Restored ${result.accountsImported} account(s). Refreshing...`);
+                        setTimeout(() => window.location.reload(), 1500);
+                      } else {
+                        toast.error(result.error || 'Failed to restore backup');
+                      }
+                    };
+                    reader.readAsText(file);
+                  }
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          </div>
+
+          {/* Info Box */}
+          <div className={clsx(
+            'mt-4 p-4 rounded-lg border',
+            theme === 'dark' 
+              ? 'bg-[#15181F] border-[#1F2937]' 
+              : 'bg-gray-50 border-gray-200'
+          )}>
+            <p className={clsx(
+              'text-sm',
+              theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600'
+            )}>
+              <strong>💡 Tip:</strong> Your data is stored locally in your browser. 
+              Regular backups protect against accidental data loss. 
+              Export creates a <code className={clsx(
+                'px-1 py-0.5 rounded text-xs',
+                theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-200'
+              )}>tradepilot_backup_YYYY-MM-DD.json</code> file.
+            </p>
+          </div>
         </div>
       </div>
 

@@ -81,17 +81,32 @@ Whether you're grinding prop firm evaluations or trading a funded account, you d
 - **Visual Calendar** — See your daily P&L at a glance with projections
 - **Trading Rules & Compliance** — Track how well you follow your trading plan
 - **Smart Import** — Auto-detect CSV from TradingView, Tradovate, NinjaTrader, and ProjectX platforms
+- **One-Click Backup** — Export and restore your data with built-in backup tools
+- **Docker Support** — Run with a single command, no coding required
 - **100% Free & Open Source** — No paywalls, no premium tiers, no subscriptions
 
 ---
 
 ## 🚀 Quick Start
 
+### Option A: Docker (Easiest — No coding required)
+
 ```bash
 # Clone the repo
 git clone https://github.com/abrhamhabtu/trade-pilot.git
+cd trade-pilot
 
-# Navigate to project
+# Start with Docker
+docker-compose up -d
+```
+
+Open [http://localhost:3000](http://localhost:3000) 🎉
+
+### Option B: Manual Setup (For developers)
+
+```bash
+# Clone the repo
+git clone https://github.com/abrhamhabtu/trade-pilot.git
 cd trade-pilot
 
 # Install dependencies
@@ -102,6 +117,8 @@ npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) 🎉
+
+> **New to this?** Check out [GETTING_STARTED.md](GETTING_STARTED.md) for a beginner-friendly guide with screenshots and troubleshooting tips.
 
 ---
 
@@ -217,8 +234,10 @@ src/
 - [x] TradingView CSV import
 - [x] Tradovate CSV import
 - [x] NinjaTrader CSV import
+- [x] One-click data backup & restore
+- [x] Docker deployment support
 - [ ] **Hosted version** — Simple login, no code required (small fee to cover hosting)
-- [ ] Cloud sync & backup
+- [ ] Cloud sync
 - [ ] Real-time broker integrations
 - [ ] Mobile app (React Native)
 - [ ] Advanced AI coaching
@@ -238,9 +257,9 @@ Contributions are welcome! This project exists to help traders who are losing ac
 5. Open a Pull Request
 
 ### Priority Contributions Needed:
-- **Tradovate CSV parser** — Many prop firms are migrating here
-- **NinjaTrader CSV parser** — Another common migration target
 - **Mobile responsiveness** — Make the dashboard mobile-friendly
+- **Export to CSV** — Let users export trades back to CSV format
+- **Auto-backup reminders** — Prompt users to backup periodically
 
 ---
 

@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  tradepilot:
+    build: .
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    container_name: tradepilot
+
+# Usage:
+# 1. Make sure Docker is installed on your computer
+# 2. Open terminal in this folder
+# 3. Run: docker-compose up -d
+# 4. Open http://localhost:3000 in your browser
+# 5. To stop: docker-compose down
