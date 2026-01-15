@@ -18,6 +18,7 @@ interface DashboardProps {
   onRefresh: () => void;
   onImport: () => void;
   onNavigateToRoutine?: () => void;
+  accountId?: string;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -29,7 +30,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   isLoading,
   onRefresh,
   onImport,
-  onNavigateToRoutine
+  onNavigateToRoutine,
+  accountId
 }) => {
   const {
     radarData,
@@ -75,6 +77,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         trades={trades}
         consistencyScore={metrics.consistency}
         onNavigateToRoutine={onNavigateToRoutine}
+        accountId={accountId}
       />
 
       <CoachingTipCard

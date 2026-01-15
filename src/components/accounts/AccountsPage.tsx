@@ -3,7 +3,7 @@ import { Plus, MoreVertical, Upload, Trash2, Edit2, ChevronDown, FileText, Alert
 import { useAccountStore, Account } from '../../store/accountStore';
 import { useThemeStore } from '../../store/themeStore';
 import { toast } from '../../store/toastStore';
-import { exportAllData, importBackupData, getStorageUsage } from '../../hooks/useLocalStorage';
+import { exportAllData, importBackupData, getStorageUsage, exportTradesToCSV, setLastBackupTime } from '../../hooks/useLocalStorage';
 import clsx from 'clsx';
 
 interface AddAccountModalProps {
@@ -1078,6 +1078,9 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [showImportHistory, setShowImportHistory] = useState<Account | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<Account | null>(null);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [restoreConfirmText, setRestoreConfirmText] = useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleAddAccount = (name: string, broker: string) => {
     const id = addAccount({ name, broker, type: 'file_upload' });
@@ -1403,74 +1406,119 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           'p-6',
           theme === 'dark' ? 'bg-[#0B0D10]' : 'bg-white'
         )}>
-          {/* Storage Usage */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className={clsx(
-                'text-sm font-medium',
-                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
-              )}>
-                Storage Used
-              </span>
-              <span className={clsx(
-                'text-sm',
-                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
-              )}>
-                {(getStorageUsage().used / 1024).toFixed(1)} KB / {(getStorageUsage().total / 1024 / 1024).toFixed(0)} MB
-              </span>
-            </div>
+          {/* Two Column Layout - Save & Load - Compact */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* LEFT COLUMN - SAVE / DOWNLOAD */}
             <div className={clsx(
-              'h-2 rounded-full overflow-hidden',
-              theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-200'
+              'p-4 rounded-lg border',
+              theme === 'dark' 
+                ? 'bg-[#3BF68A]/5 border-[#3BF68A]/20' 
+                : 'bg-green-50 border-green-200'
             )}>
-              <div 
-                className="h-full bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] transition-all"
-                style={{ width: `${Math.min(getStorageUsage().percentage, 100)}%` }}
-              />
+              <div className="flex items-center space-x-2 mb-3">
+                <Download className={clsx(
+                  'h-5 w-5',
+                  theme === 'dark' ? 'text-[#3BF68A]' : 'text-green-600'
+                )} />
+                <h3 className={clsx(
+                  'font-semibold',
+                  theme === 'dark' ? 'text-[#3BF68A]' : 'text-green-700'
+                )}>
+                  Save Your Data
+                </h3>
+              </div>
+              
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    try {
+                      exportAllData();
+                      setLastBackupTime();
+                      toast.success('✅ Backup downloaded!');
+                    } catch {
+                      toast.error('Failed to export data');
+                    }
+                  }}
+                  className={clsx(
+                    'w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium text-sm transition-all',
+                    theme === 'dark'
+                      ? 'bg-[#3BF68A] text-[#0B0D10] hover:bg-[#2DD876]'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  )}
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download Full Backup</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    try {
+                      exportTradesToCSV();
+                      toast.success('📊 CSV exported!');
+                    } catch {
+                      toast.error('Failed to export CSV');
+                    }
+                  }}
+                  className={clsx(
+                    'w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg text-sm transition-all',
+                    theme === 'dark'
+                      ? 'bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#2D3748]'
+                      : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                  )}
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>Export as CSV</span>
+                </button>
+              </div>
             </div>
-            <p className={clsx(
-              'text-xs mt-1',
-              theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
-            )}>
-              {getStorageUsage().percentage < 80 
-                ? 'Plenty of space available' 
-                : getStorageUsage().percentage < 95 
-                  ? 'Consider backing up and clearing old data'
-                  : 'Storage almost full - backup recommended'}
-            </p>
-          </div>
 
-          {/* Backup Buttons */}
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => {
-                try {
-                  exportAllData();
-                  toast.success('Backup downloaded successfully');
-                } catch (error) {
-                  toast.error('Failed to export data');
-                }
-              }}
-              className={clsx(
-                'flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all',
-                theme === 'dark'
-                  ? 'bg-[#3BF68A]/10 text-[#3BF68A] hover:bg-[#3BF68A]/20 border border-[#3BF68A]/30'
-                  : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
-              )}
-            >
-              <Download className="h-4 w-4" />
-              <span>Export Backup</span>
-            </button>
-
-            <label className={clsx(
-              'flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all cursor-pointer',
-              theme === 'dark'
-                ? 'bg-[#A78BFA]/10 text-[#A78BFA] hover:bg-[#A78BFA]/20 border border-[#A78BFA]/30'
-                : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+            {/* RIGHT COLUMN - LOAD / RESTORE */}
+            <div className={clsx(
+              'p-4 rounded-lg border-2',
+              theme === 'dark' 
+                ? 'bg-[#F45B69]/5 border-[#F45B69]/30' 
+                : 'bg-red-50 border-red-200'
             )}>
-              <Upload className="h-4 w-4" />
-              <span>Restore from Backup</span>
+              <div className="flex items-center space-x-2 mb-3">
+                <AlertTriangle className={clsx(
+                  'h-5 w-5',
+                  theme === 'dark' ? 'text-[#F45B69]' : 'text-red-600'
+                )} />
+                <h3 className={clsx(
+                  'font-semibold',
+                  theme === 'dark' ? 'text-[#F45B69]' : 'text-red-700'
+                )}>
+                  Restore Backup
+                </h3>
+              </div>
+              
+              {/* Warning Box */}
+              <div className={clsx(
+                'p-2 rounded-lg mb-3 text-xs',
+                theme === 'dark' 
+                  ? 'bg-[#F45B69]/10 text-[#F45B69]' 
+                  : 'bg-red-100 text-red-700'
+              )}>
+                ⚠️ <strong>Warning:</strong> This will DELETE all your current data and replace it with the backup file.
+              </div>
+              
+              <button
+                onClick={() => setShowRestoreConfirm(true)}
+                className={clsx(
+                  'w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium text-sm transition-all border-2',
+                  theme === 'dark'
+                    ? 'bg-transparent text-[#F45B69] border-[#F45B69] hover:bg-[#F45B69]/10'
+                    : 'bg-transparent text-red-600 border-red-400 hover:bg-red-50'
+                )}
+              >
+                <Upload className="h-4 w-4" />
+                <span>Restore from Backup...</span>
+              </button>
+              
+              {/* Hidden file input */}
               <input
+                ref={fileInputRef}
                 type="file"
                 accept=".json"
                 className="hidden"
@@ -1481,7 +1529,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                     reader.onload = (event) => {
                       const result = importBackupData(event.target?.result as string);
                       if (result.success) {
-                        toast.success(`Restored ${result.accountsImported} account(s). Refreshing...`);
+                        const items = result.itemsRestored.join(', ');
+                        toast.success(`✅ Restored: ${items}. Refreshing...`);
                         setTimeout(() => window.location.reload(), 1500);
                       } else {
                         toast.error(result.error || 'Failed to restore backup');
@@ -1492,27 +1541,141 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                   e.target.value = '';
                 }}
               />
-            </label>
+            </div>
           </div>
 
-          {/* Info Box */}
+          {/* Storage Usage - With Progress Bar */}
           <div className={clsx(
-            'mt-4 p-4 rounded-lg border',
-            theme === 'dark' 
-              ? 'bg-[#15181F] border-[#1F2937]' 
-              : 'bg-gray-50 border-gray-200'
+            'mt-4 p-4 rounded-lg',
+            theme === 'dark' ? 'bg-[#1F2937]/50' : 'bg-gray-100'
           )}>
-            <p className={clsx(
-              'text-sm',
-              theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600'
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <HardDrive className={clsx(
+                  'h-4 w-4',
+                  theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                )} />
+                <span className={clsx(
+                  'text-sm font-medium',
+                  theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+                )}>
+                  Local Storage
+                </span>
+              </div>
+              <span className={clsx(
+                'text-sm font-mono',
+                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+              )}>
+                {(getStorageUsage().used / 1024).toFixed(1)} KB / 5 MB
+              </span>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className={clsx(
+              'h-2 rounded-full overflow-hidden mb-2',
+              theme === 'dark' ? 'bg-[#0B0D10]' : 'bg-gray-200'
             )}>
-              <strong>💡 Tip:</strong> Your data is stored locally in your browser. 
-              Regular backups protect against accidental data loss. 
-              Export creates a <code className={clsx(
-                'px-1 py-0.5 rounded text-xs',
-                theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-200'
-              )}>tradepilot_backup_YYYY-MM-DD.json</code> file.
+              <div 
+                className={clsx(
+                  'h-full transition-all rounded-full',
+                  getStorageUsage().percentage < 60 
+                    ? 'bg-gradient-to-r from-[#3BF68A] to-[#60A5FA]'
+                    : getStorageUsage().percentage < 85
+                      ? 'bg-gradient-to-r from-[#FBBF24] to-[#F59E0B]'
+                      : 'bg-gradient-to-r from-[#F45B69] to-[#EF4444]'
+                )}
+                style={{ width: `${Math.min(getStorageUsage().percentage, 100)}%` }}
+              />
+            </div>
+            
+            <p className={clsx(
+              'text-xs',
+              theme === 'dark' ? 'text-[#6B7280]' : 'text-gray-500'
+            )}>
+              {getStorageUsage().percentage < 60 
+                ? '✓ Plenty of space available'
+                : getStorageUsage().percentage < 85
+                  ? '⚡ Storage is filling up — screenshots use the most space'
+                  : '⚠️ Running low on space — consider backing up and clearing old data'}
             </p>
+          </div>
+
+          {/* Cloud Service Teaser */}
+          <div className={clsx(
+            'mt-3 p-3 rounded-lg border flex items-center justify-between',
+            theme === 'dark' 
+              ? 'bg-gradient-to-r from-[#A78BFA]/5 to-[#3BF68A]/5 border-[#A78BFA]/20' 
+              : 'bg-gradient-to-r from-purple-50 to-green-50 border-purple-200'
+          )}>
+            <div className="flex items-center space-x-3">
+              <div className={clsx(
+                'p-1.5 rounded-lg',
+                theme === 'dark' ? 'bg-[#A78BFA]/20' : 'bg-purple-100'
+              )}>
+                <svg 
+                  className={clsx('h-4 w-4', theme === 'dark' ? 'text-[#A78BFA]' : 'text-purple-600')}
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                </svg>
+              </div>
+              <div>
+                <p className={clsx(
+                  'text-sm font-medium',
+                  theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+                )}>
+                  ☁️ TradePilot Cloud — Coming Soon
+                </p>
+                <p className={clsx(
+                  'text-xs',
+                  theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                )}>
+                  Sync across devices • Automatic backups • More storage
+                </p>
+              </div>
+            </div>
+            <span className={clsx(
+              'text-xs px-2 py-1 rounded-full font-medium',
+              theme === 'dark' 
+                ? 'bg-[#A78BFA]/20 text-[#A78BFA]' 
+                : 'bg-purple-100 text-purple-700'
+            )}>
+              Soon
+            </span>
+          </div>
+
+          {/* Import Trades Callout */}
+          <div className={clsx(
+            'mt-4 p-4 rounded-xl border flex items-start space-x-3',
+            theme === 'dark' 
+              ? 'bg-[#60A5FA]/5 border-[#60A5FA]/30' 
+              : 'bg-blue-50 border-blue-200'
+          )}>
+            <div className={clsx(
+              'p-2 rounded-lg flex-shrink-0',
+              theme === 'dark' ? 'bg-[#60A5FA]/20' : 'bg-blue-100'
+            )}>
+              <FileText className={clsx(
+                'h-5 w-5',
+                theme === 'dark' ? 'text-[#60A5FA]' : 'text-blue-600'
+              )} />
+            </div>
+            <div>
+              <p className={clsx(
+                'font-medium',
+                theme === 'dark' ? 'text-[#60A5FA]' : 'text-blue-700'
+              )}>
+                Want to import trades from your broker?
+              </p>
+              <p className={clsx(
+                'text-sm mt-1',
+                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600'
+              )}>
+                Use the <strong>"Import Trades"</strong> button in the top-right corner, or click the <strong>⋮ menu</strong> on any account card above.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -1563,6 +1726,132 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           }
         }}
       />
+
+      {/* Restore Backup Confirmation Modal */}
+      {showRestoreConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => {
+              setShowRestoreConfirm(false);
+              setRestoreConfirmText('');
+            }}
+          />
+          <div
+            className={clsx(
+              'relative w-full max-w-md mx-4 rounded-2xl border p-6',
+              theme === 'dark'
+                ? 'bg-[#0B0D10] border-[#F45B69]/50'
+                : 'bg-white border-red-300'
+            )}
+          >
+            {/* Header */}
+            <div className="flex items-center space-x-3 mb-4">
+              <div className={clsx(
+                'p-2 rounded-full',
+                theme === 'dark' ? 'bg-[#F45B69]/20' : 'bg-red-100'
+              )}>
+                <AlertTriangle className={clsx(
+                  'h-6 w-6',
+                  theme === 'dark' ? 'text-[#F45B69]' : 'text-red-600'
+                )} />
+              </div>
+              <h3 className={clsx(
+                'text-lg font-bold',
+                theme === 'dark' ? 'text-[#F45B69]' : 'text-red-700'
+              )}>
+                Restore Backup
+              </h3>
+            </div>
+
+            {/* Warning Content */}
+            <div className={clsx(
+              'p-4 rounded-lg mb-4',
+              theme === 'dark' ? 'bg-[#F45B69]/10' : 'bg-red-50'
+            )}>
+              <p className={clsx(
+                'text-sm font-medium mb-2',
+                theme === 'dark' ? 'text-[#F45B69]' : 'text-red-700'
+              )}>
+                ⚠️ This action will permanently delete:
+              </p>
+              <ul className={clsx(
+                'text-sm space-y-1 ml-4 list-disc',
+                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              )}>
+                <li>All your trading accounts</li>
+                <li>All imported trades</li>
+                <li>All journal entries & notes</li>
+                <li>All screenshots</li>
+                <li>All settings</li>
+              </ul>
+            </div>
+
+            {/* Type to confirm */}
+            <p className={clsx(
+              'text-sm mb-2',
+              theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600'
+            )}>
+              Type <strong className={theme === 'dark' ? 'text-[#F45B69]' : 'text-red-600'}>RESTORE</strong> to confirm:
+            </p>
+            <input
+              type="text"
+              value={restoreConfirmText}
+              onChange={(e) => setRestoreConfirmText(e.target.value)}
+              placeholder="Type RESTORE"
+              className={clsx(
+                'w-full px-4 py-2 rounded-lg border text-sm mb-4',
+                theme === 'dark'
+                  ? 'bg-[#1F2937] border-[#374151] text-[#E5E7EB] placeholder:text-[#6B7280]'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400',
+                'focus:outline-none focus:ring-2',
+                theme === 'dark' ? 'focus:ring-[#F45B69]/50' : 'focus:ring-red-500/50'
+              )}
+              autoFocus
+            />
+
+            {/* Buttons */}
+            <div className="flex space-x-3">
+              <button
+                onClick={() => {
+                  setShowRestoreConfirm(false);
+                  setRestoreConfirmText('');
+                }}
+                className={clsx(
+                  'flex-1 py-2 rounded-lg border font-medium transition-all',
+                  theme === 'dark'
+                    ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#374151]'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                )}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (restoreConfirmText === 'RESTORE') {
+                    setShowRestoreConfirm(false);
+                    setRestoreConfirmText('');
+                    fileInputRef.current?.click();
+                  }
+                }}
+                disabled={restoreConfirmText !== 'RESTORE'}
+                className={clsx(
+                  'flex-1 py-2 rounded-lg font-medium transition-all',
+                  restoreConfirmText === 'RESTORE'
+                    ? theme === 'dark'
+                      ? 'bg-[#F45B69] text-white hover:bg-[#E04A58]'
+                      : 'bg-red-600 text-white hover:bg-red-700'
+                    : theme === 'dark'
+                      ? 'bg-[#1F2937] text-[#4B5563] cursor-not-allowed'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                )}
+              >
+                Choose File & Restore
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -11,6 +11,7 @@ export interface NoteImage {
 
 export interface DailyNote {
   date: string;
+  accountId?: string; // Account this note belongs to (undefined = global/journal)
   content: string; // Rich text content (HTML)
   images: NoteImage[];
   lastUpdated: string;
@@ -18,16 +19,18 @@ export interface DailyNote {
 }
 
 interface DailyNotesState {
-  notes: Record<string, DailyNote>; // Keyed by date string (YYYY-MM-DD)
+  notes: Record<string, DailyNote>; // Keyed by "accountId:date" or just "date" for global notes
   
   // Actions
-  getNote: (date: string) => DailyNote | null;
-  saveNote: (date: string, content: string) => void;
-  addImage: (date: string, imageDataUrl: string, caption?: string) => void;
-  removeImage: (date: string, imageId: string) => void;
-  updateImageCaption: (date: string, imageId: string, caption: string) => void;
-  deleteNote: (date: string) => void;
-  hasNote: (date: string) => boolean;
+  getNote: (date: string, accountId?: string) => DailyNote | null;
+  saveNote: (date: string, content: string, accountId?: string) => void;
+  addImage: (date: string, imageDataUrl: string, accountId?: string, caption?: string) => void;
+  removeImage: (date: string, imageId: string, accountId?: string) => void;
+  updateImageCaption: (date: string, imageId: string, caption: string, accountId?: string) => void;
+  deleteNote: (date: string, accountId?: string) => void;
+  hasNote: (date: string, accountId?: string) => boolean;
+  // Get all notes for a date across all accounts (for Journal view)
+  getAllNotesForDate: (date: string) => DailyNote[];
 }
 
 // Load notes from localStorage
@@ -52,18 +55,24 @@ const saveNotesToStorage = (notes: Record<string, DailyNote>) => {
   }
 };
 
+// Helper to create storage key
+const makeKey = (date: string, accountId?: string) => accountId ? `${accountId}:${date}` : date;
+
 export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
   notes: loadNotesFromStorage(),
 
-  getNote: (date: string) => {
-    return get().notes[date] || null;
+  getNote: (date: string, accountId?: string) => {
+    const key = makeKey(date, accountId);
+    return get().notes[key] || null;
   },
 
-  saveNote: (date: string, content: string) => {
+  saveNote: (date: string, content: string, accountId?: string) => {
     set((state) => {
-      const existingNote = state.notes[date];
+      const key = makeKey(date, accountId);
+      const existingNote = state.notes[key];
       const newNote: DailyNote = {
         date,
+        accountId,
         content,
         images: existingNote?.images || [],
         lastUpdated: new Date().toISOString(),
@@ -72,7 +81,7 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
       
       const newNotes = {
         ...state.notes,
-        [date]: newNote
+        [key]: newNote
       };
       
       saveNotesToStorage(newNotes);
@@ -80,10 +89,12 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
     });
   },
 
-  addImage: (date: string, imageDataUrl: string, caption?: string) => {
+  addImage: (date: string, imageDataUrl: string, accountId?: string, caption?: string) => {
     set((state) => {
-      const existingNote = state.notes[date] || {
+      const key = makeKey(date, accountId);
+      const existingNote = state.notes[key] || {
         date,
+        accountId,
         content: '',
         images: [],
         lastUpdated: new Date().toISOString(),
@@ -105,7 +116,7 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
 
       const newNotes = {
         ...state.notes,
-        [date]: newNote
+        [key]: newNote
       };
 
       saveNotesToStorage(newNotes);
@@ -113,9 +124,10 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
     });
   },
 
-  removeImage: (date: string, imageId: string) => {
+  removeImage: (date: string, imageId: string, accountId?: string) => {
     set((state) => {
-      const existingNote = state.notes[date];
+      const key = makeKey(date, accountId);
+      const existingNote = state.notes[key];
       if (!existingNote) return state;
 
       const newNote: DailyNote = {
@@ -126,7 +138,7 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
 
       const newNotes = {
         ...state.notes,
-        [date]: newNote
+        [key]: newNote
       };
 
       saveNotesToStorage(newNotes);
@@ -134,9 +146,10 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
     });
   },
 
-  updateImageCaption: (date: string, imageId: string, caption: string) => {
+  updateImageCaption: (date: string, imageId: string, caption: string, accountId?: string) => {
     set((state) => {
-      const existingNote = state.notes[date];
+      const key = makeKey(date, accountId);
+      const existingNote = state.notes[key];
       if (!existingNote) return state;
 
       const newNote: DailyNote = {
@@ -149,7 +162,7 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
 
       const newNotes = {
         ...state.notes,
-        [date]: newNote
+        [key]: newNote
       };
 
       saveNotesToStorage(newNotes);
@@ -157,16 +170,23 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
     });
   },
 
-  deleteNote: (date: string) => {
+  deleteNote: (date: string, accountId?: string) => {
     set((state) => {
-      const { [date]: _, ...rest } = state.notes;
+      const key = makeKey(date, accountId);
+      const { [key]: _, ...rest } = state.notes;
       saveNotesToStorage(rest);
       return { notes: rest };
     });
   },
 
-  hasNote: (date: string) => {
-    const note = get().notes[date];
+  hasNote: (date: string, accountId?: string) => {
+    const key = makeKey(date, accountId);
+    const note = get().notes[key];
     return !!(note && (note.content.trim() || note.images.length > 0));
+  },
+
+  getAllNotesForDate: (date: string) => {
+    const notes = get().notes;
+    return Object.values(notes).filter(note => note.date === date);
   }
 }));

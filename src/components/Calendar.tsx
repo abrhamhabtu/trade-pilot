@@ -4,9 +4,6 @@ import {
   ChevronRight, 
   X, 
   Image as ImageIcon, 
-  Bold, 
-  Italic, 
-  List, 
   Trash2,
   ChevronDown,
   ChevronUp,
@@ -15,7 +12,10 @@ import {
   Plus,
   Camera,
   Maximize2,
-  Target
+  Target,
+  Bold,
+  Italic,
+  List
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Trade, useTradingStore } from '../store/tradingStore';
@@ -49,6 +49,7 @@ interface CalendarData {
 interface CalendarProps {
   data: CalendarData[];
   trades: Trade[];
+  accountId?: string;
 }
 
 interface TradePreviewModalProps {
@@ -56,6 +57,7 @@ interface TradePreviewModalProps {
   onClose: () => void;
   date: string;
   trades: Trade[];
+  accountId?: string;
 }
 
 // Mini equity curve component
@@ -179,17 +181,93 @@ interface NotesEditorProps {
   date: string;
   isExpanded: boolean;
   onToggle: () => void;
+  accountId?: string;
 }
 
-const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle }) => {
+const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, accountId }) => {
   const { getNote, saveNote, addImage, removeImage } = useDailyNotesStore();
-  const note = getNote(date);
+  const note = getNote(date, accountId);
   const [content, setContent] = useState(note?.content || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<NoteImage | null>(null);
-  const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Insert text at cursor position in textarea
+  const insertAtCursor = (before: string, after: string = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+    const newText = content.substring(0, start) + before + selectedText + after + content.substring(end);
+    
+    setContent(newText);
+    
+    // Restore cursor position after the inserted text
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = start + before.length + selectedText.length + after.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
+
+  const handleBold = () => insertAtCursor('**', '**');
+  const handleItalic = () => insertAtCursor('*', '*');
+  const handleBullet = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    // Find the start of the current line
+    const lineStart = content.lastIndexOf('\n', start - 1) + 1;
+    const newText = content.substring(0, lineStart) + '• ' + content.substring(lineStart);
+    setContent(newText);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + 2, start + 2);
+    }, 0);
+  };
+
+  // Handle Enter key to auto-continue bullet points
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      
+      const start = textarea.selectionStart;
+      // Find the start of the current line
+      const lineStart = content.lastIndexOf('\n', start - 1) + 1;
+      const currentLine = content.substring(lineStart, start);
+      
+      // Check if current line starts with a bullet
+      if (currentLine.startsWith('• ')) {
+        e.preventDefault();
+        
+        // If the line is just a bullet with no content, remove it and don't add new one
+        if (currentLine.trim() === '•') {
+          const newText = content.substring(0, lineStart) + content.substring(start);
+          setContent(newText);
+          setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(lineStart, lineStart);
+          }, 0);
+        } else {
+          // Add new line with bullet
+          const newText = content.substring(0, start) + '\n• ' + content.substring(start);
+          setContent(newText);
+          setTimeout(() => {
+            textarea.focus();
+            const newPos = start + 3; // \n + • + space
+            textarea.setSelectionRange(newPos, newPos);
+          }, 0);
+        }
+      }
+    }
+  };
 
   // Sync content when note changes
   useEffect(() => {
@@ -200,13 +278,13 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle })
 
   const handleSave = useCallback(() => {
     setIsSaving(true);
-    saveNote(date, content);
+    saveNote(date, content, accountId);
     setSaveMessage('Saved!');
     setTimeout(() => {
       setIsSaving(false);
       setSaveMessage(null);
     }, 1500);
-  }, [date, content, saveNote]);
+  }, [date, content, saveNote, accountId]);
 
   // Auto-save on blur
   const handleBlur = () => {
@@ -226,7 +304,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle })
       reader.onload = (event) => {
         const dataUrl = event.target?.result as string;
         if (dataUrl) {
-          addImage(date, dataUrl);
+          addImage(date, dataUrl, accountId);
         }
       };
       reader.readAsDataURL(file);
@@ -251,7 +329,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle })
           reader.onload = (event) => {
             const dataUrl = event.target?.result as string;
             if (dataUrl) {
-              addImage(date, dataUrl);
+              addImage(date, dataUrl, accountId);
             }
           };
           reader.readAsDataURL(file);
@@ -259,11 +337,6 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle })
         return;
       }
     }
-  };
-
-  const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
-    editorRef.current?.focus();
   };
 
   const hasContent = content.trim() || (note?.images && note.images.length > 0);
@@ -311,23 +384,23 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle })
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-1 bg-[#0B0D10] rounded-lg p-1 border border-[#1F2937]">
               <button
-                onClick={() => execCommand('bold')}
+                onClick={handleBold}
                 className="p-2 rounded hover:bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
-                title="Bold"
+                title="Bold (**text**)"
               >
                 <Bold className="h-4 w-4" />
               </button>
               <button
-                onClick={() => execCommand('italic')}
+                onClick={handleItalic}
                 className="p-2 rounded hover:bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
-                title="Italic"
+                title="Italic (*text*)"
               >
                 <Italic className="h-4 w-4" />
               </button>
               <button
-                onClick={() => execCommand('insertUnorderedList')}
+                onClick={handleBullet}
                 className="p-2 rounded hover:bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
-                title="Bullet List"
+                title="Bullet Point"
               >
                 <List className="h-4 w-4" />
               </button>
@@ -372,35 +445,30 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle })
             className="hidden"
           />
 
-          {/* Editor */}
-          <div
-            ref={editorRef}
-            contentEditable
-            onInput={(e) => setContent(e.currentTarget.innerHTML)}
+          {/* Editor - Using textarea for reliable text input */}
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
             onBlur={handleBlur}
             onPaste={handlePaste}
+            onKeyDown={handleKeyDown}
+            placeholder="Write your thoughts, observations, or lessons from today's trading session...
+
+• Use bullet points for trade notes (auto-continues on Enter)
+• **Bold** for emphasis
+• *Italic* for observations"
             className={clsx(
-              'min-h-[120px] max-h-[200px] overflow-y-auto p-4 rounded-xl border text-[#E5E7EB] text-sm',
+              'w-full min-h-[120px] overflow-y-auto p-4 rounded-xl border text-[#E5E7EB] text-sm resize-y',
               'bg-[#0B0D10] border-[#1F2937]',
               'focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]/50',
-              'prose prose-invert prose-sm max-w-none',
-              '[&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4'
+              'placeholder:text-[#4B5563]'
             )}
-            dangerouslySetInnerHTML={{ __html: content }}
-            data-placeholder="Write your thoughts, observations, or lessons from today's trading session... (Paste screenshots directly!)"
+            dir="ltr"
             style={{
               minHeight: '120px'
             }}
           />
-          
-          {/* Placeholder styling */}
-          <style>{`
-            [contenteditable]:empty:before {
-              content: attr(data-placeholder);
-              color: #4B5563;
-              pointer-events: none;
-            }
-          `}</style>
 
           {/* Images Grid */}
           {note?.images && note.images.length > 0 && (
@@ -434,7 +502,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle })
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          removeImage(date, image.id);
+                          removeImage(date, image.id, accountId);
                         }}
                         className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
                       >
@@ -492,7 +560,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle })
   );
 };
 
-const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, date, trades }) => {
+const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, date, trades, accountId }) => {
   const [notesExpanded, setNotesExpanded] = useState(true);
   const [dayStrategy, setDayStrategy] = useState<string>('');
   const [openStrategyDropdown, setOpenStrategyDropdown] = useState<string | null>(null);
@@ -579,7 +647,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
     };
   }, [trades]);
 
-  const dateHasNote = hasNote(date);
+  const dateHasNote = hasNote(date, accountId);
 
   // Early return AFTER all hooks
   if (!isOpen) return null;
@@ -682,7 +750,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
         <NotesEditor 
           date={date} 
           isExpanded={notesExpanded} 
-          onToggle={() => setNotesExpanded(!notesExpanded)} 
+          onToggle={() => setNotesExpanded(!notesExpanded)}
+          accountId={accountId}
         />
 
         {/* Stats + Chart Row */}
@@ -978,7 +1047,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
   );
 };
 
-export const Calendar: React.FC<CalendarProps> = ({ data, trades }) => {
+export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) => {
   const { hasNote } = useDailyNotesStore();
   
   // Start with the month that has the most recent trade data
@@ -1274,7 +1343,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades }) => {
                 const winRate = calculateDayWinRate(dayData);
                 const hasTradesForDay = dayData && dayData.trades > 0;
                 const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const dayHasNote = hasNote(dateString);
+                const dayHasNote = hasNote(dateString, accountId);
                 
                 return (
                   <div
@@ -1368,6 +1437,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades }) => {
         onClose={() => setShowTradePreview(false)}
         date={selectedDate || ''}
         trades={selectedDateTrades}
+        accountId={accountId}
       />
     </div>
   );

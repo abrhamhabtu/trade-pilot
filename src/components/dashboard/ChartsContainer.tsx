@@ -27,6 +27,7 @@ interface ChartsContainerProps {
   trades: Trade[];
   consistencyScore: number;
   onNavigateToRoutine?: () => void;
+  accountId?: string;
 }
 
 export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
@@ -38,7 +39,8 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
   durationPerformanceData,
   trades,
   consistencyScore,
-  onNavigateToRoutine
+  onNavigateToRoutine,
+  accountId
 }) => {
   return (
     <>
@@ -76,7 +78,7 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
 
       {/* Calendar Section - Moved above performance charts */}
       <div className="mb-6">
-        <Calendar data={calendarData} trades={trades} />
+        <Calendar data={calendarData} trades={trades} accountId={accountId} />
       </div>
 
       {/* Performance Analysis Section - Condensed 2-column layout */}

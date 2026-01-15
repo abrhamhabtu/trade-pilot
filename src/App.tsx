@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/dashboard';
 import { TradeLog } from './components/TradeLog';
@@ -14,6 +14,8 @@ import { useAccountStore } from './store/accountStore';
 import { useThemeStore } from './store/themeStore';
 import { useToastStore } from './store/toastStore';
 import { useChartData } from './hooks/useChartData';
+import { shouldShowBackupReminder } from './hooks/useLocalStorage';
+import { AlertTriangle, X } from 'lucide-react';
 
 // Helper function to filter trades by time period
 const filterTradesByPeriod = (trades: Trade[], period: TimePeriod): Trade[] => {
@@ -206,8 +208,16 @@ function App() {
   
   const [showImportModal, setShowImportModal] = useState(false);
   const [importTargetAccountId, setImportTargetAccountId] = useState<string | null>(null);
+  const [showBackupReminder, setShowBackupReminder] = useState(false);
 
   const { theme } = useThemeStore();
+
+  // Check for backup reminder on mount
+  useEffect(() => {
+    if (shouldShowBackupReminder()) {
+      setShowBackupReminder(true);
+    }
+  }, []);
   const { toasts, removeToast } = useToastStore();
 
   // Get trades from account store - re-compute when selectedAccountId or accounts change
@@ -278,7 +288,7 @@ function App() {
       case 'calendar':
         return (
           <div className="p-6">
-            <Calendar data={calendarData} trades={displayTrades} />
+            <Calendar data={calendarData} trades={displayTrades} accountId={selectedAccountId || undefined} />
           </div>
         );
 
@@ -301,6 +311,7 @@ function App() {
             onRefresh={refreshData}
             onImport={handleOpenImport}
             onNavigateToRoutine={() => setCurrentView('routine')}
+            accountId={selectedAccountId || undefined}
           />
         );
     }
@@ -315,6 +326,36 @@ function App() {
           : 'linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 50%, #F8FAFC 100%)'
       }}
     >
+      {/* Backup Reminder Banner */}
+      {showBackupReminder && (
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <div className={`mx-auto max-w-4xl mt-3 mx-4 px-4 py-2.5 rounded-xl flex items-center justify-between backdrop-blur-md shadow-lg ${
+            theme === 'dark' 
+              ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30' 
+              : 'bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300'
+          }`}>
+            <div className="flex items-center space-x-3">
+              <div className={`p-1.5 rounded-lg ${theme === 'dark' ? 'bg-amber-500/20' : 'bg-amber-200'}`}>
+                <AlertTriangle className={`h-4 w-4 ${theme === 'dark' ? 'text-amber-400' : 'text-amber-600'}`} />
+              </div>
+              <span className={`text-sm ${theme === 'dark' ? 'text-amber-100' : 'text-amber-800'}`}>
+                Backup reminder: <span className="font-medium">Accounts → Data Management</span>
+              </span>
+            </div>
+            <button
+              onClick={() => setShowBackupReminder(false)}
+              className={`p-1.5 rounded-lg transition-colors ${
+                theme === 'dark' 
+                  ? 'text-amber-300 hover:bg-amber-500/20' 
+                  : 'text-amber-700 hover:bg-amber-200'
+              }`}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <Sidebar />
 
       {/* Top Account Selector Bar */}
