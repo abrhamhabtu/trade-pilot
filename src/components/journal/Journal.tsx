@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus,
   Calendar,
@@ -8,11 +8,14 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  ChevronDown,
   X,
-  Save
+  Save,
+  MessageSquare,
+  User
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useDailyNotesStore } from '../../store/dailyNotesStore';
+import { useAccountStore } from '../../store/accountStore';
 
 interface JournalEntry {
   id: string;
@@ -54,12 +57,35 @@ const saveEntriesToStorage = (entries: JournalEntry[]) => {
   }
 };
 
+// Combined entry type for display
+interface CombinedEntry {
+  id: string;
+  type: 'journal' | 'daily-note';
+  date: string;
+  title: string;
+  content: string;
+  mood?: JournalEntry['mood'];
+  marketConditions?: string;
+  lessonsLearned?: string;
+  tags: string[];
+  accountId?: string;
+  accountName?: string;
+  images?: { id: string; dataUrl: string; caption?: string }[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export const Journal: React.FC = () => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showEditor, setShowEditor] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [selectedMoodFilter, setSelectedMoodFilter] = useState<string | null>(null);
+  const [viewFilter, setViewFilter] = useState<'all' | 'journal' | 'daily-notes'>('all');
+
+  // Get daily notes from calendar
+  const { notes: dailyNotes, deleteNote } = useDailyNotesStore();
+  const { accounts } = useAccountStore();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -74,6 +100,65 @@ export const Journal: React.FC = () => {
   useEffect(() => {
     setEntries(loadEntriesFromStorage());
   }, []);
+
+  // Combine journal entries and daily notes into a single list
+  const combinedEntries = useMemo((): CombinedEntry[] => {
+    // Helper to get account name by ID
+    const getAccountName = (accountId?: string) => {
+      if (!accountId) return 'General';
+      const account = accounts.find(a => a.id === accountId);
+      return account?.name || 'Unknown Account';
+    };
+
+    const combined: CombinedEntry[] = [];
+
+    // Add journal entries
+    entries.forEach(entry => {
+      combined.push({
+        id: entry.id,
+        type: 'journal',
+        date: entry.date,
+        title: entry.title,
+        content: entry.content,
+        mood: entry.mood,
+        marketConditions: entry.marketConditions,
+        lessonsLearned: entry.lessonsLearned,
+        tags: entry.tags,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt
+      });
+    });
+
+    // Add daily notes from calendar
+    Object.values(dailyNotes).forEach(note => {
+      // Skip empty notes
+      if (!note.content.trim() && note.images.length === 0) return;
+      
+      // Strip HTML tags for preview
+      const plainContent = note.content.replace(/<[^>]*>/g, '').trim();
+      
+      combined.push({
+        id: `daily-${note.accountId || 'global'}-${note.date}`,
+        type: 'daily-note',
+        date: note.date,
+        title: `Trading Notes - ${new Date(note.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+        content: plainContent,
+        tags: note.tags || [],
+        accountId: note.accountId,
+        accountName: getAccountName(note.accountId),
+        images: note.images,
+        createdAt: new Date(note.lastUpdated).getTime(),
+        updatedAt: new Date(note.lastUpdated).getTime()
+      });
+    });
+
+    // Sort by date (newest first)
+    return combined.sort((a, b) => {
+      const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (dateCompare !== 0) return dateCompare;
+      return b.updatedAt - a.updatedAt;
+    });
+  }, [entries, dailyNotes, accounts]);
 
   const handleSaveEntry = () => {
     const now = Date.now();
@@ -165,13 +250,17 @@ export const Journal: React.FC = () => {
     setShowEditor(true);
   };
 
-  const filteredEntries = entries.filter(entry => {
+  const filteredEntries = combinedEntries.filter(entry => {
     const matchesSearch =
       entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entry.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entry.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
+      entry.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (entry.accountName && entry.accountName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesMood = !selectedMoodFilter || entry.mood === selectedMoodFilter;
-    return matchesSearch && matchesMood;
+    const matchesType = viewFilter === 'all' || 
+      (viewFilter === 'journal' && entry.type === 'journal') ||
+      (viewFilter === 'daily-notes' && entry.type === 'daily-note');
+    return matchesSearch && matchesMood && matchesType;
   });
 
   const formatDate = (dateStr: string) => {
@@ -247,6 +336,28 @@ export const Journal: React.FC = () => {
         </div>
       </div>
 
+      {/* View Filter Tabs */}
+      <div className="flex items-center space-x-2">
+        {[
+          { value: 'all', label: 'All Entries' },
+          { value: 'daily-notes', label: 'Calendar Notes' },
+          { value: 'journal', label: 'Journal Entries' }
+        ].map(tab => (
+          <button
+            key={tab.value}
+            onClick={() => setViewFilter(tab.value as typeof viewFilter)}
+            className={clsx(
+              'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              viewFilter === tab.value
+                ? 'bg-gradient-to-r from-[#3BF68A]/20 to-[#A78BFA]/20 text-[#E5E7EB] border border-[#3BF68A]/30'
+                : 'text-[#8B94A7] hover:text-[#E5E7EB] border border-transparent hover:border-[#1F2937]'
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Entries List */}
       {filteredEntries.length === 0 ? (
         <div
@@ -257,14 +368,14 @@ export const Journal: React.FC = () => {
         >
           <Calendar className="h-12 w-12 text-[#8B94A7] mx-auto mb-4" />
           <h3 className="text-lg font-medium text-[#E5E7EB] mb-2">
-            {entries.length === 0 ? 'No journal entries yet' : 'No matching entries'}
+            {combinedEntries.length === 0 ? 'No journal entries yet' : 'No matching entries'}
           </h3>
           <p className="text-[#8B94A7] mb-6">
-            {entries.length === 0
-              ? 'Start documenting your trading journey by creating your first entry.'
+            {combinedEntries.length === 0
+              ? 'Start documenting your trading journey by creating your first entry or adding notes from the Calendar.'
               : 'Try adjusting your search or filters.'}
           </p>
-          {entries.length === 0 && (
+          {combinedEntries.length === 0 && (
             <button
               onClick={handleNewEntry}
               className="px-6 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
@@ -276,7 +387,9 @@ export const Journal: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {filteredEntries.map(entry => {
-            const moodInfo = getMoodInfo(entry.mood);
+            const moodInfo = entry.mood ? getMoodInfo(entry.mood) : null;
+            const isDailyNote = entry.type === 'daily-note';
+            
             return (
               <div
                 key={entry.id}
@@ -298,23 +411,71 @@ export const Journal: React.FC = () => {
                 <div className="relative z-10">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className={clsx('p-2 rounded-lg', moodInfo.bg)}>
-                        <moodInfo.icon className={clsx('h-5 w-5', moodInfo.color)} />
-                      </div>
+                      {/* Icon based on entry type */}
+                      {isDailyNote ? (
+                        <div className="p-2 rounded-lg bg-[#A78BFA]/20">
+                          <MessageSquare className="h-5 w-5 text-[#A78BFA]" />
+                        </div>
+                      ) : moodInfo ? (
+                        <div className={clsx('p-2 rounded-lg', moodInfo.bg)}>
+                          <moodInfo.icon className={clsx('h-5 w-5', moodInfo.color)} />
+                        </div>
+                      ) : (
+                        <div className="p-2 rounded-lg bg-[#8B94A7]/20">
+                          <Calendar className="h-5 w-5 text-[#8B94A7]" />
+                        </div>
+                      )}
                       <div>
-                        <h3 className="text-lg font-semibold text-[#E5E7EB]">{entry.title}</h3>
-                        <p className="text-sm text-[#8B94A7]">{formatDate(entry.date)}</p>
+                        <div className="flex items-center space-x-2">
+                          <h3 className="text-lg font-semibold text-[#E5E7EB]">{entry.title}</h3>
+                          {/* Entry type badge */}
+                          <span className={clsx(
+                            'px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full',
+                            isDailyNote 
+                              ? 'bg-[#A78BFA]/20 text-[#A78BFA]' 
+                              : 'bg-[#3BF68A]/20 text-[#3BF68A]'
+                          )}>
+                            {isDailyNote ? 'Calendar' : 'Journal'}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2 mt-0.5">
+                          <p className="text-sm text-[#8B94A7]">{formatDate(entry.date)}</p>
+                          {/* Account badge for daily notes */}
+                          {isDailyNote && entry.accountName && (
+                            <>
+                              <span className="text-[#1F2937]">•</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-[#1F2937] text-[#8B94A7] flex items-center space-x-1">
+                                <User className="h-3 w-3" />
+                                <span>{entry.accountName}</span>
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
+                      {/* Only show edit for journal entries */}
+                      {!isDailyNote && (
+                        <button
+                          onClick={() => {
+                            const journalEntry = entries.find(e => e.id === entry.id);
+                            if (journalEntry) handleEditEntry(journalEntry);
+                          }}
+                          className="p-2 text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      )}
                       <button
-                        onClick={() => handleEditEntry(entry)}
-                        className="p-2 text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteEntry(entry.id)}
+                        onClick={() => {
+                          if (isDailyNote && entry.accountId) {
+                            deleteNote(entry.date, entry.accountId);
+                          } else if (isDailyNote) {
+                            deleteNote(entry.date);
+                          } else {
+                            handleDeleteEntry(entry.id);
+                          }
+                        }}
                         className="p-2 text-[#8B94A7] hover:text-[#F45B69] transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -323,6 +484,26 @@ export const Journal: React.FC = () => {
                   </div>
 
                   <p className="text-[#E5E7EB] mb-4 line-clamp-3">{entry.content}</p>
+
+                  {/* Images for daily notes */}
+                  {isDailyNote && entry.images && entry.images.length > 0 && (
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      {entry.images.slice(0, 4).map((img, idx) => (
+                        <div key={img.id} className="relative group/img">
+                          <img 
+                            src={img.dataUrl} 
+                            alt={img.caption || `Screenshot ${idx + 1}`}
+                            className="h-20 w-auto rounded-lg border border-[#1F2937] object-cover"
+                          />
+                          {entry.images && entry.images.length > 4 && idx === 3 && (
+                            <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
+                              <span className="text-white font-bold">+{entry.images.length - 4}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {entry.lessonsLearned && (
                     <div className="mb-4 p-3 rounded-lg bg-[#0B0D10] border border-[#1F2937]">

@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAccountStore } from '../../store/accountStore';
+import { useThemeStore } from '../../store/themeStore';
 import { 
   Trophy, 
   TrendingUp, 
-  Calendar as CalendarIcon, 
   Shield, 
   Zap, 
   Flame,
@@ -21,8 +21,8 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(value);
 };
 
@@ -46,8 +46,9 @@ const PACE_CONFIG = {
 };
 
 export const JourneyPage: React.FC = () => {
-  const { getSelectedAccount, updateAccount } = useAccountStore();
-  const account = getSelectedAccount();
+  const { accounts, selectedAccountId, updateAccount } = useAccountStore();
+  const { theme } = useThemeStore();
+  const account = accounts.find(a => a.id === selectedAccountId) || null;
   
   const [target, setTarget] = useState(account?.profitTarget || 3000);
   const [isFunded, setIsFunded] = useState(account?.isFunded || false);
@@ -67,16 +68,72 @@ export const JourneyPage: React.FC = () => {
   }, [isFunded, account, updateAccount]);
 
   // Group existing trades by date
+  const [consistencyRule, setConsistencyRule] = useState(account?.consistencyRulePercentage || 30);
+  
+  // Update consistency rule state when account changes
+  useEffect(() => {
+    if (account) {
+      setConsistencyRule(account.consistencyRulePercentage || 30);
+    }
+  }, [account]);
+
   const actualDailyPnL = useMemo(() => {
     if (!account) return {};
     return account.trades.reduce((acc, trade) => {
-      const date = trade.date;
+      // Ensure we only look at the date part, ignoring time
+      const date = trade.date ? trade.date.split('T')[0] : 'unknown';
       acc[date] = (acc[date] || 0) + trade.netPL;
       return acc;
     }, {} as Record<string, number>);
   }, [account]);
 
-  const currentPnL = account?.balance || 0;
+  // Calculate total PnL from trades directly to ensure accuracy (ignoring starting balance)
+  const calculatedTotalPnL = useMemo(() => {
+    if (!account) return 0;
+    return account.trades.reduce((sum, t) => sum + t.netPL, 0);
+  }, [account]);
+
+  // Consistency Calculations
+  // Formula: Minimum Required Profit = Highest Day / Consistency Rule %
+  // Current Consistency % = (Highest Day / Current Total Profit) * 100
+  // Qualified when Current Consistency % <= Consistency Rule %
+  const consistencyMetrics = useMemo(() => {
+    const dailyProfits = Object.values(actualDailyPnL);
+    const highestDay = dailyProfits.length > 0 ? Math.max(0, ...dailyProfits) : 0;
+    
+    // Current Total Profit = Calculated PnL (Total Profit generated)
+    // We use calculatedTotalPnL to ensure we are comparing against actual generated profit, not account equity
+    const currentTotalProfit = Math.max(0, calculatedTotalPnL);
+    
+    // Minimum Required Profit to Qualify = Highest Day / (Rule% / 100)
+    const minimumRequiredProfit = highestDay / (consistencyRule / 100);
+    
+    // Current Consistency % = (Highest Day / Current Total Profit) * 100
+    const currentConsistencyPercent = currentTotalProfit > 0 
+      ? (highestDay / currentTotalProfit) * 100 
+      : 0;
+    
+    // Qualified if current consistency % is at or below the rule threshold
+    const isQualified = currentConsistencyPercent <= consistencyRule;
+
+    return { 
+      highestDay, 
+      currentTotalProfit,
+      minimumRequiredProfit,
+      currentConsistencyPercent,
+      isQualified,
+      consistencyRule
+    };
+  }, [actualDailyPnL, consistencyRule, calculatedTotalPnL]);
+
+  const handleConsistencyChange = (rule: number) => {
+    setConsistencyRule(rule);
+    if (account) {
+      updateAccount(account.id, { consistencyRulePercentage: rule });
+    }
+  };
+
+  const currentPnL = calculatedTotalPnL;
   const isGoalHit = currentPnL >= target;
   
   // If goal is hit, project a stretch goal
@@ -96,11 +153,54 @@ export const JourneyPage: React.FC = () => {
     const startDate = new Date(monthStart);
     startDate.setDate(monthStart.getDate() - startOffset);
 
-    let runningTotalPnLForProjection = currentPnL;
-    let goalReachedDay: Date | null = null;
-    const dailyTarget = PACE_CONFIG[pace].dailyTarget;
-
     // Fixed 42 days (6 weeks) to maintain consistent grid height
+    const dailyTarget = PACE_CONFIG[pace].dailyTarget;
+    
+    // Find the last trade date (most recent day with actual trades)
+    const tradeDates = Object.keys(actualDailyPnL).filter(d => d !== 'unknown').sort();
+    const lastTradeDate = tradeDates.length > 0 
+      ? new Date(tradeDates[tradeDates.length - 1] + 'T12:00:00') 
+      : new Date(today);
+    lastTradeDate.setHours(0, 0, 0, 0);
+    
+    // Calculate Goal Date Projection independently of grid
+    // Logic: How many trading days (weekdays) needed to reach target?
+    const remainingToGoal = Math.max(0, projectionTarget - currentPnL);
+    const tradingDaysNeeded = remainingToGoal > 0 ? Math.ceil(remainingToGoal / dailyTarget) : 0;
+    
+    let calculatedGoalDate: Date | null = null;
+    if (currentPnL >= projectionTarget) {
+      // Goal already hit - find the date when we crossed the target
+      // Walk through trades chronologically to find when target was reached
+      let runningTotal = 0;
+      for (const dateStr of tradeDates) {
+        runningTotal += actualDailyPnL[dateStr] || 0;
+        if (runningTotal >= target) {
+          calculatedGoalDate = new Date(dateStr + 'T12:00:00');
+          calculatedGoalDate.setHours(0, 0, 0, 0);
+          break;
+        }
+      }
+      // Fallback to last trade date if not found
+      if (!calculatedGoalDate) {
+        calculatedGoalDate = new Date(lastTradeDate);
+      }
+    } else if (tradingDaysNeeded > 0) {
+      // Project future goal date starting from last trade date (or today if no trades)
+      const startFrom = lastTradeDate > today ? lastTradeDate : today;
+      let daysAdded = 0;
+      const checkDate = new Date(startFrom);
+      // Safety cap at 365 days to prevent infinite loops
+      while (daysAdded < tradingDaysNeeded && daysAdded < 365) {
+        checkDate.setDate(checkDate.getDate() + 1);
+        const day = checkDate.getDay();
+        if (day !== 0 && day !== 6) { // Skip weekends (Sat=6, Sun=0)
+          daysAdded++;
+        }
+      }
+      calculatedGoalDate = checkDate;
+    }
+
     for (let i = 0; i < 42; i++) {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + i);
@@ -119,15 +219,13 @@ export const JourneyPage: React.FC = () => {
       } else if (!isWeekend) {
         pnl = dailyTarget;
         isProjected = true;
-        
-        // Only track goalReachedDay if we haven't hit it yet and it's in the future
-        if (!goalReachedDay && runningTotalPnLForProjection < projectionTarget) {
-          runningTotalPnLForProjection += pnl;
-          if (runningTotalPnLForProjection >= projectionTarget) {
-            goalReachedDay = new Date(currentDate);
-          }
-        }
       }
+
+      // Check if this date matches our calculated goal date
+      const isGoalDay = calculatedGoalDate && 
+        currentDate.getDate() === calculatedGoalDate.getDate() &&
+        currentDate.getMonth() === calculatedGoalDate.getMonth() &&
+        currentDate.getFullYear() === calculatedGoalDate.getFullYear();
 
       days.push({
         date: currentDate,
@@ -138,11 +236,11 @@ export const JourneyPage: React.FC = () => {
         isProjected,
         isWeekend,
         isCurrentMonth,
-        isGoalDay: goalReachedDay?.getTime() === currentDate.getTime()
+        isGoalDay
       });
     }
-    return { days, goalReachedDay };
-  }, [actualDailyPnL, pace, projectionTarget, currentPnL, currentMonth]);
+    return { days, goalReachedDay: calculatedGoalDate };
+  }, [actualDailyPnL, pace, projectionTarget, currentPnL, currentMonth, target]);
 
   const navigateMonth = (direction: number) => {
     const newDate = new Date(currentMonth);
@@ -174,43 +272,95 @@ export const JourneyPage: React.FC = () => {
           isFunded ? "bg-[#3BF68A]" : "bg-[#A78BFA]"
         )} />
         
-        <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           
-          {/* LEFT: Account Info */}
-          <div className="lg:col-span-4 space-y-4">
-            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter leading-none italic">
-              {account.name}
-            </h1>
-            <div className="flex items-center space-x-4 text-white">
-              <div>
-                <div className="text-[8px] font-black text-[#4B5563] uppercase tracking-widest">Balance</div>
-                <div className="text-xl font-black tabular-nums">${currentPnL.toLocaleString()}</div>
-              </div>
-              <div className="w-px h-6 bg-[#1F2937]" />
-              <div>
-                <div className="text-[8px] font-black text-[#4B5563] uppercase tracking-widest">Target</div>
-                <div className="text-xl font-black text-[#3BF68A] tabular-nums">${target.toLocaleString()}</div>
+          {/* LEFT: Progress Ring (Larger & Moved Left) */}
+          <div className="lg:col-span-3 flex items-center justify-center lg:justify-start pl-8">
+            <div className="relative w-32 h-32 flex items-center justify-center group">
+              {/* Glow Effect */}
+              <div className={clsx(
+                "absolute inset-0 rounded-full blur-2xl opacity-20 group-hover:opacity-30 transition-opacity duration-500",
+                isFunded ? "bg-[#3BF68A]" : "bg-[#A78BFA]"
+              )} />
+              
+              <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 100 100">
+                {/* Background Circle */}
+                <circle 
+                  cx="50" cy="50" r="42" 
+                  stroke="currentColor" strokeWidth="8" 
+                  fill="transparent" 
+                  className="text-[#1F2937]" 
+                />
+                {/* Progress Circle */}
+                <circle 
+                  cx="50" cy="50" r="42" 
+                  stroke="currentColor" strokeWidth="8" 
+                  fill="transparent" 
+                  strokeDasharray={264} 
+                  strokeDashoffset={264 - (264 * progressPercent) / 100}
+                  className={clsx(
+                    "transition-all duration-1000 ease-out", 
+                    isFunded ? "text-[#3BF68A]" : "text-[#A78BFA]"
+                  )}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span className="text-2xl font-black text-white tracking-tighter">{progressPercent.toFixed(0)}%</span>
+                <span className="text-[9px] font-bold text-[#9CA3AF] uppercase tracking-widest mt-0.5">Goal</span>
               </div>
             </div>
           </div>
 
-          {/* CENTER: Inline Controls */}
+          {/* CENTER: Account Info */}
           <div className="lg:col-span-5 space-y-4">
+            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-none italic">
+              {account.name}
+            </h1>
+            <div className="flex items-center space-x-6 text-white">
+              <div>
+                <div className="text-[9px] font-black text-[#6B7280] uppercase tracking-[0.2em] mb-1">Balance</div>
+                <div className="text-2xl font-black tabular-nums tracking-tight">${currentPnL.toLocaleString()}</div>
+              </div>
+              <div className="w-px h-8 bg-[#1F2937]" />
+              <div>
+                <div className="text-[9px] font-black text-[#6B7280] uppercase tracking-[0.2em] mb-1">Target</div>
+                <div className="relative group flex items-center">
+                  <span className="text-2xl font-black text-[#3BF68A] mr-1">$</span>
+                  <input 
+                    type="number"
+                    value={target}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setTarget(val);
+                      updateAccount(account.id, { profitTarget: val });
+                    }}
+                    className="w-32 bg-transparent text-2xl font-black text-[#3BF68A] tabular-nums focus:outline-none placeholder-[#3BF68A]/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  {/* Invisible overlay to hint editability on hover */}
+                  <div className="absolute inset-0 border-b-2 border-[#3BF68A]/0 group-hover:border-[#3BF68A]/20 transition-colors pointer-events-none" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: Inline Controls */}
+          <div className="lg:col-span-4 space-y-5">
             {/* Account Type Toggle */}
             <div className="space-y-2">
-              <label className="text-[8px] font-black text-[#4B5563] uppercase tracking-[0.2em]">Account Status</label>
-              <div className="flex bg-[#0B0D10] p-1 rounded-2xl border border-[#1F2937]">
+              <label className="text-[8px] font-black text-[#4B5563] uppercase tracking-[0.2em] ml-1">Account Status</label>
+              <div className="flex bg-[#0B0D10] p-1.5 rounded-2xl border border-[#1F2937]">
                 <button
                   onClick={() => {
                     setIsFunded(false);
                     updateAccount(account.id, { isFunded: false });
                   }}
                   className={clsx(
-                    "flex-1 py-2.5 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2",
-                    !isFunded ? "bg-[#A78BFA] text-white shadow-lg" : "text-[#4B5563] hover:text-[#8B94A7]"
+                    "flex-1 py-3 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2",
+                    !isFunded ? "bg-[#A78BFA] text-white shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
                   )}
                 >
-                  <Mountain className="w-3 h-3" />
+                  <Mountain className="w-3.5 h-3.5" />
                   Challenge
                 </button>
                 <button
@@ -219,11 +369,11 @@ export const JourneyPage: React.FC = () => {
                     updateAccount(account.id, { isFunded: true });
                   }}
                   className={clsx(
-                    "flex-1 py-2.5 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2",
-                    isFunded ? "bg-[#3BF68A] text-black shadow-lg" : "text-[#4B5563] hover:text-[#8B94A7]"
+                    "flex-1 py-3 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2",
+                    isFunded ? "bg-[#3BF68A] text-black shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
                   )}
                 >
-                  <Trophy className="w-3 h-3" />
+                  <Trophy className="w-3.5 h-3.5" />
                   Funded
                 </button>
               </div>
@@ -231,8 +381,8 @@ export const JourneyPage: React.FC = () => {
 
             {/* Pacing Strategy */}
             <div className="space-y-2">
-              <label className="text-[8px] font-black text-[#4B5563] uppercase tracking-[0.2em]">Trading Pace</label>
-              <div className="flex bg-[#0B0D10] p-1 rounded-2xl border border-[#1F2937]">
+              <label className="text-[8px] font-black text-[#4B5563] uppercase tracking-[0.2em] ml-1">Trading Pace</label>
+              <div className="flex bg-[#0B0D10] p-1.5 rounded-2xl border border-[#1F2937]">
                 {(['conservative', 'moderate', 'aggressive'] as const).map((p) => {
                   const Icon = PACE_CONFIG[p].icon;
                   return (
@@ -243,52 +393,15 @@ export const JourneyPage: React.FC = () => {
                         updateAccount(account.id, { pacingPreference: p });
                       }}
                       className={clsx(
-                        "flex-1 py-2.5 rounded-xl text-[8px] font-black tracking-wider uppercase transition-all flex items-center justify-center gap-1.5",
-                        pace === p ? "bg-white text-black shadow-lg" : "text-[#4B5563] hover:text-[#8B94A7]"
+                        "flex-1 py-3 rounded-xl text-[8px] font-black tracking-wider uppercase transition-all flex items-center justify-center gap-1.5",
+                        pace === p ? "bg-white text-black shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
                       )}
                     >
-                      <Icon className="w-3 h-3" style={{ color: pace === p ? 'black' : PACE_CONFIG[p].color }} />
+                      <Icon className="w-3.5 h-3.5" style={{ color: pace === p ? 'black' : PACE_CONFIG[p].color }} />
                       {p}
                     </button>
                   );
                 })}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT: Progress Ring & Target Input */}
-          <div className="lg:col-span-3 flex items-center justify-end gap-4">
-            {/* Target Input */}
-            <div className="space-y-2">
-              <label className="text-[8px] font-black text-[#4B5563] uppercase tracking-[0.2em]">Goal</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563] text-xs font-black">$</span>
-                <input 
-                  type="number" 
-                  value={target}
-                  onChange={(e) => {
-                    setTarget(Number(e.target.value));
-                    updateAccount(account.id, { profitTarget: Number(e.target.value) });
-                  }}
-                  className="w-28 bg-[#0B0D10] border border-[#1F2937] rounded-xl pl-6 pr-2 py-2.5 text-white font-black text-sm focus:outline-none focus:border-[#A78BFA] tabular-nums text-right"
-                />
-              </div>
-            </div>
-
-            {/* Progress Ring */}
-            <div className="relative w-20 h-20 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/5" />
-                <circle 
-                  cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="6" fill="transparent" 
-                  strokeDasharray={214} 
-                  strokeDashoffset={214 - (214 * progressPercent) / 100}
-                  className={clsx("transition-all duration-1000 ease-out", isFunded ? "text-[#3BF68A]" : "text-[#A78BFA]")}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-lg font-black text-white">{progressPercent.toFixed(0)}%</span>
               </div>
             </div>
           </div>
@@ -485,6 +598,118 @@ export const JourneyPage: React.FC = () => {
             </div>
           </div>
 
+          {/* CONSISTENCY SCORE WIDGET */}
+          <div className={clsx(
+            "p-6 rounded-[2.5rem] border shadow-xl overflow-hidden group relative transition-colors",
+            theme === 'dark' 
+              ? "bg-[#15181F] border-[#1F2937]" 
+              : "bg-[#F8F9FB] border-gray-100"
+          )}>
+            <div className="space-y-4">
+              {/* Header with Consistency % Badge */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-[#10B981]/10">
+                    <CheckSquare className="w-4 h-4 text-[#10B981]" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className={clsx(
+                      "text-sm font-bold",
+                      theme === 'dark' ? "text-[#E5E7EB]" : "text-gray-900"
+                    )}>Consistency</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* Current Consistency % / Rule % Badge */}
+                  <div className="px-2.5 py-1 rounded-full bg-[#10B981] text-xs font-bold text-white">
+                    {consistencyMetrics.currentConsistencyPercent.toFixed(2)}/{consistencyRule}%
+                  </div>
+                  {/* Qualified/Not Yet Badge */}
+                  <div className={clsx(
+                    "px-3 py-1 rounded-full text-xs font-bold text-white",
+                    consistencyMetrics.isQualified ? "bg-[#10B981]" : "bg-[#F45B69]"
+                  )}>
+                    {consistencyMetrics.isQualified ? "Qualified" : "Not Yet"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Metrics List */}
+              <div className="space-y-0">
+                {/* Highest Profit Day */}
+                <div className={clsx(
+                  "flex items-center justify-between py-3 border-b",
+                  theme === 'dark' ? "border-[#1F2937]" : "border-gray-200"
+                )}>
+                  <span className={clsx("text-sm", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                    Highest Profit Day
+                  </span>
+                  <span className={clsx(
+                    "text-sm font-semibold",
+                    theme === 'dark' ? "text-[#E5E7EB]" : "text-gray-900"
+                  )}>
+                    {consistencyMetrics.highestDay.toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Current Total Profit */}
+                <div className={clsx(
+                  "flex items-center justify-between py-3 border-b",
+                  theme === 'dark' ? "border-[#1F2937]" : "border-gray-200"
+                )}>
+                  <span className={clsx("text-sm", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                    Current Total Profit
+                  </span>
+                  <span className={clsx(
+                    "text-sm font-semibold",
+                    theme === 'dark' ? "text-[#E5E7EB]" : "text-gray-900"
+                  )}>
+                    {consistencyMetrics.currentTotalProfit.toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Minimum Required Profit to Qualify */}
+                <div className="flex items-center justify-between py-3">
+                  <span className={clsx("text-sm", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                    Minimum Required Profit to Qualify
+                  </span>
+                  <span className={clsx(
+                    "text-sm font-semibold",
+                    theme === 'dark' ? "text-[#E5E7EB]" : "text-gray-900"
+                  )}>
+                    {consistencyMetrics.minimumRequiredProfit.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Rule Selector */}
+              <div className="pt-1">
+                <label className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em] mb-2 block">
+                  Consistency Rule
+                </label>
+                <div className={clsx(
+                  "flex p-1 rounded-xl border",
+                  theme === 'dark' ? "bg-[#0B0D10] border-[#1F2937]" : "bg-gray-50 border-gray-200"
+                )}>
+                  {[15, 20, 30, 40, 50].map((rule) => (
+                    <button
+                      key={rule}
+                      onClick={() => handleConsistencyChange(rule)}
+                      className={clsx(
+                        "flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all",
+                        consistencyRule === rule 
+                          ? (theme === 'dark' ? "bg-[#1F2937] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm border border-gray-100")
+                          : (theme === 'dark' ? "text-[#8B94A7] hover:text-[#E5E7EB]" : "text-gray-500 hover:text-gray-900")
+                      )}
+                    >
+                      {rule}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -495,11 +720,21 @@ export const JourneyPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-2">
               <div className="text-3xl font-black text-white">${PACE_CONFIG[pace].dailyTarget}</div>
-              <div className="text-[9px] font-bold text-[#3BF68A] uppercase tracking-widest">Required Daily Average</div>
+              <div className="text-[9px] font-bold text-[#3BF68A] uppercase tracking-widest">Daily Pace Target</div>
             </div>
-            <div className="text-right space-y-2">
-              <div className="text-3xl font-black text-white">{Math.ceil(remainingPnL / PACE_CONFIG[pace].dailyTarget)}</div>
-              <div className="text-[9px] font-bold text-[#A78BFA] uppercase tracking-widest">Est. Trading Days Left</div>
+            
+            <div className="flex gap-8">
+               <div className="text-right space-y-2">
+                <div className="text-3xl font-black text-white">${remainingPnL.toLocaleString()}</div>
+                <div className="text-[9px] font-bold text-[#F45B69] uppercase tracking-widest">Gap to Summit</div>
+              </div>
+              
+              <div className="text-right space-y-2">
+                <div className="text-3xl font-black text-white">
+                  {Math.ceil(remainingPnL / PACE_CONFIG[pace].dailyTarget)}
+                </div>
+                <div className="text-[9px] font-bold text-[#A78BFA] uppercase tracking-widest">Trading Days Left</div>
+              </div>
             </div>
           </div>
         </div>

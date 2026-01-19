@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, MoreVertical, Upload, Trash2, Edit2, ChevronDown, FileText, AlertTriangle, History, X, Download, HardDrive } from 'lucide-react';
-import { useAccountStore, Account } from '../../store/accountStore';
+import { useAccountStore, Account, AccountStatus } from '../../store/accountStore';
 import { useThemeStore } from '../../store/themeStore';
 import { toast } from '../../store/toastStore';
 import { exportAllData, importBackupData, getStorageUsage, exportTradesToCSV, setLastBackupTime } from '../../hooks/useLocalStorage';
@@ -646,8 +646,7 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
 interface EditAccountModalProps {
   account: Account | null;
   onClose: () => void;
-  onSave: (id: string, name: string, broker: string) => void;
-  onDelete: (account: Account) => void;
+  onSave: (id: string, name: string, broker: string, status: AccountStatus) => void;
   onImport: (accountId: string) => void;
   onClearTrades: (accountId: string) => void;
   onShowImportHistory: (account: Account) => void;
@@ -658,7 +657,6 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
   account, 
   onClose, 
   onSave, 
-  onDelete,
   onImport,
   onClearTrades,
   onShowImportHistory,
@@ -666,7 +664,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
 }) => {
   const [name, setName] = useState(account?.name || '');
   const [broker, setBroker] = useState(account?.broker || '');
+  const [status, setStatus] = useState<AccountStatus>(account?.status || 'active');
   const [showBrokerDropdown, setShowBrokerDropdown] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { theme } = useThemeStore();
 
@@ -675,6 +675,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
     if (account) {
       setName(account.name);
       setBroker(account.broker);
+      setStatus(account.status || 'active');
     }
   }, [account]);
 
@@ -683,7 +684,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim() && broker.trim()) {
-      onSave(account.id, name.trim(), broker.trim());
+      onSave(account.id, name.trim(), broker.trim(), status);
       onClose();
     }
   };
@@ -761,7 +762,10 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setShowBrokerDropdown(!showBrokerDropdown)}
+                onClick={() => {
+                  setShowBrokerDropdown(!showBrokerDropdown);
+                  setShowStatusDropdown(false);
+                }}
                 className={clsx(
                   'w-full px-4 py-3 rounded-lg border text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
                   theme === 'dark'
@@ -780,7 +784,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
 
               {showBrokerDropdown && (
                 <div className={clsx(
-                  'absolute z-10 w-full mt-1 rounded-lg border shadow-xl max-h-48 overflow-y-auto',
+                  'absolute z-20 w-full mt-1 rounded-lg border shadow-xl max-h-48 overflow-y-auto',
                   theme === 'dark'
                     ? 'bg-[#15181F] border-[#1F2937]'
                     : 'bg-white border-gray-200'
@@ -804,6 +808,89 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                       {option}
                     </button>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Status Dropdown */}
+          <div>
+            <label className={clsx(
+              'block text-sm font-medium mb-2',
+              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+            )}>
+              Account Status
+            </label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowStatusDropdown(!showStatusDropdown);
+                  setShowBrokerDropdown(false);
+                }}
+                className={clsx(
+                  'w-full px-4 py-3 rounded-lg border text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
+                  theme === 'dark'
+                    ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB]'
+                    : 'bg-gray-50 border-gray-300 text-gray-900'
+                )}
+              >
+                <div className="flex items-center space-x-2">
+                  <div className={clsx(
+                    'w-2 h-2 rounded-full',
+                    status === 'active' ? 'bg-[#3BF68A]' :
+                    status === 'blown' ? 'bg-[#F45B69]' :
+                    'bg-yellow-400'
+                  )} />
+                  <span className="capitalize">
+                    {status === 'inactive' ? 'Paid Out' : status}
+                  </span>
+                  {status === 'inactive' && <span>🏆</span>}
+                </div>
+                <ChevronDown className={clsx(
+                  'h-5 w-5 transition-transform',
+                  showStatusDropdown && 'rotate-180'
+                )} />
+              </button>
+
+              {showStatusDropdown && (
+                <div className={clsx(
+                  'absolute z-20 w-full mt-1 rounded-lg border shadow-xl',
+                  theme === 'dark'
+                    ? 'bg-[#15181F] border-[#1F2937]'
+                    : 'bg-white border-gray-200'
+                )}>
+                  {(['active', 'blown', 'inactive'] as AccountStatus[]).map((option) => {
+                    const isPaidOut = option === 'inactive';
+                    const label = isPaidOut ? 'Paid Out' : option;
+                    
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => {
+                          setStatus(option);
+                          setShowStatusDropdown(false);
+                        }}
+                        className={clsx(
+                          'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
+                          theme === 'dark'
+                            ? 'text-[#E5E7EB] hover:bg-[#1F2937]'
+                            : 'text-gray-700 hover:bg-gray-100',
+                          status === option && (theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-100')
+                        )}
+                      >
+                        <div className={clsx(
+                          'w-2 h-2 rounded-full',
+                          option === 'active' ? 'bg-[#3BF68A]' :
+                          option === 'blown' ? 'bg-[#F45B69]' :
+                          'bg-yellow-400'
+                        )} />
+                        <span className="capitalize">{label}</span>
+                        {isPaidOut && <span className="ml-auto text-xs">🏆</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -940,6 +1027,23 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
             </div>
           )}
 
+          {/* Delete Account Section */}
+          {account.type !== 'demo' && (
+            <div className={clsx(
+              'pt-4 border-t',
+              theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+            )}>
+              <button
+                type="button"
+                onClick={() => onShowDeleteConfirm(account)}
+                className="w-full px-4 py-3 rounded-lg border border-red-500/30 text-red-500 font-medium flex items-center justify-center space-x-2 hover:bg-red-500/10 transition-all"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete Account</span>
+              </button>
+            </div>
+          )}
+
           {/* Form Buttons */}
           <div className="flex space-x-3 pt-4">
             <button
@@ -972,9 +1076,10 @@ interface AccountActionsMenuProps {
   onEdit: () => void;
   onDelete: () => void;
   onImport: () => void;
+  onStatusChange: (status: AccountStatus) => void;
 }
 
-const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit, onDelete, onImport }) => {
+const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit, onDelete, onImport, onStatusChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const buttonRef = React.useRef<HTMLButtonElement>(null);
@@ -1048,6 +1153,46 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
               <Edit2 className="h-4 w-4" />
               <span>Edit Account</span>
             </button>
+            
+            <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-100')} />
+            
+            {/* Status Options */}
+            <div className="px-2 py-1">
+              <p className={clsx('text-xs px-2 mb-1 uppercase font-semibold', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')}>
+                Set Status
+              </p>
+              {(['active', 'blown', 'inactive'] as AccountStatus[]).map((status) => {
+                const isPaidOut = status === 'inactive';
+                const label = isPaidOut ? 'Paid Out' : status;
+                
+                return (
+                  <button
+                    key={status}
+                    onClick={() => { onStatusChange(status); setIsOpen(false); }}
+                    className={clsx(
+                      'w-full px-2 py-1.5 text-left text-sm rounded flex items-center space-x-2 transition-colors',
+                      account.status === status
+                        ? (theme === 'dark' 
+                            ? (isPaidOut ? 'bg-yellow-500/10 text-yellow-400' : 'bg-[#3BF68A]/10 text-[#3BF68A]') 
+                            : (isPaidOut ? 'bg-yellow-50 text-yellow-600' : 'bg-purple-50 text-purple-600'))
+                        : (theme === 'dark' ? 'text-[#8B94A7] hover:bg-[#1F2937] hover:text-[#E5E7EB]' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900')
+                    )}
+                  >
+                    <div className={clsx(
+                      'w-1.5 h-1.5 rounded-full',
+                      status === 'active' ? 'bg-[#3BF68A]' :
+                      status === 'blown' ? 'bg-[#F45B69]' :
+                      'bg-yellow-400'
+                    )} />
+                    <span className="capitalize font-medium">{label}</span>
+                    {isPaidOut && <span className="ml-auto text-xs">🏆</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-100')} />
+
             {account.type !== 'demo' && (
               <button
                 onClick={() => { onDelete(); setIsOpen(false); }}
@@ -1080,6 +1225,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<Account | null>(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [restoreConfirmText, setRestoreConfirmText] = useState('');
+  const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleAddAccount = (name: string, broker: string) => {
@@ -1088,9 +1234,14 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
     selectAccount(id);
   };
 
-  const handleSaveAccount = (id: string, name: string, broker: string) => {
-    updateAccount(id, { name, broker });
+  const handleSaveAccount = (id: string, name: string, broker: string, status: AccountStatus) => {
+    updateAccount(id, { name, broker, status });
     toast.success(`Account "${name}" updated`);
+  };
+
+  const handleStatusChange = (accountId: string, status: AccountStatus) => {
+    updateAccount(accountId, { status });
+    toast.success('Account status updated');
   };
 
   const handleClearTrades = (accountId: string) => {
@@ -1150,6 +1301,106 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
     }
   };
 
+  const activeAccounts = accounts.filter(a => (a.status || 'active') === 'active');
+  const inactiveAccounts = accounts.filter(a => (a.status || 'active') !== 'active');
+
+  const renderAccountRow = (account: Account) => (
+    <div
+      key={account.id}
+      className={clsx(
+        'grid grid-cols-6 gap-4 px-6 py-4 items-center border-b transition-colors cursor-pointer',
+        theme === 'dark' 
+          ? 'border-[#1F2937] hover:bg-[#15181F]' 
+          : 'border-gray-100 hover:bg-gray-50',
+        selectedAccountId === account.id && (
+          theme === 'dark' 
+            ? 'bg-[#3BF68A]/5 border-l-2 border-l-[#3BF68A]' 
+            : 'bg-purple-50 border-l-2 border-l-purple-500'
+        )
+      )}
+      onClick={() => selectAccount(account.id)}
+    >
+      {/* Account Name */}
+      <div className={clsx(
+        'font-medium flex items-center space-x-2',
+        theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+      )}>
+        <span>{account.name}</span>
+        {account.status !== 'active' && (
+          <span className={clsx(
+            'text-[10px] px-1.5 py-0.5 rounded-full uppercase font-bold tracking-wider flex items-center gap-1',
+            account.status === 'blown' 
+              ? 'bg-red-500/20 text-red-500' 
+              : 'bg-yellow-500/20 text-yellow-500'
+          )}>
+            {account.status === 'inactive' ? 'PAID OUT' : account.status}
+            {account.status === 'inactive' && '🏆'}
+          </span>
+        )}
+      </div>
+
+      {/* Broker */}
+      <div className="flex items-center space-x-2">
+        <span className="text-lg">{getBrokerIcon(account.broker)}</span>
+        <span className={theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'}>
+          {account.broker}
+        </span>
+      </div>
+
+      {/* Balance */}
+      <div>
+        <a
+          href="#"
+          onClick={(e) => e.preventDefault()}
+          className={clsx(
+            'font-medium hover:underline',
+            account.balance >= 0
+              ? 'text-[#3BF68A]'
+              : 'text-[#F45B69]'
+          )}
+        >
+          {formatBalance(account.balance)}
+        </a>
+      </div>
+
+      {/* Last Update */}
+      <div className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>
+        {account.lastUpdate || '-'}
+      </div>
+
+      {/* Type */}
+      <div className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>
+        {getTypeLabel(account.type)}
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center justify-end space-x-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onImportForAccount(account.id);
+          }}
+          className={clsx(
+            'p-2 rounded-lg transition-colors',
+            theme === 'dark'
+              ? 'text-[#8B94A7] hover:text-[#3BF68A] hover:bg-[#3BF68A]/10'
+              : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'
+          )}
+          title="Import trades"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
+        <AccountActionsMenu
+          account={account}
+          onEdit={() => setEditingAccount(account)}
+          onDelete={() => setShowDeleteConfirm(account)}
+          onImport={() => onImportForAccount(account.id)}
+          onStatusChange={(status) => handleStatusChange(account.id, status)}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -1170,34 +1421,87 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
         </div>
       </div>
 
+      {/* Control Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        {/* Tabs */}
+        <div className={clsx(
+          'flex p-1 rounded-xl',
+          theme === 'dark' ? 'bg-[#1F2937]/50' : 'bg-gray-100'
+        )}>
+          <button
+            onClick={() => setActiveTab('active')}
+            className={clsx(
+              'px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2',
+              activeTab === 'active'
+                ? theme === 'dark' 
+                  ? 'bg-[#3BF68A]/20 text-[#3BF68A] shadow-sm' 
+                  : 'bg-white text-gray-900 shadow-sm'
+                : theme === 'dark'
+                  ? 'text-[#8B94A7] hover:text-[#E5E7EB]'
+                  : 'text-gray-500 hover:text-gray-900'
+            )}
+          >
+            <span>Active Accounts</span>
+            <span className={clsx(
+              'px-2 py-0.5 rounded-full text-xs',
+              activeTab === 'active'
+                ? theme === 'dark' ? 'bg-[#3BF68A]/20 text-[#3BF68A]' : 'bg-gray-100 text-gray-900'
+                : theme === 'dark' ? 'bg-[#15181F] text-[#8B94A7]' : 'bg-gray-200 text-gray-600'
+            )}>
+              {activeAccounts.length}
+            </span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('inactive')}
+            className={clsx(
+              'px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2',
+              activeTab === 'inactive'
+                ? theme === 'dark' 
+                  ? 'bg-[#F45B69]/20 text-[#F45B69] shadow-sm' 
+                  : 'bg-white text-gray-900 shadow-sm'
+                : theme === 'dark'
+                  ? 'text-[#8B94A7] hover:text-[#E5E7EB]'
+                  : 'text-gray-500 hover:text-gray-900'
+            )}
+          >
+            <span>Paid Out / Blown</span>
+            <span className={clsx(
+              'px-2 py-0.5 rounded-full text-xs',
+              activeTab === 'inactive'
+                ? theme === 'dark' ? 'bg-[#F45B69]/20 text-[#F45B69]' : 'bg-gray-100 text-gray-900'
+                : theme === 'dark' ? 'bg-[#15181F] text-[#8B94A7]' : 'bg-gray-200 text-gray-600'
+            )}>
+              {inactiveAccounts.length}
+            </span>
+          </button>
+        </div>
+
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all shadow-lg shadow-[#3BF68A]/20"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Add New Account</span>
+        </button>
+      </div>
+
       {/* Accounts Table */}
       <div className={clsx(
-        'rounded-xl border overflow-hidden',
+        'rounded-xl border overflow-hidden mb-8',
         theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
       )}>
         {/* Table Header */}
         <div className={clsx(
-          'px-6 py-4 flex items-center justify-between border-b',
+          'px-6 py-3 border-b text-xs font-semibold uppercase tracking-wider',
           theme === 'dark' 
-            ? 'bg-[#15181F] border-[#1F2937]' 
-            : 'bg-gray-50 border-gray-200'
+            ? 'bg-[#15181F] border-[#1F2937] text-[#8B94A7]' 
+            : 'bg-gray-50 border-gray-200 text-gray-500'
         )}>
-          <h2 className={clsx(
-            'text-lg font-semibold',
-            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
-          )}>
-            Active accounts
-          </h2>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add new account</span>
-          </button>
+          {activeTab === 'active' ? 'Active Accounts List' : 'Paid Out & Blown Accounts History'}
         </div>
 
-        {/* Table */}
+        {/* Table Content */}
         <div className={clsx(
           theme === 'dark' ? 'bg-[#0B0D10]' : 'bg-white'
         )}>
@@ -1217,99 +1521,30 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           </div>
 
           {/* Account Rows */}
-          {accounts.length === 0 ? (
-            <div className={clsx(
-              'px-6 py-12 text-center',
-              theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
-            )}>
-              <p className="text-lg mb-2">No accounts yet</p>
-              <p className="text-sm">Create your first account to start tracking trades</p>
-            </div>
-          ) : (
-            accounts.map((account) => (
-              <div
-                key={account.id}
-                className={clsx(
-                  'grid grid-cols-6 gap-4 px-6 py-4 items-center border-b transition-colors cursor-pointer',
-                  theme === 'dark' 
-                    ? 'border-[#1F2937] hover:bg-[#15181F]' 
-                    : 'border-gray-100 hover:bg-gray-50',
-                  selectedAccountId === account.id && (
-                    theme === 'dark' 
-                      ? 'bg-[#3BF68A]/5 border-l-2 border-l-[#3BF68A]' 
-                      : 'bg-purple-50 border-l-2 border-l-purple-500'
-                  )
-                )}
-                onClick={() => selectAccount(account.id)}
-              >
-                {/* Account Name */}
-                <div className={clsx(
-                  'font-medium',
-                  theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
-                )}>
-                  {account.name}
-                </div>
-
-                {/* Broker */}
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">{getBrokerIcon(account.broker)}</span>
-                  <span className={theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'}>
-                    {account.broker}
-                  </span>
-                </div>
-
-                {/* Balance */}
-                <div>
-                  <a
-                    href="#"
-                    onClick={(e) => e.preventDefault()}
-                    className={clsx(
-                      'font-medium hover:underline',
-                      account.balance >= 0
-                        ? 'text-[#3BF68A]'
-                        : 'text-[#F45B69]'
-                    )}
-                  >
-                    {formatBalance(account.balance)}
-                  </a>
-                </div>
-
-                {/* Last Update */}
-                <div className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>
-                  {account.lastUpdate || '-'}
-                </div>
-
-                {/* Type */}
-                <div className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>
-                  {getTypeLabel(account.type)}
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-end space-x-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onImportForAccount(account.id);
-                    }}
-                    className={clsx(
-                      'p-2 rounded-lg transition-colors',
-                      theme === 'dark'
-                        ? 'text-[#8B94A7] hover:text-[#3BF68A] hover:bg-[#3BF68A]/10'
-                        : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'
-                    )}
-                    title="Import trades"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
-                  <AccountActionsMenu
-                    account={account}
-                    onEdit={() => setEditingAccount(account)}
-                    onDelete={() => setShowDeleteConfirm(account)}
-                    onImport={() => onImportForAccount(account.id)}
-                  />
-                </div>
+          {activeTab === 'active' ? (
+            activeAccounts.length === 0 ? (
+              <div className={clsx(
+                'px-6 py-12 text-center',
+                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+              )}>
+                <p className="text-lg mb-2">No active accounts</p>
+                <p className="text-sm">Create an account to start tracking trades</p>
               </div>
-            ))
+            ) : (
+              activeAccounts.map(renderAccountRow)
+            )
+          ) : (
+            inactiveAccounts.length === 0 ? (
+              <div className={clsx(
+                'px-6 py-12 text-center',
+                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+              )}>
+                <p className="text-lg mb-2">No inactive accounts</p>
+                <p className="text-sm">Blown or archived accounts will appear here</p>
+              </div>
+            ) : (
+              inactiveAccounts.map(renderAccountRow)
+            )
           )}
         </div>
       </div>
@@ -1692,7 +1927,6 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
         account={editingAccount}
         onClose={() => setEditingAccount(null)}
         onSave={handleSaveAccount}
-        onDelete={handleDeleteAccount}
         onImport={(accountId) => {
           setEditingAccount(null);
           onImportForAccount(accountId);

@@ -14,6 +14,8 @@ export interface ImportHistoryEntry {
   } | null;
 }
 
+export type AccountStatus = 'active' | 'blown' | 'inactive';
+
 export interface Account {
   id: string;
   name: string;
@@ -21,6 +23,7 @@ export interface Account {
   balance: number;
   lastUpdate: string | null;
   type: 'file_upload' | 'demo' | 'manual';
+  status: AccountStatus;
   trades: Trade[];
   createdAt: string;
   importHistory: ImportHistoryEntry[];
@@ -29,6 +32,8 @@ export interface Account {
   profitTarget?: number;
   startingBalance?: number;
   pacingPreference?: 'conservative' | 'moderate' | 'aggressive';
+  consistencyRulePercentage?: number;
+  consistencyBasis?: 'profitTarget' | 'currentProfit';
 }
 
 interface AccountState {
@@ -37,7 +42,7 @@ interface AccountState {
   showAllAccounts: boolean;
   
   // Actions
-  addAccount: (account: Omit<Account, 'id' | 'createdAt' | 'trades' | 'balance' | 'lastUpdate' | 'importHistory'>) => string;
+  addAccount: (account: Omit<Account, 'id' | 'createdAt' | 'trades' | 'balance' | 'lastUpdate' | 'importHistory' | 'status'>) => string;
   updateAccount: (id: string, updates: Partial<Omit<Account, 'id' | 'createdAt'>>) => void;
   deleteAccount: (id: string) => void;
   selectAccount: (id: string | null) => void;
@@ -115,6 +120,7 @@ const generateDemoAccount = (): Account => {
     balance: balance,
     lastUpdate: null,
     type: 'demo',
+    status: 'active',
     trades: demoTrades,
     createdAt: new Date().toISOString(),
     importHistory: []
@@ -132,11 +138,12 @@ const loadAccountsFromStorage = (): { accounts: Account[]; selectedId: string | 
       // Migrate existing accounts to include importHistory if missing
       const accounts = rawAccounts.map(account => ({
         ...account,
-        importHistory: account.importHistory || []
+        importHistory: account.importHistory || [],
+        status: account.status || 'active'
       }));
       
       // Save migrated accounts back to storage
-      if (rawAccounts.some(a => !a.importHistory)) {
+      if (rawAccounts.some(a => !a.importHistory || !a.status)) {
         localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
       }
       
@@ -171,6 +178,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       id,
       balance: 0,
       lastUpdate: null,
+      status: 'active',
       trades: [],
       createdAt: new Date().toISOString(),
       importHistory: []
