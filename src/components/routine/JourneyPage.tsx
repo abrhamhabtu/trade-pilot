@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAccountStore } from '../../store/accountStore';
 import { useThemeStore } from '../../store/themeStore';
+import { ConsistencyGuardian } from './ConsistencyGuardian';
 import { 
   Trophy, 
   TrendingUp, 
@@ -12,7 +13,9 @@ import {
   Quote,
   CheckSquare,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Compass,
+  ShieldCheck
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -55,6 +58,7 @@ export const JourneyPage: React.FC = () => {
   const [pace, setPace] = useState<'conservative' | 'moderate' | 'aggressive'>(account?.pacingPreference || 'moderate');
   const [quote, setQuote] = useState("");
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [activeTab, setActiveTab] = useState<'overview' | 'consistency'>('overview');
 
   useEffect(() => {
     setQuote(TRADING_QUOTES[Math.floor(Math.random() * TRADING_QUOTES.length)]);
@@ -66,6 +70,15 @@ export const JourneyPage: React.FC = () => {
       updateAccount(account.id, { isFunded });
     }
   }, [isFunded, account, updateAccount]);
+
+  // Update target, isFunded, and pace when account changes
+  useEffect(() => {
+    if (account) {
+      setTarget(account.profitTarget || 3000);
+      setIsFunded(account.isFunded || false);
+      setPace(account.pacingPreference || 'moderate');
+    }
+  }, [account?.id]);
 
   // Group existing trades by date
   const [consistencyRule, setConsistencyRule] = useState(account?.consistencyRulePercentage || 30);
@@ -408,6 +421,40 @@ export const JourneyPage: React.FC = () => {
         </div>
       </div>
 
+      {/* TAB NAVIGATION */}
+      <div className={clsx(
+        "flex p-1.5 rounded-2xl border",
+        theme === 'dark' ? "bg-[#0B0D10] border-[#1F2937]" : "bg-gray-100 border-gray-200"
+      )}>
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={clsx(
+            "flex-1 py-3 rounded-xl text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2",
+            activeTab === 'overview' 
+              ? (theme === 'dark' ? "bg-[#1F2937] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
+              : (theme === 'dark' ? "text-[#6B7280] hover:text-[#9CA3AF]" : "text-gray-500 hover:text-gray-700")
+          )}
+        >
+          <Compass className="w-4 h-4" />
+          Overview
+        </button>
+        <button
+          onClick={() => setActiveTab('consistency')}
+          className={clsx(
+            "flex-1 py-3 rounded-xl text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2",
+            activeTab === 'consistency' 
+              ? (theme === 'dark' ? "bg-[#1F2937] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
+              : (theme === 'dark' ? "text-[#6B7280] hover:text-[#9CA3AF]" : "text-gray-500 hover:text-gray-700")
+          )}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          Consistency Guardian
+        </button>
+      </div>
+
+      {/* TAB CONTENT */}
+      {activeTab === 'overview' ? (
+        <>
       {/* 2. CALENDAR & WIDGETS SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
@@ -751,6 +798,13 @@ export const JourneyPage: React.FC = () => {
           </div>
         </div>
       </div>
+        </>
+      ) : (
+        <ConsistencyGuardian 
+          account={account} 
+          actualDailyPnL={actualDailyPnL}
+        />
+      )}
     </div>
   );
 };

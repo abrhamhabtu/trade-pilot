@@ -34,6 +34,9 @@ export interface Account {
   pacingPreference?: 'conservative' | 'moderate' | 'aggressive';
   consistencyRulePercentage?: number;
   consistencyBasis?: 'profitTarget' | 'currentProfit';
+  // Consistency Guardian fields
+  originalProfitTarget?: number;
+  accountTier?: 'instant' | 'elite';
 }
 
 interface AccountState {
