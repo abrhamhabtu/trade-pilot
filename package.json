@@ -17,6 +17,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "agentation": "^1.1.1",
     "clsx": "^2.0.0",
     "lucide-react": "^0.344.0",
     "papaparse": "^5.4.1",

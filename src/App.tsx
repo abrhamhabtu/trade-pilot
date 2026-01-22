@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { Agentation } from 'agentation';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/dashboard';
 import { TradeLog } from './components/TradeLog';
@@ -389,6 +390,9 @@ function App() {
       />
 
       <ToastContainer toasts={toasts} onClose={removeToast} />
+
+      {/* Agentation - Development only */}
+      {import.meta.env.DEV && <Agentation />}
     </div>
   );
 }
