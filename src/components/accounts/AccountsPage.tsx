@@ -48,11 +48,11 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div 
+      <div
         className={clsx(
           'rounded-xl border max-w-md w-full',
-          theme === 'dark' 
-            ? 'bg-[#15181F] border-[#1F2937]' 
+          theme === 'dark'
+            ? 'bg-[#15181F] border-[#1F2937]'
             : 'bg-white border-gray-200'
         )}
       >
@@ -115,7 +115,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
               </span>
               <ChevronDown className="h-4 w-4" />
             </button>
-            
+
             {showBrokerDropdown && (
               <div className={clsx(
                 'absolute z-10 w-full mt-1 rounded-lg border shadow-xl max-h-48 overflow-y-auto',
@@ -255,7 +255,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ isOpen, account
               placeholder="Type account name to confirm..."
               className={clsx(
                 'w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-all font-mono',
-                isConfirmValid 
+                isConfirmValid
                   ? 'focus:ring-red-500/50 border-red-500'
                   : 'focus:ring-[#3BF68A]/50',
                 theme === 'dark'
@@ -467,7 +467,7 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  
+
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4 mt-4">
                     <div className={clsx(
@@ -509,7 +509,7 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
                         'text-sm font-medium mt-1',
                         theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
                       )}>
-                        {entry.dateRange 
+                        {entry.dateRange
                           ? `${entry.dateRange.from.slice(5)} - ${entry.dateRange.to.slice(5)}`
                           : '—'
                         }
@@ -653,10 +653,10 @@ interface EditAccountModalProps {
   onShowDeleteConfirm: (account: Account) => void;
 }
 
-const EditAccountModal: React.FC<EditAccountModalProps> = ({ 
-  account, 
-  onClose, 
-  onSave, 
+const EditAccountModal: React.FC<EditAccountModalProps> = ({
+  account,
+  onClose,
+  onSave,
   onImport,
   onClearTrades,
   onShowImportHistory,
@@ -704,11 +704,11 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div 
+      <div
         className={clsx(
           'rounded-xl border max-w-md w-full',
-          theme === 'dark' 
-            ? 'bg-[#15181F] border-[#1F2937]' 
+          theme === 'dark'
+            ? 'bg-[#15181F] border-[#1F2937]'
             : 'bg-white border-gray-200'
         )}
       >
@@ -839,13 +839,15 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                   <div className={clsx(
                     'w-2 h-2 rounded-full',
                     status === 'active' ? 'bg-[#3BF68A]' :
-                    status === 'blown' ? 'bg-[#F45B69]' :
-                    'bg-yellow-400'
+                      status === 'passed_eval' ? 'bg-[#60A5FA]' :
+                        status === 'blown' ? 'bg-[#F45B69]' :
+                          'bg-yellow-400'
                   )} />
                   <span className="capitalize">
-                    {status === 'inactive' ? 'Paid Out' : status}
+                    {status === 'inactive' ? 'Paid Out' : status === 'passed_eval' ? 'Passed Eval' : status}
                   </span>
                   {status === 'inactive' && <span>🏆</span>}
+                  {status === 'passed_eval' && <span>🎯</span>}
                 </div>
                 <ChevronDown className={clsx(
                   'h-5 w-5 transition-transform',
@@ -860,10 +862,11 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                     ? 'bg-[#15181F] border-[#1F2937]'
                     : 'bg-white border-gray-200'
                 )}>
-                  {(['active', 'blown', 'inactive'] as AccountStatus[]).map((option) => {
+                  {(['active', 'passed_eval', 'blown', 'inactive'] as AccountStatus[]).map((option) => {
                     const isPaidOut = option === 'inactive';
-                    const label = isPaidOut ? 'Paid Out' : option;
-                    
+                    const isPassedEval = option === 'passed_eval';
+                    const label = isPaidOut ? 'Paid Out' : isPassedEval ? 'Passed Eval' : option;
+
                     return (
                       <button
                         key={option}
@@ -883,11 +886,13 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                         <div className={clsx(
                           'w-2 h-2 rounded-full',
                           option === 'active' ? 'bg-[#3BF68A]' :
-                          option === 'blown' ? 'bg-[#F45B69]' :
-                          'bg-yellow-400'
+                            option === 'passed_eval' ? 'bg-[#60A5FA]' :
+                              option === 'blown' ? 'bg-[#F45B69]' :
+                                'bg-yellow-400'
                         )} />
                         <span className="capitalize">{label}</span>
                         {isPaidOut && <span className="ml-auto text-xs">🏆</span>}
+                        {isPassedEval && <span className="ml-auto text-xs">🎯</span>}
                       </button>
                     );
                   })}
@@ -1077,9 +1082,10 @@ interface AccountActionsMenuProps {
   onDelete: () => void;
   onImport: () => void;
   onStatusChange: (status: AccountStatus) => void;
+  onClearTrades: () => void;
 }
 
-const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit, onDelete, onImport, onStatusChange }) => {
+const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit, onDelete, onImport, onStatusChange, onClearTrades }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const buttonRef = React.useRef<HTMLButtonElement>(null);
@@ -1087,7 +1093,7 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setMenuPosition({
@@ -1095,7 +1101,7 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
         left: rect.right - 192 // 192px = w-48 (12rem)
       });
     }
-    
+
     setIsOpen(!isOpen);
   };
 
@@ -1116,11 +1122,11 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
 
       {isOpen && (
         <>
-          <div 
-            className="fixed inset-0 z-40" 
+          <div
+            className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div 
+          <div
             className={clsx(
               'fixed w-48 rounded-lg border shadow-xl z-50',
               theme === 'dark'
@@ -1153,18 +1159,19 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
               <Edit2 className="h-4 w-4" />
               <span>Edit Account</span>
             </button>
-            
+
             <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-100')} />
-            
+
             {/* Status Options */}
             <div className="px-2 py-1">
               <p className={clsx('text-xs px-2 mb-1 uppercase font-semibold', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')}>
                 Set Status
               </p>
-              {(['active', 'blown', 'inactive'] as AccountStatus[]).map((status) => {
+              {(['active', 'passed_eval', 'blown', 'inactive'] as AccountStatus[]).map((status) => {
                 const isPaidOut = status === 'inactive';
-                const label = isPaidOut ? 'Paid Out' : status;
-                
+                const isPassedEval = status === 'passed_eval';
+                const label = isPaidOut ? 'Paid Out' : isPassedEval ? 'Passed Eval' : status;
+
                 return (
                   <button
                     key={status}
@@ -1172,26 +1179,39 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
                     className={clsx(
                       'w-full px-2 py-1.5 text-left text-sm rounded flex items-center space-x-2 transition-colors',
                       account.status === status
-                        ? (theme === 'dark' 
-                            ? (isPaidOut ? 'bg-yellow-500/10 text-yellow-400' : 'bg-[#3BF68A]/10 text-[#3BF68A]') 
-                            : (isPaidOut ? 'bg-yellow-50 text-yellow-600' : 'bg-purple-50 text-purple-600'))
+                        ? (theme === 'dark'
+                          ? (isPaidOut ? 'bg-yellow-500/10 text-yellow-400' : isPassedEval ? 'bg-blue-500/10 text-blue-400' : 'bg-[#3BF68A]/10 text-[#3BF68A]')
+                          : (isPaidOut ? 'bg-yellow-50 text-yellow-600' : isPassedEval ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'))
                         : (theme === 'dark' ? 'text-[#8B94A7] hover:bg-[#1F2937] hover:text-[#E5E7EB]' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900')
                     )}
                   >
                     <div className={clsx(
                       'w-1.5 h-1.5 rounded-full',
                       status === 'active' ? 'bg-[#3BF68A]' :
-                      status === 'blown' ? 'bg-[#F45B69]' :
-                      'bg-yellow-400'
+                        status === 'passed_eval' ? 'bg-[#60A5FA]' :
+                          status === 'blown' ? 'bg-[#F45B69]' :
+                            'bg-yellow-400'
                     )} />
                     <span className="capitalize font-medium">{label}</span>
                     {isPaidOut && <span className="ml-auto text-xs">🏆</span>}
+                    {isPassedEval && <span className="ml-auto text-xs">🎯</span>}
                   </button>
                 );
               })}
             </div>
 
             <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-100')} />
+
+            <button
+              onClick={() => { onClearTrades(); setIsOpen(false); }}
+              className={clsx(
+                'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
+                'text-orange-500 hover:bg-orange-500/10'
+              )}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Clear All Trades</span>
+            </button>
 
             {account.type !== 'demo' && (
               <button
@@ -1217,7 +1237,7 @@ interface AccountsPageProps {
 }
 
 export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }) => {
-  const { accounts, addAccount, updateAccount, deleteAccount, selectAccount, selectedAccountId, deleteImportHistoryEntry } = useAccountStore();
+  const { accounts, addAccount, updateAccount, deleteAccount, selectAccount, selectedAccountId, deleteImportHistoryEntry, clearAccountTrades } = useAccountStore();
   const { theme } = useThemeStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -1274,7 +1294,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(Math.abs(balance));
-    
+
     if (balance < 0) {
       return `-${formatted}`;
     }
@@ -1309,12 +1329,12 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
       key={account.id}
       className={clsx(
         'grid grid-cols-6 gap-4 px-6 py-4 items-center border-b transition-colors cursor-pointer',
-        theme === 'dark' 
-          ? 'border-[#1F2937] hover:bg-[#15181F]' 
+        theme === 'dark'
+          ? 'border-[#1F2937] hover:bg-[#15181F]'
           : 'border-gray-100 hover:bg-gray-50',
         selectedAccountId === account.id && (
-          theme === 'dark' 
-            ? 'bg-[#3BF68A]/5 border-l-2 border-l-[#3BF68A]' 
+          theme === 'dark'
+            ? 'bg-[#3BF68A]/5 border-l-2 border-l-[#3BF68A]'
             : 'bg-purple-50 border-l-2 border-l-purple-500'
         )
       )}
@@ -1329,12 +1349,15 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
         {account.status !== 'active' && (
           <span className={clsx(
             'text-[10px] px-1.5 py-0.5 rounded-full uppercase font-bold tracking-wider flex items-center gap-1',
-            account.status === 'blown' 
-              ? 'bg-red-500/20 text-red-500' 
-              : 'bg-yellow-500/20 text-yellow-500'
+            account.status === 'blown'
+              ? 'bg-red-500/20 text-red-500'
+              : account.status === 'passed_eval'
+                ? 'bg-blue-500/20 text-blue-400'
+                : 'bg-yellow-500/20 text-yellow-500'
           )}>
-            {account.status === 'inactive' ? 'PAID OUT' : account.status}
+            {account.status === 'inactive' ? 'PAID OUT' : account.status === 'passed_eval' ? 'PASSED EVAL' : account.status}
             {account.status === 'inactive' && '🏆'}
+            {account.status === 'passed_eval' && '🎯'}
           </span>
         )}
       </div>
@@ -1396,6 +1419,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           onDelete={() => setShowDeleteConfirm(account)}
           onImport={() => onImportForAccount(account.id)}
           onStatusChange={(status) => handleStatusChange(account.id, status)}
+          onClearTrades={() => clearAccountTrades(account.id)}
         />
       </div>
     </div>
@@ -1433,8 +1457,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             className={clsx(
               'px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2',
               activeTab === 'active'
-                ? theme === 'dark' 
-                  ? 'bg-[#3BF68A]/20 text-[#3BF68A] shadow-sm' 
+                ? theme === 'dark'
+                  ? 'bg-[#3BF68A]/20 text-[#3BF68A] shadow-sm'
                   : 'bg-white text-gray-900 shadow-sm'
                 : theme === 'dark'
                   ? 'text-[#8B94A7] hover:text-[#E5E7EB]'
@@ -1451,21 +1475,21 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
               {activeAccounts.length}
             </span>
           </button>
-          
+
           <button
             onClick={() => setActiveTab('inactive')}
             className={clsx(
               'px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2',
               activeTab === 'inactive'
-                ? theme === 'dark' 
-                  ? 'bg-[#F45B69]/20 text-[#F45B69] shadow-sm' 
+                ? theme === 'dark'
+                  ? 'bg-[#F45B69]/20 text-[#F45B69] shadow-sm'
                   : 'bg-white text-gray-900 shadow-sm'
                 : theme === 'dark'
                   ? 'text-[#8B94A7] hover:text-[#E5E7EB]'
                   : 'text-gray-500 hover:text-gray-900'
             )}
           >
-            <span>Paid Out / Blown</span>
+            <span>Inactive Accounts</span>
             <span className={clsx(
               'px-2 py-0.5 rounded-full text-xs',
               activeTab === 'inactive'
@@ -1494,11 +1518,11 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
         {/* Table Header */}
         <div className={clsx(
           'px-6 py-3 border-b text-xs font-semibold uppercase tracking-wider',
-          theme === 'dark' 
-            ? 'bg-[#15181F] border-[#1F2937] text-[#8B94A7]' 
+          theme === 'dark'
+            ? 'bg-[#15181F] border-[#1F2937] text-[#8B94A7]'
             : 'bg-gray-50 border-gray-200 text-gray-500'
         )}>
-          {activeTab === 'active' ? 'Active Accounts List' : 'Paid Out & Blown Accounts History'}
+          {activeTab === 'active' ? 'Active Accounts List' : 'Inactive Accounts History'}
         </div>
 
         {/* Table Content */}
@@ -1508,8 +1532,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           {/* Column Headers */}
           <div className={clsx(
             'grid grid-cols-6 gap-4 px-6 py-3 text-sm font-medium border-b',
-            theme === 'dark' 
-              ? 'text-[#8B94A7] border-[#1F2937]' 
+            theme === 'dark'
+              ? 'text-[#8B94A7] border-[#1F2937]'
               : 'text-gray-500 border-gray-200'
           )}>
             <div>Account name</div>
@@ -1553,8 +1577,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
       <div className="grid grid-cols-3 gap-4 mt-6">
         <div className={clsx(
           'rounded-xl p-6 border',
-          theme === 'dark' 
-            ? 'bg-[#15181F] border-[#1F2937]' 
+          theme === 'dark'
+            ? 'bg-[#15181F] border-[#1F2937]'
             : 'bg-white border-gray-200'
         )}>
           <p className={clsx(
@@ -1566,11 +1590,11 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
           )}>{accounts.length}</p>
         </div>
-        
+
         <div className={clsx(
           'rounded-xl p-6 border',
-          theme === 'dark' 
-            ? 'bg-[#15181F] border-[#1F2937]' 
+          theme === 'dark'
+            ? 'bg-[#15181F] border-[#1F2937]'
             : 'bg-white border-gray-200'
         )}>
           <p className={clsx(
@@ -1586,11 +1610,11 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             {formatBalance(accounts.reduce((sum, a) => sum + a.balance, 0))}
           </p>
         </div>
-        
+
         <div className={clsx(
           'rounded-xl p-6 border',
-          theme === 'dark' 
-            ? 'bg-[#15181F] border-[#1F2937]' 
+          theme === 'dark'
+            ? 'bg-[#15181F] border-[#1F2937]'
             : 'bg-white border-gray-200'
         )}>
           <p className={clsx(
@@ -1613,8 +1637,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
       )}>
         <div className={clsx(
           'px-6 py-4 border-b',
-          theme === 'dark' 
-            ? 'bg-[#15181F] border-[#1F2937]' 
+          theme === 'dark'
+            ? 'bg-[#15181F] border-[#1F2937]'
             : 'bg-gray-50 border-gray-200'
         )}>
           <div className="flex items-center space-x-2">
@@ -1643,12 +1667,12 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
         )}>
           {/* Two Column Layout - Save & Load - Compact */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
+
             {/* LEFT COLUMN - SAVE / DOWNLOAD */}
             <div className={clsx(
               'p-4 rounded-lg border',
-              theme === 'dark' 
-                ? 'bg-[#3BF68A]/5 border-[#3BF68A]/20' 
+              theme === 'dark'
+                ? 'bg-[#3BF68A]/5 border-[#3BF68A]/20'
                 : 'bg-green-50 border-green-200'
             )}>
               <div className="flex items-center space-x-2 mb-3">
@@ -1663,7 +1687,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                   Save Your Data
                 </h3>
               </div>
-              
+
               <div className="space-y-2">
                 <button
                   onClick={() => {
@@ -1685,7 +1709,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                   <Download className="h-4 w-4" />
                   <span>Download Full Backup</span>
                 </button>
-                
+
                 <button
                   onClick={() => {
                     try {
@@ -1711,8 +1735,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             {/* RIGHT COLUMN - LOAD / RESTORE */}
             <div className={clsx(
               'p-4 rounded-lg border-2',
-              theme === 'dark' 
-                ? 'bg-[#F45B69]/5 border-[#F45B69]/30' 
+              theme === 'dark'
+                ? 'bg-[#F45B69]/5 border-[#F45B69]/30'
                 : 'bg-red-50 border-red-200'
             )}>
               <div className="flex items-center space-x-2 mb-3">
@@ -1727,17 +1751,17 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                   Restore Backup
                 </h3>
               </div>
-              
+
               {/* Warning Box */}
               <div className={clsx(
                 'p-2 rounded-lg mb-3 text-xs',
-                theme === 'dark' 
-                  ? 'bg-[#F45B69]/10 text-[#F45B69]' 
+                theme === 'dark'
+                  ? 'bg-[#F45B69]/10 text-[#F45B69]'
                   : 'bg-red-100 text-red-700'
               )}>
                 ⚠️ <strong>Warning:</strong> This will DELETE all your current data and replace it with the backup file.
               </div>
-              
+
               <button
                 onClick={() => setShowRestoreConfirm(true)}
                 className={clsx(
@@ -1750,7 +1774,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                 <Upload className="h-4 w-4" />
                 <span>Restore from Backup...</span>
               </button>
-              
+
               {/* Hidden file input */}
               <input
                 ref={fileInputRef}
@@ -1804,16 +1828,16 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                 {(getStorageUsage().used / 1024).toFixed(1)} KB / 5 MB
               </span>
             </div>
-            
+
             {/* Progress Bar */}
             <div className={clsx(
               'h-2 rounded-full overflow-hidden mb-2',
               theme === 'dark' ? 'bg-[#0B0D10]' : 'bg-gray-200'
             )}>
-              <div 
+              <div
                 className={clsx(
                   'h-full transition-all rounded-full',
-                  getStorageUsage().percentage < 60 
+                  getStorageUsage().percentage < 60
                     ? 'bg-gradient-to-r from-[#3BF68A] to-[#60A5FA]'
                     : getStorageUsage().percentage < 85
                       ? 'bg-gradient-to-r from-[#FBBF24] to-[#F59E0B]'
@@ -1822,12 +1846,12 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                 style={{ width: `${Math.min(getStorageUsage().percentage, 100)}%` }}
               />
             </div>
-            
+
             <p className={clsx(
               'text-xs',
               theme === 'dark' ? 'text-[#6B7280]' : 'text-gray-500'
             )}>
-              {getStorageUsage().percentage < 60 
+              {getStorageUsage().percentage < 60
                 ? '✓ Plenty of space available'
                 : getStorageUsage().percentage < 85
                   ? '⚡ Storage is filling up — screenshots use the most space'
@@ -1838,8 +1862,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           {/* Cloud Service Teaser */}
           <div className={clsx(
             'mt-3 p-3 rounded-lg border flex items-center justify-between',
-            theme === 'dark' 
-              ? 'bg-gradient-to-r from-[#A78BFA]/5 to-[#3BF68A]/5 border-[#A78BFA]/20' 
+            theme === 'dark'
+              ? 'bg-gradient-to-r from-[#A78BFA]/5 to-[#3BF68A]/5 border-[#A78BFA]/20'
               : 'bg-gradient-to-r from-purple-50 to-green-50 border-purple-200'
           )}>
             <div className="flex items-center space-x-3">
@@ -1847,10 +1871,10 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                 'p-1.5 rounded-lg',
                 theme === 'dark' ? 'bg-[#A78BFA]/20' : 'bg-purple-100'
               )}>
-                <svg 
+                <svg
                   className={clsx('h-4 w-4', theme === 'dark' ? 'text-[#A78BFA]' : 'text-purple-600')}
-                  fill="none" 
-                  viewBox="0 0 24 24" 
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
@@ -1873,8 +1897,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             </div>
             <span className={clsx(
               'text-xs px-2 py-1 rounded-full font-medium',
-              theme === 'dark' 
-                ? 'bg-[#A78BFA]/20 text-[#A78BFA]' 
+              theme === 'dark'
+                ? 'bg-[#A78BFA]/20 text-[#A78BFA]'
                 : 'bg-purple-100 text-purple-700'
             )}>
               Soon
@@ -1884,8 +1908,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           {/* Import Trades Callout */}
           <div className={clsx(
             'mt-4 p-4 rounded-xl border flex items-start space-x-3',
-            theme === 'dark' 
-              ? 'bg-[#60A5FA]/5 border-[#60A5FA]/30' 
+            theme === 'dark'
+              ? 'bg-[#60A5FA]/5 border-[#60A5FA]/30'
               : 'bg-blue-50 border-blue-200'
           )}>
             <div className={clsx(

@@ -14,7 +14,7 @@ export interface ImportHistoryEntry {
   } | null;
 }
 
-export type AccountStatus = 'active' | 'blown' | 'inactive';
+export type AccountStatus = 'active' | 'passed_eval' | 'blown' | 'inactive';
 
 export interface Account {
   id: string;
@@ -43,7 +43,7 @@ interface AccountState {
   accounts: Account[];
   selectedAccountId: string | null;
   showAllAccounts: boolean;
-  
+
   // Actions
   addAccount: (account: Omit<Account, 'id' | 'createdAt' | 'trades' | 'balance' | 'lastUpdate' | 'importHistory' | 'status'>) => string;
   updateAccount: (id: string, updates: Partial<Omit<Account, 'id' | 'createdAt'>>) => void;
@@ -56,6 +56,7 @@ interface AccountState {
   addTradesToAccount: (accountId: string, trades: Trade[], fileName?: string) => void;
   addImportHistoryEntry: (accountId: string, entry: Omit<ImportHistoryEntry, 'id'>) => void;
   deleteImportHistoryEntry: (accountId: string, entryId: string) => void;
+  clearAccountTrades: (accountId: string) => void;
   updateAccountBalance: (accountId: string) => void;
   initializeFromStorage: () => void;
   saveToStorage: () => void;
@@ -135,7 +136,7 @@ const loadAccountsFromStorage = (): { accounts: Account[]; selectedId: string | 
   try {
     const accountsJson = localStorage.getItem(ACCOUNTS_STORAGE_KEY);
     const selectedId = localStorage.getItem(SELECTED_ACCOUNT_KEY);
-    
+
     if (accountsJson) {
       const rawAccounts = JSON.parse(accountsJson) as Account[];
       // Migrate existing accounts to include importHistory if missing
@@ -144,26 +145,26 @@ const loadAccountsFromStorage = (): { accounts: Account[]; selectedId: string | 
         importHistory: account.importHistory || [],
         status: account.status || 'active'
       }));
-      
+
       // Save migrated accounts back to storage
       if (rawAccounts.some(a => !a.importHistory || !a.status)) {
         localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
       }
-      
-      return { 
-        accounts, 
+
+      return {
+        accounts,
         selectedId: selectedId || (accounts.length > 0 ? accounts[0].id : null)
       };
     }
   } catch (error) {
     console.error('Failed to load accounts from storage:', error);
   }
-  
+
   // Return default demo account if nothing stored
   const demoAccount = generateDemoAccount();
-  return { 
-    accounts: [demoAccount], 
-    selectedId: demoAccount.id 
+  return {
+    accounts: [demoAccount],
+    selectedId: demoAccount.id
   };
 };
 
@@ -195,7 +196,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       } catch (e) {
         console.error('Failed to save accounts:', e);
       }
-      return { 
+      return {
         accounts: newAccounts,
         selectedAccountId: state.selectedAccountId || id
       };
@@ -223,12 +224,12 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     set((state) => {
       const newAccounts = state.accounts.filter((account) => account.id !== id);
       let newSelectedId = state.selectedAccountId;
-      
+
       // If deleted account was selected, select another one
       if (state.selectedAccountId === id) {
         newSelectedId = newAccounts.length > 0 ? newAccounts[0].id : null;
       }
-      
+
       // Save to storage
       try {
         localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(newAccounts));
@@ -240,8 +241,8 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       } catch (e) {
         console.error('Failed to save accounts:', e);
       }
-      
-      return { 
+
+      return {
         accounts: newAccounts,
         selectedAccountId: newSelectedId
       };
@@ -270,11 +271,11 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
   getAllTrades: () => {
     const { accounts, selectedAccountId, showAllAccounts } = get();
-    
+
     if (showAllAccounts) {
       return accounts.flatMap((a) => a.trades);
     }
-    
+
     const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
     return selectedAccount?.trades || [];
   },
@@ -289,21 +290,28 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     set((state) => {
       const newAccounts = state.accounts.map((account) => {
         if (account.id === accountId) {
-          // Merge trades, avoiding duplicates
+          // Merge trades, avoiding duplicates - use date+symbol+time+side for more stable dedup
           const existingTradeKeys = new Set(
-            account.trades.map((t) => `${t.date}-${t.symbol}-${t.netPL}-${t.time}`)
+            account.trades.map((t) => `${t.date}-${t.symbol}-${t.time}-${t.side || ''}-${t.entryPrice}`)
           );
-          
+
+          // Generate import entry ID first so we can tag trades
+          const importEntryId = fileName ? `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : null;
+
+          // Tag new trades with import ID and filter duplicates
           const uniqueNewTrades = trades.filter(
-            (t) => !existingTradeKeys.has(`${t.date}-${t.symbol}-${t.netPL}-${t.time}`)
-          );
-          
+            (t) => !existingTradeKeys.has(`${t.date}-${t.symbol}-${t.time}-${t.side || ''}-${t.entryPrice}`)
+          ).map((t) => ({
+            ...t,
+            importId: importEntryId || undefined
+          }));
+
           const allTrades = [...account.trades, ...uniqueNewTrades].sort(
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
           );
-          
+
           const balance = allTrades.reduce((sum, t) => sum + t.netPL, 0);
-          
+
           const lastUpdate = new Date().toLocaleString('en-US', {
             month: '2-digit',
             day: '2-digit',
@@ -315,10 +323,10 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
           // Create import history entry if fileName provided
           let newImportHistory = account.importHistory || [];
-          if (fileName && uniqueNewTrades.length > 0) {
+          if (fileName && uniqueNewTrades.length > 0 && importEntryId) {
             const dates = uniqueNewTrades.map(t => t.date).sort();
             const importEntry: ImportHistoryEntry = {
-              id: `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              id: importEntryId,
               fileName,
               importedAt: lastUpdate,
               tradesImported: uniqueNewTrades.length,
@@ -330,7 +338,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
             };
             newImportHistory = [...newImportHistory, importEntry];
           }
-          
+
           return {
             ...account,
             trades: allTrades,
@@ -341,14 +349,14 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         }
         return account;
       });
-      
+
       // Save to storage
       try {
         localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(newAccounts));
       } catch (e) {
         console.error('Failed to save accounts:', e);
       }
-      
+
       return { accounts: newAccounts };
     });
   },
@@ -368,13 +376,13 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         }
         return account;
       });
-      
+
       try {
         localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(newAccounts));
       } catch (e) {
         console.error('Failed to save accounts:', e);
       }
-      
+
       return { accounts: newAccounts };
     });
   },
@@ -383,20 +391,52 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     set((state) => {
       const newAccounts = state.accounts.map((account) => {
         if (account.id === accountId) {
+          // Remove trades that have this importId
+          const filteredTrades = account.trades.filter(t => t.importId !== entryId);
+
+          // Recalculate balance
+          const balance = filteredTrades.reduce((sum, t) => sum + t.netPL, 0);
+
           return {
             ...account,
+            trades: filteredTrades,
+            balance,
             importHistory: (account.importHistory || []).filter(e => e.id !== entryId)
           };
         }
         return account;
       });
-      
+
       try {
         localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(newAccounts));
       } catch (e) {
         console.error('Failed to save accounts:', e);
       }
-      
+
+      return { accounts: newAccounts };
+    });
+  },
+
+  clearAccountTrades: (accountId) => {
+    set((state) => {
+      const newAccounts = state.accounts.map((account) => {
+        if (account.id === accountId) {
+          return {
+            ...account,
+            trades: [],
+            balance: 0,
+            importHistory: []
+          };
+        }
+        return account;
+      });
+
+      try {
+        localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(newAccounts));
+      } catch (e) {
+        console.error('Failed to save accounts:', e);
+      }
+
       return { accounts: newAccounts };
     });
   },
@@ -410,14 +450,14 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         }
         return account;
       });
-      
+
       // Save to storage
       try {
         localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(newAccounts));
       } catch (e) {
         console.error('Failed to save accounts:', e);
       }
-      
+
       return { accounts: newAccounts };
     });
   },

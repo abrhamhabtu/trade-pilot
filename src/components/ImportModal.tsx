@@ -107,11 +107,18 @@ const isTradingViewFormat = (columns: string[]): boolean => {
   return matchCount >= 2;
 };
 
+// Detect TopOne Futures format
+const isTopOneFuturesFormat = (columns: string[]): boolean => {
+  const topOneColumns = ['Ticket #', 'Symbol', 'Side', 'Open Time', 'Close Time', 'Close Price', 'PnL', 'Lots', 'Commissions'];
+  const matchCount = topOneColumns.filter(col => columns.some(c => c.includes(col))).length;
+  return matchCount >= 5;
+};
+
 // Calculate realistic duration
 const calculateRealisticDuration = (netPL: number): number => {
   const absPL = Math.abs(netPL);
   let baseDuration: number;
-  
+
   if (absPL < 50) {
     baseDuration = Math.random() * 15 + 5;
   } else if (absPL < 200) {
@@ -121,18 +128,18 @@ const calculateRealisticDuration = (netPL: number): number => {
   } else {
     baseDuration = Math.random() * 240 + 60;
   }
-  
+
   const variance = baseDuration * 0.3;
   const finalDuration = baseDuration + (Math.random() - 0.5) * variance;
-  
+
   return Math.max(5, Math.round(finalDuration));
 };
 
-export const ImportModal: React.FC<ImportModalProps> = ({ 
-  isOpen, 
-  onClose, 
+export const ImportModal: React.FC<ImportModalProps> = ({
+  isOpen,
+  onClose,
   targetAccountId,
-  onImportComplete 
+  onImportComplete
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { accounts, addTradesToAccount } = useAccountStore();
@@ -167,7 +174,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileImport(e.dataTransfer.files[0]);
     }
@@ -208,7 +215,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
         const side: 'Long' | 'Short' = type.toLowerCase() === 'short' ? 'Short' : 'Long';
         const totalFees = fees + commissions;
-        
+
         // PnL from Topstep/ProjectX is gross P&L - subtract fees to get net
         const netPnL = pnl - totalFees;
 
@@ -253,7 +260,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         // Parse date
         let date = new Date().toISOString().split('T')[0];
         let time = '10:00 AM';
-        
+
         if (timeValue) {
           const [datePart, timePart] = timeValue.split(' ');
           if (datePart) date = datePart;
@@ -325,7 +332,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         // Parse date/time
         let date = new Date().toISOString().split('T')[0];
         let time = '10:00 AM';
-        
+
         if (dateTime) {
           try {
             const dateObj = new Date(dateTime);
@@ -399,7 +406,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         // Parse date/time from entry time
         let date = new Date().toISOString().split('T')[0];
         let time = '10:00 AM';
-        
+
         if (entryTime) {
           try {
             const dateObj = new Date(entryTime);
@@ -448,6 +455,130 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     return { trades, errors };
   };
 
+  const processTopOneFuturesData = (data: any[]): { trades: Trade[]; errors: string[] } => {
+    const trades: Trade[] = [];
+    const errors: string[] = [];
+
+    data.forEach((row, index) => {
+      try {
+        // TopOne Futures column names
+        const ticketId = row['Ticket #'] || row['Ticket'] || '';
+        const symbol = row['Symbol'] || '';
+        const side = row['Side'] || '';
+        const closeTimeStr = row['Close Time'] || '';
+        const openPrice = row['Open Price'] || 0;
+        const closePrice = row['Close Price'] || 0;
+        const durationStr = row['Duration'] || '';
+        const pnl = row['PnL'] || row['Pnl'] || row['P&L'] || 0;
+        const lots = row['Lots'] || row['Qty'] || 1;
+        const commission = row['Commissions'] || row['Commission'] || 0;
+
+        // Must have symbol to be a valid trade - allow missing ticketId but require symbol
+        if (!symbol) return;
+
+        // Parse numeric values
+        const grossPL = parseNumber(pnl);
+        const totalCommission = parseNumber(commission);
+
+        // TopOne PnL is GROSS (before commissions) - subtract to get net like ProjectX
+        const netPL = grossPL - totalCommission;
+
+        // Parse TopOne date format: DD/MM/YYYY HH:MM:SS
+        let date = new Date().toISOString().split('T')[0];
+        let time = '10:00 AM';
+
+        if (closeTimeStr) {
+          try {
+            // Format: DD/MM/YYYY HH:MM:SS (in UTC - TopOne uses UTC)
+            const parts = closeTimeStr.split(' ');
+            const datePart = parts[0];
+            const timePart = parts[1];
+
+            if (datePart && timePart) {
+              const [day, month, year] = datePart.split('/');
+              const [hours, minutes] = timePart.split(':');
+
+              if (day && month && year && hours && minutes) {
+                // Create date in UTC
+                const utcDate = new Date(Date.UTC(
+                  parseInt(year),
+                  parseInt(month) - 1, // Month is 0-indexed
+                  parseInt(day),
+                  parseInt(hours),
+                  parseInt(minutes)
+                ));
+
+                // Convert to Pacific time - subtract 8 hours (PST) or 7 hours (PDT)
+                // For simplicity, using fixed offset of 8 hours (PST)
+                const pacificOffset = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+                const pacificDate = new Date(utcDate.getTime() - pacificOffset);
+
+                // Get date in YYYY-MM-DD format
+                date = pacificDate.toISOString().split('T')[0];
+
+                // Get time in 12-hour format
+                const pacificHour = pacificDate.getUTCHours();
+                const pacificMinutes = pacificDate.getUTCMinutes();
+                let displayHour = pacificHour;
+                let ampm = 'AM';
+
+                if (pacificHour === 0) { displayHour = 12; ampm = 'AM'; }
+                else if (pacificHour === 12) { displayHour = 12; ampm = 'PM'; }
+                else if (pacificHour > 12) { displayHour = pacificHour - 12; ampm = 'PM'; }
+
+                time = `${displayHour}:${pacificMinutes.toString().padStart(2, '0')} ${ampm}`;
+              }
+            }
+          } catch {
+            // Use defaults
+          }
+        }
+
+        // Determine side - BUY = Long, SELL = Short
+        let tradeSide: 'Long' | 'Short' = 'Long';
+        const sideLower = side.toString().toLowerCase();
+        if (sideLower.includes('sell') || sideLower.includes('short') || sideLower === 's') {
+          tradeSide = 'Short';
+        }
+
+        // Parse duration - format like "7m 20s" or "14m 25s" or "2m 40s"
+        let duration = 30;
+        if (durationStr) {
+          try {
+            const minMatch = durationStr.match(/(\d+)m/);
+            const secMatch = durationStr.match(/(\d+)s/);
+            const minutes = minMatch ? parseInt(minMatch[1]) : 0;
+            const seconds = secMatch ? parseInt(secMatch[1]) : 0;
+            duration = minutes + (seconds > 30 ? 1 : 0);
+            if (duration === 0) duration = 1;
+          } catch {
+            duration = calculateRealisticDuration(netPL);
+          }
+        }
+
+        trades.push({
+          id: `import-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+          date,
+          symbol: symbol.toString(),
+          entryPrice: parseNumber(openPrice),
+          exitPrice: parseNumber(closePrice),
+          quantity: parseNumber(lots),
+          netPL: Math.round(netPL * 100) / 100,
+          duration,
+          outcome: netPL > 0 ? 'win' : 'loss',
+          time,
+          side: tradeSide,
+          commission: Math.round(totalCommission * 100) / 100,
+          notes: ticketId ? `Ticket: ${ticketId}` : ''
+        });
+      } catch (error) {
+        errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
+
+    return { trades, errors };
+  };
+
   const handleFileImport = async (file: File) => {
     setImportStatus('processing');
     setImportResults(null);
@@ -462,7 +593,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
       if (file.name.endsWith('.csv')) {
         const Papa = await import('papaparse');
-        
+
         await new Promise<void>((resolve, reject) => {
           Papa.parse(file, {
             header: true,
@@ -476,7 +607,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         });
       } else {
         const XLSX = await import('xlsx');
-        
+
         await new Promise<void>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = (e) => {
@@ -504,7 +635,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       let result: { trades: Trade[]; errors: string[] };
 
       // Detect format and process accordingly
-      if (isProjectXFormat(columns)) {
+      // Check TopOne Futures first since it has very specific column names
+      if (isTopOneFuturesFormat(columns)) {
+        result = processTopOneFuturesData(data);
+      } else if (isProjectXFormat(columns)) {
         result = processProjectXData(data);
       } else if (isTradovateFormat(columns)) {
         result = processTradovateData(data);
@@ -582,7 +716,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div 
+      <div
         className="rounded-xl border border-[#1F2937] max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
         style={{
           background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
@@ -593,8 +727,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           <div>
             <h2 className="text-xl font-bold text-[#E5E7EB] mb-2">Import Trades</h2>
             <p className="text-[#8B94A7] text-sm">
-              {targetAccount 
-                ? `Importing to: ${targetAccount.name}` 
+              {targetAccount
+                ? `Importing to: ${targetAccount.name}`
                 : 'Upload from TradingView, Topstep, TopOne Futures, or other platforms'}
             </p>
           </div>
@@ -628,8 +762,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               <div
                 className={clsx(
                   'border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer',
-                  dragActive 
-                    ? 'border-[#3BF68A] bg-[#3BF68A]/5' 
+                  dragActive
+                    ? 'border-[#3BF68A] bg-[#3BF68A]/5'
                     : 'border-[#1F2937] hover:border-[#3BF68A]/50 hover:bg-[#3BF68A]/5'
                 )}
                 onDragEnter={handleDrag}
@@ -641,15 +775,15 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 <div className="mx-auto w-16 h-16 bg-[#3BF68A]/10 rounded-full flex items-center justify-center mb-4">
                   <Upload className="h-8 w-8 text-[#3BF68A]" />
                 </div>
-                
+
                 <h3 className="text-[#E5E7EB] text-lg font-semibold mb-2">
                   Drop your file here or click to browse
                 </h3>
-                
+
                 <p className="text-[#8B94A7] text-sm mb-4">
                   Supports TradingView, ProjectX (Topstep, TopOne Futures), and more
                 </p>
-                
+
                 <button
                   type="button"
                   className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all duration-200"
@@ -707,11 +841,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               </div>
               <h3 className="text-[#E5E7EB] text-lg font-semibold mb-2">Import Successful!</h3>
               <p className="text-[#8B94A7] text-sm mb-6">
-                {targetAccount 
+                {targetAccount
                   ? `Trades have been added to ${targetAccount.name}`
                   : 'Your trades have been imported and processed'}
               </p>
-              
+
               <div className="bg-[#1F2937]/50 rounded-lg p-4 mb-6">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -749,7 +883,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               </div>
               <h3 className="text-[#E5E7EB] text-lg font-semibold mb-2">Import Failed</h3>
               <p className="text-[#8B94A7] text-sm mb-6">There were issues processing your file</p>
-              
+
               {importResults.errors.length > 0 && (
                 <div className="bg-[#F45B69]/10 border border-[#F45B69]/20 rounded-lg p-4 mb-6 text-left">
                   <h4 className="text-[#F45B69] font-medium mb-2">Errors:</h4>

@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useAccountStore, Account } from '../../store/accountStore';
 import { useThemeStore } from '../../store/themeStore';
-import { 
-  Shield, 
-  AlertTriangle, 
+import {
+  Shield,
+  AlertTriangle,
   TrendingUp,
   Target,
   Calculator,
@@ -43,23 +43,23 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
 }) => {
   const { updateAccount } = useAccountStore();
   const { theme } = useThemeStore();
-  
+
   // Local state
   const [whatIfAmount, setWhatIfAmount] = useState(500);
   const [showEducation, setShowEducation] = useState(false);
-  
+
   // Get account settings with defaults
   const consistencyRule = account.consistencyRulePercentage || 20;
   const originalTarget = account.originalProfitTarget || account.profitTarget || 3000;
   const accountTier = account.accountTier || 'instant';
-  
+
   // Core consistency calculations - matches Overview tab logic
   const metrics = useMemo(() => {
     const dailyProfits = Object.values(actualDailyPnL);
-    
+
     // Highest day from ALL days (same as Overview)
     const highestDay = dailyProfits.length > 0 ? Math.max(0, ...dailyProfits) : 0;
-    
+
     // Find the date of highest day
     let highestDayDate = '';
     Object.entries(actualDailyPnL).forEach(([date, pnl]) => {
@@ -67,35 +67,35 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
         highestDayDate = date;
       }
     });
-    
+
     // Total profit = sum of ALL trades (same as Overview uses calculatedTotalPnL)
     const totalProfit = dailyProfits.reduce((sum, pnl) => sum + pnl, 0);
     const currentTotalProfit = Math.max(0, totalProfit);
-    
+
     // Current consistency percentage (same formula as Overview)
-    const currentConsistencyPercent = currentTotalProfit > 0 
-      ? (highestDay / currentTotalProfit) * 100 
+    const currentConsistencyPercent = currentTotalProfit > 0
+      ? (highestDay / currentTotalProfit) * 100
       : 0;
-    
+
     // Required profit target based on highest day (same as Overview: minimumRequiredProfit)
     const requiredProfitTarget = highestDay / (consistencyRule / 100);
-    
+
     // Effective target (max of original and required)
     const effectiveTarget = Math.max(originalTarget, requiredProfitTarget);
-    
+
     // Gap to payout
     const gapToPayout = Math.max(0, effectiveTarget - currentTotalProfit);
-    
+
     // Is qualified? (same logic as Overview)
     const isQualified = currentConsistencyPercent <= consistencyRule;
-    
+
     // Safe daily max - max profit today without increasing target
     // This is the amount that would keep highest day as is
     const safeMaxToday = highestDay > 0 ? highestDay - 0.01 : currentTotalProfit * (consistencyRule / 100);
-    
+
     // Warning threshold (80% of highest day)
     const warningThreshold = highestDay * 0.8;
-    
+
     return {
       currentTotalProfit,
       highestDay,
@@ -110,7 +110,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       profitableDaysCount: Object.values(actualDailyPnL).filter(pnl => pnl > 0).length
     };
   }, [actualDailyPnL, consistencyRule, originalTarget]);
-  
+
   // What-if scenario calculations
   const whatIfScenario = useMemo(() => {
     const newTotalProfit = metrics.currentTotalProfit + whatIfAmount;
@@ -121,7 +121,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
     const wouldIncreaseTarget = newRequiredTarget > metrics.effectiveTarget;
     const newEffectiveTarget = Math.max(originalTarget, newRequiredTarget);
     const newGapToPayout = Math.max(0, newEffectiveTarget - newTotalProfit);
-    
+
     return {
       newTotalProfit,
       wouldBecomeHighestDay,
@@ -134,7 +134,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       targetIncrease: wouldIncreaseTarget ? newEffectiveTarget - metrics.effectiveTarget : 0
     };
   }, [whatIfAmount, metrics, consistencyRule, originalTarget]);
-  
+
   // Path to payout projections
   const projections = useMemo(() => {
     const rates = [100, 200, 300, 500, 750, 1000];
@@ -144,28 +144,28 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       return { dailyRate, daysNeeded, isSafe };
     });
   }, [metrics]);
-  
+
   // Handle account tier change
   const handleTierChange = (tier: 'instant' | 'elite') => {
     const newRule = TIER_CONFIG[tier].defaultRule;
-    updateAccount(account.id, { 
-      accountTier: tier, 
-      consistencyRulePercentage: newRule 
+    updateAccount(account.id, {
+      accountTier: tier,
+      consistencyRulePercentage: newRule
     });
   };
-  
+
   // Handle original target change
   const handleOriginalTargetChange = (value: number) => {
     updateAccount(account.id, { originalProfitTarget: value });
   };
-  
+
   // Gauge percentage for visualization
   const gaugePercent = Math.min(100, (metrics.currentConsistencyPercent / consistencyRule) * 100);
   const gaugeColor = gaugePercent <= 70 ? '#3BF68A' : gaugePercent <= 90 ? '#F59E0B' : '#F45B69';
-  
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      
+
       {/* ACCOUNT CONFIGURATION */}
       <div className={clsx(
         "p-6 rounded-[2rem] border",
@@ -178,7 +178,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             theme === 'dark' ? "text-white" : "text-gray-900"
           )}>Account Configuration</h3>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Account Tier */}
           <div className="space-y-2">
@@ -195,11 +195,11 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   onClick={() => handleTierChange(tier)}
                   className={clsx(
                     "flex-1 py-3 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all",
-                    accountTier === tier 
+                    accountTier === tier
                       ? `text-black shadow-lg scale-[1.02]`
                       : "text-[#6B7280] hover:text-[#9CA3AF]"
                   )}
-                  style={{ 
+                  style={{
                     backgroundColor: accountTier === tier ? TIER_CONFIG[tier].color : 'transparent'
                   }}
                 >
@@ -208,7 +208,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
               ))}
             </div>
           </div>
-          
+
           {/* Original Profit Target */}
           <div className="space-y-2">
             <label className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em]">
@@ -220,13 +220,18 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 theme === 'dark' ? "text-[#3BF68A]" : "text-green-600"
               )}>$</span>
               <input
-                type="number"
-                value={originalTarget}
-                onChange={(e) => handleOriginalTargetChange(Number(e.target.value))}
+                type="text"
+                inputMode="numeric"
+                value={originalTarget.toString()}
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/[^0-9]/g, '');
+                  const value = parseInt(cleaned, 10) || 0;
+                  handleOriginalTargetChange(value);
+                }}
                 className={clsx(
                   "w-full pl-10 pr-4 py-3 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50",
-                  theme === 'dark' 
-                    ? "bg-[#1F2937] text-white border border-[#374151]" 
+                  theme === 'dark'
+                    ? "bg-[#1F2937] text-white border border-[#374151]"
                     : "bg-gray-100 text-gray-900 border border-gray-200"
                 )}
               />
@@ -234,13 +239,13 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           </div>
         </div>
       </div>
-      
+
       {/* MAIN STATS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
+
         {/* LEFT: Consistency Gauge & Key Metrics */}
         <div className="lg:col-span-5 space-y-6">
-          
+
           {/* Consistency Gauge */}
           <div className={clsx(
             "p-8 rounded-[2rem] border relative overflow-hidden",
@@ -248,7 +253,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           )}>
             <div className="absolute -right-10 -top-10 w-40 h-40 blur-[80px] rounded-full opacity-20"
               style={{ backgroundColor: gaugeColor }} />
-            
+
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-6">
                 <h3 className={clsx(
@@ -257,14 +262,14 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 )}>Consistency Status</h3>
                 <div className={clsx(
                   "px-3 py-1 rounded-full text-xs font-bold",
-                  metrics.isQualified 
-                    ? "bg-[#3BF68A]/20 text-[#3BF68A]" 
+                  metrics.isQualified
+                    ? "bg-[#3BF68A]/20 text-[#3BF68A]"
                     : "bg-[#F45B69]/20 text-[#F45B69]"
                 )}>
                   {metrics.isQualified ? 'Qualified' : 'Not Yet'}
                 </div>
               </div>
-              
+
               {/* Arc Gauge */}
               <div className="flex flex-col items-center mb-6">
                 <div className="relative w-48 h-28">
@@ -302,7 +307,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   )}>of {consistencyRule}% limit</span>
                 </div>
               </div>
-              
+
               {/* Key Stats */}
               <div className="space-y-3">
                 <div className={clsx(
@@ -369,19 +374,19 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             </div>
           </div>
         </div>
-        
+
         {/* RIGHT: Daily Guardrails & What-If */}
         <div className="lg:col-span-7 space-y-6">
-          
+
           {/* DAILY GUARDRAILS - Most Important */}
           <div className={clsx(
             "p-6 rounded-[2rem] border relative overflow-hidden",
-            theme === 'dark' 
-              ? "bg-gradient-to-br from-[#0D0F12] to-[#15181F] border-[#1F2937]" 
+            theme === 'dark'
+              ? "bg-gradient-to-br from-[#0D0F12] to-[#15181F] border-[#1F2937]"
               : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
           )}>
             <div className="absolute -left-10 -bottom-10 w-40 h-40 blur-[80px] rounded-full opacity-10 bg-[#3BF68A]" />
-            
+
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-4">
                 <Target className="w-5 h-5 text-[#3BF68A]" />
@@ -390,7 +395,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   theme === 'dark' ? "text-white" : "text-gray-900"
                 )}>Daily Guardrails</h3>
               </div>
-              
+
               {/* Safe Daily Max - HERO */}
               <div className={clsx(
                 "p-6 rounded-2xl mb-4",
@@ -416,7 +421,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   </div>
                 </div>
               </div>
-              
+
               {/* Warning & Danger Zones */}
               <div className="grid grid-cols-2 gap-4">
                 <div className={clsx(
@@ -435,7 +440,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                     theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600"
                   )}>Approaching your highest day</div>
                 </div>
-                
+
                 <div className={clsx(
                   "p-4 rounded-xl",
                   theme === 'dark' ? "bg-[#F45B69]/10 border border-[#F45B69]/20" : "bg-red-50 border border-red-200"
@@ -455,7 +460,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
               </div>
             </div>
           </div>
-          
+
           {/* WHAT-IF SCENARIO PLANNER */}
           <div className={clsx(
             "p-6 rounded-[2rem] border",
@@ -468,7 +473,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 theme === 'dark' ? "text-white" : "text-gray-900"
               )}>What-If Scenario</h3>
             </div>
-            
+
             {/* Input */}
             <div className="mb-4">
               <label className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em] mb-2 block">
@@ -486,8 +491,8 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                     onChange={(e) => setWhatIfAmount(Number(e.target.value))}
                     className={clsx(
                       "w-full pl-10 pr-4 py-3 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50",
-                      theme === 'dark' 
-                        ? "bg-[#0B0D10] text-white border border-[#1F2937]" 
+                      theme === 'dark'
+                        ? "bg-[#0B0D10] text-white border border-[#1F2937]"
                         : "bg-gray-100 text-gray-900 border border-gray-200"
                     )}
                   />
@@ -503,11 +508,11 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 />
               </div>
             </div>
-            
+
             {/* Result */}
             <div className={clsx(
               "p-4 rounded-xl",
-              whatIfScenario.wouldIncreaseTarget 
+              whatIfScenario.wouldIncreaseTarget
                 ? (theme === 'dark' ? "bg-[#F45B69]/10 border border-[#F45B69]/20" : "bg-red-50 border border-red-200")
                 : (theme === 'dark' ? "bg-[#3BF68A]/10 border border-[#3BF68A]/20" : "bg-green-50 border border-green-200")
             )}>
@@ -524,7 +529,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   </>
                 )}
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className={clsx(theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>New Consistency:</span>
@@ -563,7 +568,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           </div>
         </div>
       </div>
-      
+
       {/* PATH TO PAYOUT */}
       <div className={clsx(
         "p-6 rounded-[2rem] border",
@@ -576,7 +581,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             theme === 'dark' ? "text-white" : "text-gray-900"
           )}>Path to Payout</h3>
         </div>
-        
+
         {/* Progress Bar */}
         <div className="mb-6">
           <div className="flex justify-between text-xs mb-2">
@@ -593,13 +598,13 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           )}>
             {/* Original target marker */}
             {metrics.effectiveTarget > originalTarget && (
-              <div 
+              <div
                 className="absolute top-0 bottom-0 w-0.5 bg-[#6B7280] z-10"
                 style={{ left: `${(originalTarget / metrics.effectiveTarget) * 100}%` }}
               />
             )}
             {/* Progress */}
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] transition-all duration-1000"
               style={{ width: `${Math.min(100, (metrics.currentTotalProfit / metrics.effectiveTarget) * 100)}%` }}
             />
@@ -611,7 +616,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             </div>
           )}
         </div>
-        
+
         {/* Projections Grid - Sorted by days (most to least), colored by risk based on daily rate */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {projections
@@ -622,7 +627,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
               // Higher daily rate = more aggressive = more dangerous
               const highestDay = metrics.highestDay || 1000;
               const riskRatio = dailyRate / highestDay; // 0 to 1+ (can exceed if rate > highest day)
-              
+
               // Color gradient based on how aggressive the daily rate is
               const getCardStyle = () => {
                 if (riskRatio <= 0.25) {
@@ -674,11 +679,11 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   labelBg: 'bg-[#F45B69]/20 text-[#F45B69]'
                 };
               };
-              
+
               const style = getCardStyle();
-              
+
               return (
-                <div 
+                <div
                   key={dailyRate}
                   className={clsx(
                     "p-3 rounded-xl text-center transition-all border-2 hover:scale-105",
@@ -706,7 +711,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             })}
         </div>
       </div>
-      
+
       {/* EDUCATION SECTION */}
       <div className={clsx(
         "rounded-[2rem] border overflow-hidden",
@@ -732,7 +737,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             <ChevronDown className="w-5 h-5 text-[#6B7280]" />
           )}
         </button>
-        
+
         {showEducation && (
           <div className={clsx(
             "p-6 border-t space-y-4",
@@ -755,7 +760,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 </div>
               </div>
             </div>
-            
+
             <div>
               <h4 className={clsx(
                 "text-sm font-bold mb-2",
@@ -765,12 +770,12 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 "text-sm",
                 theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600"
               )}>
-                If your highest profit day exceeds the consistency threshold relative to your total profits, 
-                your required profit target increases. This ensures no single day represents more than 
+                If your highest profit day exceeds the consistency threshold relative to your total profits,
+                your required profit target increases. This ensures no single day represents more than
                 {consistencyRule}% of your total profits.
               </p>
             </div>
-            
+
             <div>
               <h4 className={clsx(
                 "text-sm font-bold mb-2",

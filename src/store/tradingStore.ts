@@ -23,6 +23,7 @@ export interface Trade {
   notes?: string;
   strategy?: string;
   rMultiple?: number;
+  importId?: string; // Links trade to its import entry for deletion
 }
 
 export interface TradingMetrics {
@@ -128,21 +129,21 @@ const parseTradingViewDate = (dateTimeStr: string): { date: string; time: string
   if (!dateTimeStr) {
     return { date: new Date().toISOString().split('T')[0], time: '10:00 AM' };
   }
-  
+
   try {
     // TradingView format: "2025-06-23 09:24:07"
     const [datePart, timePart] = dateTimeStr.split(' ');
-    
+
     if (!datePart || !timePart) {
       throw new Error('Invalid date format');
     }
-    
+
     // Parse time to 12-hour format
     const [hours, minutes] = timePart.split(':');
     const hour = parseInt(hours);
     let displayHour = hour;
     let ampm = 'AM';
-    
+
     if (hour === 0) {
       displayHour = 12;
       ampm = 'AM';
@@ -153,9 +154,9 @@ const parseTradingViewDate = (dateTimeStr: string): { date: string; time: string
       displayHour = hour - 12;
       ampm = 'PM';
     }
-    
+
     const formattedTime = `${displayHour}:${minutes} ${ampm}`;
-    
+
     return {
       date: datePart,
       time: formattedTime
@@ -181,13 +182,13 @@ const parseNumber = (value: any): number => {
 // Extract symbol from TradingView action description
 const extractSymbol = (actionText: string): string => {
   if (!actionText) return 'UNKNOWN';
-  
+
   // Look for CME_MINI pattern first (most common in your data)
   const cmeMatch = actionText.match(/CME_MINI:([A-Z]+\d{4})/);
   if (cmeMatch) {
     return cmeMatch[1]; // Returns like MESU2025, MESM2025, etc.
   }
-  
+
   // Look for other exchange patterns
   const exchangePatterns = [
     /symbol\s+([A-Z_:]+)/i,
@@ -195,14 +196,14 @@ const extractSymbol = (actionText: string): string => {
     /([A-Z]{3,8}\d{4})/,
     /([A-Z]{3,5})/
   ];
-  
+
   for (const pattern of exchangePatterns) {
     const match = actionText.match(pattern);
     if (match) {
       return match[1].replace(/[_:]/g, '');
     }
   }
-  
+
   return 'UNKNOWN';
 };
 
@@ -213,26 +214,26 @@ const extractPositionDetails = (actionText: string) => {
     price: 0,
     quantity: 0
   };
-  
+
   // Determine side from action text
   if (actionText.toLowerCase().includes('close short')) {
     details.side = 'Short';
   } else if (actionText.toLowerCase().includes('close long')) {
     details.side = 'Long';
   }
-  
+
   // Extract price - look for "at price XXXX.XX"
   const priceMatch = actionText.match(/at price (\d+\.?\d*)/i);
   if (priceMatch) {
     details.price = parseFloat(priceMatch[1]);
   }
-  
+
   // Extract quantity - look for "for X units"
   const quantityMatch = actionText.match(/for (\d+) units/i);
   if (quantityMatch) {
     details.quantity = parseInt(quantityMatch[1]);
   }
-  
+
   return details;
 };
 
@@ -310,9 +311,9 @@ const isProjectXFormat = (columns: string[]): boolean => {
 const calculateRealisticDuration = (netPL: number, side: string): number => {
   // Base duration on P&L magnitude and side
   const absPL = Math.abs(netPL);
-  
+
   let baseDuration: number;
-  
+
   if (absPL < 50) {
     // Small P&L - likely scalping
     baseDuration = Math.random() * 15 + 5; // 5-20 minutes
@@ -326,11 +327,11 @@ const calculateRealisticDuration = (netPL: number, side: string): number => {
     // Large P&L - longer term
     baseDuration = Math.random() * 240 + 60; // 60-300 minutes
   }
-  
+
   // Add some randomness
   const variance = baseDuration * 0.3;
   const finalDuration = baseDuration + (Math.random() - 0.5) * variance;
-  
+
   return Math.max(5, Math.round(finalDuration)); // Minimum 5 minutes
 };
 
@@ -346,10 +347,10 @@ const generateTradingTime = (): string => {
     { hour: 15, weight: 0.08 },  // Late afternoon
     { hour: 16, weight: 0.02 }   // Market close - lower activity
   ];
-  
+
   const random = Math.random();
   let cumulative = 0;
-  
+
   for (const timeSlot of marketHours) {
     cumulative += timeSlot.weight;
     if (random <= cumulative) {
@@ -359,7 +360,7 @@ const generateTradingTime = (): string => {
       return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
     }
   }
-  
+
   return '10:30 AM'; // Fallback
 };
 
@@ -372,24 +373,24 @@ const generateTradeDuration = (): number => {
     { min: 90, max: 240, weight: 0.15 },   // Medium-term: 1.5-4 hours
     { min: 240, max: 480, weight: 0.05 }   // Long-term: 4-8 hours
   ];
-  
+
   const random = Math.random();
   let cumulative = 0;
-  
+
   for (const durationType of durationTypes) {
     cumulative += durationType.weight;
     if (random <= cumulative) {
       return Math.floor(Math.random() * (durationType.max - durationType.min + 1)) + durationType.min;
     }
   }
-  
+
   return 35; // Fallback
 };
 
 // Generate realistic P&L with proper risk management
 const generateRealisticPL = (duration: number, isWin: boolean, consecutiveWins: number, consecutiveLosses: number): number => {
   let baseAmount: number;
-  
+
   // Base amounts vary by duration
   if (duration < 15) {
     baseAmount = Math.random() * 600 + 150; // $150-$750
@@ -400,26 +401,26 @@ const generateRealisticPL = (duration: number, isWin: boolean, consecutiveWins: 
   } else {
     baseAmount = Math.random() * 2500 + 600; // $600-$3100
   }
-  
+
   if (isWin) {
     // Winners: Apply psychological factors
     let multiplier = 0.7 + Math.random() * 0.6; // 0.7x to 1.3x
-    
+
     // Reduce win size after consecutive wins (overconfidence)
     if (consecutiveWins > 2) {
       multiplier *= 0.8;
     }
-    
+
     return Math.round(baseAmount * multiplier);
   } else {
     // Losers: Good risk management - smaller losses
     let multiplier = 0.3 + Math.random() * 0.4; // 0.3x to 0.7x
-    
+
     // Larger losses after consecutive losses (revenge trading)
     if (consecutiveLosses > 1) {
       multiplier *= 1.3;
     }
-    
+
     return -Math.round(baseAmount * multiplier);
   }
 };
@@ -428,7 +429,7 @@ const generateRealisticPL = (duration: number, isWin: boolean, consecutiveWins: 
 const generateJune2025TradingData = (): Trade[] => {
   const trades: Trade[] = [];
   const symbols = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'NVDA', 'AMZN', 'META', 'SPY', 'QQQ', 'IWM', 'AMD', 'NFLX'];
-  
+
   // June 2025 trading days with specific data
   const tradingDays = [
     // Week 1
@@ -437,47 +438,47 @@ const generateJune2025TradingData = (): Trade[] => {
     { date: '2025-06-04', trades: 1, targetPnl: 800 }, // Wednesday
     { date: '2025-06-05', trades: 3, targetPnl: -584 }, // Thursday
     { date: '2025-06-06', trades: 5, targetPnl: 3510 }, // Friday
-    
+
     // Week 2
     { date: '2025-06-09', trades: 0 }, // Monday - no trades
     { date: '2025-06-10', trades: 3, targetPnl: -268 }, // Tuesday
     { date: '2025-06-11', trades: 4, targetPnl: 1699 }, // Wednesday
     { date: '2025-06-12', trades: 4, targetPnl: 1894 }, // Thursday
     { date: '2025-06-13', trades: 3, targetPnl: 574 }, // Friday
-    
+
     // Week 3
     { date: '2025-06-16', trades: 0 }, // Monday - no trades
     { date: '2025-06-17', trades: 2, targetPnl: 105 }, // Tuesday
     { date: '2025-06-18', trades: 1, targetPnl: -282 }, // Wednesday
     { date: '2025-06-19', trades: 1, targetPnl: 846 }, // Thursday
     { date: '2025-06-20', trades: 1, targetPnl: 164 }, // Friday
-    
+
     // Week 4 (partial)
     { date: '2025-06-23', trades: 0 }, // Monday - future
     { date: '2025-06-24', trades: 0 }, // Tuesday - future
   ];
-  
+
   let tradeId = 0;
   let consecutiveWins = 0;
   let consecutiveLosses = 0;
-  
+
   for (const dayData of tradingDays) {
     if (dayData.trades === 0) continue;
-    
+
     const date = new Date(dayData.date);
     if (isWeekend(date)) continue;
-    
+
     let dailyPL = 0;
     const targetPnl = dayData.targetPnl;
-    
+
     for (let i = 0; i < dayData.trades; i++) {
       const symbol = symbols[Math.floor(Math.random() * symbols.length)];
       const duration = generateTradeDuration();
-      
+
       // Calculate if this should be a win based on remaining P&L needed
       const remainingTrades = dayData.trades - i - 1;
       const remainingPnl = targetPnl - dailyPL;
-      
+
       let isWin: boolean;
       if (remainingTrades === 0) {
         // Last trade of the day - make it achieve the target
@@ -485,25 +486,25 @@ const generateJune2025TradingData = (): Trade[] => {
       } else {
         // Use realistic win rate with some randomness
         let baseWinRate = 0.62; // Base 62% win rate
-        
+
         // Adjust based on target and current progress
         if (targetPnl > 0 && dailyPL < targetPnl * 0.7) {
           baseWinRate = 0.75; // Need more wins
         } else if (targetPnl < 0 && dailyPL > targetPnl * 0.7) {
           baseWinRate = 0.35; // Losing day
         }
-        
+
         // Duration adjustments
         if (duration < 15) baseWinRate -= 0.10;
         if (duration > 120) baseWinRate += 0.08;
-        
+
         // Streak adjustments
         if (consecutiveWins > 2) baseWinRate -= 0.12;
         if (consecutiveLosses > 1) baseWinRate += 0.08;
-        
+
         isWin = Math.random() < Math.max(0.25, Math.min(0.85, baseWinRate));
       }
-      
+
       // Generate P&L that helps achieve daily target
       let netPL: number;
       if (remainingTrades === 0) {
@@ -512,7 +513,7 @@ const generateJune2025TradingData = (): Trade[] => {
       } else {
         // Generate realistic P&L
         netPL = generateRealisticPL(duration, isWin, consecutiveWins, consecutiveLosses);
-        
+
         // Adjust to help reach target
         if (targetPnl > 0 && isWin) {
           const factor = Math.min(2.0, Math.max(0.5, targetPnl / 2000));
@@ -522,9 +523,9 @@ const generateJune2025TradingData = (): Trade[] => {
           netPL = Math.round(netPL * factor);
         }
       }
-      
+
       dailyPL += netPL;
-      
+
       // Update streaks
       if (netPL > 0) {
         consecutiveWins++;
@@ -533,11 +534,11 @@ const generateJune2025TradingData = (): Trade[] => {
         consecutiveLosses++;
         consecutiveWins = 0;
       }
-      
+
       const entryPrice = Math.random() * 300 + 50;
       const priceChangePercent = (netPL / 1000) * (Math.random() * 0.02 + 0.01);
       const exitPrice = entryPrice * (1 + priceChangePercent);
-      
+
       trades.push({
         id: `trade-${dayData.date}-${i}`,
         date: dayData.date,
@@ -553,11 +554,11 @@ const generateJune2025TradingData = (): Trade[] => {
         commission: Math.round((Math.random() * 5 + 1) * 100) / 100,
         notes: ''
       });
-      
+
       tradeId++;
     }
   }
-  
+
   return trades.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
@@ -587,18 +588,18 @@ const calculateComprehensiveMetrics = (trades: Trade[]): TradingMetrics => {
 
   const wins = trades.filter(t => t.outcome === 'win');
   const losses = trades.filter(t => t.outcome === 'loss');
-  
+
   const totalWinAmount = wins.reduce((sum, t) => sum + t.netPL, 0);
   const totalLossAmount = Math.abs(losses.reduce((sum, t) => sum + t.netPL, 0));
-  
+
   const netPL = trades.reduce((sum, t) => sum + t.netPL, 0);
   const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : totalWinAmount > 0 ? 999 : 0;
   const winRate = (wins.length / trades.length) * 100;
   const expectancy = netPL / trades.length;
-  
+
   const avgWin = wins.length > 0 ? totalWinAmount / wins.length : 0;
   const avgLoss = losses.length > 0 ? totalLossAmount / losses.length : 0;
-  
+
   // Calculate current streak (from most recent)
   let currentStreak = 0;
   if (trades.length > 0) {
@@ -611,13 +612,13 @@ const calculateComprehensiveMetrics = (trades: Trade[]): TradingMetrics => {
       }
     }
   }
-  
+
   // Calculate max consecutive streaks
   let maxConsecutiveWins = 0;
   let maxConsecutiveLosses = 0;
   let currentWinStreak = 0;
   let currentLossStreak = 0;
-  
+
   for (const trade of trades) {
     if (trade.outcome === 'win') {
       currentWinStreak++;
@@ -629,21 +630,21 @@ const calculateComprehensiveMetrics = (trades: Trade[]): TradingMetrics => {
       maxConsecutiveLosses = Math.max(maxConsecutiveLosses, currentLossStreak);
     }
   }
-  
+
   // Largest win/loss
   const largestWin = Math.max(...trades.map(t => t.netPL));
   const largestLoss = Math.min(...trades.map(t => t.netPL));
-  
+
   // Average Risk/Reward ratio
   const avgRiskReward = avgLoss > 0 ? avgWin / avgLoss : 0;
-  
+
   // Calculate drawdown
   let maxDrawdown = 0;
   let peak = 0;
   let runningPL = 0;
-  
+
   const sortedTrades = [...trades].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  
+
   for (const trade of sortedTrades) {
     runningPL += trade.netPL;
     if (runningPL > peak) {
@@ -652,34 +653,34 @@ const calculateComprehensiveMetrics = (trades: Trade[]): TradingMetrics => {
     const drawdown = peak > 0 ? ((peak - runningPL) / peak) * 100 : 0;
     maxDrawdown = Math.max(maxDrawdown, drawdown);
   }
-  
+
   // Sharpe Ratio
   const dailyReturns = trades.map(t => t.netPL);
   const avgReturn = dailyReturns.reduce((sum, ret) => sum + ret, 0) / dailyReturns.length;
   const variance = dailyReturns.reduce((sum, ret) => sum + Math.pow(ret - avgReturn, 2), 0) / dailyReturns.length;
   const stdDev = Math.sqrt(variance);
   const sharpeRatio = stdDev > 0 ? (avgReturn / stdDev) * Math.sqrt(252) : 0;
-  
+
   // Recovery Factor
   const recoveryFactor = maxDrawdown > 0 ? (netPL / (maxDrawdown * peak / 100)) : 0;
-  
+
   // Enhanced Consistency Score - More realistic calculation
   let consistencyScore = 0;
-  
+
   // Base consistency on win rate (40% weight)
   const winRateScore = Math.min(winRate * 0.8, 40); // Cap at 40 points
-  
+
   // Profit factor contribution (25% weight)
   const profitFactorScore = Math.min(profitFactor * 12.5, 25); // Cap at 25 points
-  
+
   // Risk management score (20% weight) - Lower drawdown = higher score
   const riskScore = Math.max(0, 20 - (maxDrawdown * 0.8));
-  
+
   // Expectancy score (15% weight)
   const expectancyScore = expectancy > 0 ? Math.min(expectancy * 0.05, 15) : 0;
-  
+
   consistencyScore = winRateScore + profitFactorScore + riskScore + expectancyScore;
-  
+
   // Ensure minimum score for profitable traders
   if (netPL > 0 && winRate > 50 && profitFactor > 1.0) {
     consistencyScore = Math.max(consistencyScore, 65);
@@ -915,15 +916,15 @@ export const useTradingStore = create<TradingState>((set, get) => ({
 
   refreshData: () => {
     set({ isLoading: true });
-    
+
     // Simulate API call delay
     setTimeout(() => {
       const { hasImportedData, getFilteredTrades } = get();
-      
+
       // Only generate mock data if user hasn't imported real data
       if (!hasImportedData) {
         const newTrades = generateJune2025TradingData();
-        set({ 
+        set({
           trades: newTrades,
           metrics: calculateComprehensiveMetrics(newTrades),
           isLoading: false
@@ -931,7 +932,7 @@ export const useTradingStore = create<TradingState>((set, get) => ({
       } else {
         // Just refresh metrics for imported data
         const filteredTrades = getFilteredTrades();
-        set({ 
+        set({
           metrics: calculateComprehensiveMetrics(filteredTrades),
           isLoading: false
         });
@@ -941,7 +942,7 @@ export const useTradingStore = create<TradingState>((set, get) => ({
 
   importTrades: async (file: File): Promise<ImportResult> => {
     set({ isLoading: true });
-    
+
     try {
       // Validate file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
@@ -954,17 +955,17 @@ export const useTradingStore = create<TradingState>((set, get) => ({
         'application/vnd.ms-excel',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       ];
-      
+
       if (!validTypes.includes(file.type) && !file.name.match(/\.(csv|xlsx|xls)$/i)) {
         throw new Error('Invalid file type. Please upload CSV, XLSX, or XLS files only.');
       }
 
       let data: any[] = [];
-      
+
       if (file.name.endsWith('.csv')) {
         // Parse CSV file
         const Papa = await import('papaparse');
-        
+
         return new Promise((resolve, reject) => {
           Papa.parse(file, {
             header: true,
@@ -989,10 +990,10 @@ export const useTradingStore = create<TradingState>((set, get) => ({
       } else {
         // Parse Excel file
         const XLSX = await import('xlsx');
-        
+
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
-          
+
           reader.onload = (e) => {
             try {
               const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -1000,7 +1001,7 @@ export const useTradingStore = create<TradingState>((set, get) => ({
               const sheetName = workbook.SheetNames[0];
               const worksheet = workbook.Sheets[sheetName];
               const jsonData = XLSX.utils.sheet_to_json(worksheet);
-              
+
               const result = processImportedData(jsonData);
               set({ isLoading: false });
               resolve(result);
@@ -1009,12 +1010,12 @@ export const useTradingStore = create<TradingState>((set, get) => ({
               reject(new Error(`Excel parsing error: ${error instanceof Error ? error.message : 'Unknown error'}`));
             }
           };
-          
+
           reader.onerror = () => {
             set({ isLoading: false });
             reject(new Error('Failed to read file'));
           };
-          
+
           reader.readAsArrayBuffer(file);
         });
       }

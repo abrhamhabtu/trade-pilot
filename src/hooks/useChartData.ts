@@ -105,17 +105,26 @@ export function useChartData(trades: Trade[], metrics: TradingMetrics) {
   const timePerformanceData = useMemo<TimePerformanceDataPoint[]>(() => {
     return trades.map(trade => {
       let hour = 10;
+      let minutes = 0;
       if (trade.time) {
-        const timeParts = trade.time.split(':');
-        hour = parseInt(timeParts[0]);
-        if (trade.time.includes('PM') && hour !== 12) {
-          hour += 12;
-        } else if (trade.time.includes('AM') && hour === 12) {
-          hour = 0;
+        // Parse time like "9:27 AM" or "2:15 PM"
+        const timeMatch = trade.time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+        if (timeMatch) {
+          hour = parseInt(timeMatch[1]);
+          minutes = parseInt(timeMatch[2]) || 0;
+          const period = timeMatch[3]?.toUpperCase();
+
+          if (period === 'PM' && hour !== 12) {
+            hour += 12;
+          } else if (period === 'AM' && hour === 12) {
+            hour = 0;
+          }
         }
       }
+      // Convert to decimal hours (e.g., 9:30 AM = 9.5)
+      const decimalTime = hour + (minutes / 60);
       return {
-        time: hour,
+        time: decimalTime,
         pnl: trade.netPL,
         outcome: trade.outcome
       };
