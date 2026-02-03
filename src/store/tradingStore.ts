@@ -24,6 +24,7 @@ export interface Trade {
   strategy?: string;
   rMultiple?: number;
   importId?: string; // Links trade to its import entry for deletion
+  importFileName?: string; // Links trade to its source file for deletion fallback
 }
 
 export interface TradingMetrics {

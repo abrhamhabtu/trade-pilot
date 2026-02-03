@@ -12,21 +12,93 @@ interface AddAccountModalProps {
   onAdd: (name: string, broker: string) => void;
 }
 
-const BROKER_OPTIONS = [
-  'Topstep',
-  'Apex Trader Funding',
-  'My Funded Futures',
-  'The Trading Pit',
-  'FTMO',
-  'Funded Next',
-  'True Forex Funds',
-  'E8 Funding',
-  'The5ers',
-  'ProjectX',
-  'TopOne Futures',
-  'Generic Template',
-  'Other'
+type BrokerOption = {
+  label: string;
+  abbr: string;
+  logoClass?: string;
+  logoTextClass?: string;
+  logoSrc?: string;
+  logoAlt?: string;
+  logoBgClass?: string;
+  aliases?: string[];
+};
+
+const BROKER_OPTIONS: BrokerOption[] = [
+  {
+    label: 'TopOne Futures',
+    abbr: 'TO',
+    logoSrc: '/logos/topone-futures.png',
+    logoAlt: 'TopOne Futures logo',
+    logoBgClass: 'bg-white',
+    aliases: ['Topone Futures', 'Top One Futures']
+  },
+  {
+    label: 'Lucid Trading',
+    abbr: 'LT',
+    logoClass: 'bg-gradient-to-br from-[#60A5FA] to-[#3B82F6]',
+    aliases: ['Trading Lucid', 'Lucid']
+  },
+  {
+    label: 'Topstep',
+    abbr: 'TS',
+    logoClass: 'bg-gradient-to-br from-[#F59E0B] to-[#F97316]'
+  },
+  { label: 'ProjectX', abbr: 'PX', logoClass: 'bg-gradient-to-br from-[#A78BFA] to-[#7C3AED]' },
+  { label: 'Apex Trader Funding', abbr: 'AP', logoClass: 'bg-gradient-to-br from-[#F97316] to-[#EA580C]' },
+  { label: 'My Funded Futures', abbr: 'MF', logoClass: 'bg-gradient-to-br from-[#10B981] to-[#059669]' },
+  { label: 'The Trading Pit', abbr: 'TP', logoClass: 'bg-gradient-to-br from-[#34D399] to-[#10B981]' },
+  { label: 'FTMO', abbr: 'FT', logoClass: 'bg-gradient-to-br from-[#0EA5E9] to-[#0284C7]' },
+  { label: 'Funded Next', abbr: 'FN', logoClass: 'bg-gradient-to-br from-[#6366F1] to-[#4F46E5]' },
+  { label: 'True Forex Funds', abbr: 'TF', logoClass: 'bg-gradient-to-br from-[#14B8A6] to-[#0D9488]' },
+  { label: 'E8 Funding', abbr: 'E8', logoClass: 'bg-gradient-to-br from-[#EC4899] to-[#DB2777]' },
+  { label: 'The5ers', abbr: '5R', logoClass: 'bg-gradient-to-br from-[#F43F5E] to-[#E11D48]' },
+  { label: 'Generic Template', abbr: 'GT', logoClass: 'bg-[#334155]', logoTextClass: 'text-[#E5E7EB]' },
+  { label: 'Other', abbr: 'OT', logoClass: 'bg-[#475569]', logoTextClass: 'text-[#E5E7EB]' }
 ];
+
+const normalizeBrokerName = (value: string) => value.trim().toLowerCase();
+
+const getBrokerOption = (broker: string): BrokerOption | undefined => {
+  const normalized = normalizeBrokerName(broker);
+  return BROKER_OPTIONS.find(option => {
+    if (normalizeBrokerName(option.label) === normalized) return true;
+    return (option.aliases || []).some(alias => normalizeBrokerName(alias) === normalized);
+  });
+};
+
+const renderBrokerBadge = (option?: BrokerOption) => {
+  if (!option) return null;
+
+  if (option.logoSrc) {
+    return (
+      <div
+        className={clsx(
+          'h-8 w-8 rounded-lg flex items-center justify-center overflow-hidden',
+          option.logoBgClass || 'bg-white'
+        )}
+      >
+        <img
+          src={option.logoSrc}
+          alt={option.logoAlt || `${option.label} logo`}
+          className="h-6 w-6 object-contain"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={clsx(
+        'h-8 w-8 rounded-lg flex items-center justify-center text-[10px] font-bold',
+        option.logoClass,
+        option.logoTextClass || 'text-white'
+      )}
+    >
+      {option.abbr}
+    </div>
+  );
+};
 
 const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAdd }) => {
   const [name, setName] = useState('');
@@ -110,9 +182,12 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
                   : 'bg-gray-50 border-gray-300 text-gray-900'
               )}
             >
-              <span className={broker ? '' : (theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')}>
-                {broker || 'Select a broker...'}
-              </span>
+              <div className="flex items-center space-x-3">
+                {broker && renderBrokerBadge(getBrokerOption(broker))}
+                <span className={broker ? '' : (theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')}>
+                  {broker || 'Select a broker...'}
+                </span>
+              </div>
               <ChevronDown className="h-4 w-4" />
             </button>
 
@@ -125,10 +200,10 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
               )}>
                 {BROKER_OPTIONS.map((option) => (
                   <button
-                    key={option}
+                    key={option.label}
                     type="button"
                     onClick={() => {
-                      setBroker(option);
+                      setBroker(option.label);
                       setShowBrokerDropdown(false);
                     }}
                     className={clsx(
@@ -136,10 +211,13 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
                       theme === 'dark'
                         ? 'text-[#E5E7EB] hover:bg-[#1F2937]'
                         : 'text-gray-900 hover:bg-gray-100',
-                      broker === option && (theme === 'dark' ? 'bg-[#3BF68A]/10 text-[#3BF68A]' : 'bg-purple-50 text-purple-600')
+                      broker === option.label && (theme === 'dark' ? 'bg-[#3BF68A]/10 text-[#3BF68A]' : 'bg-purple-50 text-purple-600')
                     )}
                   >
-                    {option}
+                    <div className="flex items-center space-x-3">
+                      {renderBrokerBadge(option)}
+                      <span>{option.label}</span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -773,9 +851,12 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                     : 'bg-gray-50 border-gray-300 text-gray-900'
                 )}
               >
-                <span className={!broker ? (theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400') : ''}>
-                  {broker || 'Select a broker'}
-                </span>
+                <div className="flex items-center space-x-3">
+                  {broker && renderBrokerBadge(getBrokerOption(broker))}
+                  <span className={!broker ? (theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400') : ''}>
+                    {broker || 'Select a broker'}
+                  </span>
+                </div>
                 <ChevronDown className={clsx(
                   'h-5 w-5 transition-transform',
                   showBrokerDropdown && 'rotate-180'
@@ -791,10 +872,10 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 )}>
                   {BROKER_OPTIONS.map((option) => (
                     <button
-                      key={option}
+                      key={option.label}
                       type="button"
                       onClick={() => {
-                        setBroker(option);
+                        setBroker(option.label);
                         setShowBrokerDropdown(false);
                       }}
                       className={clsx(
@@ -802,10 +883,13 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                         theme === 'dark'
                           ? 'text-[#E5E7EB] hover:bg-[#1F2937]'
                           : 'text-gray-700 hover:bg-gray-100',
-                        broker === option && (theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-100')
+                        broker === option.label && (theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-100')
                       )}
                     >
-                      {option}
+                      <div className="flex items-center space-x-3">
+                        {renderBrokerBadge(option)}
+                        <span>{option.label}</span>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -1278,14 +1362,20 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
   const handleDeleteImportEntry = (entryId: string) => {
     if (showImportHistory) {
       deleteImportHistoryEntry(showImportHistory.id, entryId);
-      // Refresh the account data
-      const updatedAccount = accounts.find(a => a.id === showImportHistory.id);
-      if (updatedAccount) {
-        setShowImportHistory(updatedAccount);
-      }
       toast.success('Import record removed');
     }
   };
+
+  // Keep the import history modal in sync with store updates
+  React.useEffect(() => {
+    if (!showImportHistory) return;
+    const updatedAccount = accounts.find(a => a.id === showImportHistory.id);
+    if (updatedAccount) {
+      setShowImportHistory(updatedAccount);
+    } else {
+      setShowImportHistory(null);
+    }
+  }, [accounts, showImportHistory?.id]);
 
   const formatBalance = (balance: number) => {
     const formatted = new Intl.NumberFormat('en-US', {

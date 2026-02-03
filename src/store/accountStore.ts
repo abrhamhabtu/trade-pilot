@@ -140,14 +140,30 @@ const loadAccountsFromStorage = (): { accounts: Account[]; selectedId: string | 
     if (accountsJson) {
       const rawAccounts = JSON.parse(accountsJson) as Account[];
       // Migrate existing accounts to include importHistory if missing
-      const accounts = rawAccounts.map(account => ({
-        ...account,
-        importHistory: account.importHistory || [],
-        status: account.status || 'active'
-      }));
+      let didMigrate = false;
+      const accounts = rawAccounts.map(account => {
+        const importHistory = account.importHistory || [];
+        const importFileById = new Map(importHistory.map(entry => [entry.id, entry.fileName]));
+        const trades = (account.trades || []).map(trade => {
+          if (trade.importFileName || !trade.importId) return trade;
+          const fileName = importFileById.get(trade.importId);
+          if (fileName) {
+            didMigrate = true;
+            return { ...trade, importFileName: fileName };
+          }
+          return trade;
+        });
+
+        return {
+          ...account,
+          trades,
+          importHistory,
+          status: account.status || 'active'
+        };
+      });
 
       // Save migrated accounts back to storage
-      if (rawAccounts.some(a => !a.importHistory || !a.status)) {
+      if (rawAccounts.some(a => !a.importHistory || !a.status) || didMigrate) {
         localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
       }
 
@@ -290,21 +306,50 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     set((state) => {
       const newAccounts = state.accounts.map((account) => {
         if (account.id === accountId) {
-          // Merge trades, avoiding duplicates - use date+symbol+time+side for more stable dedup
-          const existingTradeKeys = new Set(
-            account.trades.map((t) => `${t.date}-${t.symbol}-${t.time}-${t.side || ''}-${t.entryPrice}`)
-          );
+          const normalizeDate = (date: string | undefined) => {
+            if (!date) return '';
+            const trimmed = date.trim();
+            if (trimmed.length >= 10 && (trimmed.includes('T') || trimmed.includes(' '))) {
+              return trimmed.slice(0, 10);
+            }
+            return trimmed;
+          };
+
+          const normalizeNum = (value: number | undefined, digits: number) => {
+            if (value === null || value === undefined || Number.isNaN(value)) return '';
+            return Number(value).toFixed(digits);
+          };
+
+          const buildTradeKey = (t: Trade) => {
+            const date = normalizeDate(t.date);
+            const time = (t.time || '').trim().toUpperCase();
+            const symbol = (t.symbol || '').trim().toUpperCase();
+            const side = (t.side || '').trim().toUpperCase();
+            const qty = normalizeNum(t.quantity, 4);
+            const entry = normalizeNum(t.entryPrice, 4);
+            const exit = normalizeNum(t.exitPrice, 4);
+            const pnl = normalizeNum(t.netPL, 2);
+            return `${date}|${time}|${symbol}|${side}|${qty}|${entry}|${exit}|${pnl}`;
+          };
+
+          // Merge trades, avoiding duplicates with a stronger key
+          const existingTradeKeys = new Set(account.trades.map((t) => buildTradeKey(t)));
 
           // Generate import entry ID first so we can tag trades
           const importEntryId = fileName ? `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : null;
 
-          // Tag new trades with import ID and filter duplicates
-          const uniqueNewTrades = trades.filter(
-            (t) => !existingTradeKeys.has(`${t.date}-${t.symbol}-${t.time}-${t.side || ''}-${t.entryPrice}`)
-          ).map((t) => ({
-            ...t,
-            importId: importEntryId || undefined
-          }));
+          // Tag new trades with import ID and filter duplicates (also dedupe within the import)
+          const uniqueNewTrades: Trade[] = [];
+          for (const trade of trades) {
+            const key = buildTradeKey(trade);
+            if (existingTradeKeys.has(key)) continue;
+            existingTradeKeys.add(key);
+            uniqueNewTrades.push({
+              ...trade,
+              importId: importEntryId || undefined,
+              importFileName: fileName
+            });
+          }
 
           const allTrades = [...account.trades, ...uniqueNewTrades].sort(
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -391,8 +436,14 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     set((state) => {
       const newAccounts = state.accounts.map((account) => {
         if (account.id === accountId) {
+          const entry = (account.importHistory || []).find(e => e.id === entryId);
+
           // Remove trades that have this importId
-          const filteredTrades = account.trades.filter(t => t.importId !== entryId);
+          const filteredTrades = account.trades.filter(t => {
+            if (t.importId === entryId) return false;
+            if (entry?.fileName && t.importFileName === entry.fileName) return false;
+            return true;
+          });
 
           // Recalculate balance
           const balance = filteredTrades.reduce((sum, t) => sum + t.netPL, 0);
