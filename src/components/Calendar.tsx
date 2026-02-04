@@ -15,11 +15,13 @@ import {
   Target,
   Bold,
   Italic,
-  List
+  List,
+  DollarSign
 } from 'lucide-react';
 import clsx from 'clsx';
 import { Trade, useTradingStore } from '../store/tradingStore';
 import { useDailyNotesStore, NoteImage } from '../store/dailyNotesStore';
+import { useAccountStore } from '../store/accountStore';
 
 // Predefined trading strategies
 const TRADING_STRATEGIES = [
@@ -1049,6 +1051,25 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
 
 export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) => {
   const { hasNote } = useDailyNotesStore();
+  const { accounts, selectedAccountId } = useAccountStore();
+  
+  // Get adjustments for the current account
+  const adjustments = useMemo(() => {
+    const currentAccountId = accountId || selectedAccountId;
+    if (!currentAccountId) return [];
+    const account = accounts.find(a => a.id === currentAccountId);
+    return account?.balanceAdjustments || [];
+  }, [accounts, accountId, selectedAccountId]);
+  
+  // Helper to check if a date has an adjustment
+  const hasAdjustment = (dateStr: string) => {
+    return adjustments.some(adj => adj.date === dateStr);
+  };
+  
+  // Get adjustment for a specific date
+  const getAdjustmentForDate = (dateStr: string) => {
+    return adjustments.find(adj => adj.date === dateStr);
+  };
   
   // Start with the month that has the most recent trade data
   const getInitialDate = () => {
@@ -1124,9 +1145,30 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
   };
   
   // Get day data from the actual data prop passed from App.tsx
+  // Also includes any balance adjustments (payouts/deposits) for the day
   const getDayData = (day: number) => {
     const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return data.find(item => item.date === dateString);
+    const tradeData = data.find(item => item.date === dateString);
+    const adjustment = getAdjustmentForDate(dateString);
+    
+    // If there's an adjustment, add it to the P&L to show net account change (like TopOne)
+    if (tradeData && adjustment) {
+      return {
+        ...tradeData,
+        pnl: tradeData.pnl + adjustment.amount // Include adjustment in daily P&L
+      };
+    }
+    
+    // If there's only an adjustment (no trades), still show it as day data
+    if (!tradeData && adjustment) {
+      return {
+        date: dateString,
+        pnl: adjustment.amount,
+        trades: 0
+      };
+    }
+    
+    return tradeData;
   };
 
   // Get trades for a specific date
@@ -1162,6 +1204,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
   };
   
   // Calculate weekly data (only trading days) - Fixed to handle all months properly
+  // Now includes balance adjustments (payouts/deposits) in weekly totals to match TopOne
   const getWeeklyData = () => {
     const weeks = [];
     const totalDaysToShow = Math.ceil((daysInMonth + firstDayOfWeek) / 7) * 7;
@@ -1183,12 +1226,21 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
           if (day <= daysInMonth) {
             weekDays.push(day);
             
-            // Calculate week totals
+            // Calculate week totals (now includes adjustments via getDayData)
             const dayData = getDayData(day);
-            if (dayData && !isWeekend(day) && !isFutureDate(day) && dayData.trades > 0) {
-              weekPnl += dayData.pnl;
-              weekTrades += dayData.trades;
-              weekTradingDays++;
+            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayAdjustment = getAdjustmentForDate(dateString);
+            
+            if (!isWeekend(day) && !isFutureDate(day)) {
+              // Include trading P&L
+              if (dayData && dayData.trades > 0) {
+                weekPnl += dayData.pnl; // This now includes adjustments via getDayData
+                weekTrades += dayData.trades;
+                weekTradingDays++;
+              } else if (dayAdjustment) {
+                // Include adjustment even on non-trading days
+                weekPnl += dayAdjustment.amount;
+              }
             }
           } else {
             // Empty cell after month ends
@@ -1211,13 +1263,28 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
   const weeklyData = getWeeklyData();
   
   // Calculate monthly totals from actual data for the current viewing month
-  const monthlyTotal = data.reduce((sum, dayData) => {
-    const date = new Date(dayData.date);
-    if (date.getFullYear() === year && date.getMonth() === month) {
-      return sum + dayData.pnl;
-    }
-    return sum;
-  }, 0);
+  // Includes both trading P&L and balance adjustments (payouts/deposits) to match TopOne
+  const monthlyTotal = useMemo(() => {
+    // Sum of trading P&L
+    const tradingPnL = data.reduce((sum, dayData) => {
+      const date = new Date(dayData.date);
+      if (date.getFullYear() === year && date.getMonth() === month) {
+        return sum + dayData.pnl;
+      }
+      return sum;
+    }, 0);
+    
+    // Sum of adjustments (payouts, deposits)
+    const adjustmentTotal = adjustments.reduce((sum, adj) => {
+      const adjDate = new Date(adj.date + 'T12:00:00');
+      if (adjDate.getFullYear() === year && adjDate.getMonth() === month) {
+        return sum + adj.amount;
+      }
+      return sum;
+    }, 0);
+    
+    return tradingPnL + adjustmentTotal;
+  }, [data, adjustments, year, month]);
   
   const tradingDays = data.filter(dayData => {
     const date = new Date(dayData.date);
@@ -1344,6 +1411,8 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                 const hasTradesForDay = dayData && dayData.trades > 0;
                 const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const dayHasNote = hasNote(dateString, accountId);
+                const dayHasAdjustment = hasAdjustment(dateString);
+                const dayAdjustment = getAdjustmentForDate(dateString);
                 
                 return (
                   <div
@@ -1366,12 +1435,39 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                     )}
                     onClick={() => handleDayClick(day)}
                   >
-                    {/* Notes indicator */}
-                    {dayHasNote && (
-                      <div className="absolute top-1 right-1 p-1 rounded-full bg-[#A78BFA]/20">
-                        <FileText className="h-3 w-3 text-[#A78BFA]" />
-                      </div>
-                    )}
+                    {/* Top-right indicators container */}
+                    <div className="absolute top-1 right-1 flex items-center space-x-1">
+                      {/* Adjustment indicator */}
+                      {dayHasAdjustment && (
+                        <div 
+                          className={clsx(
+                            "p-1 rounded-full",
+                            dayAdjustment?.type === 'payout' 
+                              ? "bg-[#F45B69]/30" 
+                              : dayAdjustment?.type === 'deposit'
+                                ? "bg-[#3BF68A]/30"
+                                : "bg-[#A78BFA]/30"
+                          )}
+                          title={`${dayAdjustment?.type}: ${dayAdjustment?.amount && dayAdjustment.amount < 0 ? '-' : '+'}$${Math.abs(dayAdjustment?.amount || 0).toLocaleString()}`}
+                        >
+                          <DollarSign className={clsx(
+                            "h-3 w-3",
+                            dayAdjustment?.type === 'payout' 
+                              ? "text-[#F45B69]" 
+                              : dayAdjustment?.type === 'deposit'
+                                ? "text-[#3BF68A]"
+                                : "text-[#A78BFA]"
+                          )} />
+                        </div>
+                      )}
+                      
+                      {/* Notes indicator */}
+                      {dayHasNote && (
+                        <div className="p-1 rounded-full bg-[#A78BFA]/20">
+                          <FileText className="h-3 w-3 text-[#A78BFA]" />
+                        </div>
+                      )}
+                    </div>
                     
                     <div className={clsx(
                       'text-sm font-medium mb-1',
@@ -1390,6 +1486,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                       </div>
                     ) : dayData && dayData.trades > 0 ? (
                       <div className="space-y-1">
+                        {/* Net P&L (includes adjustments like TopOne shows) */}
                         <div className={clsx(
                           'text-xs font-bold',
                           dayData.pnl >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
@@ -1401,6 +1498,21 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                         </div>
                         <div className="text-xs text-[#8B94A7]">
                           {winRate}% WR
+                        </div>
+                      </div>
+                    ) : dayHasAdjustment && dayAdjustment ? (
+                      <div className="space-y-1">
+                        <div className={clsx(
+                          'text-xs font-bold',
+                          dayAdjustment.amount >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                        )}>
+                          {dayAdjustment.type === 'payout' ? '💰 Payout' : dayAdjustment.type === 'deposit' ? '➕ Deposit' : '⚡ Adj'}
+                        </div>
+                        <div className={clsx(
+                          'text-xs font-semibold',
+                          dayAdjustment.amount >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                        )}>
+                          {dayAdjustment.amount >= 0 ? '+' : ''}{formatCurrency(dayAdjustment.amount)}
                         </div>
                       </div>
                     ) : (

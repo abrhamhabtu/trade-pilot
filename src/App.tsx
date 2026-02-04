@@ -236,6 +236,16 @@ function App() {
     return calculateMetrics(displayTrades);
   }, [displayTrades]);
 
+  // Get the selected account's balance (includes adjustments like payouts)
+  const selectedAccountBalance = useMemo(() => {
+    if (showAllAccounts) {
+      // Sum all account balances when showing all accounts
+      return accounts.reduce((sum, a) => sum + a.balance, 0);
+    }
+    const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+    return selectedAccount?.balance ?? 0;
+  }, [accounts, selectedAccountId, showAllAccounts]);
+
   const { calendarData } = useChartData(displayTrades, metrics);
 
   const handleImportForAccount = (accountId: string) => {
@@ -313,6 +323,7 @@ function App() {
             onImport={handleOpenImport}
             onNavigateToRoutine={() => setCurrentView('routine')}
             accountId={selectedAccountId || undefined}
+            accountBalance={selectedAccountBalance}
           />
         );
     }

@@ -13,19 +13,23 @@ import {
 interface MetricsGridProps {
   metrics: TradingMetrics;
   trades: Trade[];
+  accountBalance?: number;
 }
 
-export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, trades }) => {
+export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, trades, accountBalance }) => {
+  // Use account balance if provided (includes adjustments like payouts), otherwise fall back to trade P&L
+  const displayBalance = accountBalance !== undefined ? accountBalance : metrics.netPL;
+  
   return (
     <div className="grid grid-cols-6 gap-4 mb-6">
       <MetricCard
         title="Net P&L"
-        value={metrics.netPL}
+        value={displayBalance}
         format="currency"
-        trend={metrics.netPL >= 0 ? "up" : "down"}
+        trend={displayBalance >= 0 ? "up" : "down"}
         icon={DollarSign}
         iconColor="text-[#3BF68A]"
-        tooltip="Total profit and loss from all closed trades. This represents your overall trading performance in dollar terms."
+        tooltip="Your account balance including all trades and adjustments (payouts, deposits). This matches your Accounts page balance."
       />
       <MetricCard
         title="Profit Factor"

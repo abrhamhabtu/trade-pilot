@@ -19,6 +19,7 @@ interface DashboardProps {
   onImport: () => void;
   onNavigateToRoutine?: () => void;
   accountId?: string;
+  accountBalance?: number;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -31,7 +32,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onRefresh,
   onImport,
   onNavigateToRoutine,
-  accountId
+  accountId,
+  accountBalance
 }) => {
   const {
     radarData,
@@ -59,7 +61,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         onImport={onImport}
       />
 
-      <MetricsGrid metrics={metrics} trades={trades} />
+      <MetricsGrid metrics={metrics} trades={trades} accountBalance={accountBalance} />
 
       <CoachingTipCard
         title="Trading Coach Tip"

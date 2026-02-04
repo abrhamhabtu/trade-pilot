@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, MoreVertical, Upload, Trash2, Edit2, ChevronDown, FileText, AlertTriangle, History, X, Download, HardDrive } from 'lucide-react';
-import { useAccountStore, Account, AccountStatus } from '../../store/accountStore';
+import { Plus, MoreVertical, Upload, Trash2, Edit2, ChevronDown, FileText, AlertTriangle, History, X, Download, HardDrive, DollarSign, ArrowDownLeft, ArrowUpRight, Calendar } from 'lucide-react';
+import { useAccountStore, Account, AccountStatus, BalanceAdjustment } from '../../store/accountStore';
 import { useThemeStore } from '../../store/themeStore';
 import { toast } from '../../store/toastStore';
 import { exportAllData, importBackupData, getStorageUsage, exportTradesToCSV, setLastBackupTime } from '../../hooks/useLocalStorage';
@@ -720,6 +720,506 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
   );
 };
 
+// Add Adjustment Modal
+interface AddAdjustmentModalProps {
+  isOpen: boolean;
+  account: Account | null;
+  onClose: () => void;
+  onAdd: (adjustment: Omit<BalanceAdjustment, 'id' | 'createdAt'>) => void;
+}
+
+const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account, onClose, onAdd }) => {
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState<'payout' | 'deposit' | 'adjustment'>('payout');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [description, setDescription] = useState('');
+  const { theme } = useThemeStore();
+
+  // Reset form when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setAmount('');
+      setType('payout');
+      setDate(new Date().toISOString().split('T')[0]);
+      setDescription('');
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !account) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    // For payouts, make the amount negative
+    const finalAmount = type === 'payout' ? -Math.abs(numAmount) : Math.abs(numAmount);
+
+    onAdd({
+      date,
+      amount: finalAmount,
+      type,
+      description: description.trim() || undefined
+    });
+
+    onClose();
+  };
+
+  const typeOptions = [
+    { value: 'payout', label: 'Payout', icon: ArrowUpRight, color: '#F45B69', desc: 'Money withdrawn from account' },
+    { value: 'deposit', label: 'Deposit', icon: ArrowDownLeft, color: '#3BF68A', desc: 'Money added to account' },
+    { value: 'adjustment', label: 'Adjustment', icon: DollarSign, color: '#A78BFA', desc: 'Manual balance correction' }
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div
+        className={clsx(
+          'rounded-xl border max-w-md w-full',
+          theme === 'dark'
+            ? 'bg-[#15181F] border-[#1F2937]'
+            : 'bg-white border-gray-200'
+        )}
+      >
+        <div className={clsx(
+          'p-6 border-b',
+          theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+        )}>
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-[#3BF68A]/10">
+              <DollarSign className="h-5 w-5 text-[#3BF68A]" />
+            </div>
+            <div>
+              <h2 className={clsx(
+                'text-xl font-bold',
+                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+              )}>Add Balance Adjustment</h2>
+              <p className={clsx(
+                'text-sm mt-1',
+                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+              )}>Record a payout, deposit, or manual adjustment</p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Type Selection */}
+          <div>
+            <label className={clsx(
+              'block text-sm font-medium mb-3',
+              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+            )}>
+              Type
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {typeOptions.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setType(option.value as 'payout' | 'deposit' | 'adjustment')}
+                    className={clsx(
+                      'p-3 rounded-lg border-2 transition-all text-center',
+                      type === option.value
+                        ? theme === 'dark'
+                          ? 'border-[#3BF68A] bg-[#3BF68A]/10'
+                          : 'border-purple-500 bg-purple-50'
+                        : theme === 'dark'
+                          ? 'border-[#1F2937] hover:border-[#3BF68A]/50'
+                          : 'border-gray-200 hover:border-purple-300'
+                    )}
+                  >
+                    <Icon 
+                      className="h-5 w-5 mx-auto mb-1" 
+                      style={{ color: type === option.value ? option.color : (theme === 'dark' ? '#8B94A7' : '#6B7280') }} 
+                    />
+                    <div className={clsx(
+                      'text-xs font-semibold',
+                      type === option.value
+                        ? (theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900')
+                        : (theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')
+                    )}>
+                      {option.label}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <p className={clsx(
+              'text-xs mt-2',
+              theme === 'dark' ? 'text-[#6B7280]' : 'text-gray-400'
+            )}>
+              {typeOptions.find(o => o.value === type)?.desc}
+            </p>
+          </div>
+
+          {/* Amount */}
+          <div>
+            <label className={clsx(
+              'block text-sm font-medium mb-2',
+              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+            )}>
+              Amount
+            </label>
+            <div className="relative">
+              <span className={clsx(
+                'absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold',
+                type === 'payout' ? 'text-[#F45B69]' : 'text-[#3BF68A]'
+              )}>
+                {type === 'payout' ? '-$' : '+$'}
+              </span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                className={clsx(
+                  'w-full pl-12 pr-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all text-lg font-semibold',
+                  theme === 'dark'
+                    ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#4B5563]'
+                    : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
+                )}
+                required
+                autoFocus
+              />
+            </div>
+          </div>
+
+          {/* Date */}
+          <div>
+            <label className={clsx(
+              'block text-sm font-medium mb-2',
+              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+            )}>
+              Date
+            </label>
+            <div className="relative">
+              <Calendar className={clsx(
+                'absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4',
+                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400'
+              )} />
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className={clsx(
+                  'w-full pl-11 pr-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
+                  theme === 'dark'
+                    ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB]'
+                    : 'bg-gray-50 border-gray-300 text-gray-900'
+                )}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Description (Optional) */}
+          <div>
+            <label className={clsx(
+              'block text-sm font-medium mb-2',
+              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+            )}>
+              Note <span className={theme === 'dark' ? 'text-[#6B7280]' : 'text-gray-400'}>(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g., January payout, Account correction..."
+              className={clsx(
+                'w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
+                theme === 'dark'
+                  ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#4B5563]'
+                  : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
+              )}
+            />
+          </div>
+
+          {/* Preview */}
+          <div className={clsx(
+            'p-4 rounded-lg border',
+            theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+          )}>
+            <div className="flex items-center justify-between">
+              <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>
+                Balance impact:
+              </span>
+              <span className={clsx(
+                'text-lg font-bold',
+                type === 'payout' ? 'text-[#F45B69]' : 'text-[#3BF68A]'
+              )}>
+                {type === 'payout' ? '-' : '+'}${parseFloat(amount || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex space-x-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className={clsx(
+                'flex-1 px-4 py-3 rounded-lg border font-medium transition-all',
+                theme === 'dark'
+                  ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50'
+                  : 'border-gray-300 text-gray-600 hover:text-gray-900 hover:border-purple-300'
+              )}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
+            >
+              Add Adjustment
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Adjustments List Modal
+interface AdjustmentsListModalProps {
+  isOpen: boolean;
+  account: Account | null;
+  onClose: () => void;
+  onDelete: (adjustmentId: string) => void;
+  onAddNew: () => void;
+}
+
+const AdjustmentsListModal: React.FC<AdjustmentsListModalProps> = ({ isOpen, account, onClose, onDelete, onAddNew }) => {
+  const { theme } = useThemeStore();
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setConfirmDeleteId(null);
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !account) return null;
+
+  const adjustments = account.balanceAdjustments || [];
+
+  const formatCurrency = (value: number) => {
+    const formatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(Math.abs(value));
+    return value < 0 ? `-${formatted}` : `+${formatted}`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const totalAdjustments = adjustments.reduce((sum, adj) => sum + adj.amount, 0);
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className={clsx(
+        'rounded-xl border max-w-2xl w-full max-h-[80vh] overflow-hidden',
+        theme === 'dark' ? 'bg-[#15181F] border-[#1F2937]' : 'bg-white border-gray-200'
+      )}>
+        {/* Header */}
+        <div className={clsx(
+          'p-6 border-b flex items-center justify-between',
+          theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+        )}>
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-[#3BF68A]/10">
+              <DollarSign className="h-5 w-5 text-[#3BF68A]" />
+            </div>
+            <div>
+              <h2 className={clsx(
+                'text-xl font-bold',
+                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+              )}>Balance Adjustments</h2>
+              <p className={clsx(
+                'text-sm',
+                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+              )}>{account.name} • {adjustments.length} adjustment{adjustments.length !== 1 ? 's' : ''}</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onAddNew}
+              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add New</span>
+            </button>
+            <button
+              onClick={onClose}
+              className={clsx(
+                'p-2 rounded-lg transition-colors',
+                theme === 'dark'
+                  ? 'text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937]'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className={clsx(
+          'px-6 py-4 border-b',
+          theme === 'dark' ? 'border-[#1F2937] bg-[#0B0D10]' : 'border-gray-200 bg-gray-50'
+        )}>
+          <div className="flex items-center justify-between">
+            <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>
+              Total Impact on Balance:
+            </span>
+            <span className={clsx(
+              'text-xl font-bold',
+              totalAdjustments >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+            )}>
+              {formatCurrency(totalAdjustments)}
+            </span>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto max-h-[50vh]">
+          {adjustments.length === 0 ? (
+            <div className={clsx(
+              'text-center py-12 rounded-lg border',
+              theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+            )}>
+              <DollarSign className={clsx('h-12 w-12 mx-auto mb-3', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')} />
+              <p className={clsx('text-sm font-medium', theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700')}>
+                No adjustments recorded
+              </p>
+              <p className={clsx('text-xs mt-2 max-w-sm mx-auto', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+                Record payouts, deposits, or manual corrections to keep your balance accurate.
+              </p>
+              <button
+                onClick={onAddNew}
+                className="mt-4 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all text-sm"
+              >
+                Add Your First Adjustment
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {adjustments.map((adjustment) => (
+                <div
+                  key={adjustment.id}
+                  className={clsx(
+                    'p-4 rounded-lg border transition-all',
+                    theme === 'dark'
+                      ? 'bg-[#0B0D10] border-[#1F2937] hover:border-[#3BF68A]/30'
+                      : 'bg-gray-50 border-gray-200 hover:border-purple-300'
+                  )}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3">
+                      <div className={clsx(
+                        'p-2 rounded-lg',
+                        adjustment.type === 'payout'
+                          ? 'bg-[#F45B69]/10'
+                          : adjustment.type === 'deposit'
+                            ? 'bg-[#3BF68A]/10'
+                            : 'bg-[#A78BFA]/10'
+                      )}>
+                        {adjustment.type === 'payout' ? (
+                          <ArrowUpRight className="h-5 w-5 text-[#F45B69]" />
+                        ) : adjustment.type === 'deposit' ? (
+                          <ArrowDownLeft className="h-5 w-5 text-[#3BF68A]" />
+                        ) : (
+                          <DollarSign className="h-5 w-5 text-[#A78BFA]" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className={clsx(
+                            'font-semibold capitalize',
+                            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                          )}>
+                            {adjustment.type}
+                          </span>
+                          <span className={clsx(
+                            'text-lg font-bold',
+                            adjustment.amount >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                          )}>
+                            {formatCurrency(adjustment.amount)}
+                          </span>
+                        </div>
+                        <p className={clsx(
+                          'text-xs mt-1',
+                          theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                        )}>
+                          {formatDate(adjustment.date)}
+                          {adjustment.description && ` • ${adjustment.description}`}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {confirmDeleteId === adjustment.id ? (
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => {
+                            onDelete(adjustment.id);
+                            setConfirmDeleteId(null);
+                          }}
+                          className="px-3 py-1 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className={clsx(
+                            'px-3 py-1 text-xs font-medium rounded-lg transition-colors',
+                            theme === 'dark'
+                              ? 'bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB]'
+                              : 'bg-gray-200 text-gray-600 hover:text-gray-900'
+                          )}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(adjustment.id)}
+                        className={clsx(
+                          'p-1.5 rounded-lg transition-colors',
+                          theme === 'dark'
+                            ? 'text-[#8B94A7] hover:text-red-400 hover:bg-red-500/10'
+                            : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                        )}
+                        title="Delete adjustment"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Edit Account Modal
 interface EditAccountModalProps {
   account: Account | null;
@@ -1167,9 +1667,10 @@ interface AccountActionsMenuProps {
   onImport: () => void;
   onStatusChange: (status: AccountStatus) => void;
   onClearTrades: () => void;
+  onAdjustBalance: () => void;
 }
 
-const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit, onDelete, onImport, onStatusChange, onClearTrades }) => {
+const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit, onDelete, onImport, onStatusChange, onClearTrades, onAdjustBalance }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const buttonRef = React.useRef<HTMLButtonElement>(null);
@@ -1242,6 +1743,18 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
             >
               <Edit2 className="h-4 w-4" />
               <span>Edit Account</span>
+            </button>
+            <button
+              onClick={() => { onAdjustBalance(); setIsOpen(false); }}
+              className={clsx(
+                'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
+                theme === 'dark'
+                  ? 'text-[#3BF68A] hover:bg-[#3BF68A]/10'
+                  : 'text-green-600 hover:bg-green-50'
+              )}
+            >
+              <DollarSign className="h-4 w-4" />
+              <span>Adjust Balance</span>
             </button>
 
             <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-100')} />
@@ -1321,7 +1834,7 @@ interface AccountsPageProps {
 }
 
 export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }) => {
-  const { accounts, addAccount, updateAccount, deleteAccount, selectAccount, selectedAccountId, deleteImportHistoryEntry, clearAccountTrades } = useAccountStore();
+  const { accounts, addAccount, updateAccount, deleteAccount, selectAccount, selectedAccountId, deleteImportHistoryEntry, clearAccountTrades, addBalanceAdjustment, deleteBalanceAdjustment } = useAccountStore();
   const { theme } = useThemeStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -1330,6 +1843,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [restoreConfirmText, setRestoreConfirmText] = useState('');
   const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active');
+  const [showAdjustments, setShowAdjustments] = useState<Account | null>(null);
+  const [showAddAdjustment, setShowAddAdjustment] = useState<Account | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleAddAccount = (name: string, broker: string) => {
@@ -1365,6 +1880,32 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
       toast.success('Import record removed');
     }
   };
+
+  const handleAddAdjustment = (adjustment: Omit<BalanceAdjustment, 'id' | 'createdAt'>) => {
+    if (showAddAdjustment) {
+      addBalanceAdjustment(showAddAdjustment.id, adjustment);
+      const typeLabel = adjustment.type === 'payout' ? 'Payout' : adjustment.type === 'deposit' ? 'Deposit' : 'Adjustment';
+      toast.success(`${typeLabel} recorded successfully`);
+    }
+  };
+
+  const handleDeleteAdjustment = (adjustmentId: string) => {
+    if (showAdjustments) {
+      deleteBalanceAdjustment(showAdjustments.id, adjustmentId);
+      toast.success('Adjustment removed');
+    }
+  };
+
+  // Keep the adjustments modal in sync with store updates
+  React.useEffect(() => {
+    if (!showAdjustments) return;
+    const updatedAccount = accounts.find(a => a.id === showAdjustments.id);
+    if (updatedAccount) {
+      setShowAdjustments(updatedAccount);
+    } else {
+      setShowAdjustments(null);
+    }
+  }, [accounts, showAdjustments?.id]);
 
   // Keep the import history modal in sync with store updates
   React.useEffect(() => {
@@ -1510,6 +2051,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           onImport={() => onImportForAccount(account.id)}
           onStatusChange={(status) => handleStatusChange(account.id, status)}
           onClearTrades={() => clearAccountTrades(account.id)}
+          onAdjustBalance={() => setShowAdjustments(account)}
         />
       </div>
     </div>
@@ -2073,6 +2615,27 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             handleDeleteAccount(showDeleteConfirm);
           }
         }}
+      />
+
+      {/* Adjustments List Modal */}
+      <AdjustmentsListModal
+        isOpen={showAdjustments !== null}
+        account={showAdjustments}
+        onClose={() => setShowAdjustments(null)}
+        onDelete={handleDeleteAdjustment}
+        onAddNew={() => {
+          const account = showAdjustments;
+          setShowAdjustments(null);
+          setShowAddAdjustment(account);
+        }}
+      />
+
+      {/* Add Adjustment Modal */}
+      <AddAdjustmentModal
+        isOpen={showAddAdjustment !== null}
+        account={showAddAdjustment}
+        onClose={() => setShowAddAdjustment(null)}
+        onAdd={handleAddAdjustment}
       />
 
       {/* Restore Backup Confirmation Modal */}

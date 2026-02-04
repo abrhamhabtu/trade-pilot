@@ -12,7 +12,9 @@ import {
   Info,
   Zap,
   CheckCircle2,
-  XCircle
+  XCircle,
+  RefreshCw,
+  DollarSign
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -35,11 +37,15 @@ const TIER_CONFIG = {
 interface ConsistencyGuardianProps {
   account: Account;
   actualDailyPnL: Record<string, number>;
+  lastPayoutDate?: string | null;
+  tradingDaysSincePayout?: number;
 }
 
 export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
   account,
-  actualDailyPnL
+  actualDailyPnL,
+  lastPayoutDate,
+  tradingDaysSincePayout = 0
 }) => {
   const { updateAccount } = useAccountStore();
   const { theme } = useThemeStore();
@@ -239,6 +245,41 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           </div>
         </div>
       </div>
+
+      {/* PAYOUT RESET NOTICE */}
+      {lastPayoutDate && (
+        <div className={clsx(
+          "p-4 rounded-2xl border flex items-center gap-4",
+          theme === 'dark'
+            ? "bg-[#A78BFA]/10 border-[#A78BFA]/30"
+            : "bg-purple-50 border-purple-200"
+        )}>
+          <div className={clsx(
+            "w-12 h-12 rounded-xl flex items-center justify-center",
+            theme === 'dark' ? "bg-[#A78BFA]/20" : "bg-purple-100"
+          )}>
+            <RefreshCw className="w-6 h-6 text-[#A78BFA]" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="w-4 h-4 text-[#A78BFA]" />
+              <span className={clsx(
+                "text-sm font-bold",
+                theme === 'dark' ? "text-white" : "text-gray-900"
+              )}>
+                Consistency Reset After Payout
+              </span>
+            </div>
+            <p className={clsx(
+              "text-xs",
+              theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600"
+            )}>
+              Last payout on {new Date(lastPayoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. 
+              Consistency tracking restarted with {tradingDaysSincePayout} trading day{tradingDaysSincePayout !== 1 ? 's' : ''} since then.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* MAIN STATS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

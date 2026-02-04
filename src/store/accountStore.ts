@@ -14,6 +14,16 @@ export interface ImportHistoryEntry {
   } | null;
 }
 
+// Balance adjustment entry (for payouts, deposits, manual adjustments)
+export interface BalanceAdjustment {
+  id: string;
+  date: string; // YYYY-MM-DD format
+  amount: number; // Negative for payouts/withdrawals, positive for deposits
+  type: 'payout' | 'deposit' | 'adjustment';
+  description?: string;
+  createdAt: string;
+}
+
 export type AccountStatus = 'active' | 'passed_eval' | 'blown' | 'inactive';
 
 export interface Account {
@@ -27,6 +37,8 @@ export interface Account {
   trades: Trade[];
   createdAt: string;
   importHistory: ImportHistoryEntry[];
+  // Balance adjustments (payouts, deposits, manual adjustments)
+  balanceAdjustments?: BalanceAdjustment[];
   // Journey fields
   isFunded?: boolean;
   profitTarget?: number;
@@ -58,6 +70,10 @@ interface AccountState {
   deleteImportHistoryEntry: (accountId: string, entryId: string) => void;
   clearAccountTrades: (accountId: string) => void;
   updateAccountBalance: (accountId: string) => void;
+  // Balance adjustment actions
+  addBalanceAdjustment: (accountId: string, adjustment: Omit<BalanceAdjustment, 'id' | 'createdAt'>) => void;
+  deleteBalanceAdjustment: (accountId: string, adjustmentId: string) => void;
+  getAccountAdjustments: (accountId: string) => BalanceAdjustment[];
   initializeFromStorage: () => void;
   saveToStorage: () => void;
 }
@@ -355,7 +371,9 @@ export const useAccountStore = create<AccountState>((set, get) => ({
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
           );
 
-          const balance = allTrades.reduce((sum, t) => sum + t.netPL, 0);
+          const tradeBalance = allTrades.reduce((sum, t) => sum + t.netPL, 0);
+          const adjustmentBalance = (account.balanceAdjustments || []).reduce((sum, adj) => sum + adj.amount, 0);
+          const balance = tradeBalance + adjustmentBalance;
 
           const lastUpdate = new Date().toLocaleString('en-US', {
             month: '2-digit',
@@ -445,8 +463,10 @@ export const useAccountStore = create<AccountState>((set, get) => ({
             return true;
           });
 
-          // Recalculate balance
-          const balance = filteredTrades.reduce((sum, t) => sum + t.netPL, 0);
+          // Recalculate balance (including adjustments)
+          const tradeBalance = filteredTrades.reduce((sum, t) => sum + t.netPL, 0);
+          const adjustmentBalance = (account.balanceAdjustments || []).reduce((sum, adj) => sum + adj.amount, 0);
+          const balance = tradeBalance + adjustmentBalance;
 
           return {
             ...account,
@@ -472,10 +492,12 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     set((state) => {
       const newAccounts = state.accounts.map((account) => {
         if (account.id === accountId) {
+          // Keep balance adjustments but clear trades
+          const adjustmentBalance = (account.balanceAdjustments || []).reduce((sum, adj) => sum + adj.amount, 0);
           return {
             ...account,
             trades: [],
-            balance: 0,
+            balance: adjustmentBalance,
             importHistory: []
           };
         }
@@ -496,7 +518,9 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     set((state) => {
       const newAccounts = state.accounts.map((account) => {
         if (account.id === accountId) {
-          const balance = account.trades.reduce((sum, t) => sum + t.netPL, 0);
+          const tradeBalance = account.trades.reduce((sum, t) => sum + t.netPL, 0);
+          const adjustmentBalance = (account.balanceAdjustments || []).reduce((sum, adj) => sum + adj.amount, 0);
+          const balance = tradeBalance + adjustmentBalance;
           return { ...account, balance };
         }
         return account;
@@ -511,6 +535,74 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
       return { accounts: newAccounts };
     });
+  },
+
+  addBalanceAdjustment: (accountId, adjustment) => {
+    set((state) => {
+      const newAccounts = state.accounts.map((account) => {
+        if (account.id === accountId) {
+          const newAdjustment: BalanceAdjustment = {
+            ...adjustment,
+            id: `adj-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            createdAt: new Date().toISOString()
+          };
+          
+          const balanceAdjustments = [...(account.balanceAdjustments || []), newAdjustment].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          
+          // Recalculate balance with new adjustment
+          const tradeBalance = account.trades.reduce((sum, t) => sum + t.netPL, 0);
+          const adjustmentBalance = balanceAdjustments.reduce((sum, adj) => sum + adj.amount, 0);
+          const balance = tradeBalance + adjustmentBalance;
+          
+          return { ...account, balanceAdjustments, balance };
+        }
+        return account;
+      });
+
+      try {
+        localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(newAccounts));
+      } catch (e) {
+        console.error('Failed to save accounts:', e);
+      }
+
+      return { accounts: newAccounts };
+    });
+  },
+
+  deleteBalanceAdjustment: (accountId, adjustmentId) => {
+    set((state) => {
+      const newAccounts = state.accounts.map((account) => {
+        if (account.id === accountId) {
+          const balanceAdjustments = (account.balanceAdjustments || []).filter(
+            (adj) => adj.id !== adjustmentId
+          );
+          
+          // Recalculate balance without the deleted adjustment
+          const tradeBalance = account.trades.reduce((sum, t) => sum + t.netPL, 0);
+          const adjustmentBalance = balanceAdjustments.reduce((sum, adj) => sum + adj.amount, 0);
+          const balance = tradeBalance + adjustmentBalance;
+          
+          return { ...account, balanceAdjustments, balance };
+        }
+        return account;
+      });
+
+      try {
+        localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(newAccounts));
+      } catch (e) {
+        console.error('Failed to save accounts:', e);
+      }
+
+      return { accounts: newAccounts };
+    });
+  },
+
+  getAccountAdjustments: (accountId) => {
+    const { accounts } = get();
+    const account = accounts.find((a) => a.id === accountId);
+    return account?.balanceAdjustments || [];
   },
 
   initializeFromStorage: () => {

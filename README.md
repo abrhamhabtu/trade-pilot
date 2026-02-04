@@ -79,6 +79,8 @@ Whether you're grinding prop firm evaluations or trading a funded account, you d
 - **Performance Analytics** — Net P&L, win rate, profit factor, Sharpe ratio, and 15+ metrics
 - **Journey Visualization** — Track your progress to profit targets with pacing strategies
 - **Visual Calendar** — See your daily P&L at a glance with projections
+- **Balance Adjustments** — Record payouts, deposits, and adjustments to keep your account balance accurate (matches prop firm dashboards like TopOne Futures)
+- **Consistency Reset After Payout** — Automatically resets consistency tracking after a payout, so your metrics reflect your current trading period
 - **Trading Rules & Compliance** — Track how well you follow your trading plan
 - **Smart Import** — Auto-detect CSV from TradingView, Tradovate, NinjaTrader, and ProjectX platforms
 - **One-Click Backup** — Export and restore your data with built-in backup tools
@@ -225,6 +227,31 @@ src/
 
 ---
 
+## 💰 Balance Adjustments (Payouts & Deposits)
+
+When you take a payout from your prop firm, your account balance changes but your trading P&L doesn't reflect it. TradePilot lets you record these adjustments so your balance stays accurate and matches your prop firm dashboard.
+
+### How to Record a Payout or Deposit:
+
+1. Go to **Accounts** page
+2. Click the **three-dot menu** (⋮) on your account
+3. Select **"Adjust Balance"**
+4. Add a new adjustment:
+   - **Payout** — Money withdrawn (e.g., -$2,500)
+   - **Deposit** — Money added (e.g., +$1,000)
+   - **Adjustment** — Other corrections
+
+### What Happens After Recording:
+
+- **Dashboard** — Net P&L includes adjustments to match your actual balance
+- **Calendar** — Daily and weekly totals include adjustments (just like TopOne Futures shows)
+- **Journey** — Consistency tracking automatically resets after a payout, so you start fresh
+- **Accounts** — Balance reflects trading P&L + all adjustments
+
+> **Pro Tip:** This is especially useful for prop firms like TopOne Futures where payouts reset your consistency requirements. TradePilot detects your most recent payout and only calculates consistency from trades after that date.
+
+---
+
 ## 🗺️ Roadmap
 
 - [x] Multi-account support
@@ -236,6 +263,8 @@ src/
 - [x] NinjaTrader CSV import
 - [x] One-click data backup & restore
 - [x] Docker deployment support
+- [x] Balance adjustments (payouts, deposits) with auto-sync across all pages
+- [x] Consistency reset after payout (for prop firms like TopOne Futures)
 - [ ] **Hosted version** — Simple login, no code required (small fee to cover hosting)
 - [ ] Cloud sync
 - [ ] Real-time broker integrations

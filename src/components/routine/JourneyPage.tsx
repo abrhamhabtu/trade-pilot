@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Compass,
-  ShieldCheck
+  ShieldCheck,
+  RefreshCw
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -90,6 +91,29 @@ export const JourneyPage: React.FC = () => {
     }
   }, [account]);
 
+  // Find the most recent payout date - consistency resets after a payout
+  const lastPayoutDate = useMemo(() => {
+    if (!account?.balanceAdjustments) return null;
+    
+    const payouts = account.balanceAdjustments
+      .filter(adj => adj.type === 'payout')
+      .sort((a, b) => b.date.localeCompare(a.date)); // Sort descending
+    
+    return payouts.length > 0 ? payouts[0].date : null;
+  }, [account?.balanceAdjustments]);
+
+  // Filter trades to only include those AFTER the last payout (for consistency calculation)
+  const tradesAfterPayout = useMemo(() => {
+    if (!account) return [];
+    if (!lastPayoutDate) return account.trades;
+    
+    return account.trades.filter(trade => {
+      const tradeDate = trade.date ? trade.date.split('T')[0] : '';
+      return tradeDate > lastPayoutDate; // Only trades after the payout
+    });
+  }, [account, lastPayoutDate]);
+
+  // Daily P&L from ALL trades (for calendar display)
   const actualDailyPnL = useMemo(() => {
     if (!account) return {};
     return account.trades.reduce((acc, trade) => {
@@ -100,23 +124,41 @@ export const JourneyPage: React.FC = () => {
     }, {} as Record<string, number>);
   }, [account]);
 
-  // Calculate total PnL from trades directly to ensure accuracy (ignoring starting balance)
+  // Daily P&L from trades AFTER the last payout (for consistency calculation)
+  const dailyPnLAfterPayout = useMemo(() => {
+    if (!tradesAfterPayout.length) return {};
+    return tradesAfterPayout.reduce((acc, trade) => {
+      const date = trade.date ? trade.date.split('T')[0] : 'unknown';
+      acc[date] = (acc[date] || 0) + trade.netPL;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [tradesAfterPayout]);
+
+  // Total P&L from trades after the last payout (for consistency)
+  const pnlAfterPayout = useMemo(() => {
+    return tradesAfterPayout.reduce((sum, t) => sum + t.netPL, 0);
+  }, [tradesAfterPayout]);
+
+  // Use account balance which includes adjustments (payouts, deposits)
+  // This ensures Journey matches the Accounts page and Dashboard
   const calculatedTotalPnL = useMemo(() => {
     if (!account) return 0;
-    return account.trades.reduce((sum, t) => sum + t.netPL, 0);
+    // Use account.balance which already includes trades + adjustments
+    return account.balance;
   }, [account]);
 
-  // Consistency Calculations
+  // Consistency Calculations - ONLY uses trades AFTER the last payout
   // Formula: Minimum Required Profit = Highest Day / Consistency Rule %
   // Current Consistency % = (Highest Day / Current Total Profit) * 100
   // Qualified when Current Consistency % <= Consistency Rule %
   const consistencyMetrics = useMemo(() => {
-    const dailyProfits = Object.values(actualDailyPnL);
+    // Use dailyPnLAfterPayout for consistency - this resets after each payout
+    const dailyProfits = Object.values(dailyPnLAfterPayout);
     const highestDay = dailyProfits.length > 0 ? Math.max(0, ...dailyProfits) : 0;
 
-    // Current Total Profit = Calculated PnL (Total Profit generated)
-    // We use calculatedTotalPnL to ensure we are comparing against actual generated profit, not account equity
-    const currentTotalProfit = Math.max(0, calculatedTotalPnL);
+    // Current Total Profit = P&L since last payout (not all-time)
+    // This ensures consistency resets after a payout
+    const currentTotalProfit = Math.max(0, pnlAfterPayout);
 
     // Minimum Required Profit to Qualify = Highest Day / (Rule% / 100)
     const minimumRequiredProfit = highestDay / (consistencyRule / 100);
@@ -129,15 +171,20 @@ export const JourneyPage: React.FC = () => {
     // Qualified if current consistency % is at or below the rule threshold
     const isQualified = currentConsistencyPercent <= consistencyRule;
 
+    // Count trading days since payout
+    const tradingDaysSincePayout = Object.keys(dailyPnLAfterPayout).length;
+
     return {
       highestDay,
       currentTotalProfit,
       minimumRequiredProfit,
       currentConsistencyPercent,
       isQualified,
-      consistencyRule
+      consistencyRule,
+      lastPayoutDate,
+      tradingDaysSincePayout
     };
-  }, [actualDailyPnL, consistencyRule, calculatedTotalPnL]);
+  }, [dailyPnLAfterPayout, consistencyRule, pnlAfterPayout, lastPayoutDate]);
 
   const handleConsistencyChange = (rule: number) => {
     setConsistencyRule(rule);
@@ -666,6 +713,12 @@ export const JourneyPage: React.FC = () => {
                           "text-sm font-bold",
                           theme === 'dark' ? "text-[#E5E7EB]" : "text-gray-900"
                         )}>Consistency</span>
+                        {lastPayoutDate && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#A78BFA]/20">
+                            <RefreshCw className="w-3 h-3 text-[#A78BFA]" />
+                            <span className="text-[9px] font-bold text-[#A78BFA]">RESET</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -682,6 +735,19 @@ export const JourneyPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Payout Reset Notice */}
+                  {lastPayoutDate && (
+                    <div className={clsx(
+                      "flex items-center gap-2 p-2 rounded-lg text-xs",
+                      theme === 'dark' ? "bg-[#A78BFA]/10 text-[#A78BFA]" : "bg-purple-50 text-purple-600"
+                    )}>
+                      <RefreshCw className="w-3 h-3" />
+                      <span>
+                        Reset on {new Date(lastPayoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • {consistencyMetrics.tradingDaysSincePayout} day{consistencyMetrics.tradingDaysSincePayout !== 1 ? 's' : ''} since payout
+                      </span>
+                    </div>
+                  )}
 
                   {/* Metrics List */}
                   <div className="space-y-0">
@@ -804,7 +870,9 @@ export const JourneyPage: React.FC = () => {
       ) : (
         <ConsistencyGuardian
           account={account}
-          actualDailyPnL={actualDailyPnL}
+          actualDailyPnL={dailyPnLAfterPayout}
+          lastPayoutDate={lastPayoutDate}
+          tradingDaysSincePayout={consistencyMetrics.tradingDaysSincePayout}
         />
       )}
     </div>
