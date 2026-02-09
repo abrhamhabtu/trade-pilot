@@ -51,7 +51,8 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
   const { theme } = useThemeStore();
 
   // Local state
-  const [whatIfAmount, setWhatIfAmount] = useState(500);
+  const [whatIfInput, setWhatIfInput] = useState('500');
+  const whatIfAmount = Number(whatIfInput) || 0;
   const [showEducation, setShowEducation] = useState(false);
 
   // Get account settings with defaults
@@ -74,13 +75,16 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       }
     });
 
-    // Total profit = sum of ALL trades (same as Overview uses calculatedTotalPnL)
-    const totalProfit = dailyProfits.reduce((sum, pnl) => sum + pnl, 0);
-    const currentTotalProfit = Math.max(0, totalProfit);
+    // Trading P&L from daily trades (for consistency % - matches Overview tab)
+    const tradingPnL = dailyProfits.reduce((sum, pnl) => sum + pnl, 0);
+    const currentTradingProfit = Math.max(0, tradingPnL);
 
-    // Current consistency percentage (same formula as Overview)
-    const currentConsistencyPercent = currentTotalProfit > 0
-      ? (highestDay / currentTotalProfit) * 100
+    // Account balance for gap calculation (matches Gap to Summit)
+    const currentTotalProfit = Math.max(0, account.balance);
+
+    // Current consistency percentage using trading P&L (same formula as Overview)
+    const currentConsistencyPercent = currentTradingProfit > 0
+      ? (highestDay / currentTradingProfit) * 100
       : 0;
 
     // Required profit target based on highest day (same as Overview: minimumRequiredProfit)
@@ -89,7 +93,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
     // Effective target (max of original and required)
     const effectiveTarget = Math.max(originalTarget, requiredProfitTarget);
 
-    // Gap to payout
+    // Gap to payout uses account.balance (synced with Gap to Summit)
     const gapToPayout = Math.max(0, effectiveTarget - currentTotalProfit);
 
     // Is qualified? (same logic as Overview)
@@ -97,13 +101,14 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
 
     // Safe daily max - max profit today without increasing target
     // This is the amount that would keep highest day as is
-    const safeMaxToday = highestDay > 0 ? highestDay - 0.01 : currentTotalProfit * (consistencyRule / 100);
+    const safeMaxToday = highestDay > 0 ? highestDay - 0.01 : currentTradingProfit * (consistencyRule / 100);
 
     // Warning threshold (80% of highest day)
     const warningThreshold = highestDay * 0.8;
 
     return {
       currentTotalProfit,
+      currentTradingProfit,
       highestDay,
       highestDayDate,
       currentConsistencyPercent,
@@ -115,17 +120,24 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       warningThreshold,
       profitableDaysCount: Object.values(actualDailyPnL).filter(pnl => pnl > 0).length
     };
-  }, [actualDailyPnL, consistencyRule, originalTarget]);
+  }, [actualDailyPnL, consistencyRule, originalTarget, account.balance]);
 
   // What-if scenario calculations
   const whatIfScenario = useMemo(() => {
+    // Use trading profit for consistency calculations, account balance for gap
+    const newTradingProfit = metrics.currentTradingProfit + whatIfAmount;
     const newTotalProfit = metrics.currentTotalProfit + whatIfAmount;
     const wouldBecomeHighestDay = whatIfAmount > metrics.highestDay;
     const newHighestDay = wouldBecomeHighestDay ? whatIfAmount : metrics.highestDay;
-    const newConsistencyPercent = newTotalProfit > 0 ? (newHighestDay / newTotalProfit) * 100 : 0;
-    const newRequiredTarget = newHighestDay / (consistencyRule / 100);
-    const wouldIncreaseTarget = newRequiredTarget > metrics.effectiveTarget;
-    const newEffectiveTarget = Math.max(originalTarget, newRequiredTarget);
+    const newConsistencyPercent = newTradingProfit > 0 ? (newHighestDay / newTradingProfit) * 100 : 0;
+
+    // Consistency-required target (what the rule demands based on highest day)
+    const newConsistencyRequired = newHighestDay / (consistencyRule / 100);
+    const consistencyRequiredIncreased = newConsistencyRequired > metrics.requiredProfitTarget;
+
+    // Effective target (actual payout threshold = max of profit target and consistency-required)
+    const newEffectiveTarget = Math.max(originalTarget, newConsistencyRequired);
+    const wouldIncreaseTarget = newEffectiveTarget > metrics.effectiveTarget;
     const newGapToPayout = Math.max(0, newEffectiveTarget - newTotalProfit);
 
     return {
@@ -133,7 +145,8 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       wouldBecomeHighestDay,
       newHighestDay,
       newConsistencyPercent,
-      newRequiredTarget,
+      newConsistencyRequired,
+      consistencyRequiredIncreased,
       wouldIncreaseTarget,
       newEffectiveTarget,
       newGapToPayout,
@@ -517,9 +530,18 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
 
             {/* Input */}
             <div className="mb-4">
-              <label className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em] mb-2 block">
-                If I profit tomorrow...
-              </label>
+              <div className={clsx(
+                "flex items-center gap-3 mb-3 px-4 py-2.5 rounded-xl",
+                theme === 'dark' ? "bg-[#A78BFA]/5 border border-[#A78BFA]/10" : "bg-purple-50 border border-purple-100"
+              )}>
+                <span className="text-base">🔮</span>
+                <span className={clsx(
+                  "text-sm font-semibold tracking-wide",
+                  theme === 'dark' ? "text-[#A78BFA]" : "text-purple-700"
+                )}>
+                  If I profit tomorrow...
+                </span>
+              </div>
               <div className="flex items-center gap-4">
                 <div className="relative flex-1">
                   <span className={clsx(
@@ -527,14 +549,22 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                     theme === 'dark' ? "text-[#A78BFA]" : "text-purple-600"
                   )}>$</span>
                   <input
-                    type="number"
-                    value={whatIfAmount}
-                    onChange={(e) => setWhatIfAmount(Number(e.target.value))}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Enter amount"
+                    value={whatIfInput}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9.]/g, '');
+                      setWhatIfInput(val);
+                    }}
+                    onFocus={(e) => {
+                      if (whatIfInput === '0') setWhatIfInput('');
+                    }}
                     className={clsx(
-                      "w-full pl-10 pr-4 py-3 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50",
+                      "w-full pl-10 pr-4 py-3.5 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 transition-all",
                       theme === 'dark'
-                        ? "bg-[#0B0D10] text-white border border-[#1F2937]"
-                        : "bg-gray-100 text-gray-900 border border-gray-200"
+                        ? "bg-[#0B0D10] text-white border border-[#A78BFA]/20 placeholder-[#4B5563]"
+                        : "bg-gray-100 text-gray-900 border border-gray-200 placeholder-gray-400"
                     )}
                   />
                 </div>
@@ -544,7 +574,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   max="3000"
                   step="50"
                   value={whatIfAmount}
-                  onChange={(e) => setWhatIfAmount(Number(e.target.value))}
+                  onChange={(e) => setWhatIfInput(e.target.value)}
                   className="flex-1 h-2 bg-[#1F2937] rounded-lg appearance-none cursor-pointer accent-[#A78BFA]"
                 />
               </div>
@@ -555,56 +585,157 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
               "p-4 rounded-xl",
               whatIfScenario.wouldIncreaseTarget
                 ? (theme === 'dark' ? "bg-[#F45B69]/10 border border-[#F45B69]/20" : "bg-red-50 border border-red-200")
-                : (theme === 'dark' ? "bg-[#3BF68A]/10 border border-[#3BF68A]/20" : "bg-green-50 border border-green-200")
+                : whatIfScenario.wouldBecomeHighestDay
+                  ? (theme === 'dark' ? "bg-[#F59E0B]/10 border border-[#F59E0B]/20" : "bg-amber-50 border border-amber-200")
+                  : whatIfAmount > metrics.highestDay * 0.8
+                    ? (theme === 'dark' ? "bg-[#F59E0B]/10 border border-[#F59E0B]/20" : "bg-amber-50 border border-amber-200")
+                    : (theme === 'dark' ? "bg-[#3BF68A]/10 border border-[#3BF68A]/20" : "bg-green-50 border border-green-200")
             )}>
-              <div className="flex items-center gap-3 mb-3">
+              {/* Verdict badge */}
+              <div className="flex items-center gap-3 mb-4">
                 {whatIfScenario.wouldIncreaseTarget ? (
                   <>
                     <XCircle className="w-5 h-5 text-[#F45B69]" />
-                    <span className="text-sm font-bold text-[#F45B69]">Would Increase Target</span>
+                    <span className="text-sm font-bold text-[#F45B69]">
+                      New highest day — payout target increases
+                    </span>
+                  </>
+                ) : whatIfScenario.wouldBecomeHighestDay ? (
+                  <>
+                    <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
+                    <span className="text-sm font-bold text-[#F59E0B]">
+                      New highest day — consistency requirement increases
+                    </span>
+                  </>
+                ) : whatIfAmount > metrics.highestDay * 0.8 ? (
+                  <>
+                    <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
+                    <span className="text-sm font-bold text-[#F59E0B]">
+                      Approaching your highest day
+                    </span>
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="w-5 h-5 text-[#3BF68A]" />
-                    <span className="text-sm font-bold text-[#3BF68A]">Safe - No Target Increase</span>
+                    <span className="text-sm font-bold text-[#3BF68A]">
+                      Safe — no impact on consistency
+                    </span>
                   </>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className={clsx(theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>New Consistency:</span>
+              {/* Before → After comparison table */}
+              <div className="space-y-0">
+                {/* Header row */}
+                <div className="grid grid-cols-3 gap-2 pb-2 mb-2 border-b border-white/5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#4B5563]"></span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#4B5563] text-right">Now</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] text-right">After</span>
+                </div>
+
+                {/* Highest Day - moved to top since it drives everything */}
+                <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
+                  <span className={clsx("text-xs", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                    Highest Day
+                  </span>
+                  <span className="text-sm font-bold text-right text-[#F59E0B]">
+                    {formatCurrency(metrics.highestDay)}
+                  </span>
                   <span className={clsx(
-                    "ml-2 font-bold",
+                    "text-sm font-bold text-right",
+                    whatIfScenario.wouldBecomeHighestDay ? "text-[#F45B69]" : "text-[#F59E0B]"
+                  )}>
+                    {formatCurrency(whatIfScenario.newHighestDay)}
+                    {whatIfScenario.wouldBecomeHighestDay && (
+                      <span className="text-[10px] ml-0.5 text-[#F45B69]"> NEW</span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Consistency % */}
+                <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
+                  <span className={clsx("text-xs", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                    Consistency %
+                  </span>
+                  <span className={clsx(
+                    "text-sm font-bold text-right",
+                    metrics.currentConsistencyPercent > consistencyRule ? "text-[#F45B69]" : "text-[#3BF68A]"
+                  )}>
+                    {metrics.currentConsistencyPercent.toFixed(1)}%
+                  </span>
+                  <span className={clsx(
+                    "text-sm font-bold text-right",
                     whatIfScenario.newConsistencyPercent > consistencyRule ? "text-[#F45B69]" : "text-[#3BF68A]"
                   )}>
                     {whatIfScenario.newConsistencyPercent.toFixed(1)}%
                   </span>
                 </div>
-                <div>
-                  <span className={clsx(theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>New Target:</span>
+
+                {/* Consistency Required Target (the one that changes with highest day) */}
+                <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
+                  <span className={clsx("text-xs", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                    Min. Required Profit
+                  </span>
                   <span className={clsx(
-                    "ml-2 font-bold",
-                    whatIfScenario.wouldIncreaseTarget ? "text-[#F45B69]" : "text-white"
+                    "text-sm font-bold text-right",
+                    metrics.requiredProfitTarget > originalTarget ? "text-[#F45B69]" : (theme === 'dark' ? "text-white" : "text-gray-900")
                   )}>
-                    {formatCurrency(whatIfScenario.newEffectiveTarget)}
+                    {formatCurrency(metrics.requiredProfitTarget)}
+                  </span>
+                  <span className={clsx(
+                    "text-sm font-bold text-right",
+                    whatIfScenario.consistencyRequiredIncreased ? "text-[#F45B69]" : (theme === 'dark' ? "text-white" : "text-gray-900")
+                  )}>
+                    {formatCurrency(whatIfScenario.newConsistencyRequired)}
+                    {whatIfScenario.consistencyRequiredIncreased && (
+                      <span className="text-[10px] ml-0.5 text-[#F45B69]"> {'\u2191'}</span>
+                    )}
                   </span>
                 </div>
-                <div>
-                  <span className={clsx(theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>New Gap:</span>
-                  <span className={clsx("ml-2 font-bold", theme === 'dark' ? "text-white" : "text-gray-900")}>
+
+                {/* Payout Target (effective - the actual number to hit) */}
+                <div className="grid grid-cols-3 gap-2 py-1.5 items-center border-t border-white/5 mt-1 pt-2">
+                  <span className={clsx("text-xs font-semibold", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                    Payout Target
+                  </span>
+                  <span className={clsx("text-sm font-bold text-right", theme === 'dark' ? "text-white" : "text-gray-900")}>
+                    {formatCurrency(metrics.effectiveTarget)}
+                  </span>
+                  <span className={clsx(
+                    "text-sm font-bold text-right",
+                    whatIfScenario.wouldIncreaseTarget ? "text-[#F45B69]" : (theme === 'dark' ? "text-white" : "text-gray-900")
+                  )}>
+                    {formatCurrency(whatIfScenario.newEffectiveTarget)}
+                    {whatIfScenario.wouldIncreaseTarget && (
+                      <span className="text-[10px] ml-0.5 text-[#F45B69]"> +{formatCurrency(whatIfScenario.targetIncrease)}</span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Gap to Payout */}
+                <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
+                  <span className={clsx("text-xs font-semibold", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                    Gap to Payout
+                  </span>
+                  <span className={clsx("text-sm font-bold text-right", theme === 'dark' ? "text-white" : "text-gray-900")}>
+                    {formatCurrency(metrics.gapToPayout)}
+                  </span>
+                  <span className={clsx("text-sm font-bold text-right", theme === 'dark' ? "text-white" : "text-gray-900")}>
                     {formatCurrency(whatIfScenario.newGapToPayout)}
                   </span>
                 </div>
-                {whatIfScenario.wouldIncreaseTarget && (
-                  <div>
-                    <span className={clsx(theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>Target Increase:</span>
-                    <span className="ml-2 font-bold text-[#F45B69]">
-                      +{formatCurrency(whatIfScenario.targetIncrease)}
-                    </span>
-                  </div>
-                )}
               </div>
+
+              {/* Explanation when consistency required increases but payout target doesn't */}
+              {whatIfScenario.consistencyRequiredIncreased && !whatIfScenario.wouldIncreaseTarget && (
+                <div className={clsx(
+                  "mt-3 px-3 py-2 rounded-lg text-[11px]",
+                  theme === 'dark' ? "bg-[#F59E0B]/5 text-[#F59E0B]/80" : "bg-amber-50 text-amber-700"
+                )}>
+                  <Info className="w-3 h-3 inline mr-1 -mt-0.5" />
+                  The consistency-required minimum increased to {formatCurrency(whatIfScenario.newConsistencyRequired)}, but your profit target ({formatCurrency(originalTarget)}) is still higher, so the payout target stays the same.
+                </div>
+              )}
             </div>
           </div>
         </div>
