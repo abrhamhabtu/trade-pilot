@@ -15,7 +15,7 @@ import { useAccountStore } from './store/accountStore';
 import { useThemeStore } from './store/themeStore';
 import { useToastStore } from './store/toastStore';
 import { useChartData } from './hooks/useChartData';
-import { shouldShowBackupReminder } from './hooks/useLocalStorage';
+import { shouldShowBackupReminder, dismissBackupReminder } from './hooks/useLocalStorage';
 import { AlertTriangle, X } from 'lucide-react';
 
 // Helper function to filter trades by time period
@@ -355,7 +355,7 @@ function App() {
               </span>
             </div>
             <button
-              onClick={() => setShowBackupReminder(false)}
+              onClick={() => { dismissBackupReminder(); setShowBackupReminder(false); }}
               className={`p-1.5 rounded-lg transition-colors ${
                 theme === 'dark' 
                   ? 'text-amber-300 hover:bg-amber-500/20' 

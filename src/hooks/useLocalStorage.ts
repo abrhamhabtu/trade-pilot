@@ -272,7 +272,16 @@ export function setLastBackupTime(): void {
   }
 }
 
-// Check if backup reminder should be shown (7+ days since last backup)
+// Dismiss the backup reminder for 3 days
+export function dismissBackupReminder(): void {
+  try {
+    localStorage.setItem('tradepilot_reminder_dismissed', Date.now().toString());
+  } catch {
+    // ignore
+  }
+}
+
+// Check if backup reminder should be shown (7+ days since last backup, respects dismissals)
 export function shouldShowBackupReminder(): boolean {
   try {
     const lastBackup = getLastBackupTime();
@@ -287,6 +296,13 @@ export function shouldShowBackupReminder(): boolean {
     
     // No trades = no reminder needed
     if (totalTrades === 0) return false;
+
+    // If user dismissed the reminder recently, don't show again for 3 days
+    const dismissed = localStorage.getItem('tradepilot_reminder_dismissed');
+    if (dismissed) {
+      const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+      if (Date.now() - parseInt(dismissed, 10) < threeDaysMs) return false;
+    }
     
     // Never backed up and has trades = show reminder
     if (!lastBackup) return true;
