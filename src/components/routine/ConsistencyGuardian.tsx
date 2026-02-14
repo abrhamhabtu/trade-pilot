@@ -122,6 +122,9 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
     };
   }, [actualDailyPnL, consistencyRule, originalTarget, account.balance]);
 
+  // Dual-condition payout qualification (define profitTarget first)
+  const profitTarget = account.profitTarget || 3000;
+
   // What-if scenario calculations
   const whatIfScenario = useMemo(() => {
     // Use trading profit for consistency calculations, account balance for gap
@@ -140,8 +143,17 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
     const wouldIncreaseTarget = newEffectiveTarget > metrics.effectiveTarget;
     const newGapToPayout = Math.max(0, newEffectiveTarget - newTotalProfit);
 
+    // Dual-condition payout qualification after what-if
+    const newBalance = account.balance + whatIfAmount;
+    const newBalanceTargetMet = newBalance >= profitTarget;
+    const newBalanceGap = Math.max(0, profitTarget - newBalance);
+    const newConsistencyMet = newConsistencyPercent <= consistencyRule && newTradingProfit >= newConsistencyRequired;
+    const newConsistencyGap = Math.max(0, newConsistencyRequired - newTradingProfit);
+    const newPayoutReady = newBalanceTargetMet && newConsistencyMet;
+
     return {
       newTotalProfit,
+      newTradingProfit,
       wouldBecomeHighestDay,
       newHighestDay,
       newConsistencyPercent,
@@ -150,9 +162,16 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       wouldIncreaseTarget,
       newEffectiveTarget,
       newGapToPayout,
-      targetIncrease: wouldIncreaseTarget ? newEffectiveTarget - metrics.effectiveTarget : 0
+      targetIncrease: wouldIncreaseTarget ? newEffectiveTarget - metrics.effectiveTarget : 0,
+      // Dual-condition
+      newBalance,
+      newBalanceTargetMet,
+      newBalanceGap,
+      newConsistencyMet,
+      newConsistencyGap,
+      newPayoutReady,
     };
-  }, [whatIfAmount, metrics, consistencyRule, originalTarget]);
+  }, [whatIfAmount, metrics, consistencyRule, originalTarget, account.balance, profitTarget]);
 
   // Path to payout projections
   const projections = useMemo(() => {
@@ -183,7 +202,6 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
   const gaugeColor = gaugePercent <= 70 ? '#3BF68A' : gaugePercent <= 90 ? '#F59E0B' : '#F45B69';
 
   // Dual-condition payout qualification (mirrors Overview tab logic)
-  const profitTarget = account.profitTarget || 3000;
   const balanceTargetMet = account.balance >= profitTarget;
   const balanceGap = Math.max(0, profitTarget - account.balance);
   const consistencyMet = metrics.isQualified && metrics.currentTradingProfit >= metrics.requiredProfitTarget;
@@ -769,6 +787,54 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   <span className={clsx("text-sm font-bold text-right", theme === 'dark' ? "text-white" : "text-gray-900")}>
                     {formatCurrency(whatIfScenario.newGapToPayout)}
                   </span>
+                </div>
+              </div>
+
+              {/* Dual-condition payout qualification status */}
+              <div className={clsx(
+                "mt-3 p-3 rounded-xl border",
+                whatIfScenario.newPayoutReady
+                  ? (theme === 'dark' ? "bg-[#3BF68A]/5 border-[#3BF68A]/20" : "bg-green-50 border-green-200")
+                  : (theme === 'dark' ? "bg-white/[0.02] border-[#1F2937]" : "bg-gray-50 border-gray-200")
+              )}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8B94A7]">
+                    Payout Status After
+                  </span>
+                  <div className={clsx(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold text-white",
+                    whatIfScenario.newPayoutReady ? "bg-[#3BF68A]" : "bg-[#F45B69]"
+                  )}>
+                    {whatIfScenario.newPayoutReady ? "Ready" : "Not Ready"}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  {/* Balance condition */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <div className={clsx("w-2 h-2 rounded-full", whatIfScenario.newBalanceTargetMet ? "bg-[#3BF68A]" : "bg-[#F45B69]")} />
+                      <span className="text-[11px] text-[#8B94A7]">Balance Target</span>
+                    </div>
+                    <span className={clsx(
+                      "text-[11px] font-bold",
+                      whatIfScenario.newBalanceTargetMet ? "text-[#3BF68A]" : (theme === 'dark' ? "text-white" : "text-gray-900")
+                    )}>
+                      {whatIfScenario.newBalanceTargetMet ? "Met" : `${formatCurrency(whatIfScenario.newBalanceGap)} left`}
+                    </span>
+                  </div>
+                  {/* Consistency condition */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <div className={clsx("w-2 h-2 rounded-full", whatIfScenario.newConsistencyMet ? "bg-[#3BF68A]" : "bg-[#F45B69]")} />
+                      <span className="text-[11px] text-[#8B94A7]">Consistency Rule</span>
+                    </div>
+                    <span className={clsx(
+                      "text-[11px] font-bold",
+                      whatIfScenario.newConsistencyMet ? "text-[#3BF68A]" : (theme === 'dark' ? "text-white" : "text-gray-900")
+                    )}>
+                      {whatIfScenario.newConsistencyMet ? "Qualified" : `${formatCurrency(whatIfScenario.newConsistencyGap)} left`}
+                    </span>
+                  </div>
                 </div>
               </div>
 

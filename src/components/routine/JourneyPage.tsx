@@ -223,15 +223,28 @@ export const JourneyPage: React.FC = () => {
       : new Date(today);
     lastTradeDate.setHours(0, 0, 0, 0);
 
-    // Calculate Goal Date Projection independently of grid
-    // Logic: How many trading days (weekdays) needed to reach target?
-    const remainingToGoal = Math.max(0, projectionTarget - currentPnL);
-    const tradingDaysNeeded = remainingToGoal > 0 ? Math.ceil(remainingToGoal / dailyTarget) : 0;
+    // Calculate Goal Date Projection — BOTH conditions must be met
+    // Condition 1: Balance must reach profit target
+    const balanceRemaining = Math.max(0, projectionTarget - currentPnL);
+    const balanceDaysNeeded = balanceRemaining > 0 ? Math.ceil(balanceRemaining / dailyTarget) : 0;
+
+    // Condition 2: Total profit must reach consistency minimum required profit
+    const cMinRequired = consistencyMetrics.minimumRequiredProfit;
+    const cCurrentProfit = consistencyMetrics.currentTotalProfit;
+    const consistencyRemaining = Math.max(0, cMinRequired - cCurrentProfit);
+    const consistencyDaysNeeded = consistencyRemaining > 0 ? Math.ceil(consistencyRemaining / dailyTarget) : 0;
+
+    // Goal needs the LATER of both conditions (since both must be met)
+    const tradingDaysNeeded = Math.max(balanceDaysNeeded, consistencyDaysNeeded);
+
+    // Both conditions currently met?
+    const bothConditionsMet = currentPnL >= projectionTarget &&
+      consistencyMetrics.isQualified && cCurrentProfit >= cMinRequired;
 
     let calculatedGoalDate: Date | null = null;
-    if (currentPnL >= projectionTarget) {
+    if (bothConditionsMet) {
       // Goal already hit - find the date when we crossed the target
-      // Walk through trades chronologically to find when target was reached
+      // Walk through trades chronologically to find when balance target was reached
       let runningTotal = 0;
       for (const dateStr of tradeDates) {
         runningTotal += actualDailyPnL[dateStr] || 0;
@@ -300,7 +313,7 @@ export const JourneyPage: React.FC = () => {
       });
     }
     return { days, goalReachedDay: calculatedGoalDate };
-  }, [actualDailyPnL, pace, projectionTarget, currentPnL, currentMonth, target]);
+  }, [actualDailyPnL, pace, projectionTarget, currentPnL, currentMonth, target, consistencyMetrics]);
 
   const navigateMonth = (direction: number) => {
     const newDate = new Date(currentMonth);
