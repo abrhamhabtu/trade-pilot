@@ -182,6 +182,13 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
   const gaugePercent = Math.min(100, (metrics.currentConsistencyPercent / consistencyRule) * 100);
   const gaugeColor = gaugePercent <= 70 ? '#3BF68A' : gaugePercent <= 90 ? '#F59E0B' : '#F45B69';
 
+  // Dual-condition payout qualification (mirrors Overview tab logic)
+  const profitTarget = account.profitTarget || 3000;
+  const balanceTargetMet = account.balance >= profitTarget;
+  const balanceGap = Math.max(0, profitTarget - account.balance);
+  const consistencyMet = metrics.isQualified && metrics.currentTradingProfit >= metrics.requiredProfitTarget;
+  const isPayoutReady = balanceTargetMet && consistencyMet;
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
 
@@ -293,6 +300,45 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           </div>
         </div>
       )}
+
+      {/* OVERALL PAYOUT READINESS */}
+      <div className={clsx(
+        "p-4 rounded-[2rem] border flex items-center justify-between",
+        isPayoutReady
+          ? (theme === 'dark' ? "bg-[#3BF68A]/5 border-[#3BF68A]/20" : "bg-green-50 border-green-200")
+          : (theme === 'dark' ? "bg-[#15181F] border-[#1F2937]" : "bg-white border-gray-200")
+      )}>
+        <div className="flex items-center gap-3">
+          <div className={clsx(
+            "w-10 h-10 rounded-xl flex items-center justify-center",
+            isPayoutReady ? "bg-[#3BF68A]/20" : "bg-[#F59E0B]/10"
+          )}>
+            <Shield className={clsx("w-5 h-5", isPayoutReady ? "text-[#3BF68A]" : "text-[#F59E0B]")} />
+          </div>
+          <div>
+            <div className={clsx(
+              "text-sm font-bold",
+              theme === 'dark' ? "text-white" : "text-gray-900"
+            )}>Payout Qualification</div>
+            <div className="flex items-center gap-3 mt-0.5">
+              <div className="flex items-center gap-1">
+                <div className={clsx("w-2 h-2 rounded-full", balanceTargetMet ? "bg-[#3BF68A]" : "bg-[#F45B69]")} />
+                <span className="text-[10px] text-[#8B94A7]">Balance {balanceTargetMet ? "Met" : `Gap: ${formatCurrency(balanceGap)}`}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className={clsx("w-2 h-2 rounded-full", consistencyMet ? "bg-[#3BF68A]" : "bg-[#F45B69]")} />
+                <span className="text-[10px] text-[#8B94A7]">Consistency {consistencyMet ? "Qualified" : "Not Yet"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className={clsx(
+          "px-4 py-1.5 rounded-full text-xs font-bold text-white",
+          isPayoutReady ? "bg-[#3BF68A]" : "bg-[#F45B69]"
+        )}>
+          {isPayoutReady ? "Ready for Payout" : "Not Ready"}
+        </div>
+      </div>
 
       {/* MAIN STATS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

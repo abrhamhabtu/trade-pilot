@@ -319,8 +319,23 @@ export const JourneyPage: React.FC = () => {
     );
   }
 
-  const progressPercent = Math.min(100, Math.max(0, (currentPnL / target) * 100));
+  // === DUAL-CONDITION PAYOUT QUALIFICATION ===
+  // Condition 1: Balance Target — account balance must reach the payout target level
+  const balanceProgress = Math.min(100, Math.max(0, (currentPnL / target) * 100));
   const remainingPnL = Math.max(0, target - currentPnL);
+  const balanceTargetMet = currentPnL >= target;
+
+  // Condition 2: Consistency / Minimum Profit — total profit must reach minimum required
+  const consistencyProgress = consistencyMetrics.minimumRequiredProfit > 0
+    ? Math.min(100, Math.max(0, (consistencyMetrics.currentTotalProfit / consistencyMetrics.minimumRequiredProfit) * 100))
+    : 0;
+  const consistencyGap = Math.max(0, consistencyMetrics.minimumRequiredProfit - consistencyMetrics.currentTotalProfit);
+  const consistencyMet = consistencyMetrics.isQualified && consistencyMetrics.currentTotalProfit >= consistencyMetrics.minimumRequiredProfit;
+
+  // Combined: BOTH conditions must be met for payout qualification
+  const isPayoutReady = balanceTargetMet && consistencyMet;
+  // Progress ring shows minimum of both (since both must reach 100%)
+  const progressPercent = Math.min(balanceProgress, consistencyProgress);
 
   return (
     <div className="p-4 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -334,40 +349,69 @@ export const JourneyPage: React.FC = () => {
 
         <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
 
-          {/* LEFT: Progress Ring (Larger & Moved Left) */}
+          {/* LEFT: Dual Progress Ring */}
           <div className="lg:col-span-3 flex items-center justify-center lg:justify-start pl-8">
             <div className="relative w-32 h-32 flex items-center justify-center group">
               {/* Glow Effect */}
               <div className={clsx(
                 "absolute inset-0 rounded-full blur-2xl opacity-20 group-hover:opacity-30 transition-opacity duration-500",
-                isFunded ? "bg-[#3BF68A]" : "bg-[#A78BFA]"
+                isPayoutReady ? "bg-[#3BF68A]" : "bg-[#A78BFA]"
               )} />
 
               <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 100 100">
-                {/* Background Circle */}
+                {/* Outer Ring Background */}
                 <circle
                   cx="50" cy="50" r="42"
-                  stroke="currentColor" strokeWidth="8"
+                  stroke="currentColor" strokeWidth="6"
                   fill="transparent"
                   className="text-[#1F2937]"
                 />
-                {/* Progress Circle */}
+                {/* Outer Ring: Balance Progress */}
                 <circle
                   cx="50" cy="50" r="42"
-                  stroke="currentColor" strokeWidth="8"
+                  stroke="currentColor" strokeWidth="6"
                   fill="transparent"
                   strokeDasharray={264}
-                  strokeDashoffset={264 - (264 * progressPercent) / 100}
+                  strokeDashoffset={264 - (264 * balanceProgress) / 100}
                   className={clsx(
                     "transition-all duration-1000 ease-out",
-                    isFunded ? "text-[#3BF68A]" : "text-[#A78BFA]"
+                    balanceTargetMet ? "text-[#3BF68A]" : "text-[#A78BFA]"
+                  )}
+                  strokeLinecap="round"
+                />
+                {/* Inner Ring Background */}
+                <circle
+                  cx="50" cy="50" r="33"
+                  stroke="currentColor" strokeWidth="5"
+                  fill="transparent"
+                  className="text-[#1F2937]"
+                />
+                {/* Inner Ring: Consistency Progress */}
+                <circle
+                  cx="50" cy="50" r="33"
+                  stroke="currentColor" strokeWidth="5"
+                  fill="transparent"
+                  strokeDasharray={207}
+                  strokeDashoffset={207 - (207 * consistencyProgress) / 100}
+                  className={clsx(
+                    "transition-all duration-1000 ease-out",
+                    consistencyMet ? "text-[#3BF68A]" : "text-[#F59E0B]"
                   )}
                   strokeLinecap="round"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-2xl font-black text-white tracking-tighter">{progressPercent.toFixed(0)}%</span>
-                <span className="text-[9px] font-bold text-[#9CA3AF] uppercase tracking-widest mt-0.5">Goal</span>
+                {isPayoutReady ? (
+                  <>
+                    <span className="text-lg font-black text-[#3BF68A] tracking-tighter">Ready</span>
+                    <span className="text-[8px] font-bold text-[#3BF68A]/60 uppercase tracking-widest mt-0.5">Payout</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-2xl font-black text-white tracking-tighter">{Math.min(balanceProgress, consistencyProgress).toFixed(0)}%</span>
+                    <span className="text-[8px] font-bold text-[#9CA3AF] uppercase tracking-widest mt-0.5">Both Req.</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -678,149 +722,205 @@ export const JourneyPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* QUICK STATS WIDGET */}
-              <div className="p-6 rounded-[2.5rem] bg-gradient-to-br from-[#1A1D25] to-[#15181F] border border-[#1F2937] shadow-xl">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em]">Gap to Summit</div>
-                    <div className="text-2xl font-black text-white tracking-tighter">${remainingPnL.toLocaleString()}</div>
+              {/* PAYOUT READINESS - Dual Condition Qualification */}
+              <div className={clsx(
+                "p-6 rounded-[2.5rem] border shadow-xl overflow-hidden relative transition-colors",
+                theme === 'dark' ? "bg-[#15181F] border-[#1F2937]" : "bg-[#F8F9FB] border-gray-100"
+              )}>
+                {/* Overall Status Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className={clsx(
+                      "p-1.5 rounded-lg",
+                      isPayoutReady ? "bg-[#3BF68A]/10" : "bg-[#F59E0B]/10"
+                    )}>
+                      <Shield className={clsx("w-4 h-4", isPayoutReady ? "text-[#3BF68A]" : "text-[#F59E0B]")} />
+                    </div>
+                    <span className={clsx(
+                      "text-sm font-bold",
+                      theme === 'dark' ? "text-[#E5E7EB]" : "text-gray-900"
+                    )}>Payout Readiness</span>
                   </div>
                   <div className={clsx(
-                    "w-14 h-14 rounded-2xl flex items-center justify-center border-2",
-                    isFunded ? "bg-[#3BF68A]/10 border-[#3BF68A]/20 text-[#3BF68A]" : "bg-[#A78BFA]/10 border-[#A78BFA]/20 text-[#A78BFA]"
+                    "px-3 py-1 rounded-full text-xs font-bold text-white",
+                    isPayoutReady ? "bg-[#3BF68A]" : "bg-[#F45B69]"
                   )}>
-                    {isFunded ? <Shield className="w-6 h-6" /> : <Mountain className="w-6 h-6" />}
+                    {isPayoutReady ? "Ready" : "Not Ready"}
                   </div>
                 </div>
-              </div>
 
-              {/* CONSISTENCY SCORE WIDGET */}
-              <div className={clsx(
-                "p-6 rounded-[2.5rem] border shadow-xl overflow-hidden group relative transition-colors",
-                theme === 'dark'
-                  ? "bg-[#15181F] border-[#1F2937]"
-                  : "bg-[#F8F9FB] border-gray-100"
-              )}>
-                <div className="space-y-4">
-                  {/* Header with Consistency % Badge */}
-                  <div className="flex items-center justify-between">
+                {/* Payout Reset Notice */}
+                {lastPayoutDate && (
+                  <div className={clsx(
+                    "flex items-center gap-2 p-2 rounded-lg text-xs mb-4",
+                    theme === 'dark' ? "bg-[#A78BFA]/10 text-[#A78BFA]" : "bg-purple-50 text-purple-600"
+                  )}>
+                    <RefreshCw className="w-3 h-3" />
+                    <span>
+                      Reset on {new Date(lastPayoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • {consistencyMetrics.tradingDaysSincePayout} day{consistencyMetrics.tradingDaysSincePayout !== 1 ? 's' : ''} since payout
+                    </span>
+                  </div>
+                )}
+
+                {/* CONDITION 1: Balance Target */}
+                <div className={clsx(
+                  "p-4 rounded-2xl border mb-3",
+                  balanceTargetMet
+                    ? (theme === 'dark' ? "bg-[#3BF68A]/5 border-[#3BF68A]/20" : "bg-green-50 border-green-200")
+                    : (theme === 'dark' ? "bg-[#A78BFA]/5 border-[#1F2937]" : "bg-gray-50 border-gray-200")
+                )}>
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-[#10B981]/10">
-                        <CheckSquare className="w-4 h-4 text-[#10B981]" />
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={clsx(
-                          "text-sm font-bold",
-                          theme === 'dark' ? "text-[#E5E7EB]" : "text-gray-900"
-                        )}>Consistency</span>
-                        {lastPayoutDate && (
-                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#A78BFA]/20">
-                            <RefreshCw className="w-3 h-3 text-[#A78BFA]" />
-                            <span className="text-[9px] font-bold text-[#A78BFA]">RESET</span>
-                          </div>
+                      <Mountain className={clsx("w-3.5 h-3.5", balanceTargetMet ? "text-[#3BF68A]" : "text-[#A78BFA]")} />
+                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8B94A7]">
+                        ① Balance Target
+                      </span>
+                    </div>
+                    <div className={clsx(
+                      "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                      balanceTargetMet ? "bg-[#3BF68A]/20 text-[#3BF68A]" : "bg-[#F45B69]/20 text-[#F45B69]"
+                    )}>
+                      {balanceTargetMet ? "Met" : "Not Met"}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#8B94A7]">Balance</span>
+                      <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
+                        {formatCurrency(currentPnL)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#8B94A7]">Payout Target</span>
+                      <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
+                        {formatCurrency(target)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#8B94A7]">Gap to Summit</span>
+                      <span className={clsx("font-bold", balanceTargetMet ? "text-[#3BF68A]" : "text-[#F59E0B]")}>
+                        {balanceTargetMet ? "Target reached!" : formatCurrency(remainingPnL)}
+                      </span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="h-1.5 w-full bg-[#1F2937] rounded-full overflow-hidden mt-1">
+                      <div
+                        className={clsx(
+                          "h-full rounded-full transition-all duration-1000",
+                          balanceTargetMet ? "bg-[#3BF68A]" : "bg-[#A78BFA]"
                         )}
-                      </div>
+                        style={{ width: `${balanceProgress}%` }}
+                      />
                     </div>
+                  </div>
+                </div>
+
+                {/* CONDITION 2: Consistency / Minimum Profit */}
+                <div className={clsx(
+                  "p-4 rounded-2xl border mb-3",
+                  consistencyMet
+                    ? (theme === 'dark' ? "bg-[#3BF68A]/5 border-[#3BF68A]/20" : "bg-green-50 border-green-200")
+                    : (theme === 'dark' ? "bg-[#F59E0B]/5 border-[#1F2937]" : "bg-amber-50 border-amber-200")
+                )}>
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      {/* Current Consistency % / Rule % Badge */}
-                      <div className="px-2.5 py-1 rounded-full bg-[#10B981] text-xs font-bold text-white">
-                        {consistencyMetrics.currentConsistencyPercent.toFixed(2)}/{consistencyRule}%
-                      </div>
-                      {/* Qualified/Not Yet Badge */}
-                      <div className={clsx(
-                        "px-3 py-1 rounded-full text-xs font-bold text-white",
-                        consistencyMetrics.isQualified ? "bg-[#10B981]" : "bg-[#F45B69]"
-                      )}>
-                        {consistencyMetrics.isQualified ? "Qualified" : "Not Yet"}
-                      </div>
+                      <ShieldCheck className={clsx("w-3.5 h-3.5", consistencyMet ? "text-[#3BF68A]" : "text-[#F59E0B]")} />
+                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8B94A7]">
+                        ② Consistency Rule ({consistencyRule}%)
+                      </span>
+                    </div>
+                    <div className={clsx(
+                      "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                      consistencyMet ? "bg-[#3BF68A]/20 text-[#3BF68A]" : "bg-[#F45B69]/20 text-[#F45B69]"
+                    )}>
+                      {consistencyMet ? "Qualified" : "Not Yet"}
                     </div>
                   </div>
-                  
-                  {/* Payout Reset Notice */}
-                  {lastPayoutDate && (
-                    <div className={clsx(
-                      "flex items-center gap-2 p-2 rounded-lg text-xs",
-                      theme === 'dark' ? "bg-[#A78BFA]/10 text-[#A78BFA]" : "bg-purple-50 text-purple-600"
-                    )}>
-                      <RefreshCw className="w-3 h-3" />
-                      <span>
-                        Reset on {new Date(lastPayoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • {consistencyMetrics.tradingDaysSincePayout} day{consistencyMetrics.tradingDaysSincePayout !== 1 ? 's' : ''} since payout
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#8B94A7]">Highest Profit Day</span>
+                      <span className="font-semibold text-[#F59E0B]">
+                        {formatCurrency(consistencyMetrics.highestDay)}
                       </span>
                     </div>
-                  )}
-
-                  {/* Metrics List */}
-                  <div className="space-y-0">
-                    {/* Highest Profit Day */}
-                    <div className={clsx(
-                      "flex items-center justify-between py-3 border-b",
-                      theme === 'dark' ? "border-[#1F2937]" : "border-gray-200"
-                    )}>
-                      <span className={clsx("text-sm", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
-                        Highest Profit Day
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#8B94A7]">Current Total Profit</span>
+                      <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
+                        {formatCurrency(consistencyMetrics.currentTotalProfit)}
                       </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#8B94A7]">Min. Required Profit</span>
+                      <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
+                        {formatCurrency(consistencyMetrics.minimumRequiredProfit)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#8B94A7]">Consistency</span>
                       <span className={clsx(
-                        "text-sm font-semibold",
-                        theme === 'dark' ? "text-[#E5E7EB]" : "text-gray-900"
+                        "font-bold",
+                        consistencyMetrics.currentConsistencyPercent <= consistencyRule ? "text-[#3BF68A]" : "text-[#F45B69]"
                       )}>
-                        {consistencyMetrics.highestDay.toFixed(2)}
+                        {consistencyMetrics.currentConsistencyPercent.toFixed(1)}% / {consistencyRule}%
                       </span>
                     </div>
 
-                    {/* Current Total Profit */}
+                    {/* Profit still needed — the key "how much more" metric */}
                     <div className={clsx(
-                      "flex items-center justify-between py-3 border-b",
-                      theme === 'dark' ? "border-[#1F2937]" : "border-gray-200"
+                      "flex justify-between items-center text-xs mt-1 pt-2 border-t",
+                      theme === 'dark' ? "border-white/5" : "border-gray-200"
                     )}>
-                      <span className={clsx("text-sm", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
-                        Current Total Profit
+                      <span className={clsx(
+                        "font-semibold flex items-center gap-1.5",
+                        consistencyMet ? "text-[#3BF68A]" : "text-[#F59E0B]"
+                      )}>
+                        <Zap className="w-3 h-3" />
+                        Profit Still Needed
                       </span>
                       <span className={clsx(
-                        "text-sm font-semibold",
-                        theme === 'dark' ? "text-[#E5E7EB]" : "text-gray-900"
+                        "font-black text-sm",
+                        consistencyMet ? "text-[#3BF68A]" : "text-[#F59E0B]"
                       )}>
-                        {consistencyMetrics.currentTotalProfit.toFixed(2)}
+                        {consistencyMet ? "Qualified!" : formatCurrency(consistencyGap)}
                       </span>
                     </div>
 
-                    {/* Minimum Required Profit to Qualify */}
-                    <div className="flex items-center justify-between py-3">
-                      <span className={clsx("text-sm", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
-                        Minimum Required Profit to Qualify
-                      </span>
-                      <span className={clsx(
-                        "text-sm font-semibold",
-                        theme === 'dark' ? "text-[#E5E7EB]" : "text-gray-900"
-                      )}>
-                        {consistencyMetrics.minimumRequiredProfit.toFixed(2)}
-                      </span>
+                    {/* Progress bar */}
+                    <div className="h-1.5 w-full bg-[#1F2937] rounded-full overflow-hidden mt-1">
+                      <div
+                        className={clsx(
+                          "h-full rounded-full transition-all duration-1000",
+                          consistencyMet ? "bg-[#3BF68A]" : "bg-[#F59E0B]"
+                        )}
+                        style={{ width: `${consistencyProgress}%` }}
+                      />
                     </div>
                   </div>
+                </div>
 
-                  {/* Rule Selector */}
-                  <div className="pt-1">
-                    <label className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em] mb-2 block">
-                      Consistency Rule
-                    </label>
-                    <div className={clsx(
-                      "flex p-1 rounded-xl border",
-                      theme === 'dark' ? "bg-[#0B0D10] border-[#1F2937]" : "bg-gray-50 border-gray-200"
-                    )}>
-                      {[15, 20, 30, 40, 50].map((rule) => (
-                        <button
-                          key={rule}
-                          onClick={() => handleConsistencyChange(rule)}
-                          className={clsx(
-                            "flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all",
-                            consistencyRule === rule
-                              ? (theme === 'dark' ? "bg-[#1F2937] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm border border-gray-100")
-                              : (theme === 'dark' ? "text-[#8B94A7] hover:text-[#E5E7EB]" : "text-gray-500 hover:text-gray-900")
-                          )}
-                        >
-                          {rule}%
-                        </button>
-                      ))}
-                    </div>
+                {/* Consistency Rule Selector */}
+                <div className="pt-1">
+                  <label className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em] mb-2 block">
+                    Consistency Rule
+                  </label>
+                  <div className={clsx(
+                    "flex p-1 rounded-xl border",
+                    theme === 'dark' ? "bg-[#0B0D10] border-[#1F2937]" : "bg-gray-50 border-gray-200"
+                  )}>
+                    {[15, 20, 30, 40, 50].map((rule) => (
+                      <button
+                        key={rule}
+                        onClick={() => handleConsistencyChange(rule)}
+                        className={clsx(
+                          "flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all",
+                          consistencyRule === rule
+                            ? (theme === 'dark' ? "bg-[#1F2937] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm border border-gray-100")
+                            : (theme === 'dark' ? "text-[#8B94A7] hover:text-[#E5E7EB]" : "text-gray-500 hover:text-gray-900")
+                        )}
+                      >
+                        {rule}%
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -829,27 +929,37 @@ export const JourneyPage: React.FC = () => {
           </div>
 
           {/* FOOTER METRICS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-8 rounded-[2.5rem] bg-[#15181F] border border-[#1F2937] shadow-xl">
               <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em] mb-4">Pacing Analysis</div>
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
+              <div className="space-y-4">
+                <div>
                   <div className="text-3xl font-black text-white">${PACE_CONFIG[pace].dailyTarget}</div>
-                  <div className="text-[9px] font-bold text-[#3BF68A] uppercase tracking-widest">Daily Pace Target</div>
+                  <div className="text-[9px] font-bold text-[#3BF68A] uppercase tracking-widest mt-1">Daily Pace Target</div>
                 </div>
-
-                <div className="flex gap-8">
-                  <div className="text-right space-y-2">
-                    <div className="text-3xl font-black text-white">${remainingPnL.toLocaleString()}</div>
-                    <div className="text-[9px] font-bold text-[#F45B69] uppercase tracking-widest">Gap to Summit</div>
+                <div>
+                  <div className="text-3xl font-black text-white">
+                    {remainingPnL > 0 ? Math.ceil(remainingPnL / PACE_CONFIG[pace].dailyTarget) : 0}
                   </div>
+                  <div className="text-[9px] font-bold text-[#A78BFA] uppercase tracking-widest mt-1">Trading Days Left</div>
+                </div>
+              </div>
+            </div>
 
-                  <div className="text-right space-y-2">
-                    <div className="text-3xl font-black text-white">
-                      {Math.ceil(remainingPnL / PACE_CONFIG[pace].dailyTarget)}
-                    </div>
-                    <div className="text-[9px] font-bold text-[#A78BFA] uppercase tracking-widest">Trading Days Left</div>
-                  </div>
+            <div className="p-8 rounded-[2.5rem] bg-[#15181F] border border-[#1F2937] shadow-xl">
+              <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em] mb-4">Gap to Payout</div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#8B94A7]">Balance Gap</span>
+                  <span className={clsx("text-lg font-black", balanceTargetMet ? "text-[#3BF68A]" : "text-white")}>
+                    {balanceTargetMet ? "Met" : formatCurrency(remainingPnL)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#8B94A7]">Consistency Gap</span>
+                  <span className={clsx("text-lg font-black", consistencyMet ? "text-[#3BF68A]" : "text-white")}>
+                    {consistencyMet ? "Met" : formatCurrency(consistencyGap)}
+                  </span>
                 </div>
               </div>
             </div>
