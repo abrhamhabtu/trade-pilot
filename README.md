@@ -78,12 +78,16 @@ Whether you're grinding prop firm evaluations or trading a funded account, you d
 - **Multi-Account Tracking** — Manage all your prop firm accounts in one place
 - **Performance Analytics** — Net P&L, win rate, profit factor, Sharpe ratio, and 15+ metrics
 - **Journey Visualization** — Track your progress to profit targets with pacing strategies
-- **Visual Calendar** — See your daily P&L at a glance with projections
+- **Dual-Condition Payout Qualification** — Track both balance target AND consistency rule simultaneously. Payout status only shows "Ready" when both conditions are met
+- **Consistency Guardian** — Dedicated tab with arc gauge, daily guardrails (safe zone, warning zone, danger zone), what-if scenario simulator, and path-to-payout projections
+- **What-If Scenario Tool** — See a Now vs After comparison of how a hypothetical trade would affect your consistency %, required target, payout readiness, and both qualification conditions
+- **Dual Progress Ring** — Concentric rings showing balance progress (outer) and consistency progress (inner) at a glance
+- **Visual Calendar** — See your daily P&L at a glance with goal projections that account for both payout conditions
 - **Balance Adjustments** — Record payouts, deposits, and adjustments to keep your account balance accurate (matches prop firm dashboards like TopOne Futures)
 - **Consistency Reset After Payout** — Automatically resets consistency tracking after a payout, so your metrics reflect your current trading period
 - **Trading Rules & Compliance** — Track how well you follow your trading plan
 - **Smart Import** — Auto-detect CSV from TradingView, Tradovate, NinjaTrader, and ProjectX platforms
-- **One-Click Backup** — Export and restore your data with built-in backup tools
+- **One-Click Backup** — Export and restore your data with built-in backup tools (with smart reminders)
 - **Docker Support** — Run with a single command, no coding required
 - **100% Free & Open Source** — No paywalls, no premium tiers, no subscriptions
 
@@ -195,16 +199,16 @@ Instrument, Market pos., Qty, Entry price, Exit price, Profit, Commission, Entry
 ```
 src/
 ├── components/
-│   ├── accounts/       # Multi-account management
-│   ├── charts/         # Chart components
-│   ├── common/         # Shared UI components
-│   ├── dashboard/      # Dashboard views
-│   ├── journal/        # Trading journal
-│   └── routine/        # Journey & routine tracking
-├── hooks/              # Custom React hooks
-├── store/              # Zustand state stores
+│   ├── accounts/       # Multi-account management & balance adjustments
+│   ├── charts/         # Chart components (equity curves, P&L charts)
+│   ├── common/         # Shared UI components (Toast, etc.)
+│   ├── dashboard/      # Dashboard views & analytics
+│   ├── journal/        # Trading journal with daily notes
+│   └── routine/        # Journey page, Consistency Guardian, What-If tool
+├── hooks/              # Custom React hooks (localStorage, chart data)
+├── store/              # Zustand state stores (accounts, trades, theme)
 ├── types/              # TypeScript types
-└── utils/              # Utility functions
+└── utils/              # Utility functions (CSV parsing, calculations)
 ```
 
 </details>
@@ -245,7 +249,8 @@ When you take a payout from your prop firm, your account balance changes but you
 
 - **Dashboard** — Net P&L includes adjustments to match your actual balance
 - **Calendar** — Daily and weekly totals include adjustments (just like TopOne Futures shows)
-- **Journey** — Consistency tracking automatically resets after a payout, so you start fresh
+- **Journey** — Consistency tracking automatically resets after a payout, and the dual-condition payout qualification (balance target + consistency rule) recalculates from the new starting point
+- **Consistency Guardian** — What-if scenarios and daily guardrails update to reflect your post-payout trading period
 - **Accounts** — Balance reflects trading P&L + all adjustments
 
 > **Pro Tip:** This is especially useful for prop firms like TopOne Futures where payouts reset your consistency requirements. TradePilot detects your most recent payout and only calculates consistency from trades after that date.
@@ -265,6 +270,9 @@ When you take a payout from your prop firm, your account balance changes but you
 - [x] Docker deployment support
 - [x] Balance adjustments (payouts, deposits) with auto-sync across all pages
 - [x] Consistency reset after payout (for prop firms like TopOne Futures)
+- [x] Consistency Guardian with what-if simulator, daily guardrails, and path-to-payout
+- [x] Dual-condition payout qualification (balance target + consistency rule)
+- [x] Smart backup reminders with persistent dismissal
 - [ ] **Hosted version** — Simple login, no code required (small fee to cover hosting)
 - [ ] Cloud sync
 - [ ] Real-time broker integrations
@@ -288,7 +296,8 @@ Contributions are welcome! This project exists to help traders who are losing ac
 ### Priority Contributions Needed:
 - **Mobile responsiveness** — Make the dashboard mobile-friendly
 - **Export to CSV** — Let users export trades back to CSV format
-- **Auto-backup reminders** — Prompt users to backup periodically
+- **Broker integrations** — Direct connections to Tradovate, NinjaTrader APIs
+- **Dark/Light theme polish** — Refine the light mode experience
 
 ---
 
