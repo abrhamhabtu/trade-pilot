@@ -40,7 +40,7 @@ function App() {
 
 **New files created:**
 ```
-src/components/dashboard/
+apps/web/src/components/dashboard/
 ├── Dashboard.tsx       # Main dashboard view
 ├── DashboardHeader.tsx # Time filters and buttons
 ├── MetricsGrid.tsx     # The 6 metric cards at top
@@ -55,7 +55,7 @@ src/components/dashboard/
 **What's a hook?** A reusable piece of logic. Think of it like a recipe you can use in different dishes.
 
 ```
-src/hooks/
+apps/web/src/hooks/
 ├── useChartData.ts    # Calculates all chart data
 ├── useCoachingTips.ts # Generates AI coaching tips
 └── useLocalStorage.ts # Saves/loads data to browser
@@ -179,7 +179,7 @@ deleteTrades(ids)     // Remove multiple trades
 
 ### File Structure Now
 ```
-src/
+apps/web/src/
 ├── App.tsx              # Routing only (102 lines)
 ├── components/
 │   ├── dashboard/       # Dashboard pieces (5 files)
@@ -252,8 +252,8 @@ All colors smoothly transition
 **Files created:**
 | File | Purpose |
 |------|---------|
-| `src/store/themeStore.ts` | Stores theme preference |
-| `src/index.css` | CSS variables for colors |
+| `apps/web/src/store/themeStore.ts` | Stores theme preference |
+| `apps/web/src/index.css` | CSS variables for colors |
 
 **Key concepts:**
 - **CSS Variables**: Colors like `--bg-primary` change based on theme
@@ -285,8 +285,8 @@ After 4 seconds, toast auto-removes
 **Files created:**
 | File | Purpose |
 |------|---------|
-| `src/store/toastStore.ts` | Manages toast messages |
-| `src/components/common/Toast.tsx` | Toast UI component |
+| `apps/web/src/store/toastStore.ts` | Manages toast messages |
+| `apps/web/src/components/common/Toast.tsx` | Toast UI component |
 
 **Toast types:**
 ```typescript
@@ -332,9 +332,9 @@ Switch accounts via dropdown to see different data
 **Files created:**
 | File | Purpose |
 |------|---------|
-| `src/store/accountStore.ts` | Account state management |
-| `src/components/accounts/AccountsPage.tsx` | Account management UI |
-| `src/components/accounts/AccountSelector.tsx` | Quick account switcher |
+| `apps/web/src/store/accountStore.ts` | Account state management |
+| `apps/web/src/components/accounts/AccountsPage.tsx` | Account management UI |
+| `apps/web/src/components/accounts/AccountSelector.tsx` | Quick account switcher |
 
 **Account data structure:**
 ```typescript

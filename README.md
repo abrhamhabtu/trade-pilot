@@ -67,7 +67,7 @@ Most trading journals charge **$30-60/month** for features that should be access
 - ✅ **Rule compliance tracking** — Free (self-hosted)
 - ✅ **All features unlocked** — Free (self-hosted)
 
-> **Note:** TradePilot is free when you run it yourself on your own computer or server. Clone the repo, run `npm install && npm run dev`, and you're up. No account needed, no data leaves your machine. A hosted version (for those who don't want to deal with code) is on the roadmap — that will have a small monthly fee to cover server costs.
+> **Note:** TradePilot is free when you run it yourself on your own computer or server. Clone the repo, run `npm run install:web && npm run dev`, and you're up. Default local port is `3001` to avoid common conflicts on `3000`. No account needed, no data leaves your machine.
 
 Whether you're grinding prop firm evaluations or trading a funded account, you deserve proper analytics without breaking the bank.
 
@@ -106,7 +106,7 @@ cd trade-pilot
 docker-compose up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000) 🎉
+Open [http://localhost:3001](http://localhost:3001) 🎉
 
 ### Option B: Manual Setup (For developers)
 
@@ -116,13 +116,13 @@ git clone https://github.com/abrhamhabtu/trade-pilot.git
 cd trade-pilot
 
 # Install dependencies
-npm install
+npm run install:web
 
 # Start development server
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) 🎉
+Open [http://localhost:3001](http://localhost:3001) 🎉
 
 > **New to this?** Check out [GETTING_STARTED.md](GETTING_STARTED.md) for a beginner-friendly guide with screenshots and troubleshooting tips.
 
@@ -177,7 +177,7 @@ Instrument, Market pos., Qty, Entry price, Exit price, Profit, Commission, Entry
 | **Styling** | Tailwind CSS |
 | **State** | Zustand |
 | **Charts** | Recharts + Custom SVG |
-| **Build** | Vite |
+| **Build** | Next.js (App Router) |
 | **File Parsing** | Papa Parse, XLSX |
 
 ---
@@ -186,9 +186,12 @@ Instrument, Market pos., Qty, Entry price, Exit price, Profit, Commission, Entry
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server |
+| `npm run setup` | One-time project setup (installs app dependencies) |
+| `npm run install:web` | Install app dependencies |
+| `npm run dev` | Start development server on port 3001 |
+| `npm run dev:3000` | Start development server on port 3000 |
 | `npm run build` | Build for production |
-| `npm run preview` | Preview production build |
+| `npm run start` | Start production server on port 3001 |
 | `npm run lint` | Run ESLint |
 
 ---
@@ -197,7 +200,7 @@ Instrument, Market pos., Qty, Entry price, Exit price, Profit, Commission, Entry
 <summary>📁 Project Structure</summary>
 
 ```
-src/
+apps/web/src/
 ├── components/
 │   ├── accounts/       # Multi-account management & balance adjustments
 │   ├── charts/         # Chart components (equity curves, P&L charts)
@@ -207,7 +210,6 @@ src/
 │   └── routine/        # Journey page, Consistency Guardian, What-If tool
 ├── hooks/              # Custom React hooks (localStorage, chart data)
 ├── store/              # Zustand state stores (accounts, trades, theme)
-├── types/              # TypeScript types
 └── utils/              # Utility functions (CSV parsing, calculations)
 ```
 
@@ -286,6 +288,8 @@ When you take a payout from your prop firm, your account balance changes but you
 ## 🤝 Contributing
 
 Contributions are welcome! This project exists to help traders who are losing access to ProjectX analytics.
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, standards, and the pull request checklist.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)

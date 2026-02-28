@@ -50,8 +50,8 @@
 
 ### 1.6 Storage Upgrade (On Standby)
 - [ ] **Migrate screenshots to IndexedDB** — Move from localStorage (5MB) to IndexedDB (50MB+)
-  - Utility already created: `src/utils/indexedDB.ts`
-  - Requires updating `src/store/dailyNotesStore.ts` to use IndexedDB for images
+  - Utility already created: `apps/web/src/utils/indexedDB.ts`
+  - Requires updating `apps/web/src/store/dailyNotesStore.ts` to use IndexedDB for images
   - Keep accounts/settings in localStorage for simplicity
   - Update storage display to show new capacity
   - **Note:** Current 5MB is fine for most users who don't upload many screenshots. For heavy screenshot users, TradePilot Cloud (coming soon) will offer more storage with sync across devices.

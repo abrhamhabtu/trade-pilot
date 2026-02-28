@@ -74,14 +74,14 @@ Open the AI chat panel (usually on the right side) and paste this prompt:
 ```
 I just downloaded TradePilot and I want to run it locally. 
 Can you help me:
-1. Install the dependencies (npm install)
+1. Install the dependencies (npm run setup)
 2. Start the development server (npm run dev)
 3. Tell me what URL to open in my browser
 
 Please run the commands for me and let me know when it's ready.
 ```
 
-The AI will run the commands and tell you when it's ready. Usually it opens at **http://localhost:5173**.
+The AI will run the commands and tell you when it's ready. Usually it opens at **http://localhost:3001**.
 
 ### That's It!
 
@@ -128,7 +128,7 @@ Docker is like a "container" that runs the app for you. You don't need to instal
 ### Step 4: Open TradePilot
 
 1. Open your web browser (Chrome, Firefox, Edge, etc.)
-2. Go to: **http://localhost:3000**
+2. Go to: **http://localhost:3001**
 3. You should see TradePilot! 🎉
 
 ### To Stop TradePilot
@@ -164,13 +164,13 @@ Same as Docker method — download from GitHub and unzip.
 Open Terminal/Command Prompt in the TradePilot folder, then:
 
 ```bash
-npm install
+npm run install:web
 npm run dev
 ```
 
 ### Step 4: Open TradePilot
 
-Go to: **http://localhost:5173**
+Go to: **http://localhost:3001**
 
 ---
 
@@ -227,7 +227,7 @@ TradePilot can import trades from these platforms:
 
 ## Troubleshooting
 
-### "I can't access localhost:3000"
+### "I can't access localhost:3001"
 
 - Make sure Docker Desktop is running (green icon)
 - Try running `docker-compose up -d` again
@@ -247,9 +247,9 @@ TradePilot can import trades from these platforms:
 
 ### "Docker says 'port already in use'"
 
-Another app is using port 3000. Either:
+Another app is using port 3001. Either:
 - Close that app, or
-- Edit `docker-compose.yml` and change `3000:80` to `3001:80`, then use `localhost:3001`
+- Edit `docker-compose.yml` and change `3001:3000` to another open port like `3002:3000`, then use that new port in your browser
 
 ---
 

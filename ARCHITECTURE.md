@@ -233,7 +233,7 @@ Your data lives in your browser's **localStorage**. Here's how to see it:
 1. Right-click anywhere on TradePilot
 2. Click **Inspect** (or press `F12`)
 3. Go to **Application** tab
-4. Click **Local Storage** → `localhost:5173`
+4. Click **Local Storage** → `localhost:3001`
 5. You'll see `tradepilot_accounts` with all your data
 
 ```
@@ -244,7 +244,7 @@ Your data lives in your browser's **localStorage**. Here's how to see it:
 ├─────────────────────────────────────────────────────────────────────┤
 │  ▼ Storage                                                          │
 │    ▼ Local Storage                                                  │
-│      ● http://localhost:5173     ◀─── Click here                   │
+│      ● http://localhost:3001     ◀─── Click here                   │
 │                                                                     │
 │  Key                      │ Value                                   │
 │  ─────────────────────────┼─────────────────────────────────────── │
@@ -383,7 +383,7 @@ TradePilot now has a built-in backup feature!
 ### Method 2: Browser DevTools (Manual)
 
 1. Press `F12` to open DevTools
-2. Go to **Application** → **Local Storage** → `localhost:5173` (or `localhost:3000` for Docker)
+2. Go to **Application** → **Local Storage** → `localhost:3001`
 3. Right-click on `tradepilot_accounts` → **Copy value**
 4. Paste into a text file and save
 
@@ -422,7 +422,7 @@ TradePilot can be run in two ways:
 
 ```bash
 docker-compose up -d
-# Open http://localhost:3000
+# Open http://localhost:3001
 ```
 
 No Node.js required. Just install Docker Desktop and run the command above.
@@ -430,9 +430,9 @@ No Node.js required. Just install Docker Desktop and run the command above.
 ### Option 2: Development Mode
 
 ```bash
-npm install
+npm run install:web
 npm run dev
-# Open http://localhost:5173
+# Open http://localhost:3001
 ```
 
 Requires Node.js 18+.
@@ -443,11 +443,11 @@ Requires Node.js 18+.
 
 | File | Purpose |
 |------|---------|
-| `src/store/accountStore.ts` | Main data store for accounts & trades |
-| `src/store/tradingStore.ts` | Trading metrics, time filters, UI state |
-| `src/hooks/useLocalStorage.ts` | Helper functions for saving/loading/exporting |
-| `src/components/ImportModal.tsx` | CSV upload and parsing UI |
-| `src/components/accounts/AccountsPage.tsx` | Account management + Data Management UI |
+| `apps/web/src/store/accountStore.ts` | Main data store for accounts & trades |
+| `apps/web/src/store/tradingStore.ts` | Trading metrics, time filters, UI state |
+| `apps/web/src/hooks/useLocalStorage.ts` | Helper functions for saving/loading/exporting |
+| `apps/web/src/components/ImportModal.tsx` | CSV upload and parsing UI |
+| `apps/web/src/components/accounts/AccountsPage.tsx` | Account management + Data Management UI |
 | `Dockerfile` | Docker build configuration |
 | `docker-compose.yml` | Easy Docker deployment |
 
