@@ -104,31 +104,27 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         {/* Most Active Day */}
         <div
-          className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+          
         >
-          <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+          <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
             <div
               className="w-full h-full rounded-xl"
-              style={{
-                background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-              }}
+              
             />
           </div>
 
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-[#8B94A7] text-sm font-medium">Most Active Day</span>
+              <span className="text-zinc-400 text-sm font-medium">Most Active Day</span>
               <Tooltip content="The day of the week when you execute the most trades" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                  <span className="text-[#8B94A7] text-xs">?</span>
+                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                  <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
             </div>
-            <div className="text-2xl font-bold text-[#E5E7EB] mb-2">{insights.mostActiveDay.day}</div>
-            <div className="space-y-1 text-sm text-[#8B94A7]">
+            <div className="text-2xl font-bold text-zinc-100 mb-2">{insights.mostActiveDay.day}</div>
+            <div className="space-y-1 text-sm text-zinc-400">
               <div>{insights.mostActiveDay.activeDays} active days</div>
               <div>{insights.mostActiveDay.totalTrades} total trades</div>
               <div>{insights.mostActiveDay.avgTradesPerDay.toFixed(1)} avg trades/day</div>
@@ -138,31 +134,27 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
 
         {/* Most Profitable Day */}
         <div
-          className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+          
         >
-          <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+          <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
             <div
               className="w-full h-full rounded-xl"
-              style={{
-                background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-              }}
+              
             />
           </div>
 
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-[#8B94A7] text-sm font-medium">Most Profitable Day</span>
+              <span className="text-zinc-400 text-sm font-medium">Most Profitable Day</span>
               <Tooltip content="The day of the week with the highest total profits" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                  <span className="text-[#8B94A7] text-xs">?</span>
+                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                  <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
             </div>
-            <div className="text-2xl font-bold text-[#E5E7EB] mb-2">{insights.mostProfitableDay.day}</div>
-            <div className="text-lg font-bold bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] bg-clip-text text-transparent">
+            <div className="text-2xl font-bold text-zinc-100 mb-2">{insights.mostProfitableDay.day}</div>
+            <div className="text-lg font-bold text-zinc-50">
               {formatCurrency(insights.mostProfitableDay.profit)}
             </div>
           </div>
@@ -170,31 +162,27 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
 
         {/* Least Profitable Day */}
         <div
-          className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+          
         >
-          <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+          <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
             <div
               className="w-full h-full rounded-xl"
-              style={{
-                background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-              }}
+              
             />
           </div>
 
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-[#8B94A7] text-sm font-medium">Least Profitable Day</span>
+              <span className="text-zinc-400 text-sm font-medium">Least Profitable Day</span>
               <Tooltip content="The day of the week with the lowest total profits or highest losses" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                  <span className="text-[#8B94A7] text-xs">?</span>
+                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                  <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
             </div>
-            <div className="text-2xl font-bold text-[#E5E7EB] mb-2">{insights.leastProfitableDay.day}</div>
-            <div className="text-lg font-bold text-[#F45B69]">
+            <div className="text-2xl font-bold text-zinc-100 mb-2">{insights.leastProfitableDay.day}</div>
+            <div className="text-lg font-bold text-rose-500">
               {formatCurrency(insights.leastProfitableDay.loss)}
             </div>
           </div>
@@ -205,88 +193,76 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Total Number of Trades */}
         <div
-          className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+          
         >
-          <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+          <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
             <div
               className="w-full h-full rounded-xl"
-              style={{
-                background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-              }}
+              
             />
           </div>
 
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-[#8B94A7] text-sm font-medium">Total Number of Trades</span>
+              <span className="text-zinc-400 text-sm font-medium">Total Number of Trades</span>
               <Tooltip content="Total count of all executed trades in the selected period" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                  <span className="text-[#8B94A7] text-xs">?</span>
+                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                  <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
             </div>
-            <div className="text-3xl font-bold text-[#E5E7EB]">{insights.totalTrades}</div>
+            <div className="text-3xl font-bold text-zinc-100">{insights.totalTrades}</div>
           </div>
         </div>
 
         {/* Total Number of Lots Traded */}
         <div
-          className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+          
         >
-          <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+          <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
             <div
               className="w-full h-full rounded-xl"
-              style={{
-                background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-              }}
+              
             />
           </div>
 
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-[#8B94A7] text-sm font-medium">Total Number of Lots Traded</span>
+              <span className="text-zinc-400 text-sm font-medium">Total Number of Lots Traded</span>
               <Tooltip content="Total volume of lots traded across all positions" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                  <span className="text-[#8B94A7] text-xs">?</span>
+                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                  <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
             </div>
-            <div className="text-3xl font-bold text-[#E5E7EB]">{insights.totalLots}</div>
+            <div className="text-3xl font-bold text-zinc-100">{insights.totalLots}</div>
           </div>
         </div>
 
         {/* Average Trade Duration */}
         <div
-          className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+          
         >
-          <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+          <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
             <div
               className="w-full h-full rounded-xl"
-              style={{
-                background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-              }}
+              
             />
           </div>
 
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-[#8B94A7] text-sm font-medium">Average Trade Duration</span>
+              <span className="text-zinc-400 text-sm font-medium">Average Trade Duration</span>
               <Tooltip content="Average time you hold positions from entry to exit" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                  <span className="text-[#8B94A7] text-xs">?</span>
+                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                  <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
             </div>
-            <div className="text-xl font-bold text-[#E5E7EB]">
+            <div className="text-xl font-bold text-zinc-100">
               {formatDuration(insights.avgTradeDuration)}
             </div>
           </div>
@@ -294,30 +270,26 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
 
         {/* Average Win Duration */}
         <div
-          className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+          
         >
-          <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+          <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
             <div
               className="w-full h-full rounded-xl"
-              style={{
-                background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-              }}
+              
             />
           </div>
 
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-[#8B94A7] text-sm font-medium">Average Win Duration</span>
+              <span className="text-zinc-400 text-sm font-medium">Average Win Duration</span>
               <Tooltip content="Average duration of your winning trades" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                  <span className="text-[#8B94A7] text-xs">?</span>
+                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                  <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
             </div>
-            <div className="text-xl font-bold text-[#E5E7EB]">
+            <div className="text-xl font-bold text-zinc-100">
               {formatDuration(insights.avgWinDuration)}
             </div>
           </div>
@@ -325,30 +297,26 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
 
         {/* Average Loss Duration */}
         <div
-          className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+          
         >
-          <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+          <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
             <div
               className="w-full h-full rounded-xl"
-              style={{
-                background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-              }}
+              
             />
           </div>
 
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-[#8B94A7] text-sm font-medium">Average Loss Duration</span>
+              <span className="text-zinc-400 text-sm font-medium">Average Loss Duration</span>
               <Tooltip content="Average duration of your losing trades" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                  <span className="text-[#8B94A7] text-xs">?</span>
+                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                  <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
             </div>
-            <div className="text-xl font-bold text-[#E5E7EB]">
+            <div className="text-xl font-bold text-zinc-100">
               {formatDuration(insights.avgLossDuration)}
             </div>
           </div>

@@ -36,38 +36,39 @@ export const Sidebar: React.FC = () => {
   const { theme, toggleTheme } = useThemeStore();
 
   return (
-    <div 
+    <div
       className={clsx(
-        'fixed left-0 top-0 h-full bg-gradient-to-b from-[#111111] via-[#0F1419] to-[#111111] border-r border-[#1F2937] transition-all duration-300 z-50 flex flex-col',
+        'fixed left-0 top-0 h-full border-r border-white/5 transition-all duration-300 z-50 flex flex-col',
         sidebarCollapsed ? 'w-20' : 'w-64'
       )}
+      style={{ background: '#1E2130' }}
     >
       {/* Header */}
       <div className={clsx(
-        'flex items-center border-b border-[#1F2937] transition-all duration-300 flex-shrink-0',
+        'flex items-center border-b border-white/5 transition-all duration-300 flex-shrink-0',
         sidebarCollapsed ? 'justify-center p-4' : 'justify-between p-4'
       )}>
         {!sidebarCollapsed && (
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 rounded bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] flex items-center justify-center">
+            <div className="w-6 h-6 rounded bg-white text-zinc-950 hover:bg-zinc-200 flex items-center justify-center">
               <Activity className="h-4 w-4 text-black" />
             </div>
-            <span className="text-[#E5E7EB] font-semibold text-lg bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] bg-clip-text text-transparent">
+            <span className="text-zinc-100 font-semibold text-lg text-zinc-50">
               TradePilot
             </span>
           </div>
         )}
-        
+
         {sidebarCollapsed && (
-          <div className="w-8 h-8 rounded bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] flex items-center justify-center">
+          <div className="w-8 h-8 rounded bg-white text-zinc-950 hover:bg-zinc-200 flex items-center justify-center">
             <Activity className="h-5 w-5 text-black" />
           </div>
         )}
-        
+
         <button
           onClick={toggleSidebar}
           className={clsx(
-            'text-[#94A3B8] hover:text-[#E5E7EB] transition-colors rounded hover:bg-gradient-to-r hover:from-[#3BF68A]/10 hover:to-[#A78BFA]/10',
+            'text-zinc-500 hover:text-zinc-100 transition-colors rounded hover:bg-white/5',
             sidebarCollapsed ? 'p-2 mt-4' : 'p-1'
           )}
         >
@@ -79,14 +80,12 @@ export const Sidebar: React.FC = () => {
       {!sidebarCollapsed && (
         <div className="p-4 flex-shrink-0">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#8B94A7]" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <input
               type="text"
               placeholder="Search"
-              className="w-full bg-[#15181F] border border-[#1F2937] rounded-lg pl-10 pr-4 py-2 text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-transparent focus:ring-2 focus:ring-gradient-to-r focus:from-[#3BF68A] focus:to-[#A78BFA] transition-all"
-              style={{
-                background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-              }}
+              className="w-full bg-[#181B24]/80 backdrop-blur-md border border-white/5 rounded-lg pl-10 pr-4 py-2 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-transparent focus:ring-2 focus:ring-white/20 transition-all"
+
             />
           </div>
         </div>
@@ -100,19 +99,19 @@ export const Sidebar: React.FC = () => {
         {navigation.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.view;
-          
+
           return (
             <button
               key={item.name}
               onClick={() => setCurrentView(item.view)}
               className={clsx(
                 'w-full flex items-center text-sm font-medium rounded-lg transition-all duration-200 group relative',
-                sidebarCollapsed 
-                  ? 'justify-center p-4 mb-3' 
+                sidebarCollapsed
+                  ? 'justify-center p-4 mb-3'
                   : 'px-3 py-2',
                 isActive
-                  ? 'bg-gradient-to-r from-[#3BF68A]/20 to-[#A78BFA]/20 text-[#3BF68A]'
-                  : 'text-[#94A3B8] hover:text-[#E5E7EB] hover:bg-gradient-to-r hover:from-[#3BF68A]/10 hover:to-[#A78BFA]/10'
+                  ? 'bg-white/10 text-emerald-500'
+                  : 'text-zinc-500 hover:text-zinc-100 hover:bg-white/5'
               )}
               style={isActive ? {
                 borderLeft: sidebarCollapsed ? 'none' : '2px solid',
@@ -127,12 +126,12 @@ export const Sidebar: React.FC = () => {
               {!sidebarCollapsed && (
                 <span className="truncate">{item.name}</span>
               )}
-              
+
               {/* Enhanced Tooltip for collapsed state */}
               {sidebarCollapsed && (
-                <div className="absolute left-full ml-4 px-3 py-2 bg-gradient-to-r from-[#15181F] to-[#1A1D25] text-[#E5E7EB] text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap z-50 border border-[#3BF68A]/30 shadow-lg backdrop-blur-sm">
+                <div className="absolute left-full ml-4 px-3 py-2 bg-[#1E2130] text-zinc-100 text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap z-50 border border-white/10 shadow-lg backdrop-blur-sm">
                   {item.name}
-                  <div className="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-[#15181F]"></div>
+                  <div className="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-[#1E2130]"></div>
                 </div>
               )}
             </button>
@@ -142,48 +141,44 @@ export const Sidebar: React.FC = () => {
 
       {/* Footer - Theme toggle and version */}
       <div className={clsx(
-        'border-t border-[#1F2937] transition-all duration-300 flex-shrink-0',
+        'border-t border-white/5 transition-all duration-300 flex-shrink-0',
         sidebarCollapsed ? 'p-3' : 'p-4'
       )}>
-        {/* Theme Toggle */}
-        <button
-          onClick={toggleTheme}
+        {/* Theme Toggle - Disabled / Coming Soon */}
+        <div
           className={clsx(
-            'w-full flex items-center justify-center mb-3 rounded-lg transition-all duration-200 group relative',
+            'w-full flex items-center justify-center mb-3 rounded-lg relative group cursor-not-allowed',
             sidebarCollapsed ? 'p-3' : 'px-3 py-2',
-            'text-[#94A3B8] hover:text-[#E5E7EB] hover:bg-gradient-to-r hover:from-[#3BF68A]/10 hover:to-[#A78BFA]/10'
+            'text-zinc-600 opacity-50'
           )}
         >
-          {theme === 'dark' ? (
-            <>
-              <Sun className={clsx(sidebarCollapsed ? 'h-6 w-6' : 'h-5 w-5')} />
-              {!sidebarCollapsed && <span className="ml-3 text-sm">Light Mode</span>}
-            </>
-          ) : (
-            <>
-              <Moon className={clsx(sidebarCollapsed ? 'h-6 w-6' : 'h-5 w-5')} />
-              {!sidebarCollapsed && <span className="ml-3 text-sm">Dark Mode</span>}
-            </>
+          <Sun className={clsx(sidebarCollapsed ? 'h-6 w-6' : 'h-5 w-5')} />
+          {!sidebarCollapsed && (
+            <span className="ml-3 text-sm flex items-center gap-2">
+              Light Mode
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#2C3148] text-zinc-400 tracking-wide">SOON</span>
+            </span>
           )}
 
-          {/* Tooltip for collapsed state */}
+          {/* Tooltip - Coming Soon */}
           {sidebarCollapsed && (
-            <div className="absolute left-full ml-4 px-3 py-2 bg-gradient-to-r from-[#15181F] to-[#1A1D25] text-[#E5E7EB] text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap z-50 border border-[#3BF68A]/30 shadow-lg">
-              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            <div className="absolute left-full ml-4 px-3 py-2 bg-[#1E2130] text-zinc-300 text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap z-50 border border-white/10 shadow-lg">
+              Light Mode <span className="text-[9px] font-bold text-zinc-500 ml-1">COMING SOON</span>
             </div>
           )}
-        </button>
+        </div>
+
 
         {/* Version */}
         {!sidebarCollapsed ? (
-          <div className="text-xs text-[#8B94A7] text-center">
-            <span className="bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] bg-clip-text text-transparent font-medium">
+          <div className="text-xs text-zinc-400 text-center">
+            <span className="text-zinc-50 font-medium">
               TradePilot v1.0
             </span>
           </div>
         ) : (
           <div className="flex justify-center">
-            <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#3BF68A] to-[#A78BFA]"></div>
+            <div className="w-2 h-2 rounded-full bg-white text-zinc-950 hover:bg-zinc-200"></div>
           </div>
         )}
       </div>

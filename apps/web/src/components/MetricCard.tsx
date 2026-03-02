@@ -20,7 +20,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   title,
   value,
   icon: Icon,
-  iconColor = 'text-[#8B94A7]',
+  iconColor = 'text-zinc-400',
   format = 'number',
   trend = 'neutral',
   subtitle,
@@ -52,11 +52,11 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   const getTrendColor = () => {
     switch (trend) {
       case 'up':
-        return 'bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] bg-clip-text text-transparent';
+        return 'text-zinc-50';
       case 'down':
-        return 'text-[#F45B69]';
+        return 'text-rose-500';
       default:
-        return 'text-[#E5E7EB]';
+        return 'text-zinc-100';
     }
   };
 
@@ -81,28 +81,24 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
   return (
     <div 
-      className="rounded-lg p-4 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-      style={{
-        background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-      }}
+      className="rounded-lg p-4 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+      
     >
       {/* Gradient border on hover */}
       <div className="absolute inset-0 rounded-lg p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
         <div 
           className="w-full h-full rounded-lg"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          
         />
       </div>
       
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <span className="text-[#8B94A7] text-xs font-medium">{title}</span>
+            <span className="text-zinc-400 text-xs font-medium">{title}</span>
             <Tooltip content={getTooltipContent(title)} position="top">
-              <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help hover:bg-gradient-to-r hover:from-[#3BF68A]/20 hover:to-[#A78BFA]/20 transition-all">
-                <span className="text-[#8B94A7] text-xs">?</span>
+              <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
+                <span className="text-zinc-400 text-xs">?</span>
               </div>
             </Tooltip>
           </div>
@@ -115,7 +111,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           </div>
           
           {subtitle && (
-            <div className="text-[#8B94A7] text-xs font-medium">
+            <div className="text-zinc-400 text-xs font-medium">
               {subtitle}
             </div>
           )}

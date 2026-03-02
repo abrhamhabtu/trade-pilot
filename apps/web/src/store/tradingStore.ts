@@ -741,7 +741,14 @@ export const useTradingStore = create<TradingState>((set, get) => ({
   isLoading: false,
   selectedTimePeriod: 'ALL',
   sidebarCollapsed: false,
-  currentView: 'dashboard',
+  currentView: (() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tradepilot_current_view');
+      const valid = ['dashboard', 'trades', 'calendar', 'playbooks', 'journal', 'accounts', 'routine', 'journey'];
+      if (saved && valid.includes(saved)) return saved as TradingState['currentView'];
+    }
+    return 'dashboard';
+  })(),
   hasImportedData: initialState.hasImportedData,
   lastImportTime: initialState.lastImportTime,
 
@@ -915,6 +922,7 @@ export const useTradingStore = create<TradingState>((set, get) => ({
 
   setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine' | 'journey') => {
     set({ currentView: view });
+    try { localStorage.setItem('tradepilot_current_view', view); } catch { }
   },
 
   refreshData: () => {

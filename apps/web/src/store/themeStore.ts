@@ -13,13 +13,9 @@ interface ThemeState {
 const THEME_KEY = 'tradepilot_theme';
 
 const getInitialTheme = (): Theme => {
-  try {
-    const stored = localStorage.getItem(THEME_KEY);
-    if (stored === 'light' || stored === 'dark') {
-      return stored;
-    }
-  } catch {}
-  return 'dark'; // Default to dark theme
+  // Light mode is coming soon — always use dark theme for now
+  localStorage.setItem(THEME_KEY, 'dark');
+  return 'dark';
 };
 
 export const useThemeStore = create<ThemeState>((set, get) => ({

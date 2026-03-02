@@ -24,6 +24,7 @@
     "@types/node": "^20",
     "@types/react": "18.3.5",
     "@types/react-dom": "18.3.0",
+    "agentation": "^2.2.1",
     "autoprefixer": "10.4.18",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.16",
