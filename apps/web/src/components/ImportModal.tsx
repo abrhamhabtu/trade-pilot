@@ -150,6 +150,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const [importResults, setImportResults] = useState<{
     totalRows: number;
     successfulImports: number;
+    skippedDuplicates: number;
     errors: string[];
     trades: Trade[];
   } | null>(null);
@@ -658,8 +659,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       }
 
       // Add trades to target account with filename for import history
+      let added = result.trades.length;
+      let skipped = 0;
       if (targetAccountId) {
-        addTradesToAccount(targetAccountId, result.trades, file.name);
+        const result2 = addTradesToAccount(targetAccountId, result.trades, file.name);
+        added = result2.added;
+        skipped = result2.skipped;
       }
 
       // Call the callback if provided
@@ -670,12 +675,17 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       setImportStatus('success');
       setImportResults({
         totalRows: data.length,
-        successfulImports: result.trades.length,
+        successfulImports: added,
+        skippedDuplicates: skipped,
         errors: result.errors.slice(0, 10),
         trades: result.trades
       });
 
-      toast.success(`Successfully imported ${result.trades.length} trades from ${file.name}`);
+      if (skipped > 0) {
+        toast.success(`Imported ${added} new trades · ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped`);
+      } else {
+        toast.success(`Successfully imported ${added} trades from ${file.name}`);
+      }
 
     } catch (error) {
       console.error('Error importing trades:', error);
@@ -683,6 +693,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       setImportResults({
         totalRows: 0,
         successfulImports: 0,
+        skippedDuplicates: 0,
         errors: [error instanceof Error ? error.message : 'Unknown error occurred'],
         trades: []
       });
@@ -720,7 +731,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div
         className="rounded-xl border border-white/5 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
-        
+
       >
         {/* Header */}
         <div className="p-6 border-b border-white/5 flex items-center justify-between">
@@ -847,15 +858,23 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               </p>
 
               <div className="bg-[#242838]/50 rounded-lg p-4 mb-6">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-zinc-400">Total Rows:</span>
                     <span className="text-zinc-100 ml-2 font-medium">{importResults.totalRows}</span>
                   </div>
                   <div>
-                    <span className="text-zinc-400">Successful Imports:</span>
-                    <span className="text-emerald-500 ml-2 font-medium">{importResults.successfulImports}</span>
+                    <span className="text-zinc-400">New Trades Added:</span>
+                    <span className="text-emerald-400 ml-2 font-semibold">{importResults.successfulImports}</span>
                   </div>
+                  {importResults.skippedDuplicates > 0 && (
+                    <div className="col-span-2 flex items-center space-x-2 mt-1 p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                      <span className="text-amber-400 text-xs">⚠</span>
+                      <span className="text-amber-400 text-xs font-medium">
+                        {importResults.skippedDuplicates} trade{importResults.skippedDuplicates !== 1 ? 's' : ''} skipped — already in your account
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, MoreVertical, Upload, Trash2, Edit2, ChevronDown, FileText, AlertTriangle, History, X, Download, HardDrive, DollarSign, ArrowDownLeft, ArrowUpRight, Calendar } from 'lucide-react';
 import { useAccountStore, Account, AccountStatus, BalanceAdjustment } from '../../store/accountStore';
 import { useThemeStore } from '../../store/themeStore';
 import { toast } from '../../store/toastStore';
-import { exportAllData, importBackupData, getStorageUsage, exportTradesToCSV, setLastBackupTime } from '../../hooks/useLocalStorage';
+import { exportAllData, importBackupData, exportTradesToCSV, setLastBackupTime } from '../../hooks/useLocalStorage';
+import { getStorageEstimate } from '../../utils/indexedDB';
 import clsx from 'clsx';
 
 interface AddAccountModalProps {
@@ -835,9 +836,9 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
                           : 'border-gray-200 hover:border-purple-300'
                     )}
                   >
-                    <Icon 
-                      className="h-5 w-5 mx-auto mb-1" 
-                      style={{ color: type === option.value ? option.color : (theme === 'dark' ? '#8B94A7' : '#6B7280') }} 
+                    <Icon
+                      className="h-5 w-5 mx-auto mb-1"
+                      style={{ color: type === option.value ? option.color : (theme === 'dark' ? '#8B94A7' : '#6B7280') }}
                     />
                     <div className={clsx(
                       'text-xs font-semibold',
@@ -1173,7 +1174,7 @@ const AdjustmentsListModal: React.FC<AdjustmentsListModalProps> = ({ isOpen, acc
                         </p>
                       </div>
                     </div>
-                    
+
                     {confirmDeleteId === adjustment.id ? (
                       <div className="flex items-center space-x-2">
                         <button
@@ -1678,19 +1679,148 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
   const buttonRef = React.useRef<HTMLButtonElement>(null);
   const { theme } = useThemeStore();
 
+  // Close on Escape or scroll
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsOpen(false); };
+    const handleScroll = () => setIsOpen(false);
+    document.addEventListener('keydown', handleKey);
+    document.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      document.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [isOpen]);
+
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setMenuPosition({
         top: rect.bottom + 8,
-        left: rect.right - 192 // 192px = w-48 (12rem)
+        left: rect.right - 192 // 192px = w-48
       });
     }
-
-    setIsOpen(!isOpen);
+    setIsOpen(prev => !prev);
   };
+
+  // Use a portal so the dropdown renders outside overflow-hidden ancestors
+  const dropdownContent = isOpen ? (
+    <>
+      {/* Invisible full-screen backdrop to catch outside clicks */}
+      <div
+        className="fixed inset-0 z-[9998]"
+        onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+      />
+      {/* The actual dropdown menu */}
+      <div
+        className={clsx(
+          'fixed w-48 rounded-lg border shadow-xl z-[9999]',
+          theme === 'dark'
+            ? 'bg-[#181B24] border-white/10'
+            : 'bg-white border-gray-200'
+        )}
+        style={{ top: menuPosition.top, left: menuPosition.left }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => { onImport(); setIsOpen(false); }}
+          className={clsx(
+            'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors rounded-t-lg',
+            theme === 'dark'
+              ? 'text-zinc-100 hover:bg-[#242838]'
+              : 'text-gray-700 hover:bg-gray-100'
+          )}
+        >
+          <Upload className="h-4 w-4" />
+          <span>Import Trades</span>
+        </button>
+        <button
+          onClick={() => { onEdit(); setIsOpen(false); }}
+          className={clsx(
+            'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
+            theme === 'dark'
+              ? 'text-zinc-100 hover:bg-[#242838]'
+              : 'text-gray-700 hover:bg-gray-100'
+          )}
+        >
+          <Edit2 className="h-4 w-4" />
+          <span>Edit Account</span>
+        </button>
+        <button
+          onClick={() => { onAdjustBalance(); setIsOpen(false); }}
+          className={clsx(
+            'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
+            theme === 'dark'
+              ? 'text-emerald-500 hover:bg-emerald-500/10'
+              : 'text-green-600 hover:bg-green-50'
+          )}
+        >
+          <DollarSign className="h-4 w-4" />
+          <span>Adjust Balance</span>
+        </button>
+
+        <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-white/5' : 'border-gray-100')} />
+
+        {/* Status Options */}
+        <div className="px-2 py-1">
+          <p className={clsx('text-xs px-2 mb-1 uppercase font-semibold', theme === 'dark' ? 'text-zinc-400' : 'text-gray-400')}>
+            Set Status
+          </p>
+          {(['active', 'passed_eval', 'blown', 'inactive'] as AccountStatus[]).map((status) => {
+            const isPaidOut = status === 'inactive';
+            const isPassedEval = status === 'passed_eval';
+            const label = isPaidOut ? 'Paid Out' : isPassedEval ? 'Passed Eval' : status;
+            return (
+              <button
+                key={status}
+                onClick={() => { onStatusChange(status); setIsOpen(false); }}
+                className={clsx(
+                  'w-full px-2 py-1.5 text-left text-sm rounded flex items-center space-x-2 transition-colors',
+                  account.status === status
+                    ? (theme === 'dark'
+                      ? (isPaidOut ? 'bg-yellow-500/10 text-yellow-400' : isPassedEval ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-500')
+                      : (isPaidOut ? 'bg-yellow-50 text-yellow-600' : isPassedEval ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'))
+                    : (theme === 'dark' ? 'text-zinc-400 hover:bg-[#242838] hover:text-zinc-100' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900')
+                )}
+              >
+                <div className={clsx(
+                  'w-1.5 h-1.5 rounded-full',
+                  status === 'active' ? 'bg-emerald-500' :
+                    status === 'passed_eval' ? 'bg-[#60A5FA]' :
+                      status === 'blown' ? 'bg-rose-500' :
+                        'bg-yellow-400'
+                )} />
+                <span className="capitalize font-medium">{label}</span>
+                {isPaidOut && <span className="ml-auto text-xs">🏆</span>}
+                {isPassedEval && <span className="ml-auto text-xs">🎯</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-white/5' : 'border-gray-100')} />
+
+        <button
+          onClick={() => { onClearTrades(); setIsOpen(false); }}
+          className="w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors text-orange-500 hover:bg-orange-500/10"
+        >
+          <Trash2 className="h-4 w-4" />
+          <span>Clear All Trades</span>
+        </button>
+
+        {account.type !== 'demo' && (
+          <button
+            onClick={() => { onDelete(); setIsOpen(false); }}
+            className="w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors text-red-500 hover:bg-red-500/10 rounded-b-lg"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>Delete Account</span>
+          </button>
+        )}
+      </div>
+    </>
+  ) : null;
 
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -1707,129 +1837,14 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
         <MoreVertical className="h-5 w-5" />
       </button>
 
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
-          <div
-            className={clsx(
-              'fixed w-48 rounded-lg border shadow-xl z-50',
-              theme === 'dark'
-                ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
-                : 'bg-white border-gray-200'
-            )}
-            style={{ top: menuPosition.top, left: menuPosition.left }}
-          >
-            <button
-              onClick={() => { onImport(); setIsOpen(false); }}
-              className={clsx(
-                'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
-                theme === 'dark'
-                  ? 'text-zinc-100 hover:bg-[#242838]'
-                  : 'text-gray-700 hover:bg-gray-100'
-              )}
-            >
-              <Upload className="h-4 w-4" />
-              <span>Import Trades</span>
-            </button>
-            <button
-              onClick={() => { onEdit(); setIsOpen(false); }}
-              className={clsx(
-                'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
-                theme === 'dark'
-                  ? 'text-zinc-100 hover:bg-[#242838]'
-                  : 'text-gray-700 hover:bg-gray-100'
-              )}
-            >
-              <Edit2 className="h-4 w-4" />
-              <span>Edit Account</span>
-            </button>
-            <button
-              onClick={() => { onAdjustBalance(); setIsOpen(false); }}
-              className={clsx(
-                'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
-                theme === 'dark'
-                  ? 'text-emerald-500 hover:bg-emerald-500/10'
-                  : 'text-green-600 hover:bg-green-50'
-              )}
-            >
-              <DollarSign className="h-4 w-4" />
-              <span>Adjust Balance</span>
-            </button>
-
-            <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-white/5' : 'border-gray-100')} />
-
-            {/* Status Options */}
-            <div className="px-2 py-1">
-              <p className={clsx('text-xs px-2 mb-1 uppercase font-semibold', theme === 'dark' ? 'text-zinc-400' : 'text-gray-400')}>
-                Set Status
-              </p>
-              {(['active', 'passed_eval', 'blown', 'inactive'] as AccountStatus[]).map((status) => {
-                const isPaidOut = status === 'inactive';
-                const isPassedEval = status === 'passed_eval';
-                const label = isPaidOut ? 'Paid Out' : isPassedEval ? 'Passed Eval' : status;
-
-                return (
-                  <button
-                    key={status}
-                    onClick={() => { onStatusChange(status); setIsOpen(false); }}
-                    className={clsx(
-                      'w-full px-2 py-1.5 text-left text-sm rounded flex items-center space-x-2 transition-colors',
-                      account.status === status
-                        ? (theme === 'dark'
-                          ? (isPaidOut ? 'bg-yellow-500/10 text-yellow-400' : isPassedEval ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-500')
-                          : (isPaidOut ? 'bg-yellow-50 text-yellow-600' : isPassedEval ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'))
-                        : (theme === 'dark' ? 'text-zinc-400 hover:bg-[#242838] hover:text-zinc-100' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900')
-                    )}
-                  >
-                    <div className={clsx(
-                      'w-1.5 h-1.5 rounded-full',
-                      status === 'active' ? 'bg-emerald-500' :
-                        status === 'passed_eval' ? 'bg-[#60A5FA]' :
-                          status === 'blown' ? 'bg-rose-500' :
-                            'bg-yellow-400'
-                    )} />
-                    <span className="capitalize font-medium">{label}</span>
-                    {isPaidOut && <span className="ml-auto text-xs">🏆</span>}
-                    {isPassedEval && <span className="ml-auto text-xs">🎯</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-white/5' : 'border-gray-100')} />
-
-            <button
-              onClick={() => { onClearTrades(); setIsOpen(false); }}
-              className={clsx(
-                'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
-                'text-orange-500 hover:bg-orange-500/10'
-              )}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span>Clear All Trades</span>
-            </button>
-
-            {account.type !== 'demo' && (
-              <button
-                onClick={() => { onDelete(); setIsOpen(false); }}
-                className={clsx(
-                  'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
-                  'text-red-500 hover:bg-red-500/10'
-                )}
-              >
-                <Trash2 className="h-4 w-4" />
-                <span>Delete Account</span>
-              </button>
-            )}
-          </div>
-        </>
-      )}
+      {/* Portal renders outside overflow-hidden table container */}
+      {typeof document !== 'undefined' &&
+        require('react-dom').createPortal(dropdownContent, document.body)
+      }
     </div>
   );
 };
+
 
 interface AccountsPageProps {
   onImportForAccount: (accountId: string) => void;
@@ -1848,6 +1863,12 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
   const [showAdjustments, setShowAdjustments] = useState<Account | null>(null);
   const [showAddAdjustment, setShowAddAdjustment] = useState<Account | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Real IDB storage estimate (async, replaces old 5MB localStorage calc)
+  const [idbStorage, setIdbStorage] = useState<{ used: number; quota: number; percentage: number } | null>(null);
+  useEffect(() => {
+    getStorageEstimate().then(setIdbStorage).catch(() => { });
+  }, []);
 
   const handleAddAccount = (name: string, broker: string) => {
     const id = addAccount({ name, broker, type: 'file_upload' });
@@ -2452,14 +2473,16 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                   'text-sm font-medium',
                   theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
                 )}>
-                  Local Storage
+                  Browser Storage (IndexedDB)
                 </span>
               </div>
               <span className={clsx(
                 'text-sm font-mono',
                 theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
               )}>
-                {(getStorageUsage().used / 1024).toFixed(1)} KB / 5 MB
+                {idbStorage
+                  ? `${(idbStorage.used / (1024 * 1024)).toFixed(1)} MB / ${(idbStorage.quota / (1024 * 1024 * 1024)).toFixed(1)} GB`
+                  : 'Calculating...'}
               </span>
             </div>
 
@@ -2471,13 +2494,13 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
               <div
                 className={clsx(
                   'h-full transition-all rounded-full',
-                  getStorageUsage().percentage < 60
+                  !idbStorage || idbStorage.percentage < 60
                     ? 'bg-gradient-to-r from-[#3BF68A] to-[#60A5FA]'
-                    : getStorageUsage().percentage < 85
+                    : idbStorage.percentage < 85
                       ? 'bg-gradient-to-r from-[#FBBF24] to-[#F59E0B]'
                       : 'bg-gradient-to-r from-[#F45B69] to-[#EF4444]'
                 )}
-                style={{ width: `${Math.min(getStorageUsage().percentage, 100)}%` }}
+                style={{ width: `${Math.min(idbStorage?.percentage ?? 0, 100)}%` }}
               />
             </div>
 
@@ -2485,9 +2508,9 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
               'text-xs',
               theme === 'dark' ? 'text-[#6B7280]' : 'text-gray-500'
             )}>
-              {getStorageUsage().percentage < 60
-                ? '✓ Plenty of space available'
-                : getStorageUsage().percentage < 85
+              {!idbStorage || idbStorage.percentage < 60
+                ? '✓ Plenty of space available — data stored in IndexedDB'
+                : idbStorage.percentage < 85
                   ? '⚡ Storage is filling up — screenshots use the most space'
                   : '⚠️ Running low on space — consider backing up and clearing old data'}
             </p>

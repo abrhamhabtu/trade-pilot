@@ -1,8 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-
-const DAILY_NOTES_STORAGE_KEY = 'tradepilot-daily-notes';
+import { saveNotesToIDB, loadNotesFromIDB } from '../utils/indexedDB';
 
 export interface NoteImage {
   id: string;
@@ -14,16 +13,18 @@ export interface NoteImage {
 export interface DailyNote {
   date: string;
   accountId?: string; // Account this note belongs to (undefined = global/journal)
-  content: string; // Rich text content (HTML)
+  content: string;   // Rich text content (HTML)
   images: NoteImage[];
   lastUpdated: string;
   tags?: string[];
 }
 
 interface DailyNotesState {
-  notes: Record<string, DailyNote>; // Keyed by "accountId:date" or just "date" for global notes
-  
+  notes: Record<string, DailyNote>;
+  _hydrated: boolean; // true once IDB load has completed
+
   // Actions
+  hydrate: () => Promise<void>;
   getNote: (date: string, accountId?: string) => DailyNote | null;
   saveNote: (date: string, content: string, accountId?: string) => void;
   addImage: (date: string, imageDataUrl: string, accountId?: string, caption?: string) => void;
@@ -31,50 +32,42 @@ interface DailyNotesState {
   updateImageCaption: (date: string, imageId: string, caption: string, accountId?: string) => void;
   deleteNote: (date: string, accountId?: string) => void;
   hasNote: (date: string, accountId?: string) => boolean;
-  // Get all notes for a date across all accounts (for Journal view)
   getAllNotesForDate: (date: string) => DailyNote[];
 }
 
-// Load notes from localStorage
-const loadNotesFromStorage = (): Record<string, DailyNote> => {
-  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-    return {};
-  }
-  try {
-    const stored = localStorage.getItem(DAILY_NOTES_STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error('Failed to load daily notes from storage:', error);
-  }
-  return {};
-};
-
-// Save notes to localStorage
-const saveNotesToStorage = (notes: Record<string, DailyNote>) => {
-  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-    return;
-  }
-  try {
-    localStorage.setItem(DAILY_NOTES_STORAGE_KEY, JSON.stringify(notes));
-  } catch (error) {
-    console.error('Failed to save daily notes to storage:', error);
-  }
-};
-
 // Helper to create storage key
-const makeKey = (date: string, accountId?: string) => accountId ? `${accountId}:${date}` : date;
+const makeKey = (date: string, accountId?: string) =>
+  accountId ? `${accountId}:${date}` : date;
+
+// Fire-and-forget persist to IDB
+function persistNotes(notes: Record<string, DailyNote>): void {
+  saveNotesToIDB(notes as Record<string, unknown>).catch(e =>
+    console.error('Failed to persist notes to IDB:', e)
+  );
+}
 
 export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
-  notes: loadNotesFromStorage(),
+  notes: {},
+  _hydrated: false,
 
-  getNote: (date: string, accountId?: string) => {
+  // Call this once from a client useEffect to load from IDB
+  hydrate: async () => {
+    if (get()._hydrated) return;
+    try {
+      const stored = await loadNotesFromIDB();
+      set({ notes: stored as Record<string, DailyNote>, _hydrated: true });
+    } catch (e) {
+      console.error('Failed to hydrate notes from IDB:', e);
+      set({ _hydrated: true });
+    }
+  },
+
+  getNote: (date, accountId) => {
     const key = makeKey(date, accountId);
     return get().notes[key] || null;
   },
 
-  saveNote: (date: string, content: string, accountId?: string) => {
+  saveNote: (date, content, accountId) => {
     set((state) => {
       const key = makeKey(date, accountId);
       const existingNote = state.notes[key];
@@ -86,18 +79,13 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
         lastUpdated: new Date().toISOString(),
         tags: existingNote?.tags || []
       };
-      
-      const newNotes = {
-        ...state.notes,
-        [key]: newNote
-      };
-      
-      saveNotesToStorage(newNotes);
+      const newNotes = { ...state.notes, [key]: newNote };
+      persistNotes(newNotes);
       return { notes: newNotes };
     });
   },
 
-  addImage: (date: string, imageDataUrl: string, accountId?: string, caption?: string) => {
+  addImage: (date, imageDataUrl, accountId, caption) => {
     set((state) => {
       const key = makeKey(date, accountId);
       const existingNote = state.notes[key] || {
@@ -122,17 +110,13 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
         lastUpdated: new Date().toISOString()
       };
 
-      const newNotes = {
-        ...state.notes,
-        [key]: newNote
-      };
-
-      saveNotesToStorage(newNotes);
+      const newNotes = { ...state.notes, [key]: newNote };
+      persistNotes(newNotes);
       return { notes: newNotes };
     });
   },
 
-  removeImage: (date: string, imageId: string, accountId?: string) => {
+  removeImage: (date, imageId, accountId) => {
     set((state) => {
       const key = makeKey(date, accountId);
       const existingNote = state.notes[key];
@@ -144,17 +128,13 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
         lastUpdated: new Date().toISOString()
       };
 
-      const newNotes = {
-        ...state.notes,
-        [key]: newNote
-      };
-
-      saveNotesToStorage(newNotes);
+      const newNotes = { ...state.notes, [key]: newNote };
+      persistNotes(newNotes);
       return { notes: newNotes };
     });
   },
 
-  updateImageCaption: (date: string, imageId: string, caption: string, accountId?: string) => {
+  updateImageCaption: (date, imageId, caption, accountId) => {
     set((state) => {
       const key = makeKey(date, accountId);
       const existingNote = state.notes[key];
@@ -162,38 +142,34 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
 
       const newNote: DailyNote = {
         ...existingNote,
-        images: existingNote.images.map(img => 
+        images: existingNote.images.map(img =>
           img.id === imageId ? { ...img, caption } : img
         ),
         lastUpdated: new Date().toISOString()
       };
 
-      const newNotes = {
-        ...state.notes,
-        [key]: newNote
-      };
-
-      saveNotesToStorage(newNotes);
+      const newNotes = { ...state.notes, [key]: newNote };
+      persistNotes(newNotes);
       return { notes: newNotes };
     });
   },
 
-  deleteNote: (date: string, accountId?: string) => {
+  deleteNote: (date, accountId) => {
     set((state) => {
       const key = makeKey(date, accountId);
       const { [key]: _, ...rest } = state.notes;
-      saveNotesToStorage(rest);
+      persistNotes(rest);
       return { notes: rest };
     });
   },
 
-  hasNote: (date: string, accountId?: string) => {
+  hasNote: (date, accountId) => {
     const key = makeKey(date, accountId);
     const note = get().notes[key];
     return !!(note && (note.content.trim() || note.images.length > 0));
   },
 
-  getAllNotesForDate: (date: string) => {
+  getAllNotesForDate: (date) => {
     const notes = get().notes;
     return Object.values(notes).filter(note => note.date === date);
   }

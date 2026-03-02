@@ -5,6 +5,12 @@ import clsx from 'clsx';
 import { Sidebar } from '@/components/Sidebar';
 import { useTradingStore } from '@/store/tradingStore';
 import { useThemeStore } from '@/store/themeStore';
+import dynamic from 'next/dynamic';
+
+// Only load Agentation in development — zero impact on production bundle
+const Agentation = process.env.NODE_ENV !== 'production'
+  ? dynamic(() => import('agentation').then(m => ({ default: m.Agentation })), { ssr: false })
+  : null;
 
 export default function RootShell({ children }: { children: React.ReactNode }) {
   const { sidebarCollapsed } = useTradingStore();
@@ -24,6 +30,7 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
       <main className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
         {children}
       </main>
+      {Agentation && <Agentation />}
     </div>
   );
 }

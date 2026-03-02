@@ -14,6 +14,7 @@ import { useTradingStore, Trade, TimePeriod } from '@/store/tradingStore';
 import { useAccountStore } from '@/store/accountStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useToastStore } from '@/store/toastStore';
+import { useDailyNotesStore } from '@/store/dailyNotesStore';
 import { useChartData } from '@/hooks/useChartData';
 import { shouldShowBackupReminder, dismissBackupReminder } from '@/hooks/useLocalStorage';
 import { AlertTriangle, X } from 'lucide-react';
@@ -194,8 +195,9 @@ export default function AppClient() {
     setCurrentView
   } = useTradingStore();
 
-  const { getAllTrades, addTradesToAccount, selectedAccountId, showAllAccounts, accounts } =
+  const { getAllTrades, addTradesToAccount, selectedAccountId, showAllAccounts, accounts, initializeFromIDB } =
     useAccountStore();
+  const { hydrate: hydrateNotes } = useDailyNotesStore();
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [importTargetAccountId, setImportTargetAccountId] = useState<string | null>(null);
@@ -203,7 +205,10 @@ export default function AppClient() {
 
   const { theme } = useThemeStore();
 
+  // Hydrate accounts + notes from IndexedDB on first client render
   useEffect(() => {
+    initializeFromIDB();
+    hydrateNotes();
     if (shouldShowBackupReminder()) {
       setShowBackupReminder(true);
     }
@@ -306,8 +311,8 @@ export default function AppClient() {
         <div className="fixed top-0 left-0 right-0 z-50">
           <div
             className={`mx-auto max-w-4xl mt-3 mx-4 px-4 py-2.5 rounded-xl flex items-center justify-between backdrop-blur-md shadow-lg ${theme === 'dark'
-                ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30'
-                : 'bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300'
+              ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30'
+              : 'bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300'
               }`}
           >
             <div className="flex items-center space-x-3">
