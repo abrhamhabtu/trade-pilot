@@ -100,6 +100,39 @@
 
 ---
 
+## Next.js App Structure
+
+TradePilot is built on **Next.js 14** using the **App Router**. Here's how the routing and rendering work:
+
+```
+apps/web/src/
+├── app/
+│   ├── layout.tsx        # Root layout — sets fonts, global CSS, metadata
+│   ├── page.tsx          # Root route "/" — renders <AppClient>
+│   ├── AppClient.tsx     # "use client" shell — handles view routing & state
+│   ├── RootShell.tsx     # Sidebar + main content layout wrapper
+│   ├── globals.css       # Global styles & CSS custom properties (dark/light theme)
+│   └── login/
+│       └── page.tsx      # Login route "/login"
+├── components/           # All UI components (see below)
+├── hooks/                # Custom React hooks
+├── store/                # Zustand stores
+└── utils/                # CSV parsing & calculation utilities
+```
+
+### Why "use client" on AppClient?
+
+Next.js App Router renders pages on the **server by default** (React Server Components). Since TradePilot's entire UI is driven by `localStorage` and Zustand (both browser-only APIs), `AppClient.tsx` is marked `"use client"` so it runs entirely in the browser. This is the correct pattern for a local-first app with no backend.
+
+```
+page.tsx (Server Component)
+    └── <AppClient> (Client Component — "use client")
+            └── <RootShell> (Sidebar + layout)
+                    └── {currentView} (Dashboard, Journals, Calendar, etc.)
+```
+
+---
+
 ## Step-by-Step: What Happens When You Import a CSV
 
 ### 1. You Drop a CSV File
@@ -299,13 +332,16 @@ When you open TradePilot, here's what happens:
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         App Startup                                 │
 │                                                                     │
-│   1. Browser loads TradePilot                                       │
+│   1. Next.js serves the HTML shell (server render)                 │
 │                    │                                                │
 │                    ▼                                                │
-│   2. accountStore.ts runs loadAccountsFromStorage()                 │
+│   2. Browser loads AppClient.tsx ("use client")                     │
 │                    │                                                │
 │                    ▼                                                │
-│   3. Check localStorage for 'tradepilot_accounts'                   │
+│   3. accountStore.ts runs loadAccountsFromStorage()                 │
+│                    │                                                │
+│                    ▼                                                │
+│   4. Check localStorage for 'tradepilot_accounts'                   │
 │                    │                                                │
 │          ┌────────┴────────┐                                        │
 │          │                 │                                        │
@@ -319,10 +355,10 @@ When you open TradePilot, here's what happens:
 │          │                 │                                        │
 │          └────────┬────────┘                                        │
 │                   ▼                                                 │
-│   4. Zustand store initialized with data                            │
+│   5. Zustand store initialized with data                            │
 │                   │                                                 │
 │                   ▼                                                 │
-│   5. React components render with your trades                       │
+│   6. React components render with your trades                       │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -435,7 +471,17 @@ npm run dev
 # Open http://localhost:3001
 ```
 
-Requires Node.js 18+.
+Requires Node.js 20+.
+
+### Option 3: Production Build
+
+```bash
+npm run build
+npm run start
+# Open http://localhost:3001
+```
+
+Runs the optimized Next.js production server locally.
 
 ---
 
@@ -443,6 +489,10 @@ Requires Node.js 18+.
 
 | File | Purpose |
 |------|---------|
+| `apps/web/src/app/layout.tsx` | Root Next.js layout (metadata, fonts, global CSS) |
+| `apps/web/src/app/page.tsx` | Root route — mounts the client shell |
+| `apps/web/src/app/AppClient.tsx` | Client-side shell: view routing, account switching |
+| `apps/web/src/app/RootShell.tsx` | Sidebar + main content layout |
 | `apps/web/src/store/accountStore.ts` | Main data store for accounts & trades |
 | `apps/web/src/store/tradingStore.ts` | Trading metrics, time filters, UI state |
 | `apps/web/src/hooks/useLocalStorage.ts` | Helper functions for saving/loading/exporting |
@@ -453,4 +503,4 @@ Requires Node.js 18+.
 
 ---
 
-*Last Updated: January 2026*
+*Last Updated: March 2026 — Migrated to Next.js 14 App Router*

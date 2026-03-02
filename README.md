@@ -16,7 +16,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Open%20Source-Free-brightgreen" alt="Open Source">
-  <img src="https://img.shields.io/badge/React-18.3-61dafb?logo=react&logoColor=white" alt="React">
+  <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js&logoColor=white" alt="Next.js">
   <img src="https://img.shields.io/badge/TypeScript-5.5-3178c6?logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwind-css&logoColor=white" alt="Tailwind">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
@@ -172,12 +172,12 @@ Instrument, Market pos., Qty, Entry price, Exit price, Profit, Commission, Entry
 
 | Category | Technology |
 |----------|------------|
-| **Framework** | React 18 |
+| **Framework** | Next.js 14 (App Router) |
 | **Language** | TypeScript |
 | **Styling** | Tailwind CSS |
 | **State** | Zustand |
 | **Charts** | Recharts + Custom SVG |
-| **Build** | Next.js (App Router) |
+| **Runtime** | React 18 |
 | **File Parsing** | Papa Parse, XLSX |
 
 ---
@@ -201,16 +201,23 @@ Instrument, Market pos., Qty, Entry price, Exit price, Profit, Commission, Entry
 
 ```
 apps/web/src/
+├── app/
+│   ├── layout.tsx          # Root layout (fonts, global providers)
+│   ├── page.tsx            # Entry point → renders AppClient
+│   ├── AppClient.tsx       # Client-side shell & routing logic
+│   ├── RootShell.tsx       # Sidebar + main content wrapper
+│   ├── globals.css         # Global styles & CSS variables
+│   └── login/             # Login page route
 ├── components/
-│   ├── accounts/       # Multi-account management & balance adjustments
-│   ├── charts/         # Chart components (equity curves, P&L charts)
-│   ├── common/         # Shared UI components (Toast, etc.)
-│   ├── dashboard/      # Dashboard views & analytics
-│   ├── journal/        # Trading journal with daily notes
-│   └── routine/        # Journey page, Consistency Guardian, What-If tool
-├── hooks/              # Custom React hooks (localStorage, chart data)
-├── store/              # Zustand state stores (accounts, trades, theme)
-└── utils/              # Utility functions (CSV parsing, calculations)
+│   ├── accounts/           # Multi-account management & balance adjustments
+│   ├── charts/             # Chart components (equity curves, P&L charts)
+│   ├── common/             # Shared UI components (Toast, etc.)
+│   ├── dashboard/          # Dashboard views & analytics
+│   ├── journal/            # Trading journal with daily notes
+│   └── routine/            # Journey page, Consistency Guardian, What-If tool
+├── hooks/                  # Custom React hooks (localStorage, chart data)
+├── store/                  # Zustand state stores (accounts, trades, theme)
+└── utils/                  # Utility functions (CSV parsing, calculations)
 ```
 
 </details>
@@ -275,6 +282,7 @@ When you take a payout from your prop firm, your account balance changes but you
 - [x] Consistency Guardian with what-if simulator, daily guardrails, and path-to-payout
 - [x] Dual-condition payout qualification (balance target + consistency rule)
 - [x] Smart backup reminders with persistent dismissal
+- [x] **Migrated to Next.js 14** — App Router, SSR-ready, faster builds
 - [ ] **Hosted version** — Simple login, no code required (small fee to cover hosting)
 - [ ] Cloud sync
 - [ ] Real-time broker integrations

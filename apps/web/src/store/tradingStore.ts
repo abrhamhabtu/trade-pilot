@@ -472,7 +472,7 @@ const generateJune2025TradingData = (): Trade[] => {
     if (isWeekend(date)) continue;
 
     let dailyPL = 0;
-    const targetPnl = dayData.targetPnl;
+    const targetPnl = dayData.targetPnl ?? 0;
 
     for (let i = 0; i < dayData.trades; i++) {
       const symbol = symbols[Math.floor(Math.random() * symbols.length)];
@@ -913,7 +913,7 @@ export const useTradingStore = create<TradingState>((set, get) => ({
     set(state => ({ sidebarCollapsed: !state.sidebarCollapsed }));
   },
 
-  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine') => {
+  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine' | 'journey') => {
     set({ currentView: view });
   },
 

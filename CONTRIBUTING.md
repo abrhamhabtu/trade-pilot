@@ -7,6 +7,7 @@ Thanks for contributing.
 Requirements:
 - Node.js 20+
 - npm 10+
+- This is a **Next.js 14** (App Router) project
 
 Install dependencies:
 
@@ -46,6 +47,7 @@ npm run build
 - Prefer clear names and small functions over clever abstractions.
 - Avoid introducing global state unless necessary.
 - Preserve local-first behavior and browser storage compatibility.
+- **Next.js App Router**: only add `"use client"` to components that use browser APIs (localStorage, window, etc.) or React hooks that depend on them. Server Components are the default and are preferred where possible.
 
 ## Non-Technical User Experience
 

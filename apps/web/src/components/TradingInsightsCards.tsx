@@ -28,21 +28,21 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
     const dayGroups = trades.reduce((acc, trade) => {
       const date = new Date(trade.date);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-      
+
       if (!acc[dayName]) {
         acc[dayName] = { trades: [], totalPnl: 0 };
       }
-      
+
       acc[dayName].trades.push(trade);
       acc[dayName].totalPnl += trade.netPL;
-      
+
       return acc;
     }, {} as Record<string, { trades: Trade[]; totalPnl: number }>);
 
     // Find most active day
     const mostActiveDay = Object.entries(dayGroups).reduce((max, [day, data]) => {
-      return data.trades.length > max.totalTrades ? 
-        { day, activeDays: 1, totalTrades: data.trades.length, avgTradesPerDay: data.trades.length } : 
+      return data.trades.length > max.totalTrades ?
+        { day, activeDays: 1, totalTrades: data.trades.length, avgTradesPerDay: data.trades.length } :
         max;
     }, { day: 'N/A', activeDays: 0, totalTrades: 0, avgTradesPerDay: 0 });
 
@@ -52,17 +52,17 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
     }, { day: 'N/A', profit: -Infinity });
 
     const leastProfitableDay = Object.entries(dayGroups).reduce((min, [day, data]) => {
-      return data.totalPnl < min.loss ? { day, profit: data.totalPnl } : min;
-    }, { day: 'N/A', loss: Infinity });
+      return data.totalPnl < min.pnl ? { day, pnl: data.totalPnl } : min;
+    }, { day: 'N/A', pnl: Infinity });
 
     // Calculate durations
     const winningTrades = trades.filter(t => t.outcome === 'win');
     const losingTrades = trades.filter(t => t.outcome === 'loss');
-    
+
     const avgDuration = trades.reduce((sum, t) => sum + t.duration, 0) / trades.length;
-    const avgWinDuration = winningTrades.length > 0 ? 
+    const avgWinDuration = winningTrades.length > 0 ?
       winningTrades.reduce((sum, t) => sum + t.duration, 0) / winningTrades.length : 0;
-    const avgLossDuration = losingTrades.length > 0 ? 
+    const avgLossDuration = losingTrades.length > 0 ?
       losingTrades.reduce((sum, t) => sum + t.duration, 0) / losingTrades.length : 0;
 
     const formatDuration = (totalMinutes: number) => {
@@ -74,7 +74,7 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
     return {
       mostActiveDay,
       mostProfitableDay,
-      leastProfitableDay: { day: leastProfitableDay.day, loss: leastProfitableDay.loss === Infinity ? 0 : leastProfitableDay.loss },
+      leastProfitableDay: { day: leastProfitableDay.day, loss: leastProfitableDay.pnl === Infinity ? 0 : leastProfitableDay.pnl },
       totalTrades: trades.length,
       totalLots: Math.floor(trades.reduce((sum, t) => sum + t.quantity, 0) / 100), // Rough lots calculation
       avgTradeDuration: formatDuration(avgDuration),
@@ -103,21 +103,21 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
       {/* Insights Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         {/* Most Active Day */}
-        <div 
+        <div
           className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
           style={{
             background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
           }}
         >
           <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
-            <div 
+            <div
               className="w-full h-full rounded-xl"
               style={{
                 background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
               }}
             />
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-[#8B94A7] text-sm font-medium">Most Active Day</span>
@@ -137,21 +137,21 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
         </div>
 
         {/* Most Profitable Day */}
-        <div 
+        <div
           className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
           style={{
             background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
           }}
         >
           <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
-            <div 
+            <div
               className="w-full h-full rounded-xl"
               style={{
                 background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
               }}
             />
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-[#8B94A7] text-sm font-medium">Most Profitable Day</span>
@@ -169,21 +169,21 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
         </div>
 
         {/* Least Profitable Day */}
-        <div 
+        <div
           className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
           style={{
             background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
           }}
         >
           <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
-            <div 
+            <div
               className="w-full h-full rounded-xl"
               style={{
                 background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
               }}
             />
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-[#8B94A7] text-sm font-medium">Least Profitable Day</span>
@@ -204,21 +204,21 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
       {/* Second Row of Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Total Number of Trades */}
-        <div 
+        <div
           className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
           style={{
             background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
           }}
         >
           <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
-            <div 
+            <div
               className="w-full h-full rounded-xl"
               style={{
                 background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
               }}
             />
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-[#8B94A7] text-sm font-medium">Total Number of Trades</span>
@@ -233,21 +233,21 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
         </div>
 
         {/* Total Number of Lots Traded */}
-        <div 
+        <div
           className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
           style={{
             background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
           }}
         >
           <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
-            <div 
+            <div
               className="w-full h-full rounded-xl"
               style={{
                 background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
               }}
             />
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-[#8B94A7] text-sm font-medium">Total Number of Lots Traded</span>
@@ -262,21 +262,21 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
         </div>
 
         {/* Average Trade Duration */}
-        <div 
+        <div
           className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
           style={{
             background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
           }}
         >
           <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
-            <div 
+            <div
               className="w-full h-full rounded-xl"
               style={{
                 background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
               }}
             />
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-[#8B94A7] text-sm font-medium">Average Trade Duration</span>
@@ -293,21 +293,21 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
         </div>
 
         {/* Average Win Duration */}
-        <div 
+        <div
           className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
           style={{
             background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
           }}
         >
           <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
-            <div 
+            <div
               className="w-full h-full rounded-xl"
               style={{
                 background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
               }}
             />
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-[#8B94A7] text-sm font-medium">Average Win Duration</span>
@@ -324,21 +324,21 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
         </div>
 
         {/* Average Loss Duration */}
-        <div 
+        <div
           className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
           style={{
             background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
           }}
         >
           <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
-            <div 
+            <div
               className="w-full h-full rounded-xl"
               style={{
                 background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
               }}
             />
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-[#8B94A7] text-sm font-medium">Average Loss Duration</span>

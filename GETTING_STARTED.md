@@ -72,7 +72,7 @@ Download and install it like any other app.
 Open the AI chat panel (usually on the right side) and paste this prompt:
 
 ```
-I just downloaded TradePilot and I want to run it locally. 
+I just downloaded TradePilot (a Next.js 14 app) and I want to run it locally.
 Can you help me:
 1. Install the dependencies (npm run setup)
 2. Start the development server (npm run dev)
@@ -147,12 +147,12 @@ docker-compose up -d
 
 ## Option C: Manual Setup (For Developers)
 
-This method requires Node.js. Only use this if you're comfortable with code.
+This method requires Node.js 20+. Only use this if you're comfortable with code.
 
 ### Step 1: Install Node.js
 
 1. Go to [nodejs.org](https://nodejs.org/)
-2. Download the **LTS** version (the one on the left)
+2. Download the **LTS** version (20 or newer)
 3. Install it
 
 ### Step 2: Download TradePilot
@@ -167,6 +167,8 @@ Open Terminal/Command Prompt in the TradePilot folder, then:
 npm run install:web
 npm run dev
 ```
+
+This starts the Next.js development server.
 
 ### Step 4: Open TradePilot
 
@@ -229,13 +231,12 @@ TradePilot can import trades from these platforms:
 
 ### "I can't access localhost:3001"
 
-- Make sure Docker Desktop is running (green icon)
-- Try running `docker-compose up -d` again
-- Wait 1-2 minutes for it to fully start
+- **Docker users:** Make sure Docker Desktop is running (green icon), try `docker-compose up -d` again, and wait 1-2 minutes for it to fully start
+- **Manual users:** Make sure you ran `npm run dev` and see "ready" output in your terminal. Requires Node.js 20+.
 
 ### "My trades disappeared!"
 
-- Did you clear your browser data? Your trades are stored there.
+- Did you clear your browser data? Your trades are stored in `localStorage`.
 - Try restoring from a backup (see above)
 - Check if you're using a different browser than before
 
@@ -250,6 +251,14 @@ TradePilot can import trades from these platforms:
 Another app is using port 3001. Either:
 - Close that app, or
 - Edit `docker-compose.yml` and change `3001:3000` to another open port like `3002:3000`, then use that new port in your browser
+
+### "next: command not found" or build errors
+
+Make sure you installed dependencies first:
+```bash
+npm run install:web
+```
+This must be run before `npm run dev`.
 
 ---
 
@@ -286,7 +295,8 @@ Open an issue on GitHub: [github.com/abrhamhabtu/trade-pilot/issues](https://git
 ## Need More Help?
 
 - 📖 Check the [README](README.md) for more details
-- 🏗️ See [ARCHITECTURE.md](ARCHITECTURE.md) to understand how data is stored
+- 🏗️ See [ARCHITECTURE.md](ARCHITECTURE.md) to understand how data is stored and how the Next.js App Router is structured
+- 🔄 See [CHANGES.md](CHANGES.md) for a history of what changed and why
 - 💬 Open an issue on GitHub if you're stuck
 
 ---

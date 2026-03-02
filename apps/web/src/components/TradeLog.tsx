@@ -64,13 +64,15 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
     .filter(trade => {
       const matchesStatus = filterStatus === 'all' || trade.outcome === filterStatus;
       const matchesSearch = trade.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (trade.notes && trade.notes.toLowerCase().includes(searchTerm.toLowerCase()));
+        (trade.notes && trade.notes.toLowerCase().includes(searchTerm.toLowerCase()));
       return matchesStatus && matchesSearch;
     })
     .sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
-      
+      const aRaw = a[sortField];
+      const bRaw = b[sortField];
+      const aValue = aRaw ?? (typeof aRaw === 'number' ? 0 : '');
+      const bValue = bRaw ?? (typeof bRaw === 'number' ? 0 : '');
+
       if (sortDirection === 'asc') {
         return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
       } else {
@@ -121,8 +123,8 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
   };
 
   const handleSelectTrade = (tradeId: string) => {
-    setSelectedTrades(prev => 
-      prev.includes(tradeId) 
+    setSelectedTrades(prev =>
+      prev.includes(tradeId)
         ? prev.filter(id => id !== tradeId)
         : [...prev, tradeId]
     );
@@ -147,7 +149,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
     avgLoss: Math.abs(filteredTrades.filter(t => t.outcome === 'loss').reduce((sum, t, _, arr) => sum + t.netPL / arr.length, 0)),
   };
 
-  const profitFactor = summaryMetrics.avgLoss > 0 ? 
+  const profitFactor = summaryMetrics.avgLoss > 0 ?
     (summaryMetrics.winningTrades * summaryMetrics.avgWin) / (summaryMetrics.losingTrades * summaryMetrics.avgLoss) : 0;
 
   // Export filtered trades to CSV
@@ -227,7 +229,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
   };
 
   return (
-    <div 
+    <div
       className="rounded-xl border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
       style={{
         background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
@@ -235,7 +237,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
     >
       {/* Gradient border on hover */}
       <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
-        <div 
+        <div
           className="w-full h-full rounded-xl"
           style={{
             background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
@@ -257,7 +259,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
               )}
             </div>
             <div className="flex items-center space-x-3">
-              <button 
+              <button
                 onClick={refreshData}
                 disabled={isLoading}
                 className="flex items-center space-x-2 px-4 py-2 border border-[#1F2937] rounded-lg text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50 transition-all disabled:opacity-50"
@@ -265,7 +267,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                 <RefreshCw className={clsx('h-4 w-4', isLoading && 'animate-spin')} />
                 <span>Refresh</span>
               </button>
-              <button 
+              <button
                 onClick={exportToCSV}
                 className="flex items-center space-x-2 px-4 py-2 border border-[#1F2937] rounded-lg text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50 transition-all"
               >
@@ -334,7 +336,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
               <div className="text-sm text-[#8B94A7] mb-1">Expectancy</div>
               <div className={clsx(
                 'text-xl font-bold',
-                summaryMetrics.totalTrades > 0 && summaryMetrics.totalPnL / summaryMetrics.totalTrades >= 0 
+                summaryMetrics.totalTrades > 0 && summaryMetrics.totalPnL / summaryMetrics.totalTrades >= 0
                   ? 'text-[#3BF68A]' : 'text-[#F45B69]'
               )}>
                 {summaryMetrics.totalTrades > 0 ? formatCurrency(summaryMetrics.totalPnL / summaryMetrics.totalTrades) : '$0.00'}
@@ -408,7 +410,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                   />
                 </th>
                 <th className="text-left p-4">
-                  <button 
+                  <button
                     onClick={() => handleSort('date')}
                     className="flex items-center space-x-1 text-[#8B94A7] hover:text-[#E5E7EB] text-sm font-medium"
                   >
@@ -422,7 +424,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                   <span className="text-[#8B94A7] text-sm font-medium">Time</span>
                 </th>
                 <th className="text-left p-4">
-                  <button 
+                  <button
                     onClick={() => handleSort('symbol')}
                     className="flex items-center space-x-1 text-[#8B94A7] hover:text-[#E5E7EB] text-sm font-medium"
                   >
@@ -439,7 +441,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                   <span className="text-[#8B94A7] text-sm font-medium">Quantity</span>
                 </th>
                 <th className="text-right p-4">
-                  <button 
+                  <button
                     onClick={() => handleSort('netPL')}
                     className="flex items-center space-x-1 text-[#8B94A7] hover:text-[#E5E7EB] text-sm font-medium"
                   >
@@ -483,7 +485,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                   <td className="p-4 text-center">
                     <span className={clsx(
                       'px-2 py-1 rounded-full text-xs font-medium',
-                      trade.side === 'Long' 
+                      trade.side === 'Long'
                         ? 'bg-[#3BF68A]/20 text-[#3BF68A] border border-[#3BF68A]/30'
                         : 'bg-[#F45B69]/20 text-[#F45B69] border border-[#F45B69]/30'
                     )}>
@@ -493,7 +495,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                   <td className="p-4 text-center">
                     <span className={clsx(
                       'px-2 py-1 rounded-full text-xs font-medium',
-                      trade.outcome === 'win' 
+                      trade.outcome === 'win'
                         ? 'bg-[#3BF68A]/20 text-[#3BF68A] border border-[#3BF68A]/30'
                         : 'bg-[#F45B69]/20 text-[#F45B69] border border-[#F45B69]/30'
                     )}>
@@ -506,8 +508,8 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                   <td className="p-4 text-right">
                     <span className={clsx(
                       'text-sm font-semibold',
-                      trade.netPL >= 0 
-                        ? 'text-[#3BF68A]' 
+                      trade.netPL >= 0
+                        ? 'text-[#3BF68A]'
                         : 'text-[#F45B69]'
                     )}>
                       {formatCurrency(trade.netPL)}
@@ -568,7 +570,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
               >
                 Previous
               </button>
-              
+
               <div className="flex items-center space-x-1">
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   const page = i + 1;
