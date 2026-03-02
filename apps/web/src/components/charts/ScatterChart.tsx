@@ -33,12 +33,12 @@ export const ScatterChartComponent: React.FC<ScatterChartComponentProps> = ({
   };
 
   return (
-    <div className="bg-[#15181F] rounded-xl p-6 border border-[#1F2937] hover:border-[#3BF68A]/20 transition-all duration-200">
-      <h3 className="text-[#E5E7EB] text-lg font-semibold mb-4">{title}</h3>
+    <div className="bg-[#181B24]/80 backdrop-blur-md rounded-xl p-6 border border-white/5 hover:border-emerald-500/30/20 transition-all duration-200">
+      <h3 className="text-zinc-100 text-lg font-semibold mb-4">{title}</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#2C3148" />
             <XAxis 
               type="number"
               dataKey="x"
@@ -58,8 +58,8 @@ export const ScatterChartComponent: React.FC<ScatterChartComponentProps> = ({
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#15181F',
-                border: '1px solid #1F2937',
+                backgroundColor: '#1E2130',
+                border: '1px solid #2C3148',
                 borderRadius: '8px'
               }}
               labelStyle={{ color: '#E5E7EB' }}

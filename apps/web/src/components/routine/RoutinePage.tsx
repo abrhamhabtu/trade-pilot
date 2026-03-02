@@ -163,13 +163,13 @@ export const RoutinePage: React.FC = () => {
       <div className="mb-8">
         <h1 className={clsx(
           'text-2xl font-bold mb-2',
-          theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+          theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
         )}>
           Pre-Trade Routine
         </h1>
         <p className={clsx(
           'text-sm',
-          theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+          theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
         )}>
           Complete your checklist and game plan before market open
         </p>
@@ -179,7 +179,7 @@ export const RoutinePage: React.FC = () => {
       <div className={clsx(
         'flex items-center justify-between p-4 rounded-xl border mb-6',
         theme === 'dark' 
-          ? 'bg-[#15181F] border-[#1F2937]' 
+          ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' 
           : 'bg-white border-gray-200'
       )}>
         <button
@@ -187,7 +187,7 @@ export const RoutinePage: React.FC = () => {
           className={clsx(
             'p-2 rounded-lg transition-colors',
             theme === 'dark'
-              ? 'hover:bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB]'
+              ? 'hover:bg-[#242838] text-zinc-400 hover:text-zinc-100'
               : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
           )}
         >
@@ -197,12 +197,12 @@ export const RoutinePage: React.FC = () => {
         <div className="text-center">
           <p className={clsx(
             'text-lg font-semibold',
-            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+            theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
           )}>
             {formatDate(selectedDate)}
           </p>
           {isToday && (
-            <span className="text-xs px-2 py-1 rounded-full bg-[#3BF68A]/20 text-[#3BF68A]">
+            <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-500">
               Today
             </span>
           )}
@@ -213,7 +213,7 @@ export const RoutinePage: React.FC = () => {
           className={clsx(
             'p-2 rounded-lg transition-colors',
             theme === 'dark'
-              ? 'hover:bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB]'
+              ? 'hover:bg-[#242838] text-zinc-400 hover:text-zinc-100'
               : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
           )}
         >
@@ -226,24 +226,24 @@ export const RoutinePage: React.FC = () => {
         <div className={clsx(
           'rounded-xl border p-6',
           theme === 'dark' 
-            ? 'bg-[#15181F] border-[#1F2937]' 
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' 
             : 'bg-white border-gray-200'
         )}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-[#3BF68A]/10">
-                <CheckCircle2 className="h-5 w-5 text-[#3BF68A]" />
+              <div className="p-2 rounded-lg bg-emerald-500/10">
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               </div>
               <div>
                 <h2 className={clsx(
                   'text-lg font-semibold',
-                  theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                  theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
                 )}>
                   Pre-Trade Checklist
                 </h2>
                 <p className={clsx(
                   'text-sm',
-                  theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                  theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
                 )}>
                   {completedCount}/{totalCount} completed ({completionPercent}%)
                 </p>
@@ -254,7 +254,7 @@ export const RoutinePage: React.FC = () => {
               className={clsx(
                 'p-2 rounded-lg transition-colors',
                 theme === 'dark'
-                  ? 'hover:bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB]'
+                  ? 'hover:bg-[#242838] text-zinc-400 hover:text-zinc-100'
                   : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
               )}
               title="Reset checklist"
@@ -266,10 +266,10 @@ export const RoutinePage: React.FC = () => {
           {/* Progress bar */}
           <div className={clsx(
             'h-2 rounded-full mb-4',
-            theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-200'
+            theme === 'dark' ? 'bg-[#242838]' : 'bg-gray-200'
           )}>
             <div 
-              className="h-full rounded-full bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] transition-all duration-300"
+              className="h-full rounded-full bg-white text-zinc-950 hover:bg-zinc-200 transition-all duration-300"
               style={{ width: `${completionPercent}%` }}
             />
           </div>
@@ -283,28 +283,28 @@ export const RoutinePage: React.FC = () => {
                   'flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer',
                   item.checked
                     ? theme === 'dark'
-                      ? 'bg-[#3BF68A]/10 border-[#3BF68A]/30'
+                      ? 'bg-emerald-500/10 border-emerald-500/30'
                       : 'bg-green-50 border-green-200'
                     : theme === 'dark'
-                      ? 'bg-[#0B0D10] border-[#1F2937] hover:border-[#3BF68A]/30'
+                      ? 'bg-[#181B24] border-white/5 hover:border-emerald-500/30'
                       : 'bg-gray-50 border-gray-200 hover:border-green-300'
                 )}
                 onClick={() => toggleChecklistItem(item.id)}
               >
                 <div className="flex items-center space-x-3">
                   {item.checked ? (
-                    <CheckCircle2 className="h-5 w-5 text-[#3BF68A]" />
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                   ) : (
                     <Circle className={clsx(
                       'h-5 w-5',
-                      theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400'
+                      theme === 'dark' ? 'text-zinc-400' : 'text-gray-400'
                     )} />
                   )}
                   <span className={clsx(
                     'text-sm',
                     item.checked
-                      ? 'line-through text-[#8B94A7]'
-                      : theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+                      ? 'line-through text-zinc-400'
+                      : theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
                   )}>
                     {item.text}
                   </span>
@@ -335,13 +335,13 @@ export const RoutinePage: React.FC = () => {
               className={clsx(
                 'flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50',
                 theme === 'dark'
-                  ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                  ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                   : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
               )}
             />
             <button
               onClick={handleAddChecklistItem}
-              className="px-3 py-2 bg-[#3BF68A] text-black rounded-lg hover:bg-[#3BF68A]/90 transition-colors"
+              className="px-3 py-2 bg-emerald-500 text-black rounded-lg hover:bg-emerald-500/90 transition-colors"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -352,16 +352,16 @@ export const RoutinePage: React.FC = () => {
         <div className={clsx(
           'rounded-xl border p-6',
           theme === 'dark' 
-            ? 'bg-[#15181F] border-[#1F2937]' 
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' 
             : 'bg-white border-gray-200'
         )}>
           <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 rounded-lg bg-[#A78BFA]/10">
-              <Target className="h-5 w-5 text-[#A78BFA]" />
+            <div className="p-2 rounded-lg bg-[#242838]">
+              <Target className="h-5 w-5 text-zinc-400" />
             </div>
             <h2 className={clsx(
               'text-lg font-semibold',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
             )}>
               Daily Game Plan
             </h2>
@@ -371,15 +371,15 @@ export const RoutinePage: React.FC = () => {
           <div className="mb-6">
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Market Bias
             </label>
             <div className="flex space-x-2">
               {[
-                { value: 'bullish', icon: TrendingUp, color: 'text-[#3BF68A]', bg: 'bg-[#3BF68A]' },
-                { value: 'neutral', icon: Minus, color: 'text-[#8B94A7]', bg: 'bg-[#8B94A7]' },
-                { value: 'bearish', icon: TrendingDown, color: 'text-[#F45B69]', bg: 'bg-[#F45B69]' },
+                { value: 'bullish', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500' },
+                { value: 'neutral', icon: Minus, color: 'text-zinc-400', bg: 'bg-[#8B94A7]' },
+                { value: 'bearish', icon: TrendingDown, color: 'text-rose-500', bg: 'bg-rose-500' },
               ].map(({ value, icon: Icon, color, bg }) => (
                 <button
                   key={value}
@@ -391,7 +391,7 @@ export const RoutinePage: React.FC = () => {
                     gamePlan.marketBias === value
                       ? `${bg}/20 border-current ${color}`
                       : theme === 'dark'
-                        ? 'bg-[#0B0D10] border-[#1F2937] text-[#8B94A7] hover:border-[#3BF68A]/30'
+                        ? 'bg-[#181B24] border-white/5 text-zinc-400 hover:border-emerald-500/30'
                         : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
                   )}
                 >
@@ -406,21 +406,21 @@ export const RoutinePage: React.FC = () => {
           <div className="mb-6">
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Key Levels
             </label>
             <div className="grid grid-cols-2 gap-4">
               {/* Support */}
               <div>
-                <p className="text-xs text-[#3BF68A] mb-2 font-medium">Support</p>
+                <p className="text-xs text-emerald-500 mb-2 font-medium">Support</p>
                 <div className="space-y-2">
                   {gamePlan.keyLevels.support.map((level, idx) => (
                     <div key={idx} className={clsx(
                       'flex items-center justify-between px-3 py-2 rounded-lg border',
-                      theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+                      theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
                     )}>
-                      <span className={clsx('text-sm', theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700')}>
+                      <span className={clsx('text-sm', theme === 'dark' ? 'text-zinc-100' : 'text-gray-700')}>
                         {level}
                       </span>
                       <button
@@ -441,11 +441,11 @@ export const RoutinePage: React.FC = () => {
                       className={clsx(
                         'flex-1 px-2 py-1 rounded border text-sm focus:outline-none focus:ring-1 focus:ring-[#3BF68A]/50',
                         theme === 'dark'
-                          ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                          ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                           : 'bg-gray-50 border-gray-300 text-gray-900'
                       )}
                     />
-                    <button onClick={handleAddSupport} className="text-[#3BF68A]">
+                    <button onClick={handleAddSupport} className="text-emerald-500">
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
@@ -454,14 +454,14 @@ export const RoutinePage: React.FC = () => {
 
               {/* Resistance */}
               <div>
-                <p className="text-xs text-[#F45B69] mb-2 font-medium">Resistance</p>
+                <p className="text-xs text-rose-500 mb-2 font-medium">Resistance</p>
                 <div className="space-y-2">
                   {gamePlan.keyLevels.resistance.map((level, idx) => (
                     <div key={idx} className={clsx(
                       'flex items-center justify-between px-3 py-2 rounded-lg border',
-                      theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+                      theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
                     )}>
-                      <span className={clsx('text-sm', theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700')}>
+                      <span className={clsx('text-sm', theme === 'dark' ? 'text-zinc-100' : 'text-gray-700')}>
                         {level}
                       </span>
                       <button
@@ -482,11 +482,11 @@ export const RoutinePage: React.FC = () => {
                       className={clsx(
                         'flex-1 px-2 py-1 rounded border text-sm focus:outline-none focus:ring-1 focus:ring-[#3BF68A]/50',
                         theme === 'dark'
-                          ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                          ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                           : 'bg-gray-50 border-gray-300 text-gray-900'
                       )}
                     />
-                    <button onClick={handleAddResistance} className="text-[#F45B69]">
+                    <button onClick={handleAddResistance} className="text-rose-500">
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
@@ -499,7 +499,7 @@ export const RoutinePage: React.FC = () => {
           <div className="mb-6">
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               <Eye className="h-4 w-4 inline mr-1" />
               Watchlist
@@ -511,7 +511,7 @@ export const RoutinePage: React.FC = () => {
                   className={clsx(
                     'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
                     theme === 'dark' 
-                      ? 'bg-[#A78BFA]/20 text-[#A78BFA]' 
+                      ? 'bg-[#242838]/80 text-zinc-400' 
                       : 'bg-purple-100 text-purple-700'
                   )}
                 >
@@ -535,13 +535,13 @@ export const RoutinePage: React.FC = () => {
                 className={clsx(
                   'flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50',
                   theme === 'dark'
-                    ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                    ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                     : 'bg-gray-50 border-gray-300 text-gray-900'
                 )}
               />
               <button
                 onClick={handleAddWatchlist}
-                className="px-3 py-2 bg-[#A78BFA] text-white rounded-lg hover:bg-[#A78BFA]/90 transition-colors"
+                className="px-3 py-2 bg-zinc-200 text-white rounded-lg hover:bg-zinc-200/90 transition-colors"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -552,14 +552,14 @@ export const RoutinePage: React.FC = () => {
           <div className="mb-6">
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               <DollarSign className="h-4 w-4 inline mr-1" />
               Risk Limits
             </label>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <p className="text-xs text-[#8B94A7] mb-1">Max Loss</p>
+                <p className="text-xs text-zinc-400 mb-1">Max Loss</p>
                 <input
                   type="number"
                   value={gamePlan.maxLoss || ''}
@@ -568,13 +568,13 @@ export const RoutinePage: React.FC = () => {
                   className={clsx(
                     'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#F45B69]/50',
                     theme === 'dark'
-                      ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                      ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                       : 'bg-gray-50 border-gray-300 text-gray-900'
                   )}
                 />
               </div>
               <div>
-                <p className="text-xs text-[#8B94A7] mb-1">Max Profit</p>
+                <p className="text-xs text-zinc-400 mb-1">Max Profit</p>
                 <input
                   type="number"
                   value={gamePlan.maxProfit || ''}
@@ -583,13 +583,13 @@ export const RoutinePage: React.FC = () => {
                   className={clsx(
                     'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50',
                     theme === 'dark'
-                      ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                      ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                       : 'bg-gray-50 border-gray-300 text-gray-900'
                   )}
                 />
               </div>
               <div>
-                <p className="text-xs text-[#8B94A7] mb-1">Max Trades</p>
+                <p className="text-xs text-zinc-400 mb-1">Max Trades</p>
                 <input
                   type="number"
                   value={gamePlan.maxTrades || ''}
@@ -598,7 +598,7 @@ export const RoutinePage: React.FC = () => {
                   className={clsx(
                     'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50',
                     theme === 'dark'
-                      ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                      ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                       : 'bg-gray-50 border-gray-300 text-gray-900'
                   )}
                 />
@@ -610,7 +610,7 @@ export const RoutinePage: React.FC = () => {
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Notes & Game Plan
             </label>
@@ -622,7 +622,7 @@ export const RoutinePage: React.FC = () => {
               className={clsx(
                 'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 resize-none',
                 theme === 'dark'
-                  ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                  ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                   : 'bg-gray-50 border-gray-300 text-gray-900'
               )}
             />
@@ -634,24 +634,24 @@ export const RoutinePage: React.FC = () => {
       <div className={clsx(
         'rounded-xl border p-6 mt-6',
         theme === 'dark' 
-          ? 'bg-[#15181F] border-[#1F2937]' 
+          ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' 
           : 'bg-white border-gray-200'
       )}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-[#F45B69]/10">
-              <Shield className="h-5 w-5 text-[#F45B69]" />
+            <div className="p-2 rounded-lg bg-rose-500/10">
+              <Shield className="h-5 w-5 text-rose-500" />
             </div>
             <div>
               <h2 className={clsx(
                 'text-lg font-semibold',
-                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
               )}>
                 My Trading Rules
               </h2>
               <p className={clsx(
                 'text-sm',
-                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
               )}>
                 {activeRules.length} active rules • Saved automatically • Track compliance daily
               </p>
@@ -664,9 +664,9 @@ export const RoutinePage: React.FC = () => {
                 className={clsx(
                   'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                   gamePlan.ruleCompliance?.length === 0
-                    ? 'bg-[#3BF68A] text-black hover:bg-[#3BF68A]/90'
+                    ? 'bg-emerald-500 text-black hover:bg-emerald-500/90'
                     : theme === 'dark'
-                      ? 'bg-[#1F2937] text-[#E5E7EB] hover:bg-[#2A3441]'
+                      ? 'bg-[#242838] text-zinc-100 hover:bg-[#2A3441]'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 )}
                 title="Initialize all active rules for this day so you can track compliance"
@@ -679,7 +679,7 @@ export const RoutinePage: React.FC = () => {
               className={clsx(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                 theme === 'dark'
-                  ? 'bg-[#1F2937] text-[#E5E7EB] hover:bg-[#2A3441]'
+                  ? 'bg-[#242838] text-zinc-100 hover:bg-[#2A3441]'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               )}
             >
@@ -693,7 +693,7 @@ export const RoutinePage: React.FC = () => {
           <div className={clsx(
             'mb-4 p-3 rounded-lg border',
             theme === 'dark' 
-              ? 'bg-[#3BF68A]/10 border-[#3BF68A]/30 text-[#3BF68A]' 
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' 
               : 'bg-green-50 border-green-200 text-green-700'
           )}>
             <p className="text-sm">{ruleSavedMessage}</p>
@@ -708,8 +708,8 @@ export const RoutinePage: React.FC = () => {
               ? 'bg-[#60A5FA]/10 border-[#60A5FA]/30' 
               : 'bg-blue-50 border-blue-200'
           )}>
-            <p className={clsx('text-xs', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600')}>
-              <strong className={theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'}>How it works:</strong> Your rules are saved automatically and apply to all trading days. 
+            <p className={clsx('text-xs', theme === 'dark' ? 'text-zinc-400' : 'text-gray-600')}>
+              <strong className={theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'}>How it works:</strong> Your rules are saved automatically and apply to all trading days. 
               Click "Start Tracking Today" to initialize compliance tracking for {formatDate(selectedDate)}. 
               Then use 👍/👎 buttons to mark if you followed each rule.
             </p>
@@ -720,11 +720,11 @@ export const RoutinePage: React.FC = () => {
         {showAddRuleForm && (
           <div className={clsx(
             'p-4 rounded-lg border mb-4',
-            theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+            theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
           )}>
             <p className={clsx(
               'text-sm font-medium mb-3',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Add New Rule (saved automatically)
             </p>
@@ -740,7 +740,7 @@ export const RoutinePage: React.FC = () => {
                         newRuleCategory === cat
                           ? 'ring-2 ring-offset-1'
                           : 'opacity-60 hover:opacity-100',
-                        theme === 'dark' ? 'ring-offset-[#0B0D10]' : 'ring-offset-gray-50'
+                        theme === 'dark' ? 'ring-offset-[#181B24]' : 'ring-offset-gray-50'
                       )}
                       style={{ 
                         backgroundColor: `${color}20`,
@@ -764,13 +764,13 @@ export const RoutinePage: React.FC = () => {
                   className={clsx(
                     'flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#F45B69]/50',
                     theme === 'dark'
-                      ? 'bg-[#15181F] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                      ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                       : 'bg-white border-gray-300 text-gray-900'
                   )}
                 />
                 <button
                   onClick={handleAddRule}
-                  className="px-4 py-2 bg-[#F45B69] text-white rounded-lg hover:bg-[#F45B69]/90 transition-colors font-medium text-sm"
+                  className="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-500/90 transition-colors font-medium text-sm"
                 >
                   Save Rule
                 </button>
@@ -782,13 +782,13 @@ export const RoutinePage: React.FC = () => {
         {tradingRules.length === 0 ? (
           <div className={clsx(
             'text-center py-8 rounded-lg border',
-            theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+            theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
           )}>
-            <Shield className={clsx('h-12 w-12 mx-auto mb-3', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')} />
-            <p className={clsx('text-sm mb-2', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+            <Shield className={clsx('h-12 w-12 mx-auto mb-3', theme === 'dark' ? 'text-zinc-400' : 'text-gray-400')} />
+            <p className={clsx('text-sm mb-2', theme === 'dark' ? 'text-zinc-400' : 'text-gray-500')}>
               No trading rules yet
             </p>
-            <p className={clsx('text-xs', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')}>
+            <p className={clsx('text-xs', theme === 'dark' ? 'text-zinc-400' : 'text-gray-400')}>
               Add your first rule to start tracking your discipline
             </p>
           </div>
@@ -806,7 +806,7 @@ export const RoutinePage: React.FC = () => {
                       <Icon className="h-4 w-4" style={{ color }} />
                       <span className={clsx(
                         'text-sm font-medium',
-                        theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+                        theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
                       )}>
                         {label} Rules
                       </span>
@@ -823,7 +823,7 @@ export const RoutinePage: React.FC = () => {
                               'flex items-center justify-between p-3 rounded-lg border transition-all',
                               !rule.isActive && 'opacity-50',
                               theme === 'dark'
-                                ? 'bg-[#0B0D10] border-[#1F2937]'
+                                ? 'bg-[#181B24] border-white/5'
                                 : 'bg-gray-50 border-gray-200'
                             )}
                           >
@@ -832,7 +832,7 @@ export const RoutinePage: React.FC = () => {
                                 onClick={() => toggleRuleActive(rule.id)}
                                 className={clsx(
                                   'p-1 rounded',
-                                  rule.isActive ? 'text-[#3BF68A]' : 'text-[#8B94A7]'
+                                  rule.isActive ? 'text-emerald-500' : 'text-zinc-400'
                                 )}
                                 title={rule.isActive ? 'Disable rule' : 'Enable rule'}
                               >
@@ -844,7 +844,7 @@ export const RoutinePage: React.FC = () => {
                               </button>
                               <span className={clsx(
                                 'text-sm flex-1',
-                                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+                                theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
                               )}>
                                 {rule.text}
                               </span>
@@ -857,10 +857,10 @@ export const RoutinePage: React.FC = () => {
                                   <span className={clsx(
                                     'text-xs px-2 py-1 rounded',
                                     stats.percentage >= 80 
-                                      ? 'bg-[#3BF68A]/20 text-[#3BF68A]' 
+                                      ? 'bg-emerald-500/20 text-emerald-500' 
                                       : stats.percentage >= 50 
                                         ? 'bg-[#FBBF24]/20 text-[#FBBF24]'
-                                        : 'bg-[#F45B69]/20 text-[#F45B69]'
+                                        : 'bg-rose-500/20 text-rose-500'
                                   )}>
                                     {stats.percentage}%
                                   </span>
@@ -870,9 +870,9 @@ export const RoutinePage: React.FC = () => {
                                   className={clsx(
                                     'p-1.5 rounded-lg transition-all',
                                     compliance === true
-                                      ? 'bg-[#3BF68A] text-black'
+                                      ? 'bg-emerald-500 text-black'
                                       : theme === 'dark'
-                                        ? 'bg-[#1F2937] text-[#8B94A7] hover:text-[#3BF68A]'
+                                        ? 'bg-[#242838] text-zinc-400 hover:text-emerald-500'
                                         : 'bg-gray-200 text-gray-500 hover:text-green-600'
                                   )}
                                   title="Followed this rule"
@@ -884,9 +884,9 @@ export const RoutinePage: React.FC = () => {
                                   className={clsx(
                                     'p-1.5 rounded-lg transition-all',
                                     compliance === false
-                                      ? 'bg-[#F45B69] text-white'
+                                      ? 'bg-rose-500 text-white'
                                       : theme === 'dark'
-                                        ? 'bg-[#1F2937] text-[#8B94A7] hover:text-[#F45B69]'
+                                        ? 'bg-[#242838] text-zinc-400 hover:text-rose-500'
                                         : 'bg-gray-200 text-gray-500 hover:text-red-600'
                                   )}
                                   title="Broke this rule"
@@ -895,7 +895,7 @@ export const RoutinePage: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => removeTradingRule(rule.id)}
-                                  className="p-1.5 rounded-lg text-[#8B94A7] hover:text-[#F45B69] hover:bg-[#F45B69]/10 transition-all"
+                                  className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
                                   title="Delete rule"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -917,7 +917,7 @@ export const RoutinePage: React.FC = () => {
       <div className={clsx(
         'rounded-xl border p-6 mt-6',
         theme === 'dark' 
-          ? 'bg-[#15181F] border-[#1F2937]' 
+          ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' 
           : 'bg-white border-gray-200'
       )}>
         <div className="flex items-center space-x-3 mb-6">
@@ -927,13 +927,13 @@ export const RoutinePage: React.FC = () => {
           <div>
             <h2 className={clsx(
               'text-lg font-semibold',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
             )}>
               End of Day Reflection
             </h2>
             <p className={clsx(
               'text-sm',
-              theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+              theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
             )}>
               Review your trading day and learn from it
             </p>
@@ -945,7 +945,7 @@ export const RoutinePage: React.FC = () => {
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Did you follow your trading plan?
             </label>
@@ -955,9 +955,9 @@ export const RoutinePage: React.FC = () => {
                 className={clsx(
                   'flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-lg border transition-all',
                   gamePlan.followedPlan === true
-                    ? 'bg-[#3BF68A]/20 border-[#3BF68A] text-[#3BF68A]'
+                    ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-500'
                     : theme === 'dark'
-                      ? 'bg-[#0B0D10] border-[#1F2937] text-[#8B94A7] hover:border-[#3BF68A]/50'
+                      ? 'bg-[#181B24] border-white/5 text-zinc-400 hover:border-emerald-500/50'
                       : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-green-300'
                 )}
               >
@@ -969,9 +969,9 @@ export const RoutinePage: React.FC = () => {
                 className={clsx(
                   'flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-lg border transition-all',
                   gamePlan.followedPlan === false
-                    ? 'bg-[#F45B69]/20 border-[#F45B69] text-[#F45B69]'
+                    ? 'bg-rose-500/20 border-rose-500/30 text-rose-500'
                     : theme === 'dark'
-                      ? 'bg-[#0B0D10] border-[#1F2937] text-[#8B94A7] hover:border-[#F45B69]/50'
+                      ? 'bg-[#181B24] border-white/5 text-zinc-400 hover:border-rose-500/50'
                       : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-red-300'
                 )}
               >
@@ -985,7 +985,7 @@ export const RoutinePage: React.FC = () => {
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               How did you feel while trading?
             </label>
@@ -1007,7 +1007,7 @@ export const RoutinePage: React.FC = () => {
                     gamePlan.emotionalState === value
                       ? 'ring-2 ring-offset-1'
                       : 'opacity-60 hover:opacity-100',
-                    theme === 'dark' ? 'ring-offset-[#15181F]' : 'ring-offset-white'
+                    theme === 'dark' ? 'ring-offset-[#1E2130]' : 'ring-offset-white'
                   )}
                   style={{
                     backgroundColor: `${color}20`,
@@ -1025,7 +1025,7 @@ export const RoutinePage: React.FC = () => {
         <div className="mt-6">
           <label className={clsx(
             'block text-sm font-medium mb-2',
-            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+            theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
           )}>
             What did you learn today?
           </label>
@@ -1037,7 +1037,7 @@ export const RoutinePage: React.FC = () => {
             className={clsx(
               'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#60A5FA]/50 resize-none',
               theme === 'dark'
-                ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                 : 'bg-gray-50 border-gray-300 text-gray-900'
             )}
           />
@@ -1047,30 +1047,30 @@ export const RoutinePage: React.FC = () => {
         {gamePlan.ruleCompliance && gamePlan.ruleCompliance.length > 0 && (
           <div className={clsx(
             'mt-6 p-4 rounded-lg',
-            theme === 'dark' ? 'bg-[#0B0D10]' : 'bg-gray-50'
+            theme === 'dark' ? 'bg-[#181B24]' : 'bg-gray-50'
           )}>
             <p className={clsx(
               'text-sm font-medium mb-3',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Today's Rule Compliance
             </p>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-[#3BF68A]" />
-                <span className={clsx('text-sm', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600')}>
+                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                <span className={clsx('text-sm', theme === 'dark' ? 'text-zinc-400' : 'text-gray-600')}>
                   Followed: {gamePlan.ruleCompliance.filter(c => c.followed === true).length}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-[#F45B69]" />
-                <span className={clsx('text-sm', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600')}>
+                <div className="w-3 h-3 rounded-full bg-rose-500" />
+                <span className={clsx('text-sm', theme === 'dark' ? 'text-zinc-400' : 'text-gray-600')}>
                   Broken: {gamePlan.ruleCompliance.filter(c => c.followed === false).length}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full bg-[#8B94A7]" />
-                <span className={clsx('text-sm', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600')}>
+                <span className={clsx('text-sm', theme === 'dark' ? 'text-zinc-400' : 'text-gray-600')}>
                   Not rated: {activeRules.length - gamePlan.ruleCompliance.filter(c => c.followed !== null).length}
                 </span>
               </div>

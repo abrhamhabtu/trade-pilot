@@ -32,26 +32,26 @@ export const ImportTrades: React.FC = () => {
   };
   
   return (
-    <div className="bg-[#15181F] rounded-xl p-6 border border-[#1F2937] hover:border-[#3BF68A]/20 transition-all duration-200">
+    <div className="bg-[#181B24]/80 backdrop-blur-md rounded-xl p-6 border border-white/5 hover:border-emerald-500/30/20 transition-all duration-200">
       <div className="text-center">
         <div className="mb-4">
-          <div className="mx-auto w-12 h-12 bg-[#3BF68A]/10 rounded-full flex items-center justify-center">
-            <Upload className="h-6 w-6 text-[#3BF68A]" />
+          <div className="mx-auto w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center">
+            <Upload className="h-6 w-6 text-emerald-500" />
           </div>
         </div>
         
-        <h3 className="text-[#E5E7EB] text-lg font-semibold mb-2">
+        <h3 className="text-zinc-100 text-lg font-semibold mb-2">
           Import Trades from TradingView
         </h3>
         
-        <p className="text-[#8B94A7] text-sm mb-6">
+        <p className="text-zinc-400 text-sm mb-6">
           Upload your CSV or Excel file to automatically sync your trading data
         </p>
         
         <button
           onClick={handleFileSelect}
           disabled={isLoading}
-          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center px-6 py-3 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <>
@@ -66,7 +66,7 @@ export const ImportTrades: React.FC = () => {
           )}
         </button>
         
-        <div className="mt-4 text-xs text-[#8B94A7]">
+        <div className="mt-4 text-xs text-zinc-400">
           <div className="flex items-center justify-center space-x-1 mb-1">
             <AlertCircle className="h-3 w-3" />
             <span>Supported formats: CSV, XLSX</span>

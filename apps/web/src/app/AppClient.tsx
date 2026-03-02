@@ -305,11 +305,10 @@ export default function AppClient() {
       {showBackupReminder && (
         <div className="fixed top-0 left-0 right-0 z-50">
           <div
-            className={`mx-auto max-w-4xl mt-3 mx-4 px-4 py-2.5 rounded-xl flex items-center justify-between backdrop-blur-md shadow-lg ${
-              theme === 'dark'
+            className={`mx-auto max-w-4xl mt-3 mx-4 px-4 py-2.5 rounded-xl flex items-center justify-between backdrop-blur-md shadow-lg ${theme === 'dark'
                 ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30'
                 : 'bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300'
-            }`}
+              }`}
           >
             <div className="flex items-center space-x-3">
               <div className={`p-1.5 rounded-lg ${theme === 'dark' ? 'bg-amber-500/20' : 'bg-amber-200'}`}>
@@ -324,9 +323,8 @@ export default function AppClient() {
                 dismissBackupReminder();
                 setShowBackupReminder(false);
               }}
-              className={`p-1.5 rounded-lg transition-colors ${
-                theme === 'dark' ? 'text-amber-300 hover:bg-amber-500/20' : 'text-amber-700 hover:bg-amber-200'
-              }`}
+              className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' ? 'text-amber-300 hover:bg-amber-500/20' : 'text-amber-700 hover:bg-amber-200'
+                }`}
             >
               <X className="h-4 w-4" />
             </button>
@@ -336,14 +334,13 @@ export default function AppClient() {
 
       {currentView !== 'accounts' && (
         <div
-          className={`fixed top-0 right-0 z-40 p-4 transition-all duration-300 ${
-            sidebarCollapsed ? 'left-20' : 'left-64'
-          }`}
+          className={`fixed top-0 right-0 z-40 p-4 transition-all duration-300 ${sidebarCollapsed ? 'left-20' : 'left-64'
+            }`}
           style={{
             background:
               theme === 'dark'
-                ? 'linear-gradient(180deg, rgba(11,13,16,0.95) 0%, rgba(11,13,16,0) 100%)'
-                : 'linear-gradient(180deg, rgba(248,250,252,0.95) 0%, rgba(248,250,252,0) 100%)'
+                ? 'linear-gradient(180deg, rgba(24,27,36,0.97) 0%, rgba(24,27,36,0) 100%)'
+                : 'linear-gradient(180deg, rgba(248,250,252,0.97) 0%, rgba(248,250,252,0) 100%)'
           }}
         >
           <div className="flex justify-end">

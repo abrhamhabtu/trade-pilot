@@ -160,19 +160,17 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
       />
 
       <div
-        className="relative w-full max-w-lg mx-4 rounded-2xl border border-[#1F2937] overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-        }}
+        className="relative w-full max-w-lg mx-4 rounded-2xl border border-white/5 overflow-hidden"
+        
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#1F2937]">
-          <h2 className="text-xl font-bold text-[#E5E7EB]">
+        <div className="flex items-center justify-between p-6 border-b border-white/5">
+          <h2 className="text-xl font-bold text-zinc-100">
             {mode === 'add' ? 'Add New Trade' : 'Edit Trade'}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937] transition-colors"
+            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -183,54 +181,54 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
           {/* Symbol and Date Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-[#8B94A7] mb-2">Symbol *</label>
+              <label className="block text-sm text-zinc-400 mb-2">Symbol *</label>
               <input
                 type="text"
                 value={formData.symbol}
                 onChange={(e) => setFormData({ ...formData, symbol: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg bg-[#0B0D10] border ${errors.symbol ? 'border-[#F45B69]' : 'border-[#1F2937]'} text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A]`}
+                className={`w-full px-4 py-2 rounded-lg bg-[#181B24] border ${errors.symbol ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30`}
                 placeholder="AAPL"
               />
-              {errors.symbol && <p className="text-[#F45B69] text-xs mt-1">{errors.symbol}</p>}
+              {errors.symbol && <p className="text-rose-500 text-xs mt-1">{errors.symbol}</p>}
             </div>
             <div>
-              <label className="block text-sm text-[#8B94A7] mb-2">Date *</label>
+              <label className="block text-sm text-zinc-400 mb-2">Date *</label>
               <input
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg bg-[#0B0D10] border ${errors.date ? 'border-[#F45B69]' : 'border-[#1F2937]'} text-[#E5E7EB] focus:outline-none focus:border-[#3BF68A]`}
+                className={`w-full px-4 py-2 rounded-lg bg-[#181B24] border ${errors.date ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 focus:outline-none focus:border-emerald-500/30`}
               />
-              {errors.date && <p className="text-[#F45B69] text-xs mt-1">{errors.date}</p>}
+              {errors.date && <p className="text-rose-500 text-xs mt-1">{errors.date}</p>}
             </div>
           </div>
 
           {/* Time and Side Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-[#8B94A7] mb-2">Time</label>
+              <label className="block text-sm text-zinc-400 mb-2">Time</label>
               <input
                 type="text"
                 value={formData.time}
                 onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-[#0B0D10] border border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A]"
+                className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
                 placeholder="10:00 AM"
               />
             </div>
             <div>
-              <label className="block text-sm text-[#8B94A7] mb-2">Side</label>
+              <label className="block text-sm text-zinc-400 mb-2">Side</label>
               <div className="flex space-x-2">
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, side: 'Long' })}
-                  className={`flex-1 py-2 rounded-lg font-medium transition-all ${formData.side === 'Long' ? 'bg-[#3BF68A] text-black' : 'bg-[#0B0D10] text-[#8B94A7] border border-[#1F2937] hover:border-[#3BF68A]'}`}
+                  className={`flex-1 py-2 rounded-lg font-medium transition-all ${formData.side === 'Long' ? 'bg-emerald-500 text-black' : 'bg-[#181B24] text-zinc-400 border border-white/5 hover:border-emerald-500/30'}`}
                 >
                   Long
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, side: 'Short' })}
-                  className={`flex-1 py-2 rounded-lg font-medium transition-all ${formData.side === 'Short' ? 'bg-[#F45B69] text-white' : 'bg-[#0B0D10] text-[#8B94A7] border border-[#1F2937] hover:border-[#F45B69]'}`}
+                  className={`flex-1 py-2 rounded-lg font-medium transition-all ${formData.side === 'Short' ? 'bg-rose-500 text-white' : 'bg-[#181B24] text-zinc-400 border border-white/5 hover:border-rose-500/30'}`}
                 >
                   Short
                 </button>
@@ -241,52 +239,52 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
           {/* Entry and Exit Price Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-[#8B94A7] mb-2">Entry Price *</label>
+              <label className="block text-sm text-zinc-400 mb-2">Entry Price *</label>
               <input
                 type="number"
                 step="0.01"
                 value={formData.entryPrice}
                 onChange={(e) => setFormData({ ...formData, entryPrice: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg bg-[#0B0D10] border ${errors.entryPrice ? 'border-[#F45B69]' : 'border-[#1F2937]'} text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A]`}
+                className={`w-full px-4 py-2 rounded-lg bg-[#181B24] border ${errors.entryPrice ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30`}
                 placeholder="150.00"
               />
-              {errors.entryPrice && <p className="text-[#F45B69] text-xs mt-1">{errors.entryPrice}</p>}
+              {errors.entryPrice && <p className="text-rose-500 text-xs mt-1">{errors.entryPrice}</p>}
             </div>
             <div>
-              <label className="block text-sm text-[#8B94A7] mb-2">Exit Price *</label>
+              <label className="block text-sm text-zinc-400 mb-2">Exit Price *</label>
               <input
                 type="number"
                 step="0.01"
                 value={formData.exitPrice}
                 onChange={(e) => setFormData({ ...formData, exitPrice: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg bg-[#0B0D10] border ${errors.exitPrice ? 'border-[#F45B69]' : 'border-[#1F2937]'} text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A]`}
+                className={`w-full px-4 py-2 rounded-lg bg-[#181B24] border ${errors.exitPrice ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30`}
                 placeholder="155.00"
               />
-              {errors.exitPrice && <p className="text-[#F45B69] text-xs mt-1">{errors.exitPrice}</p>}
+              {errors.exitPrice && <p className="text-rose-500 text-xs mt-1">{errors.exitPrice}</p>}
             </div>
           </div>
 
           {/* Quantity and Commission Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-[#8B94A7] mb-2">Quantity *</label>
+              <label className="block text-sm text-zinc-400 mb-2">Quantity *</label>
               <input
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg bg-[#0B0D10] border ${errors.quantity ? 'border-[#F45B69]' : 'border-[#1F2937]'} text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A]`}
+                className={`w-full px-4 py-2 rounded-lg bg-[#181B24] border ${errors.quantity ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30`}
                 placeholder="100"
               />
-              {errors.quantity && <p className="text-[#F45B69] text-xs mt-1">{errors.quantity}</p>}
+              {errors.quantity && <p className="text-rose-500 text-xs mt-1">{errors.quantity}</p>}
             </div>
             <div>
-              <label className="block text-sm text-[#8B94A7] mb-2">Commission</label>
+              <label className="block text-sm text-zinc-400 mb-2">Commission</label>
               <input
                 type="number"
                 step="0.01"
                 value={formData.commission}
                 onChange={(e) => setFormData({ ...formData, commission: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-[#0B0D10] border border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A]"
+                className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
                 placeholder="0.00"
               />
             </div>
@@ -294,21 +292,21 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
 
           {/* Notes */}
           <div>
-            <label className="block text-sm text-[#8B94A7] mb-2">Notes</label>
+            <label className="block text-sm text-zinc-400 mb-2">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 rounded-lg bg-[#0B0D10] border border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A] resize-none"
+              className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30 resize-none"
               placeholder="Trade notes..."
             />
           </div>
 
           {/* Calculated P&L Preview */}
-          <div className="p-4 rounded-lg bg-[#0B0D10] border border-[#1F2937]">
+          <div className="p-4 rounded-lg bg-[#181B24] border border-white/5">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#8B94A7]">Estimated Net P&L</span>
-              <span className={`text-lg font-bold ${netPL >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'}`}>
+              <span className="text-sm text-zinc-400">Estimated Net P&L</span>
+              <span className={`text-lg font-bold ${netPL >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                 {netPL >= 0 ? '+' : ''}{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(netPL)}
               </span>
             </div>
@@ -319,13 +317,13 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 rounded-lg border border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A] transition-all"
+              className="flex-1 py-3 rounded-lg border border-white/5 text-zinc-400 hover:text-zinc-100 hover:border-emerald-500/30 transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 rounded-lg bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium hover:opacity-90 transition-all"
+              className="flex-1 py-3 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 font-medium hover:opacity-90 transition-all"
             >
               {mode === 'add' ? 'Add Trade' : 'Save Changes'}
             </button>

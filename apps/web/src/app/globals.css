@@ -3,16 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #0B0D10;
-  --bg-secondary: #15181F;
-  --bg-tertiary: #1A1D25;
-  --bg-card: linear-gradient(135deg, #15181F 0%, #1A1D25 100%);
-  --border-color: #1F2937;
+  /* Dark navy palette — similar feel to TradeZilla */
+  --bg-primary:   #181B24;   /* Main page background */
+  --bg-secondary: #1E2130;   /* Section / panel bg */
+  --bg-tertiary:  #242838;   /* Card background */
+  --bg-card: linear-gradient(135deg, #1E2130 0%, #242838 100%);
+  --border-color: #2C3148;
   --text-primary: #E5E7EB;
   --text-secondary: #8B94A7;
-  --accent-green: #3BF68A;
-  --accent-purple: #A78BFA;
-  --accent-red: #F45B69;
+  --accent-green: #10B981;
+  --accent-red: #F43F5E;
 }
 
 [data-theme="light"] {

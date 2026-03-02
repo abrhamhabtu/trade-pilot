@@ -45,7 +45,7 @@ const BROKER_OPTIONS: BrokerOption[] = [
     abbr: 'TS',
     logoClass: 'bg-gradient-to-br from-[#F59E0B] to-[#F97316]'
   },
-  { label: 'ProjectX', abbr: 'PX', logoClass: 'bg-gradient-to-br from-[#A78BFA] to-[#7C3AED]' },
+  { label: 'ProjectX', abbr: 'PX', logoClass: 'bg-[#242838]' },
   { label: 'Apex Trader Funding', abbr: 'AP', logoClass: 'bg-gradient-to-br from-[#F97316] to-[#EA580C]' },
   { label: 'My Funded Futures', abbr: 'MF', logoClass: 'bg-gradient-to-br from-[#10B981] to-[#059669]' },
   { label: 'The Trading Pit', abbr: 'TP', logoClass: 'bg-gradient-to-br from-[#34D399] to-[#10B981]' },
@@ -54,8 +54,8 @@ const BROKER_OPTIONS: BrokerOption[] = [
   { label: 'True Forex Funds', abbr: 'TF', logoClass: 'bg-gradient-to-br from-[#14B8A6] to-[#0D9488]' },
   { label: 'E8 Funding', abbr: 'E8', logoClass: 'bg-gradient-to-br from-[#EC4899] to-[#DB2777]' },
   { label: 'The5ers', abbr: '5R', logoClass: 'bg-gradient-to-br from-[#F43F5E] to-[#E11D48]' },
-  { label: 'Generic Template', abbr: 'GT', logoClass: 'bg-[#334155]', logoTextClass: 'text-[#E5E7EB]' },
-  { label: 'Other', abbr: 'OT', logoClass: 'bg-[#475569]', logoTextClass: 'text-[#E5E7EB]' }
+  { label: 'Generic Template', abbr: 'GT', logoClass: 'bg-[#334155]', logoTextClass: 'text-zinc-100' },
+  { label: 'Other', abbr: 'OT', logoClass: 'bg-[#475569]', logoTextClass: 'text-zinc-100' }
 ];
 
 const normalizeBrokerName = (value: string) => value.trim().toLowerCase();
@@ -126,21 +126,21 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
         className={clsx(
           'rounded-xl border max-w-md w-full',
           theme === 'dark'
-            ? 'bg-[#15181F] border-[#1F2937]'
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
             : 'bg-white border-gray-200'
         )}
       >
         <div className={clsx(
           'p-6 border-b',
-          theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+          theme === 'dark' ? 'border-white/5' : 'border-gray-200'
         )}>
           <h2 className={clsx(
             'text-xl font-bold',
-            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+            theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
           )}>Add New Account</h2>
           <p className={clsx(
             'text-sm mt-1',
-            theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+            theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
           )}>Create a new trading account to track your trades</p>
         </div>
 
@@ -148,7 +148,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Account Name
             </label>
@@ -160,7 +160,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
               className={clsx(
                 'w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
                 theme === 'dark'
-                  ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                  ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                   : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
               )}
               required
@@ -170,7 +170,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
           <div className="relative">
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Broker / Prop Firm
             </label>
@@ -180,13 +180,13 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
               className={clsx(
                 'w-full px-4 py-3 rounded-lg border text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
                 theme === 'dark'
-                  ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB]'
+                  ? 'bg-[#181B24] border-white/5 text-zinc-100'
                   : 'bg-gray-50 border-gray-300 text-gray-900'
               )}
             >
               <div className="flex items-center space-x-3">
                 {broker && renderBrokerBadge(getBrokerOption(broker))}
-                <span className={broker ? '' : (theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')}>
+                <span className={broker ? '' : (theme === 'dark' ? 'text-zinc-400' : 'text-gray-400')}>
                   {broker || 'Select a broker...'}
                 </span>
               </div>
@@ -197,7 +197,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
               <div className={clsx(
                 'absolute z-10 w-full mt-1 rounded-lg border shadow-xl max-h-48 overflow-y-auto',
                 theme === 'dark'
-                  ? 'bg-[#15181F] border-[#1F2937]'
+                  ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
                   : 'bg-white border-gray-200'
               )}>
                 {BROKER_OPTIONS.map((option) => (
@@ -211,9 +211,9 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
                     className={clsx(
                       'w-full px-4 py-2 text-left text-sm transition-colors',
                       theme === 'dark'
-                        ? 'text-[#E5E7EB] hover:bg-[#1F2937]'
+                        ? 'text-zinc-100 hover:bg-[#242838]'
                         : 'text-gray-900 hover:bg-gray-100',
-                      broker === option.label && (theme === 'dark' ? 'bg-[#3BF68A]/10 text-[#3BF68A]' : 'bg-purple-50 text-purple-600')
+                      broker === option.label && (theme === 'dark' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-purple-50 text-purple-600')
                     )}
                   >
                     <div className="flex items-center space-x-3">
@@ -233,7 +233,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
               className={clsx(
                 'flex-1 px-4 py-3 rounded-lg border font-medium transition-all',
                 theme === 'dark'
-                  ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50'
+                  ? 'border-white/5 text-zinc-400 hover:text-zinc-100 hover:border-emerald-500/50'
                   : 'border-gray-300 text-gray-600 hover:text-gray-900 hover:border-purple-300'
               )}
             >
@@ -241,7 +241,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
+              className="flex-1 px-4 py-3 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all"
             >
               Add Account
             </button>
@@ -280,12 +280,12 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ isOpen, account
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
       <div className={clsx(
         'rounded-xl border max-w-lg w-full',
-        theme === 'dark' ? 'bg-[#15181F] border-[#1F2937]' : 'bg-white border-gray-200'
+        theme === 'dark' ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' : 'bg-white border-gray-200'
       )}>
         {/* Warning Header */}
         <div className={clsx(
           'p-6 border-b',
-          theme === 'dark' ? 'border-[#1F2937] bg-red-500/5' : 'border-gray-200 bg-red-50'
+          theme === 'dark' ? 'border-white/5 bg-red-500/5' : 'border-gray-200 bg-red-50'
         )}>
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-full bg-red-500/20">
@@ -294,11 +294,11 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ isOpen, account
             <div>
               <h2 className={clsx(
                 'text-xl font-bold',
-                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
               )}>Delete Account</h2>
               <p className={clsx(
                 'text-sm',
-                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
               )}>This action cannot be undone</p>
             </div>
           </div>
@@ -324,7 +324,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ isOpen, account
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               To confirm, type <span className="font-mono font-bold text-red-500">"{account.name}"</span> below:
             </label>
@@ -339,7 +339,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ isOpen, account
                   ? 'focus:ring-red-500/50 border-red-500'
                   : 'focus:ring-[#3BF68A]/50',
                 theme === 'dark'
-                  ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                  ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                   : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
               )}
               autoComplete="off"
@@ -355,7 +355,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ isOpen, account
               className={clsx(
                 'flex-1 px-4 py-3 rounded-lg border font-medium transition-all',
                 theme === 'dark'
-                  ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB]'
+                  ? 'border-white/5 text-zinc-400 hover:text-zinc-100'
                   : 'border-gray-300 text-gray-600 hover:text-gray-900'
               )}
             >
@@ -435,25 +435,25 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className={clsx(
         'rounded-xl border max-w-2xl w-full max-h-[80vh] overflow-hidden',
-        theme === 'dark' ? 'bg-[#15181F] border-[#1F2937]' : 'bg-white border-gray-200'
+        theme === 'dark' ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' : 'bg-white border-gray-200'
       )}>
         {/* Header */}
         <div className={clsx(
           'p-6 border-b flex items-center justify-between',
-          theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+          theme === 'dark' ? 'border-white/5' : 'border-gray-200'
         )}>
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-[#A78BFA]/10">
-              <History className="h-5 w-5 text-[#A78BFA]" />
+            <div className="p-2 rounded-lg bg-[#242838]">
+              <History className="h-5 w-5 text-zinc-400" />
             </div>
             <div>
               <h2 className={clsx(
                 'text-xl font-bold',
-                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
               )}>Import History</h2>
               <p className={clsx(
                 'text-sm',
-                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
               )}>{account.name} • {importHistory.length} import{importHistory.length !== 1 ? 's' : ''}</p>
             </div>
           </div>
@@ -462,7 +462,7 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
             className={clsx(
               'p-2 rounded-lg transition-colors',
               theme === 'dark'
-                ? 'text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937]'
+                ? 'text-zinc-400 hover:text-zinc-100 hover:bg-[#242838]'
                 : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
             )}
           >
@@ -475,23 +475,23 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
           {importHistory.length === 0 ? (
             <div className={clsx(
               'text-center py-12 rounded-lg border',
-              theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+              theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
             )}>
-              <FileText className={clsx('h-12 w-12 mx-auto mb-3', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')} />
-              <p className={clsx('text-sm font-medium', theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700')}>
+              <FileText className={clsx('h-12 w-12 mx-auto mb-3', theme === 'dark' ? 'text-zinc-400' : 'text-gray-400')} />
+              <p className={clsx('text-sm font-medium', theme === 'dark' ? 'text-zinc-100' : 'text-gray-700')}>
                 No import history recorded
               </p>
-              <p className={clsx('text-xs mt-2 max-w-sm mx-auto', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+              <p className={clsx('text-xs mt-2 max-w-sm mx-auto', theme === 'dark' ? 'text-zinc-400' : 'text-gray-500')}>
                 Import history tracking was just added. Your next CSV import will be recorded here with file name, date, trades count, and P&L.
               </p>
               <div className={clsx(
                 'mt-4 p-3 rounded-lg text-xs text-left max-w-sm mx-auto',
-                theme === 'dark' ? 'bg-[#1F2937]/50' : 'bg-gray-100'
+                theme === 'dark' ? 'bg-[#242838]/50' : 'bg-gray-100'
               )}>
-                <p className={clsx('font-medium mb-1', theme === 'dark' ? 'text-[#A78BFA]' : 'text-purple-600')}>
+                <p className={clsx('font-medium mb-1', theme === 'dark' ? 'text-zinc-400' : 'text-purple-600')}>
                   What gets tracked:
                 </p>
-                <ul className={clsx('space-y-1', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+                <ul className={clsx('space-y-1', theme === 'dark' ? 'text-zinc-400' : 'text-gray-500')}>
                   <li>• File name (e.g., trades_jan2026.csv)</li>
                   <li>• Import date & time</li>
                   <li>• Number of trades imported</li>
@@ -507,7 +507,7 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
                   className={clsx(
                     'p-4 rounded-lg border transition-all',
                     theme === 'dark'
-                      ? 'bg-[#0B0D10] border-[#1F2937] hover:border-[#3BF68A]/30'
+                      ? 'bg-[#181B24] border-white/5 hover:border-emerald-500/30'
                       : 'bg-gray-50 border-gray-200 hover:border-purple-300'
                   )}
                 >
@@ -515,20 +515,20 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
                     <div className="flex items-start space-x-3">
                       <div className={clsx(
                         'p-2 rounded-lg',
-                        theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-200'
+                        theme === 'dark' ? 'bg-[#242838]' : 'bg-gray-200'
                       )}>
-                        <FileText className={clsx('h-5 w-5', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')} />
+                        <FileText className={clsx('h-5 w-5', theme === 'dark' ? 'text-zinc-400' : 'text-gray-500')} />
                       </div>
                       <div>
                         <p className={clsx(
                           'font-medium text-sm',
-                          theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                          theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
                         )}>
                           {entry.fileName}
                         </p>
                         <p className={clsx(
                           'text-xs mt-1',
-                          theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                          theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
                         )}>
                           Imported on {entry.importedAt}
                         </p>
@@ -539,7 +539,7 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
                       className={clsx(
                         'p-1.5 rounded-lg transition-colors',
                         theme === 'dark'
-                          ? 'text-[#8B94A7] hover:text-red-400 hover:bg-red-500/10'
+                          ? 'text-zinc-400 hover:text-red-400 hover:bg-red-500/10'
                           : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
                       )}
                       title="Remove from history"
@@ -552,42 +552,42 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
                   <div className="grid grid-cols-3 gap-4 mt-4">
                     <div className={clsx(
                       'p-3 rounded-lg',
-                      theme === 'dark' ? 'bg-[#15181F]' : 'bg-white border border-gray-200'
+                      theme === 'dark' ? 'bg-[#181B24]/80 backdrop-blur-md' : 'bg-white border border-gray-200'
                     )}>
-                      <p className={clsx('text-xs', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+                      <p className={clsx('text-xs', theme === 'dark' ? 'text-zinc-400' : 'text-gray-500')}>
                         Trades
                       </p>
                       <p className={clsx(
                         'text-lg font-bold mt-1',
-                        theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                        theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
                       )}>
                         {entry.tradesImported}
                       </p>
                     </div>
                     <div className={clsx(
                       'p-3 rounded-lg',
-                      theme === 'dark' ? 'bg-[#15181F]' : 'bg-white border border-gray-200'
+                      theme === 'dark' ? 'bg-[#181B24]/80 backdrop-blur-md' : 'bg-white border border-gray-200'
                     )}>
-                      <p className={clsx('text-xs', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+                      <p className={clsx('text-xs', theme === 'dark' ? 'text-zinc-400' : 'text-gray-500')}>
                         P&L
                       </p>
                       <p className={clsx(
                         'text-lg font-bold mt-1',
-                        entry.totalPnL >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                        entry.totalPnL >= 0 ? 'text-emerald-500' : 'text-rose-500'
                       )}>
                         {formatCurrency(entry.totalPnL)}
                       </p>
                     </div>
                     <div className={clsx(
                       'p-3 rounded-lg',
-                      theme === 'dark' ? 'bg-[#15181F]' : 'bg-white border border-gray-200'
+                      theme === 'dark' ? 'bg-[#181B24]/80 backdrop-blur-md' : 'bg-white border border-gray-200'
                     )}>
-                      <p className={clsx('text-xs', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+                      <p className={clsx('text-xs', theme === 'dark' ? 'text-zinc-400' : 'text-gray-500')}>
                         Date Range
                       </p>
                       <p className={clsx(
                         'text-sm font-medium mt-1',
-                        theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                        theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
                       )}>
                         {entry.dateRange
                           ? `${entry.dateRange.from.slice(5)} - ${entry.dateRange.to.slice(5)}`
@@ -607,12 +607,12 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-[60]">
             <div className={clsx(
               'rounded-xl border max-w-md w-full shadow-2xl',
-              theme === 'dark' ? 'bg-[#15181F] border-[#1F2937]' : 'bg-white border-gray-200'
+              theme === 'dark' ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' : 'bg-white border-gray-200'
             )}>
               {/* Header */}
               <div className={clsx(
                 'p-5 border-b',
-                theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+                theme === 'dark' ? 'border-white/5' : 'border-gray-200'
               )}>
                 <div className="flex items-center space-x-3">
                   <div className="p-2 rounded-lg bg-red-500/10">
@@ -621,11 +621,11 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
                   <div>
                     <h3 className={clsx(
                       'text-lg font-bold',
-                      theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                      theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
                     )}>Delete Import Record</h3>
                     <p className={clsx(
                       'text-sm',
-                      theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                      theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
                     )}>This action cannot be undone</p>
                   </div>
                 </div>
@@ -645,13 +645,13 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
                   </p>
                   <p className={clsx(
                     'font-mono font-bold mt-2 text-sm break-all',
-                    theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                    theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
                   )}>
                     {entryToDelete.fileName}
                   </p>
                   <p className={clsx(
                     'text-xs mt-2',
-                    theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                    theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
                   )}>
                     {entryToDelete.tradesImported} trades • {formatCurrency(entryToDelete.totalPnL)} P&L
                   </p>
@@ -659,7 +659,7 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
 
                 <p className={clsx(
                   'text-sm mb-3',
-                  theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600'
+                  theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
                 )}>
                   To confirm, type <span className="font-bold text-red-500">DELETE</span> below:
                 </p>
@@ -672,7 +672,7 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
                   className={clsx(
                     'w-full px-4 py-3 rounded-lg border text-sm',
                     theme === 'dark'
-                      ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#4B5563]'
+                      ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#4B5563]'
                       : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400',
                     'focus:outline-none focus:ring-2 focus:ring-red-500/50'
                   )}
@@ -683,7 +683,7 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
               {/* Footer */}
               <div className={clsx(
                 'p-5 border-t flex justify-end space-x-3',
-                theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+                theme === 'dark' ? 'border-white/5' : 'border-gray-200'
               )}>
                 <button
                   onClick={() => {
@@ -693,7 +693,7 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
                   className={clsx(
                     'px-4 py-2 rounded-lg font-medium transition-colors',
                     theme === 'dark'
-                      ? 'text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937]'
+                      ? 'text-zinc-400 hover:text-zinc-100 hover:bg-[#242838]'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   )}
                 >
@@ -707,7 +707,7 @@ const ImportHistoryModal: React.FC<ImportHistoryModalProps> = ({ isOpen, account
                     isDeleteEnabled
                       ? 'bg-red-500 text-white hover:bg-red-600'
                       : theme === 'dark'
-                        ? 'bg-[#1F2937] text-[#4B5563] cursor-not-allowed'
+                        ? 'bg-[#242838] text-[#4B5563] cursor-not-allowed'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   )}
                 >
@@ -782,26 +782,26 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
         className={clsx(
           'rounded-xl border max-w-md w-full',
           theme === 'dark'
-            ? 'bg-[#15181F] border-[#1F2937]'
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
             : 'bg-white border-gray-200'
         )}
       >
         <div className={clsx(
           'p-6 border-b',
-          theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+          theme === 'dark' ? 'border-white/5' : 'border-gray-200'
         )}>
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-[#3BF68A]/10">
-              <DollarSign className="h-5 w-5 text-[#3BF68A]" />
+            <div className="p-2 rounded-lg bg-emerald-500/10">
+              <DollarSign className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
               <h2 className={clsx(
                 'text-xl font-bold',
-                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
               )}>Add Balance Adjustment</h2>
               <p className={clsx(
                 'text-sm mt-1',
-                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
               )}>Record a payout, deposit, or manual adjustment</p>
             </div>
           </div>
@@ -812,7 +812,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-3',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Type
             </label>
@@ -828,10 +828,10 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
                       'p-3 rounded-lg border-2 transition-all text-center',
                       type === option.value
                         ? theme === 'dark'
-                          ? 'border-[#3BF68A] bg-[#3BF68A]/10'
+                          ? 'border-emerald-500/30 bg-emerald-500/10'
                           : 'border-purple-500 bg-purple-50'
                         : theme === 'dark'
-                          ? 'border-[#1F2937] hover:border-[#3BF68A]/50'
+                          ? 'border-white/5 hover:border-emerald-500/50'
                           : 'border-gray-200 hover:border-purple-300'
                     )}
                   >
@@ -842,8 +842,8 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
                     <div className={clsx(
                       'text-xs font-semibold',
                       type === option.value
-                        ? (theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900')
-                        : (theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')
+                        ? (theme === 'dark' ? 'text-zinc-100' : 'text-gray-900')
+                        : (theme === 'dark' ? 'text-zinc-400' : 'text-gray-500')
                     )}>
                       {option.label}
                     </div>
@@ -863,14 +863,14 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Amount
             </label>
             <div className="relative">
               <span className={clsx(
                 'absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold',
-                type === 'payout' ? 'text-[#F45B69]' : 'text-[#3BF68A]'
+                type === 'payout' ? 'text-rose-500' : 'text-emerald-500'
               )}>
                 {type === 'payout' ? '-$' : '+$'}
               </span>
@@ -884,7 +884,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
                 className={clsx(
                   'w-full pl-12 pr-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all text-lg font-semibold',
                   theme === 'dark'
-                    ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#4B5563]'
+                    ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#4B5563]'
                     : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
                 )}
                 required
@@ -897,14 +897,14 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Date
             </label>
             <div className="relative">
               <Calendar className={clsx(
                 'absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4',
-                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400'
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-400'
               )} />
               <input
                 type="date"
@@ -913,7 +913,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
                 className={clsx(
                   'w-full pl-11 pr-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
                   theme === 'dark'
-                    ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB]'
+                    ? 'bg-[#181B24] border-white/5 text-zinc-100'
                     : 'bg-gray-50 border-gray-300 text-gray-900'
                 )}
                 required
@@ -925,7 +925,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Note <span className={theme === 'dark' ? 'text-[#6B7280]' : 'text-gray-400'}>(optional)</span>
             </label>
@@ -937,7 +937,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
               className={clsx(
                 'w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
                 theme === 'dark'
-                  ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#4B5563]'
+                  ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#4B5563]'
                   : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
               )}
             />
@@ -946,15 +946,15 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
           {/* Preview */}
           <div className={clsx(
             'p-4 rounded-lg border',
-            theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+            theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
           )}>
             <div className="flex items-center justify-between">
-              <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>
+              <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}>
                 Balance impact:
               </span>
               <span className={clsx(
                 'text-lg font-bold',
-                type === 'payout' ? 'text-[#F45B69]' : 'text-[#3BF68A]'
+                type === 'payout' ? 'text-rose-500' : 'text-emerald-500'
               )}>
                 {type === 'payout' ? '-' : '+'}${parseFloat(amount || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
@@ -969,7 +969,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
               className={clsx(
                 'flex-1 px-4 py-3 rounded-lg border font-medium transition-all',
                 theme === 'dark'
-                  ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50'
+                  ? 'border-white/5 text-zinc-400 hover:text-zinc-100 hover:border-emerald-500/50'
                   : 'border-gray-300 text-gray-600 hover:text-gray-900 hover:border-purple-300'
               )}
             >
@@ -977,7 +977,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, account
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
+              className="flex-1 px-4 py-3 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all"
             >
               Add Adjustment
             </button>
@@ -1036,32 +1036,32 @@ const AdjustmentsListModal: React.FC<AdjustmentsListModalProps> = ({ isOpen, acc
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className={clsx(
         'rounded-xl border max-w-2xl w-full max-h-[80vh] overflow-hidden',
-        theme === 'dark' ? 'bg-[#15181F] border-[#1F2937]' : 'bg-white border-gray-200'
+        theme === 'dark' ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' : 'bg-white border-gray-200'
       )}>
         {/* Header */}
         <div className={clsx(
           'p-6 border-b flex items-center justify-between',
-          theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+          theme === 'dark' ? 'border-white/5' : 'border-gray-200'
         )}>
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-[#3BF68A]/10">
-              <DollarSign className="h-5 w-5 text-[#3BF68A]" />
+            <div className="p-2 rounded-lg bg-emerald-500/10">
+              <DollarSign className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
               <h2 className={clsx(
                 'text-xl font-bold',
-                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
               )}>Balance Adjustments</h2>
               <p className={clsx(
                 'text-sm',
-                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
               )}>{account.name} • {adjustments.length} adjustment{adjustments.length !== 1 ? 's' : ''}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <button
               onClick={onAddNew}
-              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all text-sm"
+              className="flex items-center space-x-2 px-4 py-2 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all text-sm"
             >
               <Plus className="h-4 w-4" />
               <span>Add New</span>
@@ -1071,7 +1071,7 @@ const AdjustmentsListModal: React.FC<AdjustmentsListModalProps> = ({ isOpen, acc
               className={clsx(
                 'p-2 rounded-lg transition-colors',
                 theme === 'dark'
-                  ? 'text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937]'
+                  ? 'text-zinc-400 hover:text-zinc-100 hover:bg-[#242838]'
                   : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
               )}
             >
@@ -1083,15 +1083,15 @@ const AdjustmentsListModal: React.FC<AdjustmentsListModalProps> = ({ isOpen, acc
         {/* Summary */}
         <div className={clsx(
           'px-6 py-4 border-b',
-          theme === 'dark' ? 'border-[#1F2937] bg-[#0B0D10]' : 'border-gray-200 bg-gray-50'
+          theme === 'dark' ? 'border-white/5 bg-[#181B24]' : 'border-gray-200 bg-gray-50'
         )}>
           <div className="flex items-center justify-between">
-            <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>
+            <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}>
               Total Impact on Balance:
             </span>
             <span className={clsx(
               'text-xl font-bold',
-              totalAdjustments >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+              totalAdjustments >= 0 ? 'text-emerald-500' : 'text-rose-500'
             )}>
               {formatCurrency(totalAdjustments)}
             </span>
@@ -1103,18 +1103,18 @@ const AdjustmentsListModal: React.FC<AdjustmentsListModalProps> = ({ isOpen, acc
           {adjustments.length === 0 ? (
             <div className={clsx(
               'text-center py-12 rounded-lg border',
-              theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+              theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
             )}>
-              <DollarSign className={clsx('h-12 w-12 mx-auto mb-3', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')} />
-              <p className={clsx('text-sm font-medium', theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700')}>
+              <DollarSign className={clsx('h-12 w-12 mx-auto mb-3', theme === 'dark' ? 'text-zinc-400' : 'text-gray-400')} />
+              <p className={clsx('text-sm font-medium', theme === 'dark' ? 'text-zinc-100' : 'text-gray-700')}>
                 No adjustments recorded
               </p>
-              <p className={clsx('text-xs mt-2 max-w-sm mx-auto', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500')}>
+              <p className={clsx('text-xs mt-2 max-w-sm mx-auto', theme === 'dark' ? 'text-zinc-400' : 'text-gray-500')}>
                 Record payouts, deposits, or manual corrections to keep your balance accurate.
               </p>
               <button
                 onClick={onAddNew}
-                className="mt-4 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all text-sm"
+                className="mt-4 px-4 py-2 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all text-sm"
               >
                 Add Your First Adjustment
               </button>
@@ -1127,7 +1127,7 @@ const AdjustmentsListModal: React.FC<AdjustmentsListModalProps> = ({ isOpen, acc
                   className={clsx(
                     'p-4 rounded-lg border transition-all',
                     theme === 'dark'
-                      ? 'bg-[#0B0D10] border-[#1F2937] hover:border-[#3BF68A]/30'
+                      ? 'bg-[#181B24] border-white/5 hover:border-emerald-500/30'
                       : 'bg-gray-50 border-gray-200 hover:border-purple-300'
                   )}
                 >
@@ -1136,37 +1136,37 @@ const AdjustmentsListModal: React.FC<AdjustmentsListModalProps> = ({ isOpen, acc
                       <div className={clsx(
                         'p-2 rounded-lg',
                         adjustment.type === 'payout'
-                          ? 'bg-[#F45B69]/10'
+                          ? 'bg-rose-500/10'
                           : adjustment.type === 'deposit'
-                            ? 'bg-[#3BF68A]/10'
-                            : 'bg-[#A78BFA]/10'
+                            ? 'bg-emerald-500/10'
+                            : 'bg-[#242838]'
                       )}>
                         {adjustment.type === 'payout' ? (
-                          <ArrowUpRight className="h-5 w-5 text-[#F45B69]" />
+                          <ArrowUpRight className="h-5 w-5 text-rose-500" />
                         ) : adjustment.type === 'deposit' ? (
-                          <ArrowDownLeft className="h-5 w-5 text-[#3BF68A]" />
+                          <ArrowDownLeft className="h-5 w-5 text-emerald-500" />
                         ) : (
-                          <DollarSign className="h-5 w-5 text-[#A78BFA]" />
+                          <DollarSign className="h-5 w-5 text-zinc-400" />
                         )}
                       </div>
                       <div>
                         <div className="flex items-center space-x-2">
                           <span className={clsx(
                             'font-semibold capitalize',
-                            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                            theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
                           )}>
                             {adjustment.type}
                           </span>
                           <span className={clsx(
                             'text-lg font-bold',
-                            adjustment.amount >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                            adjustment.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'
                           )}>
                             {formatCurrency(adjustment.amount)}
                           </span>
                         </div>
                         <p className={clsx(
                           'text-xs mt-1',
-                          theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                          theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
                         )}>
                           {formatDate(adjustment.date)}
                           {adjustment.description && ` • ${adjustment.description}`}
@@ -1190,7 +1190,7 @@ const AdjustmentsListModal: React.FC<AdjustmentsListModalProps> = ({ isOpen, acc
                           className={clsx(
                             'px-3 py-1 text-xs font-medium rounded-lg transition-colors',
                             theme === 'dark'
-                              ? 'bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB]'
+                              ? 'bg-[#242838] text-zinc-400 hover:text-zinc-100'
                               : 'bg-gray-200 text-gray-600 hover:text-gray-900'
                           )}
                         >
@@ -1203,7 +1203,7 @@ const AdjustmentsListModal: React.FC<AdjustmentsListModalProps> = ({ isOpen, acc
                         className={clsx(
                           'p-1.5 rounded-lg transition-colors',
                           theme === 'dark'
-                            ? 'text-[#8B94A7] hover:text-red-400 hover:bg-red-500/10'
+                            ? 'text-zinc-400 hover:text-red-400 hover:bg-red-500/10'
                             : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
                         )}
                         title="Delete adjustment"
@@ -1288,22 +1288,22 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
         className={clsx(
           'rounded-xl border max-w-md w-full',
           theme === 'dark'
-            ? 'bg-[#15181F] border-[#1F2937]'
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
             : 'bg-white border-gray-200'
         )}
       >
         {/* Header */}
         <div className={clsx(
           'p-6 border-b',
-          theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+          theme === 'dark' ? 'border-white/5' : 'border-gray-200'
         )}>
           <h2 className={clsx(
             'text-xl font-bold',
-            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+            theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
           )}>Edit Account</h2>
           <p className={clsx(
             'text-sm mt-1',
-            theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+            theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
           )}>Update account details or manage trades</p>
         </div>
 
@@ -1312,7 +1312,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Account Name
             </label>
@@ -1324,7 +1324,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
               className={clsx(
                 'w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
                 theme === 'dark'
-                  ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7]'
+                  ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
                   : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
               )}
               required
@@ -1335,7 +1335,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Broker / Platform
             </label>
@@ -1349,13 +1349,13 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 className={clsx(
                   'w-full px-4 py-3 rounded-lg border text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
                   theme === 'dark'
-                    ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB]'
+                    ? 'bg-[#181B24] border-white/5 text-zinc-100'
                     : 'bg-gray-50 border-gray-300 text-gray-900'
                 )}
               >
                 <div className="flex items-center space-x-3">
                   {broker && renderBrokerBadge(getBrokerOption(broker))}
-                  <span className={!broker ? (theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400') : ''}>
+                  <span className={!broker ? (theme === 'dark' ? 'text-zinc-400' : 'text-gray-400') : ''}>
                     {broker || 'Select a broker'}
                   </span>
                 </div>
@@ -1369,7 +1369,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 <div className={clsx(
                   'absolute z-20 w-full mt-1 rounded-lg border shadow-xl max-h-48 overflow-y-auto',
                   theme === 'dark'
-                    ? 'bg-[#15181F] border-[#1F2937]'
+                    ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
                     : 'bg-white border-gray-200'
                 )}>
                   {BROKER_OPTIONS.map((option) => (
@@ -1383,9 +1383,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                       className={clsx(
                         'w-full px-4 py-2 text-left text-sm transition-colors',
                         theme === 'dark'
-                          ? 'text-[#E5E7EB] hover:bg-[#1F2937]'
+                          ? 'text-zinc-100 hover:bg-[#242838]'
                           : 'text-gray-700 hover:bg-gray-100',
-                        broker === option.label && (theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-100')
+                        broker === option.label && (theme === 'dark' ? 'bg-[#242838]' : 'bg-gray-100')
                       )}
                     >
                       <div className="flex items-center space-x-3">
@@ -1403,7 +1403,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
           <div>
             <label className={clsx(
               'block text-sm font-medium mb-2',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
             )}>
               Account Status
             </label>
@@ -1417,16 +1417,16 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 className={clsx(
                   'w-full px-4 py-3 rounded-lg border text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 transition-all',
                   theme === 'dark'
-                    ? 'bg-[#0B0D10] border-[#1F2937] text-[#E5E7EB]'
+                    ? 'bg-[#181B24] border-white/5 text-zinc-100'
                     : 'bg-gray-50 border-gray-300 text-gray-900'
                 )}
               >
                 <div className="flex items-center space-x-2">
                   <div className={clsx(
                     'w-2 h-2 rounded-full',
-                    status === 'active' ? 'bg-[#3BF68A]' :
+                    status === 'active' ? 'bg-emerald-500' :
                       status === 'passed_eval' ? 'bg-[#60A5FA]' :
-                        status === 'blown' ? 'bg-[#F45B69]' :
+                        status === 'blown' ? 'bg-rose-500' :
                           'bg-yellow-400'
                   )} />
                   <span className="capitalize">
@@ -1445,7 +1445,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 <div className={clsx(
                   'absolute z-20 w-full mt-1 rounded-lg border shadow-xl',
                   theme === 'dark'
-                    ? 'bg-[#15181F] border-[#1F2937]'
+                    ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
                     : 'bg-white border-gray-200'
                 )}>
                   {(['active', 'passed_eval', 'blown', 'inactive'] as AccountStatus[]).map((option) => {
@@ -1464,16 +1464,16 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                         className={clsx(
                           'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
                           theme === 'dark'
-                            ? 'text-[#E5E7EB] hover:bg-[#1F2937]'
+                            ? 'text-zinc-100 hover:bg-[#242838]'
                             : 'text-gray-700 hover:bg-gray-100',
-                          status === option && (theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-100')
+                          status === option && (theme === 'dark' ? 'bg-[#242838]' : 'bg-gray-100')
                         )}
                       >
                         <div className={clsx(
                           'w-2 h-2 rounded-full',
-                          option === 'active' ? 'bg-[#3BF68A]' :
+                          option === 'active' ? 'bg-emerald-500' :
                             option === 'passed_eval' ? 'bg-[#60A5FA]' :
-                              option === 'blown' ? 'bg-[#F45B69]' :
+                              option === 'blown' ? 'bg-rose-500' :
                                 'bg-yellow-400'
                         )} />
                         <span className="capitalize">{label}</span>
@@ -1490,28 +1490,28 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
           {/* Account Stats */}
           <div className={clsx(
             'rounded-lg p-4 border',
-            theme === 'dark' ? 'bg-[#0B0D10] border-[#1F2937]' : 'bg-gray-50 border-gray-200'
+            theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
           )}>
             <div className="flex justify-between items-center mb-2">
-              <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>Total Trades</span>
-              <span className={clsx('font-semibold', theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900')}>
+              <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}>Total Trades</span>
+              <span className={clsx('font-semibold', theme === 'dark' ? 'text-zinc-100' : 'text-gray-900')}>
                 {account.trades.length}
               </span>
             </div>
             <div className="flex justify-between items-center mb-2">
-              <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>Balance</span>
-              <span className={clsx('font-semibold', account.balance >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]')}>
+              <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}>Balance</span>
+              <span className={clsx('font-semibold', account.balance >= 0 ? 'text-emerald-500' : 'text-rose-500')}>
                 ${Math.abs(account.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>CSV Imports</span>
+              <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}>CSV Imports</span>
               <button
                 type="button"
                 onClick={() => onShowImportHistory(account)}
                 className={clsx(
                   'font-semibold flex items-center space-x-1 hover:underline',
-                  theme === 'dark' ? 'text-[#A78BFA]' : 'text-purple-600'
+                  theme === 'dark' ? 'text-zinc-400' : 'text-purple-600'
                 )}
               >
                 <span>{importCount}</span>
@@ -1528,7 +1528,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
               className={clsx(
                 'w-full px-4 py-3 rounded-lg border font-medium flex items-center justify-center space-x-2 transition-all',
                 theme === 'dark'
-                  ? 'border-[#3BF68A]/30 text-[#3BF68A] hover:bg-[#3BF68A]/10'
+                  ? 'border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10'
                   : 'border-green-300 text-green-600 hover:bg-green-50'
               )}
             >
@@ -1542,7 +1542,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
               className={clsx(
                 'w-full px-4 py-3 rounded-lg border font-medium flex items-center justify-center space-x-2 transition-all',
                 theme === 'dark'
-                  ? 'border-[#A78BFA]/30 text-[#A78BFA] hover:bg-[#A78BFA]/10'
+                  ? 'border-zinc-700 text-zinc-400 hover:bg-[#242838]'
                   : 'border-purple-300 text-purple-600 hover:bg-purple-50'
               )}
             >
@@ -1559,7 +1559,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                     className={clsx(
                       'w-full px-4 py-3 rounded-lg border font-medium flex items-center justify-center space-x-2 transition-all',
                       theme === 'dark'
-                        ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50'
+                        ? 'border-white/5 text-zinc-400 hover:text-zinc-100 hover:border-emerald-500/50'
                         : 'border-gray-300 text-gray-600 hover:text-gray-900'
                     )}
                   >
@@ -1588,7 +1588,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                         className={clsx(
                           'flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-all',
                           theme === 'dark'
-                            ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB]'
+                            ? 'border-white/5 text-zinc-400 hover:text-zinc-100'
                             : 'border-gray-300 text-gray-600 hover:text-gray-900'
                         )}
                       >
@@ -1605,7 +1605,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
           {account.type !== 'demo' && (
             <div className={clsx(
               'pt-4 border-t',
-              theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+              theme === 'dark' ? 'border-white/5' : 'border-gray-200'
             )}>
               <button
                 type="button"
@@ -1622,7 +1622,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
           {account.type !== 'demo' && (
             <div className={clsx(
               'pt-4 border-t',
-              theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+              theme === 'dark' ? 'border-white/5' : 'border-gray-200'
             )}>
               <button
                 type="button"
@@ -1643,7 +1643,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
               className={clsx(
                 'flex-1 px-4 py-3 rounded-lg border font-medium transition-all',
                 theme === 'dark'
-                  ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50'
+                  ? 'border-white/5 text-zinc-400 hover:text-zinc-100 hover:border-emerald-500/50'
                   : 'border-gray-300 text-gray-600 hover:text-gray-900 hover:border-purple-300'
               )}
             >
@@ -1651,7 +1651,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
+              className="flex-1 px-4 py-3 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all"
             >
               Save Changes
             </button>
@@ -1700,7 +1700,7 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
         className={clsx(
           'p-2 rounded-lg transition-colors',
           theme === 'dark'
-            ? 'text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937]'
+            ? 'text-zinc-400 hover:text-zinc-100 hover:bg-[#242838]'
             : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
         )}
       >
@@ -1717,7 +1717,7 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
             className={clsx(
               'fixed w-48 rounded-lg border shadow-xl z-50',
               theme === 'dark'
-                ? 'bg-[#15181F] border-[#1F2937]'
+                ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
                 : 'bg-white border-gray-200'
             )}
             style={{ top: menuPosition.top, left: menuPosition.left }}
@@ -1727,7 +1727,7 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
               className={clsx(
                 'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
                 theme === 'dark'
-                  ? 'text-[#E5E7EB] hover:bg-[#1F2937]'
+                  ? 'text-zinc-100 hover:bg-[#242838]'
                   : 'text-gray-700 hover:bg-gray-100'
               )}
             >
@@ -1739,7 +1739,7 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
               className={clsx(
                 'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
                 theme === 'dark'
-                  ? 'text-[#E5E7EB] hover:bg-[#1F2937]'
+                  ? 'text-zinc-100 hover:bg-[#242838]'
                   : 'text-gray-700 hover:bg-gray-100'
               )}
             >
@@ -1751,7 +1751,7 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
               className={clsx(
                 'w-full px-4 py-2 text-left text-sm flex items-center space-x-2 transition-colors',
                 theme === 'dark'
-                  ? 'text-[#3BF68A] hover:bg-[#3BF68A]/10'
+                  ? 'text-emerald-500 hover:bg-emerald-500/10'
                   : 'text-green-600 hover:bg-green-50'
               )}
             >
@@ -1759,11 +1759,11 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
               <span>Adjust Balance</span>
             </button>
 
-            <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-100')} />
+            <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-white/5' : 'border-gray-100')} />
 
             {/* Status Options */}
             <div className="px-2 py-1">
-              <p className={clsx('text-xs px-2 mb-1 uppercase font-semibold', theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400')}>
+              <p className={clsx('text-xs px-2 mb-1 uppercase font-semibold', theme === 'dark' ? 'text-zinc-400' : 'text-gray-400')}>
                 Set Status
               </p>
               {(['active', 'passed_eval', 'blown', 'inactive'] as AccountStatus[]).map((status) => {
@@ -1779,16 +1779,16 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
                       'w-full px-2 py-1.5 text-left text-sm rounded flex items-center space-x-2 transition-colors',
                       account.status === status
                         ? (theme === 'dark'
-                          ? (isPaidOut ? 'bg-yellow-500/10 text-yellow-400' : isPassedEval ? 'bg-blue-500/10 text-blue-400' : 'bg-[#3BF68A]/10 text-[#3BF68A]')
+                          ? (isPaidOut ? 'bg-yellow-500/10 text-yellow-400' : isPassedEval ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-500')
                           : (isPaidOut ? 'bg-yellow-50 text-yellow-600' : isPassedEval ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'))
-                        : (theme === 'dark' ? 'text-[#8B94A7] hover:bg-[#1F2937] hover:text-[#E5E7EB]' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900')
+                        : (theme === 'dark' ? 'text-zinc-400 hover:bg-[#242838] hover:text-zinc-100' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900')
                     )}
                   >
                     <div className={clsx(
                       'w-1.5 h-1.5 rounded-full',
-                      status === 'active' ? 'bg-[#3BF68A]' :
+                      status === 'active' ? 'bg-emerald-500' :
                         status === 'passed_eval' ? 'bg-[#60A5FA]' :
-                          status === 'blown' ? 'bg-[#F45B69]' :
+                          status === 'blown' ? 'bg-rose-500' :
                             'bg-yellow-400'
                     )} />
                     <span className="capitalize font-medium">{label}</span>
@@ -1799,7 +1799,7 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
               })}
             </div>
 
-            <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-100')} />
+            <div className={clsx('my-1 border-t', theme === 'dark' ? 'border-white/5' : 'border-gray-100')} />
 
             <button
               onClick={() => { onClearTrades(); setIsOpen(false); }}
@@ -1963,11 +1963,11 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
       className={clsx(
         'grid grid-cols-6 gap-4 px-6 py-4 items-center border-b transition-colors cursor-pointer',
         theme === 'dark'
-          ? 'border-[#1F2937] hover:bg-[#15181F]'
+          ? 'border-white/5 hover:bg-[#181B24]/80 backdrop-blur-md'
           : 'border-gray-100 hover:bg-gray-50',
         selectedAccountId === account.id && (
           theme === 'dark'
-            ? 'bg-[#3BF68A]/5 border-l-2 border-l-[#3BF68A]'
+            ? 'bg-emerald-500/5 border-l-2 border-l-[#3BF68A]'
             : 'bg-purple-50 border-l-2 border-l-purple-500'
         )
       )}
@@ -1976,7 +1976,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
       {/* Account Name */}
       <div className={clsx(
         'font-medium flex items-center space-x-2',
-        theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+        theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
       )}>
         <span>{account.name}</span>
         {account.status !== 'active' && (
@@ -1998,7 +1998,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
       {/* Broker */}
       <div className="flex items-center space-x-2">
         <span className="text-lg">{getBrokerIcon(account.broker)}</span>
-        <span className={theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'}>
+        <span className={theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'}>
           {account.broker}
         </span>
       </div>
@@ -2011,8 +2011,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           className={clsx(
             'font-medium hover:underline',
             account.balance >= 0
-              ? 'text-[#3BF68A]'
-              : 'text-[#F45B69]'
+              ? 'text-emerald-500'
+              : 'text-rose-500'
           )}
         >
           {formatBalance(account.balance)}
@@ -2020,12 +2020,12 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
       </div>
 
       {/* Last Update */}
-      <div className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>
+      <div className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}>
         {account.lastUpdate || '-'}
       </div>
 
       {/* Type */}
-      <div className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>
+      <div className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}>
         {getTypeLabel(account.type)}
       </div>
 
@@ -2039,7 +2039,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           className={clsx(
             'p-2 rounded-lg transition-colors',
             theme === 'dark'
-              ? 'text-[#8B94A7] hover:text-[#3BF68A] hover:bg-[#3BF68A]/10'
+              ? 'text-zinc-400 hover:text-emerald-500 hover:bg-emerald-500/10'
               : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'
           )}
           title="Import trades"
@@ -2066,13 +2066,13 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
         <div>
           <h1 className={clsx(
             'text-2xl font-bold',
-            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+            theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
           )}>
             My Trading Accounts
           </h1>
           <p className={clsx(
             'text-sm mt-1',
-            theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+            theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
           )}>
             Manage your prop firm and trading accounts
           </p>
@@ -2084,7 +2084,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
         {/* Tabs */}
         <div className={clsx(
           'flex p-1 rounded-xl',
-          theme === 'dark' ? 'bg-[#1F2937]/50' : 'bg-gray-100'
+          theme === 'dark' ? 'bg-[#242838]/50' : 'bg-gray-100'
         )}>
           <button
             onClick={() => setActiveTab('active')}
@@ -2092,10 +2092,10 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
               'px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2',
               activeTab === 'active'
                 ? theme === 'dark'
-                  ? 'bg-[#3BF68A]/20 text-[#3BF68A] shadow-sm'
+                  ? 'bg-emerald-500/20 text-emerald-500 shadow-sm'
                   : 'bg-white text-gray-900 shadow-sm'
                 : theme === 'dark'
-                  ? 'text-[#8B94A7] hover:text-[#E5E7EB]'
+                  ? 'text-zinc-400 hover:text-zinc-100'
                   : 'text-gray-500 hover:text-gray-900'
             )}
           >
@@ -2103,8 +2103,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             <span className={clsx(
               'px-2 py-0.5 rounded-full text-xs',
               activeTab === 'active'
-                ? theme === 'dark' ? 'bg-[#3BF68A]/20 text-[#3BF68A]' : 'bg-gray-100 text-gray-900'
-                : theme === 'dark' ? 'bg-[#15181F] text-[#8B94A7]' : 'bg-gray-200 text-gray-600'
+                ? theme === 'dark' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-gray-100 text-gray-900'
+                : theme === 'dark' ? 'bg-[#181B24]/80 backdrop-blur-md text-zinc-400' : 'bg-gray-200 text-gray-600'
             )}>
               {activeAccounts.length}
             </span>
@@ -2116,10 +2116,10 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
               'px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2',
               activeTab === 'inactive'
                 ? theme === 'dark'
-                  ? 'bg-[#F45B69]/20 text-[#F45B69] shadow-sm'
+                  ? 'bg-rose-500/20 text-rose-500 shadow-sm'
                   : 'bg-white text-gray-900 shadow-sm'
                 : theme === 'dark'
-                  ? 'text-[#8B94A7] hover:text-[#E5E7EB]'
+                  ? 'text-zinc-400 hover:text-zinc-100'
                   : 'text-gray-500 hover:text-gray-900'
             )}
           >
@@ -2127,8 +2127,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             <span className={clsx(
               'px-2 py-0.5 rounded-full text-xs',
               activeTab === 'inactive'
-                ? theme === 'dark' ? 'bg-[#F45B69]/20 text-[#F45B69]' : 'bg-gray-100 text-gray-900'
-                : theme === 'dark' ? 'bg-[#15181F] text-[#8B94A7]' : 'bg-gray-200 text-gray-600'
+                ? theme === 'dark' ? 'bg-rose-500/20 text-rose-500' : 'bg-gray-100 text-gray-900'
+                : theme === 'dark' ? 'bg-[#181B24]/80 backdrop-blur-md text-zinc-400' : 'bg-gray-200 text-gray-600'
             )}>
               {inactiveAccounts.length}
             </span>
@@ -2137,7 +2137,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all shadow-lg shadow-[#3BF68A]/20"
+          className="flex items-center space-x-2 px-4 py-2 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all shadow-lg shadow-[#3BF68A]/20"
         >
           <Plus className="h-4 w-4" />
           <span>Add New Account</span>
@@ -2147,13 +2147,13 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
       {/* Accounts Table */}
       <div className={clsx(
         'rounded-xl border overflow-hidden mb-8',
-        theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+        theme === 'dark' ? 'border-white/5' : 'border-gray-200'
       )}>
         {/* Table Header */}
         <div className={clsx(
           'px-6 py-3 border-b text-xs font-semibold uppercase tracking-wider',
           theme === 'dark'
-            ? 'bg-[#15181F] border-[#1F2937] text-[#8B94A7]'
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5 text-zinc-400'
             : 'bg-gray-50 border-gray-200 text-gray-500'
         )}>
           {activeTab === 'active' ? 'Active Accounts List' : 'Inactive Accounts History'}
@@ -2161,13 +2161,13 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
 
         {/* Table Content */}
         <div className={clsx(
-          theme === 'dark' ? 'bg-[#0B0D10]' : 'bg-white'
+          theme === 'dark' ? 'bg-[#181B24]' : 'bg-white'
         )}>
           {/* Column Headers */}
           <div className={clsx(
             'grid grid-cols-6 gap-4 px-6 py-3 text-sm font-medium border-b',
             theme === 'dark'
-              ? 'text-[#8B94A7] border-[#1F2937]'
+              ? 'text-zinc-400 border-white/5'
               : 'text-gray-500 border-gray-200'
           )}>
             <div>Account name</div>
@@ -2183,7 +2183,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             activeAccounts.length === 0 ? (
               <div className={clsx(
                 'px-6 py-12 text-center',
-                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
               )}>
                 <p className="text-lg mb-2">No active accounts</p>
                 <p className="text-sm">Create an account to start tracking trades</p>
@@ -2195,7 +2195,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             inactiveAccounts.length === 0 ? (
               <div className={clsx(
                 'px-6 py-12 text-center',
-                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
               )}>
                 <p className="text-lg mb-2">No inactive accounts</p>
                 <p className="text-sm">Blown or archived accounts will appear here</p>
@@ -2212,34 +2212,34 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
         <div className={clsx(
           'rounded-xl p-6 border',
           theme === 'dark'
-            ? 'bg-[#15181F] border-[#1F2937]'
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
             : 'bg-white border-gray-200'
         )}>
           <p className={clsx(
             'text-sm',
-            theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+            theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
           )}>Total Accounts</p>
           <p className={clsx(
             'text-3xl font-bold mt-1',
-            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+            theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
           )}>{accounts.length}</p>
         </div>
 
         <div className={clsx(
           'rounded-xl p-6 border',
           theme === 'dark'
-            ? 'bg-[#15181F] border-[#1F2937]'
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
             : 'bg-white border-gray-200'
         )}>
           <p className={clsx(
             'text-sm',
-            theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+            theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
           )}>Combined Balance</p>
           <p className={clsx(
             'text-3xl font-bold mt-1',
             accounts.reduce((sum, a) => sum + a.balance, 0) >= 0
-              ? 'text-[#3BF68A]'
-              : 'text-[#F45B69]'
+              ? 'text-emerald-500'
+              : 'text-rose-500'
           )}>
             {formatBalance(accounts.reduce((sum, a) => sum + a.balance, 0))}
           </p>
@@ -2248,16 +2248,16 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
         <div className={clsx(
           'rounded-xl p-6 border',
           theme === 'dark'
-            ? 'bg-[#15181F] border-[#1F2937]'
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
             : 'bg-white border-gray-200'
         )}>
           <p className={clsx(
             'text-sm',
-            theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+            theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
           )}>Total Trades</p>
           <p className={clsx(
             'text-3xl font-bold mt-1',
-            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+            theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
           )}>
             {accounts.reduce((sum, a) => sum + a.trades.length, 0)}
           </p>
@@ -2267,29 +2267,29 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
       {/* Data Management Section */}
       <div className={clsx(
         'rounded-xl border mt-6 overflow-hidden',
-        theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-200'
+        theme === 'dark' ? 'border-white/5' : 'border-gray-200'
       )}>
         <div className={clsx(
           'px-6 py-4 border-b',
           theme === 'dark'
-            ? 'bg-[#15181F] border-[#1F2937]'
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
             : 'bg-gray-50 border-gray-200'
         )}>
           <div className="flex items-center space-x-2">
             <HardDrive className={clsx(
               'h-5 w-5',
-              theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+              theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
             )} />
             <h2 className={clsx(
               'text-lg font-semibold',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
             )}>
               Data Management
             </h2>
           </div>
           <p className={clsx(
             'text-sm mt-1',
-            theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+            theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
           )}>
             Backup and restore your trading data
           </p>
@@ -2297,7 +2297,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
 
         <div className={clsx(
           'p-6',
-          theme === 'dark' ? 'bg-[#0B0D10]' : 'bg-white'
+          theme === 'dark' ? 'bg-[#181B24]' : 'bg-white'
         )}>
           {/* Two Column Layout - Save & Load - Compact */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2306,17 +2306,17 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             <div className={clsx(
               'p-4 rounded-lg border',
               theme === 'dark'
-                ? 'bg-[#3BF68A]/5 border-[#3BF68A]/20'
+                ? 'bg-emerald-500/5 border-emerald-500/30/20'
                 : 'bg-green-50 border-green-200'
             )}>
               <div className="flex items-center space-x-2 mb-3">
                 <Download className={clsx(
                   'h-5 w-5',
-                  theme === 'dark' ? 'text-[#3BF68A]' : 'text-green-600'
+                  theme === 'dark' ? 'text-emerald-500' : 'text-green-600'
                 )} />
                 <h3 className={clsx(
                   'font-semibold',
-                  theme === 'dark' ? 'text-[#3BF68A]' : 'text-green-700'
+                  theme === 'dark' ? 'text-emerald-500' : 'text-green-700'
                 )}>
                   Save Your Data
                 </h3>
@@ -2336,7 +2336,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                   className={clsx(
                     'w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium text-sm transition-all',
                     theme === 'dark'
-                      ? 'bg-[#3BF68A] text-[#0B0D10] hover:bg-[#2DD876]'
+                      ? 'bg-emerald-500 text-[#181B24] hover:bg-[#2DD876]'
                       : 'bg-green-600 text-white hover:bg-green-700'
                   )}
                 >
@@ -2356,7 +2356,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                   className={clsx(
                     'w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg text-sm transition-all',
                     theme === 'dark'
-                      ? 'bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#2D3748]'
+                      ? 'bg-[#242838] text-zinc-400 hover:text-zinc-100 hover:bg-[#2D3748]'
                       : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                   )}
                 >
@@ -2370,17 +2370,17 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             <div className={clsx(
               'p-4 rounded-lg border-2',
               theme === 'dark'
-                ? 'bg-[#F45B69]/5 border-[#F45B69]/30'
+                ? 'bg-rose-500/5 border-rose-500/30/30'
                 : 'bg-red-50 border-red-200'
             )}>
               <div className="flex items-center space-x-2 mb-3">
                 <AlertTriangle className={clsx(
                   'h-5 w-5',
-                  theme === 'dark' ? 'text-[#F45B69]' : 'text-red-600'
+                  theme === 'dark' ? 'text-rose-500' : 'text-red-600'
                 )} />
                 <h3 className={clsx(
                   'font-semibold',
-                  theme === 'dark' ? 'text-[#F45B69]' : 'text-red-700'
+                  theme === 'dark' ? 'text-rose-500' : 'text-red-700'
                 )}>
                   Restore Backup
                 </h3>
@@ -2390,7 +2390,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
               <div className={clsx(
                 'p-2 rounded-lg mb-3 text-xs',
                 theme === 'dark'
-                  ? 'bg-[#F45B69]/10 text-[#F45B69]'
+                  ? 'bg-rose-500/10 text-rose-500'
                   : 'bg-red-100 text-red-700'
               )}>
                 ⚠️ <strong>Warning:</strong> This will DELETE all your current data and replace it with the backup file.
@@ -2401,7 +2401,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                 className={clsx(
                   'w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium text-sm transition-all border-2',
                   theme === 'dark'
-                    ? 'bg-transparent text-[#F45B69] border-[#F45B69] hover:bg-[#F45B69]/10'
+                    ? 'bg-transparent text-rose-500 border-rose-500/30 hover:bg-rose-500/10'
                     : 'bg-transparent text-red-600 border-red-400 hover:bg-red-50'
                 )}
               >
@@ -2440,24 +2440,24 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
           {/* Storage Usage - With Progress Bar */}
           <div className={clsx(
             'mt-4 p-4 rounded-lg',
-            theme === 'dark' ? 'bg-[#1F2937]/50' : 'bg-gray-100'
+            theme === 'dark' ? 'bg-[#242838]/50' : 'bg-gray-100'
           )}>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
                 <HardDrive className={clsx(
                   'h-4 w-4',
-                  theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                  theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
                 )} />
                 <span className={clsx(
                   'text-sm font-medium',
-                  theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+                  theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
                 )}>
                   Local Storage
                 </span>
               </div>
               <span className={clsx(
                 'text-sm font-mono',
-                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
               )}>
                 {(getStorageUsage().used / 1024).toFixed(1)} KB / 5 MB
               </span>
@@ -2466,7 +2466,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             {/* Progress Bar */}
             <div className={clsx(
               'h-2 rounded-full overflow-hidden mb-2',
-              theme === 'dark' ? 'bg-[#0B0D10]' : 'bg-gray-200'
+              theme === 'dark' ? 'bg-[#181B24]' : 'bg-gray-200'
             )}>
               <div
                 className={clsx(
@@ -2503,10 +2503,10 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             <div className="flex items-center space-x-3">
               <div className={clsx(
                 'p-1.5 rounded-lg',
-                theme === 'dark' ? 'bg-[#A78BFA]/20' : 'bg-purple-100'
+                theme === 'dark' ? 'bg-[#242838]/80' : 'bg-purple-100'
               )}>
                 <svg
-                  className={clsx('h-4 w-4', theme === 'dark' ? 'text-[#A78BFA]' : 'text-purple-600')}
+                  className={clsx('h-4 w-4', theme === 'dark' ? 'text-zinc-400' : 'text-purple-600')}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -2517,13 +2517,13 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
               <div>
                 <p className={clsx(
                   'text-sm font-medium',
-                  theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+                  theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
                 )}>
                   ☁️ TradePilot Cloud — Coming Soon
                 </p>
                 <p className={clsx(
                   'text-xs',
-                  theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                  theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
                 )}>
                   Sync across devices • Automatic backups • More storage
                 </p>
@@ -2532,7 +2532,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             <span className={clsx(
               'text-xs px-2 py-1 rounded-full font-medium',
               theme === 'dark'
-                ? 'bg-[#A78BFA]/20 text-[#A78BFA]'
+                ? 'bg-[#242838]/80 text-zinc-400'
                 : 'bg-purple-100 text-purple-700'
             )}>
               Soon
@@ -2564,7 +2564,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
               </p>
               <p className={clsx(
                 'text-sm mt-1',
-                theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600'
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
               )}>
                 Use the <strong>"Import Trades"</strong> button in the top-right corner, or click the <strong>⋮ menu</strong> on any account card above.
               </p>
@@ -2654,7 +2654,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             className={clsx(
               'relative w-full max-w-md mx-4 rounded-2xl border p-6',
               theme === 'dark'
-                ? 'bg-[#0B0D10] border-[#F45B69]/50'
+                ? 'bg-[#181B24] border-rose-500/50'
                 : 'bg-white border-red-300'
             )}
           >
@@ -2662,16 +2662,16 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             <div className="flex items-center space-x-3 mb-4">
               <div className={clsx(
                 'p-2 rounded-full',
-                theme === 'dark' ? 'bg-[#F45B69]/20' : 'bg-red-100'
+                theme === 'dark' ? 'bg-rose-500/20' : 'bg-red-100'
               )}>
                 <AlertTriangle className={clsx(
                   'h-6 w-6',
-                  theme === 'dark' ? 'text-[#F45B69]' : 'text-red-600'
+                  theme === 'dark' ? 'text-rose-500' : 'text-red-600'
                 )} />
               </div>
               <h3 className={clsx(
                 'text-lg font-bold',
-                theme === 'dark' ? 'text-[#F45B69]' : 'text-red-700'
+                theme === 'dark' ? 'text-rose-500' : 'text-red-700'
               )}>
                 Restore Backup
               </h3>
@@ -2680,17 +2680,17 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             {/* Warning Content */}
             <div className={clsx(
               'p-4 rounded-lg mb-4',
-              theme === 'dark' ? 'bg-[#F45B69]/10' : 'bg-red-50'
+              theme === 'dark' ? 'bg-rose-500/10' : 'bg-red-50'
             )}>
               <p className={clsx(
                 'text-sm font-medium mb-2',
-                theme === 'dark' ? 'text-[#F45B69]' : 'text-red-700'
+                theme === 'dark' ? 'text-rose-500' : 'text-red-700'
               )}>
                 ⚠️ This action will permanently delete:
               </p>
               <ul className={clsx(
                 'text-sm space-y-1 ml-4 list-disc',
-                theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-700'
+                theme === 'dark' ? 'text-zinc-100' : 'text-gray-700'
               )}>
                 <li>All your trading accounts</li>
                 <li>All imported trades</li>
@@ -2703,9 +2703,9 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
             {/* Type to confirm */}
             <p className={clsx(
               'text-sm mb-2',
-              theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-600'
+              theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
             )}>
-              Type <strong className={theme === 'dark' ? 'text-[#F45B69]' : 'text-red-600'}>RESTORE</strong> to confirm:
+              Type <strong className={theme === 'dark' ? 'text-rose-500' : 'text-red-600'}>RESTORE</strong> to confirm:
             </p>
             <input
               type="text"
@@ -2715,7 +2715,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
               className={clsx(
                 'w-full px-4 py-2 rounded-lg border text-sm mb-4',
                 theme === 'dark'
-                  ? 'bg-[#1F2937] border-[#374151] text-[#E5E7EB] placeholder:text-[#6B7280]'
+                  ? 'bg-[#242838] border-white/10 text-zinc-100 placeholder:text-[#6B7280]'
                   : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400',
                 'focus:outline-none focus:ring-2',
                 theme === 'dark' ? 'focus:ring-[#F45B69]/50' : 'focus:ring-red-500/50'
@@ -2733,7 +2733,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                 className={clsx(
                   'flex-1 py-2 rounded-lg border font-medium transition-all',
                   theme === 'dark'
-                    ? 'border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#374151]'
+                    ? 'border-white/5 text-zinc-400 hover:text-zinc-100 hover:border-white/10'
                     : 'border-gray-300 text-gray-600 hover:bg-gray-50'
                 )}
               >
@@ -2752,10 +2752,10 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
                   'flex-1 py-2 rounded-lg font-medium transition-all',
                   restoreConfirmText === 'RESTORE'
                     ? theme === 'dark'
-                      ? 'bg-[#F45B69] text-white hover:bg-[#E04A58]'
+                      ? 'bg-rose-500 text-white hover:bg-[#E04A58]'
                       : 'bg-red-600 text-white hover:bg-red-700'
                     : theme === 'dark'
-                      ? 'bg-[#1F2937] text-[#4B5563] cursor-not-allowed'
+                      ? 'bg-[#242838] text-[#4B5563] cursor-not-allowed'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 )}
               >

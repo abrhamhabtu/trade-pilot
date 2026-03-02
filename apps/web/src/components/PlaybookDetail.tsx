@@ -95,42 +95,38 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
 
   return (
     <div 
-      className="rounded-xl border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-      style={{
-        background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-      }}
+      className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+      
     >
       {/* Gradient border on hover */}
-      <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+      <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
         <div 
           className="w-full h-full rounded-xl"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          
         />
       </div>
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="p-6 border-b border-[#1F2937]">
+        <div className="p-6 border-b border-white/5">
           {/* Breadcrumb and Actions */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-4">
               <button
                 onClick={onBack}
-                className="flex items-center space-x-2 text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
+                className="flex items-center space-x-2 text-zinc-400 hover:text-zinc-100 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span className="text-sm">Playbook</span>
               </button>
-              <span className="text-[#8B94A7]">/</span>
-              <span className="text-[#8B94A7] text-sm">Supply/...</span>
-              <span className="text-[#8B94A7]">/</span>
-              <span className="text-[#E5E7EB] text-sm font-medium">Overview</span>
+              <span className="text-zinc-400">/</span>
+              <span className="text-zinc-400 text-sm">Supply/...</span>
+              <span className="text-zinc-400">/</span>
+              <span className="text-zinc-100 text-sm font-medium">Overview</span>
             </div>
 
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 border border-[#1F2937] rounded-lg text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50 transition-all">
+              <button className="flex items-center space-x-2 px-4 py-2 border border-white/5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:border-emerald-500/50 transition-all">
                 <Share2 className="h-4 w-4" />
                 <span className="text-sm">Share</span>
               </button>
@@ -141,18 +137,18 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
           <div className="flex items-start justify-between mb-6">
             <div>
               <div className="flex items-center space-x-3 mb-2">
-                <h1 className="text-2xl font-bold text-[#E5E7EB]">{playbookData.name}</h1>
+                <h1 className="text-2xl font-bold text-zinc-100">{playbookData.name}</h1>
                 {playbookData.isFavorite && <Star className="h-5 w-5 text-[#F59E0B] fill-current" />}
-                {playbookData.isShared && <Share2 className="h-5 w-5 text-[#3BF68A]" />}
+                {playbookData.isShared && <Share2 className="h-5 w-5 text-emerald-500" />}
               </div>
-              <p className="text-[#8B94A7] text-sm max-w-2xl">{playbookData.description}</p>
+              <p className="text-zinc-400 text-sm max-w-2xl">{playbookData.description}</p>
             </div>
             
             <div className="flex items-center space-x-2">
-              <button className="p-2 text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937] rounded-lg transition-all">
+              <button className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] rounded-lg transition-all">
                 <Edit className="h-4 w-4" />
               </button>
-              <button className="p-2 text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937] rounded-lg transition-all">
+              <button className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] rounded-lg transition-all">
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </div>
@@ -167,8 +163,8 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 className={clsx(
                   'text-sm font-medium pb-3 border-b-2 transition-all duration-200',
                   activeTab === tab.id
-                    ? 'text-[#E5E7EB] border-[#3BF68A]'
-                    : 'text-[#8B94A7] hover:text-[#E5E7EB] border-transparent'
+                    ? 'text-zinc-100 border-emerald-500/30'
+                    : 'text-zinc-400 hover:text-zinc-100 border-transparent'
                 )}
               >
                 {tab.label}
@@ -186,12 +182,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Net P&L */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Net P&L</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Net P&L</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-2xl font-bold bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] bg-clip-text text-transparent">
+                  <div className="text-2xl font-bold text-zinc-50">
                     {formatCurrency(playbookData.netPL)}
                   </div>
                 </div>
@@ -199,12 +195,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Trades */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Trades</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Trades</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-[#E5E7EB]">
+                  <div className="text-2xl font-bold text-zinc-100">
                     {playbookData.trades}
                   </div>
                 </div>
@@ -212,12 +208,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Win Rate */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Win rate %</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Win rate %</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-[#E5E7EB]">
+                  <div className="text-2xl font-bold text-zinc-100">
                     {playbookData.winRate.toFixed(0)}%
                   </div>
                 </div>
@@ -225,12 +221,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Profit Factor */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Profit factor</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Profit factor</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-[#E5E7EB]">
+                  <div className="text-2xl font-bold text-zinc-100">
                     {playbookData.profitFactor.toFixed(2)}
                   </div>
                 </div>
@@ -238,12 +234,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Missed Trades */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Missed trades</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Missed trades</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-[#E5E7EB]">
+                  <div className="text-2xl font-bold text-zinc-100">
                     {playbookData.missedTrades}
                   </div>
                 </div>
@@ -251,12 +247,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Expectancy */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Expectancy</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Expectancy</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-2xl font-bold bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] bg-clip-text text-transparent">
+                  <div className="text-2xl font-bold text-zinc-50">
                     {formatCurrency(playbookData.expectancy)}
                   </div>
                 </div>
@@ -267,12 +263,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Rules Followed */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Rules followed</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Rules followed</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-xl font-bold text-[#E5E7EB]">
+                  <div className="text-xl font-bold text-zinc-100">
                     {playbookData.rulesFollowed}%
                   </div>
                 </div>
@@ -280,12 +276,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Average Winner */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Average winner</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Average winner</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-xl font-bold text-[#3BF68A]">
+                  <div className="text-xl font-bold text-emerald-500">
                     {formatCurrency(playbookData.averageWinner)}
                   </div>
                 </div>
@@ -293,12 +289,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Average Loser */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Average loser</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Average loser</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-xl font-bold text-[#F45B69]">
+                  <div className="text-xl font-bold text-rose-500">
                     {formatCurrency(playbookData.averageLoser)}
                   </div>
                 </div>
@@ -306,12 +302,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Largest Profit */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Largest profit</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Largest profit</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-xl font-bold text-[#3BF68A]">
+                  <div className="text-xl font-bold text-emerald-500">
                     {formatCurrency(playbookData.largestProfit)}
                   </div>
                 </div>
@@ -319,12 +315,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Largest Loss */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Largest loss</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Largest loss</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-xl font-bold text-[#F45B69]">
+                  <div className="text-xl font-bold text-rose-500">
                     {formatCurrency(playbookData.largestLoss)}
                   </div>
                 </div>
@@ -332,12 +328,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Winner R Multiple */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Winner R Multiple</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Winner R Multiple</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-xl font-bold text-[#E5E7EB]">
+                  <div className="text-xl font-bold text-zinc-100">
                     {playbookData.winnerRMultiple.toFixed(2)}
                   </div>
                 </div>
@@ -348,12 +344,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Loser R Multiple */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Loser R Multiple</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Loser R Multiple</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-xl font-bold text-[#E5E7EB]">
+                  <div className="text-xl font-bold text-zinc-100">
                     {playbookData.loserRMultiple.toFixed(2)}
                   </div>
                 </div>
@@ -361,12 +357,12 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 {/* Total R Multiple */}
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <span className="text-[#8B94A7] text-sm font-medium">Total R Multiple</span>
-                    <div className="w-3 h-3 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <span className="text-zinc-400 text-sm font-medium">Total R Multiple</span>
+                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
-                  <div className="text-xl font-bold text-[#E5E7EB]">
+                  <div className="text-xl font-bold text-zinc-100">
                     {playbookData.totalRMultiple.toFixed(2)}
                   </div>
                 </div>
@@ -376,9 +372,9 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-2">
-                    <h3 className="text-[#E5E7EB] text-lg font-semibold">Daily net cumulative P&L</h3>
-                    <div className="w-4 h-4 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help">
-                      <span className="text-[#8B94A7] text-xs">?</span>
+                    <h3 className="text-zinc-100 text-lg font-semibold">Daily net cumulative P&L</h3>
+                    <div className="w-4 h-4 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                      <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
                 </div>
@@ -388,16 +384,16 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                     <AreaChart data={playbookData.cumulativePL} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="playbookGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3BF68A" stopOpacity={0.4}/>
-                          <stop offset="50%" stopColor="#A78BFA" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#3BF68A" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
+                          <stop offset="50%" stopColor="#71717A" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                         </linearGradient>
                         <linearGradient id="playbookStroke" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#3BF68A" />
-                          <stop offset="100%" stopColor="#A78BFA" />
+                          <stop offset="0%" stopColor="#10B981" />
+                          <stop offset="100%" stopColor="#71717A" />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#2C3148" />
                       <XAxis 
                         dataKey="date" 
                         axisLine={false}
@@ -412,7 +408,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                       />
                       <RechartsTooltip
                         contentStyle={{
-                          background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)',
+                          background: 'linear-gradient(135deg, #1E2130 0%, #242838 100%)',
                           border: '1px solid #3BF68A',
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
@@ -438,36 +434,36 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
           {/* Other tab content placeholders */}
           {activeTab === 'rules' && (
             <div className="text-center py-20">
-              <h3 className="text-xl font-bold text-[#E5E7EB] mb-4">Playbook Rules</h3>
-              <p className="text-[#8B94A7]">Define your entry, exit, and risk management rules...</p>
+              <h3 className="text-xl font-bold text-zinc-100 mb-4">Playbook Rules</h3>
+              <p className="text-zinc-400">Define your entry, exit, and risk management rules...</p>
             </div>
           )}
 
           {activeTab === 'excluded' && (
             <div className="text-center py-20">
-              <h3 className="text-xl font-bold text-[#E5E7EB] mb-4">Excluded Trades</h3>
-              <p className="text-[#8B94A7]">Trades that didn't follow the playbook rules...</p>
+              <h3 className="text-xl font-bold text-zinc-100 mb-4">Excluded Trades</h3>
+              <p className="text-zinc-400">Trades that didn't follow the playbook rules...</p>
             </div>
           )}
 
           {activeTab === 'missed' && (
             <div className="text-center py-20">
-              <h3 className="text-xl font-bold text-[#E5E7EB] mb-4">Missed Trades</h3>
-              <p className="text-[#8B94A7]">Opportunities that matched your criteria but weren't taken...</p>
+              <h3 className="text-xl font-bold text-zinc-100 mb-4">Missed Trades</h3>
+              <p className="text-zinc-400">Opportunities that matched your criteria but weren't taken...</p>
             </div>
           )}
 
           {activeTab === 'backtesting' && (
             <div className="text-center py-20">
-              <h3 className="text-xl font-bold text-[#E5E7EB] mb-4">Backtesting Analysis</h3>
-              <p className="text-[#8B94A7]">Historical performance analysis and optimization...</p>
+              <h3 className="text-xl font-bold text-zinc-100 mb-4">Backtesting Analysis</h3>
+              <p className="text-zinc-400">Historical performance analysis and optimization...</p>
             </div>
           )}
 
           {activeTab === 'notes' && (
             <div className="text-center py-20">
-              <h3 className="text-xl font-bold text-[#E5E7EB] mb-4">Notes</h3>
-              <p className="text-[#8B94A7]">Your observations and insights about this strategy...</p>
+              <h3 className="text-xl font-bold text-zinc-100 mb-4">Notes</h3>
+              <p className="text-zinc-400">Your observations and insights about this strategy...</p>
             </div>
           )}
         </div>

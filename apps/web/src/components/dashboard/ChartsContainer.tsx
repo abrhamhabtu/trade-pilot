@@ -59,8 +59,8 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
 
       {/* Third Row - Net daily P&L, Progress Tracker, and Recent trades */}
       <div className="grid grid-cols-12 gap-6 mb-6">
-        {/* Net daily P&L - Square like TradeZilla */}
-        <div className="col-span-12 lg:col-span-4 h-[360px]">
+        {/* Net daily P&L */}
+        <div className="col-span-12 lg:col-span-4 xl:col-span-4 h-[360px]">
           <BarChartComponent
             data={dailyPLData}
             title="Net daily P&L"
@@ -68,12 +68,12 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
         </div>
 
         {/* Progress Tracker - GitHub style heatmap */}
-        <div className="col-span-12 lg:col-span-4 h-[360px]">
+        <div className="col-span-12 lg:col-span-4 xl:col-span-4 h-[360px]">
           <ProgressTracker onViewMore={onNavigateToRoutine} />
         </div>
 
         {/* Recent Trades */}
-        <div className="col-span-12 lg:col-span-4 h-[360px]">
+        <div className="col-span-12 lg:col-span-4 xl:col-span-4 h-[360px]">
           <TradesTable trades={trades.slice(0, 6)} />
         </div>
       </div>

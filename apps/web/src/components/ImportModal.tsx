@@ -719,16 +719,14 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div
-        className="rounded-xl border border-[#1F2937] max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
-        style={{
-          background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-        }}
+        className="rounded-xl border border-white/5 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
+        
       >
         {/* Header */}
-        <div className="p-6 border-b border-[#1F2937] flex items-center justify-between">
+        <div className="p-6 border-b border-white/5 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-[#E5E7EB] mb-2">Import Trades</h2>
-            <p className="text-[#8B94A7] text-sm">
+            <h2 className="text-xl font-bold text-zinc-100 mb-2">Import Trades</h2>
+            <p className="text-zinc-400 text-sm">
               {targetAccount
                 ? `Importing to: ${targetAccount.name}`
                 : 'Upload from TradingView, Topstep, TopOne Futures, or other platforms'}
@@ -736,7 +734,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937] rounded-lg transition-all"
+            className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] rounded-lg transition-all"
           >
             <X className="h-5 w-5" />
           </button>
@@ -747,14 +745,14 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <>
               {/* Target Account Badge */}
               {targetAccount && (
-                <div className="mb-6 p-4 rounded-lg bg-[#3BF68A]/10 border border-[#3BF68A]/30">
+                <div className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#3BF68A]/20 flex items-center justify-center text-lg">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center text-lg">
                       📈
                     </div>
                     <div>
-                      <p className="text-[#E5E7EB] font-medium">{targetAccount.name}</p>
-                      <p className="text-[#8B94A7] text-sm">{targetAccount.broker} • {targetAccount.trades.length} trades</p>
+                      <p className="text-zinc-100 font-medium">{targetAccount.name}</p>
+                      <p className="text-zinc-400 text-sm">{targetAccount.broker} • {targetAccount.trades.length} trades</p>
                     </div>
                   </div>
                 </div>
@@ -765,8 +763,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 className={clsx(
                   'border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer',
                   dragActive
-                    ? 'border-[#3BF68A] bg-[#3BF68A]/5'
-                    : 'border-[#1F2937] hover:border-[#3BF68A]/50 hover:bg-[#3BF68A]/5'
+                    ? 'border-emerald-500/30 bg-emerald-500/5'
+                    : 'border-white/5 hover:border-emerald-500/50 hover:bg-emerald-500/5'
                 )}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -774,21 +772,21 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 onDrop={handleDrop}
                 onClick={handleFileSelect}
               >
-                <div className="mx-auto w-16 h-16 bg-[#3BF68A]/10 rounded-full flex items-center justify-center mb-4">
-                  <Upload className="h-8 w-8 text-[#3BF68A]" />
+                <div className="mx-auto w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
+                  <Upload className="h-8 w-8 text-emerald-500" />
                 </div>
 
-                <h3 className="text-[#E5E7EB] text-lg font-semibold mb-2">
+                <h3 className="text-zinc-100 text-lg font-semibold mb-2">
                   Drop your file here or click to browse
                 </h3>
 
-                <p className="text-[#8B94A7] text-sm mb-4">
+                <p className="text-zinc-400 text-sm mb-4">
                   Supports TradingView, ProjectX (Topstep, TopOne Futures), and more
                 </p>
 
                 <button
                   type="button"
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all duration-200"
+                  className="inline-flex items-center px-6 py-3 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all duration-200"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Choose File
@@ -796,12 +794,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               </div>
 
               {/* File Requirements */}
-              <div className="mt-6 p-4 bg-[#1F2937]/50 rounded-lg">
+              <div className="mt-6 p-4 bg-[#242838]/50 rounded-lg">
                 <div className="flex items-start space-x-3">
-                  <Info className="h-5 w-5 text-[#3BF68A] mt-0.5 flex-shrink-0" />
+                  <Info className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                   <div>
-                    <h4 className="text-[#E5E7EB] font-medium mb-2">Supported Platforms</h4>
-                    <ul className="text-[#8B94A7] text-sm space-y-1">
+                    <h4 className="text-zinc-100 font-medium mb-2">Supported Platforms</h4>
+                    <ul className="text-zinc-400 text-sm space-y-1">
                       <li>• <strong>TradingView:</strong> Export from Account History</li>
                       <li>• <strong>Tradovate:</strong> Reports → Trade Activity → Export</li>
                       <li>• <strong>NinjaTrader:</strong> Control Center → Account Data → Export</li>
@@ -814,10 +812,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
               {/* Sample File Download */}
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-[#8B94A7] text-sm">Need help formatting your data?</span>
+                <span className="text-zinc-400 text-sm">Need help formatting your data?</span>
                 <button
                   onClick={downloadSampleFile}
-                  className="flex items-center space-x-2 px-4 py-2 border border-[#1F2937] rounded-lg text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50 transition-all text-sm"
+                  className="flex items-center space-x-2 px-4 py-2 border border-white/5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:border-emerald-500/50 transition-all text-sm"
                 >
                   <Download className="h-4 w-4" />
                   <span>Download Sample CSV</span>
@@ -828,35 +826,35 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
           {importStatus === 'processing' && (
             <div className="text-center py-12">
-              <div className="mx-auto w-16 h-16 bg-[#3BF68A]/10 rounded-full flex items-center justify-center mb-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#3BF68A] border-t-transparent" />
+              <div className="mx-auto w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500/30 border-t-transparent" />
               </div>
-              <h3 className="text-[#E5E7EB] text-lg font-semibold mb-2">Processing your trades...</h3>
-              <p className="text-[#8B94A7] text-sm">This may take a few moments depending on file size</p>
+              <h3 className="text-zinc-100 text-lg font-semibold mb-2">Processing your trades...</h3>
+              <p className="text-zinc-400 text-sm">This may take a few moments depending on file size</p>
             </div>
           )}
 
           {importStatus === 'success' && importResults && (
             <div className="text-center py-8">
-              <div className="mx-auto w-16 h-16 bg-[#3BF68A]/10 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="h-8 w-8 text-[#3BF68A]" />
+              <div className="mx-auto w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="h-8 w-8 text-emerald-500" />
               </div>
-              <h3 className="text-[#E5E7EB] text-lg font-semibold mb-2">Import Successful!</h3>
-              <p className="text-[#8B94A7] text-sm mb-6">
+              <h3 className="text-zinc-100 text-lg font-semibold mb-2">Import Successful!</h3>
+              <p className="text-zinc-400 text-sm mb-6">
                 {targetAccount
                   ? `Trades have been added to ${targetAccount.name}`
                   : 'Your trades have been imported and processed'}
               </p>
 
-              <div className="bg-[#1F2937]/50 rounded-lg p-4 mb-6">
+              <div className="bg-[#242838]/50 rounded-lg p-4 mb-6">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-[#8B94A7]">Total Rows:</span>
-                    <span className="text-[#E5E7EB] ml-2 font-medium">{importResults.totalRows}</span>
+                    <span className="text-zinc-400">Total Rows:</span>
+                    <span className="text-zinc-100 ml-2 font-medium">{importResults.totalRows}</span>
                   </div>
                   <div>
-                    <span className="text-[#8B94A7]">Successful Imports:</span>
-                    <span className="text-[#3BF68A] ml-2 font-medium">{importResults.successfulImports}</span>
+                    <span className="text-zinc-400">Successful Imports:</span>
+                    <span className="text-emerald-500 ml-2 font-medium">{importResults.successfulImports}</span>
                   </div>
                 </div>
               </div>
@@ -864,13 +862,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               <div className="flex space-x-3">
                 <button
                   onClick={resetImport}
-                  className="flex-1 px-4 py-2 border border-[#1F2937] rounded-lg text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50 transition-all"
+                  className="flex-1 px-4 py-2 border border-white/5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:border-emerald-500/50 transition-all"
                 >
                   Import More
                 </button>
                 <button
                   onClick={onClose}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
+                  className="flex-1 px-4 py-2 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all"
                 >
                   View Dashboard
                 </button>
@@ -880,16 +878,16 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
           {importStatus === 'error' && importResults && (
             <div className="text-center py-8">
-              <div className="mx-auto w-16 h-16 bg-[#F45B69]/10 rounded-full flex items-center justify-center mb-4">
-                <AlertCircle className="h-8 w-8 text-[#F45B69]" />
+              <div className="mx-auto w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mb-4">
+                <AlertCircle className="h-8 w-8 text-rose-500" />
               </div>
-              <h3 className="text-[#E5E7EB] text-lg font-semibold mb-2">Import Failed</h3>
-              <p className="text-[#8B94A7] text-sm mb-6">There were issues processing your file</p>
+              <h3 className="text-zinc-100 text-lg font-semibold mb-2">Import Failed</h3>
+              <p className="text-zinc-400 text-sm mb-6">There were issues processing your file</p>
 
               {importResults.errors.length > 0 && (
-                <div className="bg-[#F45B69]/10 border border-[#F45B69]/20 rounded-lg p-4 mb-6 text-left">
-                  <h4 className="text-[#F45B69] font-medium mb-2">Errors:</h4>
-                  <ul className="text-[#8B94A7] text-sm space-y-1">
+                <div className="bg-rose-500/10 border border-rose-500/30/20 rounded-lg p-4 mb-6 text-left">
+                  <h4 className="text-rose-500 font-medium mb-2">Errors:</h4>
+                  <ul className="text-zinc-400 text-sm space-y-1">
                     {importResults.errors.map((error, index) => (
                       <li key={index}>• {error}</li>
                     ))}
@@ -900,13 +898,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               <div className="flex space-x-3">
                 <button
                   onClick={resetImport}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
+                  className="flex-1 px-4 py-2 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all"
                 >
                   Try Again
                 </button>
                 <button
                   onClick={onClose}
-                  className="flex-1 px-4 py-2 border border-[#1F2937] rounded-lg text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A]/50 transition-all"
+                  className="flex-1 px-4 py-2 border border-white/5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:border-emerald-500/50 transition-all"
                 >
                   Cancel
                 </button>

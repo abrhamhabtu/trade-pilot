@@ -119,7 +119,7 @@ const EquityCurve: React.FC<{ trades: Trade[] }> = ({ trades }) => {
           y1={height - padding - ((-minY) / range) * (height - padding * 2)}
           x2={width - padding}
           y2={height - padding - ((-minY) / range) * (height - padding * 2)}
-          stroke="#1F2937"
+          stroke="#2C3148"
           strokeWidth="1"
           strokeDasharray="4,4"
         />
@@ -160,8 +160,8 @@ const EquityCurve: React.FC<{ trades: Trade[] }> = ({ trades }) => {
         {/* Gradient definitions */}
         <defs>
           <linearGradient id="greenGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#3BF68A" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#3BF68A" stopOpacity="0" />
+            <stop offset="0%" stopColor="#10B981" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="redGradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#F45B69" stopOpacity="0.5" />
@@ -171,7 +171,7 @@ const EquityCurve: React.FC<{ trades: Trade[] }> = ({ trades }) => {
       </svg>
       
       {/* Y-axis labels */}
-      <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] text-[#8B94A7] -ml-8">
+      <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] text-zinc-400 -ml-8">
         <span>${Math.round(maxY).toLocaleString()}</span>
         <span>$0</span>
         {minY < 0 && <span>${Math.round(minY).toLocaleString()}</span>}
@@ -346,37 +346,37 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
   const hasContent = content.trim() || (note?.images && note.images.length > 0);
 
   return (
-    <div className="border-t border-[#1F2937]">
+    <div className="border-t border-white/5">
       {/* Toggle Header */}
       <button
         onClick={onToggle}
-        className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1F2937]/30 transition-colors"
+        className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#242838]/30 transition-colors"
       >
         <div className="flex items-center space-x-3">
           <div className={clsx(
             'p-2 rounded-lg',
-            hasContent ? 'bg-[#A78BFA]/20' : 'bg-[#1F2937]'
+            hasContent ? 'bg-[#242838]/80' : 'bg-[#242838]'
           )}>
             <FileText className={clsx(
               'h-4 w-4',
-              hasContent ? 'text-[#A78BFA]' : 'text-[#8B94A7]'
+              hasContent ? 'text-zinc-400' : 'text-zinc-400'
             )} />
           </div>
-          <span className="text-[#E5E7EB] font-medium">Daily Notes</span>
+          <span className="text-zinc-100 font-medium">Daily Notes</span>
           {hasContent && (
-            <span className="text-xs text-[#8B94A7] bg-[#1F2937] px-2 py-0.5 rounded">
+            <span className="text-xs text-zinc-400 bg-[#242838] px-2 py-0.5 rounded">
               {note?.images?.length || 0} images
             </span>
           )}
         </div>
         <div className="flex items-center space-x-2">
           {saveMessage && (
-            <span className="text-xs text-[#3BF68A] animate-pulse">{saveMessage}</span>
+            <span className="text-xs text-emerald-500 animate-pulse">{saveMessage}</span>
           )}
           {isExpanded ? (
-            <ChevronUp className="h-5 w-5 text-[#8B94A7]" />
+            <ChevronUp className="h-5 w-5 text-zinc-400" />
           ) : (
-            <ChevronDown className="h-5 w-5 text-[#8B94A7]" />
+            <ChevronDown className="h-5 w-5 text-zinc-400" />
           )}
         </div>
       </button>
@@ -386,39 +386,39 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
         <div className="px-6 pb-6">
           {/* Toolbar */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-1 bg-[#0B0D10] rounded-lg p-1 border border-[#1F2937]">
+            <div className="flex items-center space-x-1 bg-[#181B24] rounded-lg p-1 border border-white/5">
               <button
                 onClick={handleBold}
-                className="p-2 rounded hover:bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
+                className="p-2 rounded hover:bg-[#242838] text-zinc-400 hover:text-zinc-100 transition-colors"
                 title="Bold (**text**)"
               >
                 <Bold className="h-4 w-4" />
               </button>
               <button
                 onClick={handleItalic}
-                className="p-2 rounded hover:bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
+                className="p-2 rounded hover:bg-[#242838] text-zinc-400 hover:text-zinc-100 transition-colors"
                 title="Italic (*text*)"
               >
                 <Italic className="h-4 w-4" />
               </button>
               <button
                 onClick={handleBullet}
-                className="p-2 rounded hover:bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
+                className="p-2 rounded hover:bg-[#242838] text-zinc-400 hover:text-zinc-100 transition-colors"
                 title="Bullet Point"
               >
                 <List className="h-4 w-4" />
               </button>
-              <div className="w-px h-6 bg-[#1F2937] mx-1" />
+              <div className="w-px h-6 bg-[#242838] mx-1" />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded hover:bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
+                className="p-2 rounded hover:bg-[#242838] text-zinc-400 hover:text-zinc-100 transition-colors"
                 title="Add Image"
               >
                 <ImageIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded hover:bg-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
+                className="p-2 rounded hover:bg-[#242838] text-zinc-400 hover:text-zinc-100 transition-colors"
                 title="Add Screenshot"
               >
                 <Camera className="h-4 w-4" />
@@ -431,8 +431,8 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
               className={clsx(
                 'flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm transition-all',
                 isSaving
-                  ? 'bg-[#3BF68A]/20 text-[#3BF68A]'
-                  : 'bg-[#A78BFA] text-white hover:bg-[#9061F9]'
+                  ? 'bg-emerald-500/20 text-emerald-500'
+                  : 'bg-zinc-200 text-white hover:bg-zinc-300'
               )}
             >
               <Save className="h-4 w-4" />
@@ -463,9 +463,9 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
 • **Bold** for emphasis
 • *Italic* for observations"
             className={clsx(
-              'w-full min-h-[120px] overflow-y-auto p-4 rounded-xl border text-[#E5E7EB] text-sm resize-y',
-              'bg-[#0B0D10] border-[#1F2937]',
-              'focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-[#A78BFA]/50',
+              'w-full min-h-[120px] overflow-y-auto p-4 rounded-xl border text-zinc-100 text-sm resize-y',
+              'bg-[#181B24] border-white/5',
+              'focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-zinc-500',
               'placeholder:text-[#4B5563]'
             )}
             dir="ltr"
@@ -478,14 +478,14 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
           {note?.images && note.images.length > 0 && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-[#8B94A7]">Screenshots & Charts</span>
+                <span className="text-sm text-zinc-400">Screenshots & Charts</span>
                 <span className="text-xs text-[#4B5563]">{note.images.length} image{note.images.length !== 1 ? 's' : ''}</span>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {note.images.map((image) => (
                   <div
                     key={image.id}
-                    className="group relative aspect-video rounded-lg overflow-hidden border border-[#1F2937] bg-[#0B0D10] cursor-pointer"
+                    className="group relative aspect-video rounded-lg overflow-hidden border border-white/5 bg-[#181B24] cursor-pointer"
                     onClick={() => setSelectedImage(image)}
                   >
                     <img
@@ -499,7 +499,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
                           e.stopPropagation();
                           setSelectedImage(image);
                         }}
-                        className="p-2 rounded-lg bg-[#1F2937] text-[#E5E7EB] hover:bg-[#2D3748]"
+                        className="p-2 rounded-lg bg-[#242838] text-zinc-100 hover:bg-[#2D3748]"
                       >
                         <Maximize2 className="h-4 w-4" />
                       </button>
@@ -519,7 +519,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
                 {/* Add More Button */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="aspect-video rounded-lg border-2 border-dashed border-[#1F2937] bg-[#0B0D10] hover:border-[#A78BFA]/50 hover:bg-[#A78BFA]/5 transition-all flex flex-col items-center justify-center text-[#8B94A7] hover:text-[#A78BFA]"
+                  className="aspect-video rounded-lg border-2 border-dashed border-white/5 bg-[#181B24] hover:border-zinc-500 hover:bg-[#242838]/50 transition-all flex flex-col items-center justify-center text-zinc-400 hover:text-zinc-400"
                 >
                   <Plus className="h-6 w-6 mb-1" />
                   <span className="text-xs">Add Image</span>
@@ -530,9 +530,9 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
 
           {/* Empty state for images */}
           {(!note?.images || note.images.length === 0) && (
-            <div className="mt-4 p-6 rounded-xl border-2 border-dashed border-[#1F2937] bg-[#0B0D10]/50 text-center">
+            <div className="mt-4 p-6 rounded-xl border-2 border-dashed border-white/5 bg-[#181B24]/50 text-center">
               <Camera className="h-8 w-8 text-[#4B5563] mx-auto mb-2" />
-              <p className="text-sm text-[#8B94A7] mb-1">Add screenshots or chart images</p>
+              <p className="text-sm text-zinc-400 mb-1">Add screenshots or chart images</p>
               <p className="text-xs text-[#4B5563]">Click the image button above or paste directly (Ctrl/Cmd+V)</p>
             </div>
           )}
@@ -697,9 +697,9 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
       onClick={handleBackdropClick}
     >
       <div 
-        className="rounded-2xl border border-[#1F2937] max-w-6xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl"
+        className="rounded-2xl border border-white/5 max-w-6xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl"
         style={{
-          background: 'linear-gradient(180deg, #0D0F12 0%, #15181F 100%)'
+          background: 'linear-gradient(180deg, #1E2130 0%, #1E2130 100%)'
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -712,15 +712,15 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
         <div className="p-6 pb-4">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center space-x-4">
-              <h2 className="text-xl font-bold text-[#E5E7EB]">
+              <h2 className="text-xl font-bold text-zinc-100">
                 {formatDate(date)}
               </h2>
-              <span className="text-[#8B94A7]">•</span>
+              <span className="text-zinc-400">•</span>
               <div className="flex items-center space-x-2">
-                <span className="text-[#8B94A7] text-lg">Net P&L</span>
+                <span className="text-zinc-400 text-lg">Net P&L</span>
                 <span className={clsx(
                   'text-2xl font-bold',
-                  stats.totalPnL >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                  stats.totalPnL >= 0 ? 'text-emerald-500' : 'text-rose-500'
                 )}>
                   {formatCurrency(stats.totalPnL)}
                 </span>
@@ -733,8 +733,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                 className={clsx(
                   'flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm transition-all',
                   dateHasNote
-                    ? 'bg-[#A78BFA] text-white hover:bg-[#9061F9]'
-                    : 'bg-[#3BF68A] text-[#0B0D10] hover:bg-[#2EE07A]'
+                    ? 'bg-zinc-200 text-white hover:bg-zinc-300'
+                    : 'bg-emerald-500 text-[#181B24] hover:bg-[#2EE07A]'
                 )}
               >
                 <FileText className="h-4 w-4" />
@@ -742,7 +742,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
               </button>
               <button
                 onClick={onClose}
-                className="p-2 text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937] rounded-lg transition-all"
+                className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] rounded-lg transition-all"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -763,7 +763,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
           <div className="grid grid-cols-12 gap-6">
             {/* Equity Curve */}
             <div className="col-span-5">
-              <div className="bg-[#0B0D10] rounded-xl p-4 border border-[#1F2937]">
+              <div className="bg-[#181B24] rounded-xl p-4 border border-white/5">
                 <div className="ml-8">
                   <EquityCurve trades={trades} />
                 </div>
@@ -774,58 +774,58 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
             <div className="col-span-7">
               <div className="grid grid-cols-4 gap-3">
                 {/* Total Trades */}
-                <div className="bg-[#0B0D10] rounded-xl p-3 border border-[#1F2937]">
-                  <div className="text-[#8B94A7] text-xs mb-1">Total trades</div>
-                  <div className="text-[#E5E7EB] text-xl font-bold">{stats.totalTrades}</div>
+                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                  <div className="text-zinc-400 text-xs mb-1">Total trades</div>
+                  <div className="text-zinc-100 text-xl font-bold">{stats.totalTrades}</div>
                 </div>
                 
                 {/* Winners */}
-                <div className="bg-[#0B0D10] rounded-xl p-3 border border-[#1F2937]">
-                  <div className="text-[#8B94A7] text-xs mb-1">Winners</div>
-                  <div className="text-[#3BF68A] text-xl font-bold">{stats.winners}</div>
+                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                  <div className="text-zinc-400 text-xs mb-1">Winners</div>
+                  <div className="text-emerald-500 text-xl font-bold">{stats.winners}</div>
                 </div>
                 
                 {/* Gross P&L */}
-                <div className="bg-[#0B0D10] rounded-xl p-3 border border-[#1F2937]">
-                  <div className="text-[#8B94A7] text-xs mb-1">Gross P&L</div>
-                  <div className="text-[#E5E7EB] text-xl font-bold">{formatCurrencyShort(stats.grossPnL)}</div>
+                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                  <div className="text-zinc-400 text-xs mb-1">Gross P&L</div>
+                  <div className="text-zinc-100 text-xl font-bold">{formatCurrencyShort(stats.grossPnL)}</div>
                 </div>
                 
                 {/* Commissions */}
-                <div className="bg-[#0B0D10] rounded-xl p-3 border border-[#1F2937]">
-                  <div className="text-[#8B94A7] text-xs mb-1">Commissions</div>
-                  <div className="text-[#F45B69] text-xl font-bold">{formatCurrencyShort(stats.commissions)}</div>
+                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                  <div className="text-zinc-400 text-xs mb-1">Commissions</div>
+                  <div className="text-rose-500 text-xl font-bold">{formatCurrencyShort(stats.commissions)}</div>
                 </div>
                 
                 {/* Win Rate */}
-                <div className="bg-[#0B0D10] rounded-xl p-3 border border-[#1F2937]">
-                  <div className="text-[#8B94A7] text-xs mb-1">Winrate</div>
+                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                  <div className="text-zinc-400 text-xs mb-1">Winrate</div>
                   <div className={clsx(
                     'text-xl font-bold',
-                    stats.winRate >= 50 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                    stats.winRate >= 50 ? 'text-emerald-500' : 'text-rose-500'
                   )}>
                     {stats.winRate.toFixed(1)}%
                   </div>
                 </div>
                 
                 {/* Losers */}
-                <div className="bg-[#0B0D10] rounded-xl p-3 border border-[#1F2937]">
-                  <div className="text-[#8B94A7] text-xs mb-1">Losers</div>
-                  <div className="text-[#F45B69] text-xl font-bold">{stats.losers}</div>
+                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                  <div className="text-zinc-400 text-xs mb-1">Losers</div>
+                  <div className="text-rose-500 text-xl font-bold">{stats.losers}</div>
                 </div>
                 
                 {/* Volume */}
-                <div className="bg-[#0B0D10] rounded-xl p-3 border border-[#1F2937]">
-                  <div className="text-[#8B94A7] text-xs mb-1">Volume</div>
-                  <div className="text-[#E5E7EB] text-xl font-bold">{stats.volume}</div>
+                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                  <div className="text-zinc-400 text-xs mb-1">Volume</div>
+                  <div className="text-zinc-100 text-xl font-bold">{stats.volume}</div>
                 </div>
                 
                 {/* Profit Factor */}
-                <div className="bg-[#0B0D10] rounded-xl p-3 border border-[#1F2937]">
-                  <div className="text-[#8B94A7] text-xs mb-1">Profit factor</div>
+                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                  <div className="text-zinc-400 text-xs mb-1">Profit factor</div>
                   <div className={clsx(
                     'text-xl font-bold',
-                    stats.profitFactor >= 1 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                    stats.profitFactor >= 1 ? 'text-emerald-500' : 'text-rose-500'
                   )}>
                     {stats.profitFactor > 99 ? '∞' : stats.profitFactor.toFixed(2)}
                   </div>
@@ -839,8 +839,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
         <div className="px-6 pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Target className="h-5 w-5 text-[#A78BFA]" />
-              <span className="text-[#E5E7EB] font-medium">Day Strategy</span>
+              <Target className="h-5 w-5 text-zinc-400" />
+              <span className="text-zinc-100 font-medium">Day Strategy</span>
             </div>
             <div className="relative">
               <button
@@ -848,8 +848,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                 className={clsx(
                   'flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all min-w-[180px] justify-between',
                   dayStrategy
-                    ? 'bg-[#A78BFA]/10 border-[#A78BFA]/30 text-[#A78BFA]'
-                    : 'bg-[#1F2937] border-[#1F2937] text-[#8B94A7] hover:border-[#A78BFA]/50'
+                    ? 'bg-[#242838] border-zinc-700 text-zinc-400'
+                    : 'bg-[#242838] border-white/5 text-zinc-400 hover:border-zinc-500'
                 )}
               >
                 <span>{dayStrategy || 'Select strategy...'}</span>
@@ -857,14 +857,14 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
               </button>
               
               {showDayStrategyDropdown && (
-                <div className="absolute right-0 mt-2 w-56 bg-[#15181F] border border-[#1F2937] rounded-lg shadow-xl z-50 py-1 max-h-64 overflow-y-auto">
+                <div className="absolute right-0 mt-2 w-56 bg-[#181B24]/80 backdrop-blur-md border border-white/5 rounded-lg shadow-xl z-50 py-1 max-h-64 overflow-y-auto">
                   <button
                     onClick={() => handleSetDayStrategy('')}
-                    className="w-full px-4 py-2 text-left text-sm text-[#8B94A7] hover:bg-[#1F2937] hover:text-[#E5E7EB]"
+                    className="w-full px-4 py-2 text-left text-sm text-zinc-400 hover:bg-[#242838] hover:text-zinc-100"
                   >
                     Clear strategy
                   </button>
-                  <div className="border-t border-[#1F2937] my-1" />
+                  <div className="border-t border-white/5 my-1" />
                   {TRADING_STRATEGIES.map((strategy) => (
                     <button
                       key={strategy}
@@ -872,8 +872,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                       className={clsx(
                         'w-full px-4 py-2 text-left text-sm transition-colors',
                         dayStrategy === strategy
-                          ? 'bg-[#A78BFA]/20 text-[#A78BFA]'
-                          : 'text-[#E5E7EB] hover:bg-[#1F2937]'
+                          ? 'bg-[#242838]/80 text-zinc-400'
+                          : 'text-zinc-100 hover:bg-[#242838]'
                       )}
                     >
                       {strategy}
@@ -883,16 +883,16 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
               )}
             </div>
           </div>
-          <p className="text-xs text-[#8B94A7] mt-2 ml-8">
+          <p className="text-xs text-zinc-400 mt-2 ml-8">
             Set a strategy for all {trades.length} trades on this day, or customize each trade below
           </p>
         </div>
 
         {/* Trades Table Section */}
         <div className="px-6 pb-6">
-          <div className="bg-[#0B0D10] rounded-xl border border-[#1F2937] overflow-hidden">
+          <div className="bg-[#181B24] rounded-xl border border-white/5 overflow-hidden">
             {/* Table Header */}
-            <div className="grid grid-cols-16 gap-2 px-4 py-3 bg-[#0D0F12] border-b border-[#1F2937] text-xs text-[#8B94A7] font-medium">
+            <div className="grid grid-cols-16 gap-2 px-4 py-3 bg-[#1E2130] border-b border-white/5 text-xs text-zinc-400 font-medium">
               <div className="col-span-2">Open time</div>
               <div className="col-span-2">Ticker</div>
               <div className="col-span-1">Side</div>
@@ -915,25 +915,25 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                     key={trade.id}
                     className={clsx(
                       'grid grid-cols-16 gap-2 px-4 py-3 items-center transition-all duration-200',
-                      index % 2 === 0 ? 'bg-transparent' : 'bg-[#0D0F12]/50',
-                      'hover:bg-[#1F2937]/30'
+                      index % 2 === 0 ? 'bg-transparent' : 'bg-[#1E2130]/50',
+                      'hover:bg-[#242838]/30'
                     )}
                   >
                     {/* Time */}
-                    <div className="col-span-2 text-[#8B94A7] text-sm">
+                    <div className="col-span-2 text-zinc-400 text-sm">
                       {trade.time || '—'}
                     </div>
                     
                     {/* Ticker */}
                     <div className="col-span-2 flex items-center space-x-2">
-                      <span className="px-2 py-1 rounded-md bg-[#1F2937] text-[#E5E7EB] text-sm font-medium">
+                      <span className="px-2 py-1 rounded-md bg-[#242838] text-zinc-100 text-sm font-medium">
                         {trade.symbol.replace(/\d{4}$/, '').substring(0, 3)}
                       </span>
                       <span className={clsx(
                         'px-2 py-0.5 rounded text-xs font-semibold',
                         trade.outcome === 'win'
-                          ? 'bg-[#3BF68A]/20 text-[#3BF68A]'
-                          : 'bg-[#F45B69]/20 text-[#F45B69]'
+                          ? 'bg-emerald-500/20 text-emerald-500'
+                          : 'bg-rose-500/20 text-rose-500'
                       )}>
                         {trade.outcome === 'win' ? 'WIN' : 'LOSS'}
                       </span>
@@ -943,14 +943,14 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                     <div className="col-span-1">
                       <span className={clsx(
                         'text-sm font-medium',
-                        trade.side === 'Long' ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                        trade.side === 'Long' ? 'text-emerald-500' : 'text-rose-500'
                       )}>
                         {trade.side?.toUpperCase() || 'LONG'}
                       </span>
                     </div>
                     
                     {/* Instrument */}
-                    <div className="col-span-2 text-[#8B94A7] text-sm truncate">
+                    <div className="col-span-2 text-zinc-400 text-sm truncate">
                       {trade.symbol}
                     </div>
                     
@@ -958,7 +958,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                     <div className="col-span-2">
                       <span className={clsx(
                         'text-sm font-bold',
-                        trade.netPL >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                        trade.netPL >= 0 ? 'text-emerald-500' : 'text-rose-500'
                       )}>
                         {formatCurrency(trade.netPL)}
                       </span>
@@ -968,7 +968,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                     <div className="col-span-2">
                       <span className={clsx(
                         'text-sm',
-                        netROI >= 0 ? 'text-[#E5E7EB]' : 'text-[#8B94A7]'
+                        netROI >= 0 ? 'text-zinc-100' : 'text-zinc-400'
                       )}>
                         {netROI >= 0 ? `${netROI.toFixed(2)}%` : `(${Math.abs(netROI).toFixed(2)}%)`}
                       </span>
@@ -976,7 +976,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                     
                     {/* R-Multiple */}
                     <div className="col-span-2">
-                      <span className="text-sm text-[#8B94A7]">
+                      <span className="text-sm text-zinc-400">
                         {trade.rMultiple ? trade.rMultiple.toFixed(2) : '—'}
                       </span>
                     </div>
@@ -991,8 +991,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                         className={clsx(
                           'flex items-center space-x-1 px-2 py-1 rounded text-sm transition-all w-full justify-between',
                           trade.strategy
-                            ? 'bg-[#A78BFA]/10 text-[#A78BFA] hover:bg-[#A78BFA]/20'
-                            : 'text-[#8B94A7] hover:bg-[#1F2937] hover:text-[#E5E7EB]'
+                            ? 'bg-[#242838] text-zinc-400 hover:bg-[#242838]/80'
+                            : 'text-zinc-400 hover:bg-[#242838] hover:text-zinc-100'
                         )}
                       >
                         <span className="truncate">{trade.strategy || '— Select —'}</span>
@@ -1000,14 +1000,14 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                       </button>
                       
                       {openStrategyDropdown === trade.id && (
-                        <div className="absolute right-0 mt-1 w-48 bg-[#15181F] border border-[#1F2937] rounded-lg shadow-xl z-50 py-1 max-h-48 overflow-y-auto">
+                        <div className="absolute right-0 mt-1 w-48 bg-[#181B24]/80 backdrop-blur-md border border-white/5 rounded-lg shadow-xl z-50 py-1 max-h-48 overflow-y-auto">
                           <button
                             onClick={() => handleSetTradeStrategy(trade.id, '')}
-                            className="w-full px-3 py-1.5 text-left text-xs text-[#8B94A7] hover:bg-[#1F2937] hover:text-[#E5E7EB]"
+                            className="w-full px-3 py-1.5 text-left text-xs text-zinc-400 hover:bg-[#242838] hover:text-zinc-100"
                           >
                             Clear
                           </button>
-                          <div className="border-t border-[#1F2937] my-1" />
+                          <div className="border-t border-white/5 my-1" />
                           {TRADING_STRATEGIES.map((strategy) => (
                             <button
                               key={strategy}
@@ -1015,8 +1015,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                               className={clsx(
                                 'w-full px-3 py-1.5 text-left text-xs transition-colors',
                                 trade.strategy === strategy
-                                  ? 'bg-[#A78BFA]/20 text-[#A78BFA]'
-                                  : 'text-[#E5E7EB] hover:bg-[#1F2937]'
+                                  ? 'bg-[#242838]/80 text-zinc-400'
+                                  : 'text-zinc-100 hover:bg-[#242838]'
                               )}
                             >
                               {strategy}
@@ -1033,15 +1033,15 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
         </div>
 
         {/* Footer Buttons */}
-        <div className="px-6 py-4 border-t border-[#1F2937] flex justify-end space-x-3">
+        <div className="px-6 py-4 border-t border-white/5 flex justify-end space-x-3">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-lg font-medium text-[#8B94A7] bg-[#1F2937] hover:bg-[#2D3748] transition-colors"
+            className="px-6 py-2.5 rounded-lg font-medium text-zinc-400 bg-[#242838] hover:bg-[#2D3748] transition-colors"
           >
             Cancel
           </button>
           <button
-            className="px-6 py-2.5 rounded-lg font-medium text-white bg-[#A78BFA] hover:bg-[#9061F9] transition-colors"
+            className="px-6 py-2.5 rounded-lg font-medium text-white bg-zinc-200 hover:bg-zinc-300 transition-colors"
           >
             View Details
           </button>
@@ -1313,38 +1313,34 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
   
   return (
     <div 
-      className="rounded-xl border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-      style={{
-        background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-      }}
+      className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+      
     >
       {/* Gradient border on hover */}
-      <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+      <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
         <div 
           className="w-full h-full rounded-xl"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          
         />
       </div>
       
       <div className="relative z-10">
         {/* Header */}
-        <div className="p-6 border-b border-[#1F2937]">
+        <div className="p-6 border-b border-white/5">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
                 onClick={previousMonth}
-                className="p-2 text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-gradient-to-r hover:from-[#3BF68A]/10 hover:to-[#A78BFA]/10 rounded-lg transition-all"
+                className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-white/5 rounded-lg transition-all"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <h3 className="text-[#E5E7EB] text-xl font-semibold">
+              <h3 className="text-zinc-100 text-xl font-semibold">
                 {monthNames[month]} {year}
               </h3>
               <button
                 onClick={nextMonth}
-                className="p-2 text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-gradient-to-r hover:from-[#3BF68A]/10 hover:to-[#A78BFA]/10 rounded-lg transition-all"
+                className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-white/5 rounded-lg transition-all"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -1353,8 +1349,8 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                 className={clsx(
                   'px-3 py-1 rounded-full text-sm font-medium border transition-all duration-200',
                   hasDataForMonth
-                    ? 'bg-gradient-to-r from-[#3BF68A]/20 to-[#A78BFA]/20 text-[#3BF68A] border-[#3BF68A]/30'
-                    : 'bg-[#1F2937] text-[#8B94A7] border-[#1F2937] hover:bg-gradient-to-r hover:from-[#3BF68A]/10 hover:to-[#A78BFA]/10 hover:text-[#E5E7EB] hover:border-[#3BF68A]/30'
+                    ? 'bg-white/10 text-emerald-500 border-emerald-500/30'
+                    : 'bg-[#242838] text-zinc-400 border-white/5 hover:bg-white/5 hover:text-zinc-100 hover:border-emerald-500/30'
                 )}
               >
                 {getCurrentMonthLabel()}
@@ -1363,8 +1359,8 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
             
             <div className="flex items-center space-x-8">
               <div className="text-right">
-                <div className="text-sm text-[#8B94A7] mb-1">Monthly stats:</div>
-                <div className="text-2xl font-bold bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] bg-clip-text text-transparent">
+                <div className="text-sm text-zinc-400 mb-1">Monthly stats:</div>
+                <div className="text-2xl font-bold text-zinc-50">
                   {formatCurrency(monthlyTotal)}
                 </div>
               </div>
@@ -1372,9 +1368,9 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                 {/* Removed the duplicate "11 days" text that was above the highlighted badge */}
                 <div className="flex items-center space-x-2">
                   {/* Updated trading days indicator with gradient theme - this is the only one now */}
-                  <div className="px-3 py-1 rounded-full bg-gradient-to-r from-[#3BF68A]/20 to-[#A78BFA]/20 border border-[#3BF68A]/30 flex items-center space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#3BF68A] to-[#A78BFA]"></div>
-                    <span className="text-[#3BF68A] text-sm font-medium">{tradingDays} days</span>
+                  <div className="px-3 py-1 rounded-full bg-white/10 border border-emerald-500/30 flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full bg-white text-zinc-950 hover:bg-zinc-200"></div>
+                    <span className="text-emerald-500 text-sm font-medium">{tradingDays} days</span>
                   </div>
                 </div>
               </div>
@@ -1386,11 +1382,11 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
           {/* Week day headers */}
           <div className="grid grid-cols-8 gap-2 mb-4">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="p-3 text-center text-sm font-medium text-[#8B94A7]">
+              <div key={day} className="p-3 text-center text-sm font-medium text-zinc-400">
                 {day}
               </div>
             ))}
-            <div className="p-3 text-center text-sm font-medium text-[#8B94A7]">
+            <div className="p-3 text-center text-sm font-medium text-zinc-400">
               Weekly
             </div>
           </div>
@@ -1424,15 +1420,15 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                       isToday 
                         ? 'border-blue-500 bg-blue-500/10' 
                         : isFuture
-                          ? 'border-[#1F2937] bg-[#1F2937]/20 opacity-50' // Future dates styling
+                          ? 'border-white/5 bg-[#242838]/20 opacity-50' // Future dates styling
                           : isWeekendDay
-                            ? 'border-[#1F2937] bg-[#1F2937]/30' // Weekend styling
+                            ? 'border-white/5 bg-[#242838]/30' // Weekend styling
                             : dayData && dayData.pnl > 0 
-                              ? 'border-[#3BF68A] bg-[#3BF68A]/10' 
+                              ? 'border-emerald-500/30 bg-emerald-500/10' 
                               : dayData && dayData.pnl < 0 
-                                ? 'border-[#F45B69] bg-[#F45B69]/10'
-                                : 'border-[#1F2937] hover:border-[#3BF68A]/50',
-                      !isWeekendDay && !isFuture && 'hover:bg-gradient-to-r hover:from-[#3BF68A]/10 hover:to-[#A78BFA]/10',
+                                ? 'border-rose-500/30 bg-rose-500/10'
+                                : 'border-white/5 hover:border-emerald-500/50',
+                      !isWeekendDay && !isFuture && 'hover:bg-white/5',
                       hasTradesForDay && !isWeekendDay && !isFuture && 'cursor-pointer'
                     )}
                     onClick={() => handleDayClick(day)}
@@ -1445,35 +1441,35 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                           className={clsx(
                             "p-1 rounded-full",
                             dayAdjustment?.type === 'payout' 
-                              ? "bg-[#F45B69]/30" 
+                              ? "bg-rose-500/30" 
                               : dayAdjustment?.type === 'deposit'
-                                ? "bg-[#3BF68A]/30"
-                                : "bg-[#A78BFA]/30"
+                                ? "bg-emerald-500/30"
+                                : "bg-[#2C3148]"
                           )}
                           title={`${dayAdjustment?.type}: ${dayAdjustment?.amount && dayAdjustment.amount < 0 ? '-' : '+'}$${Math.abs(dayAdjustment?.amount || 0).toLocaleString()}`}
                         >
                           <DollarSign className={clsx(
                             "h-3 w-3",
                             dayAdjustment?.type === 'payout' 
-                              ? "text-[#F45B69]" 
+                              ? "text-rose-500" 
                               : dayAdjustment?.type === 'deposit'
-                                ? "text-[#3BF68A]"
-                                : "text-[#A78BFA]"
+                                ? "text-emerald-500"
+                                : "text-zinc-400"
                           )} />
                         </div>
                       )}
                       
                       {/* Notes indicator */}
                       {dayHasNote && (
-                        <div className="p-1 rounded-full bg-[#A78BFA]/20">
-                          <FileText className="h-3 w-3 text-[#A78BFA]" />
+                        <div className="p-1 rounded-full bg-[#242838]/80">
+                          <FileText className="h-3 w-3 text-zinc-400" />
                         </div>
                       )}
                     </div>
                     
                     <div className={clsx(
                       'text-sm font-medium mb-1',
-                      isFuture ? 'text-[#8B94A7]/50' : isWeekendDay ? 'text-[#8B94A7]' : 'text-[#E5E7EB]'
+                      isFuture ? 'text-zinc-400/50' : isWeekendDay ? 'text-zinc-400' : 'text-zinc-100'
                     )}>
                       {day}
                     </div>
@@ -1484,21 +1480,21 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                       </div>
                     ) : isWeekendDay ? (
                       <div className="space-y-1">
-                        <div className="text-xs text-[#8B94A7]">Market closed</div>
+                        <div className="text-xs text-zinc-400">Market closed</div>
                       </div>
                     ) : dayData && dayData.trades > 0 ? (
                       <div className="space-y-1">
                         {/* Net P&L (includes adjustments like TopOne shows) */}
                         <div className={clsx(
                           'text-xs font-bold',
-                          dayData.pnl >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                          dayData.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'
                         )}>
                           {formatCurrency(dayData.pnl)}
                         </div>
-                        <div className="text-xs text-[#8B94A7]">
+                        <div className="text-xs text-zinc-400">
                           {dayData.trades} trade{dayData.trades !== 1 ? 's' : ''}
                         </div>
-                        <div className="text-xs text-[#8B94A7]">
+                        <div className="text-xs text-zinc-400">
                           {winRate}% WR
                         </div>
                       </div>
@@ -1506,21 +1502,21 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                       <div className="space-y-1">
                         <div className={clsx(
                           'text-xs font-bold',
-                          dayAdjustment.amount >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                          dayAdjustment.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'
                         )}>
                           {dayAdjustment.type === 'payout' ? '💰 Payout' : dayAdjustment.type === 'deposit' ? '➕ Deposit' : '⚡ Adj'}
                         </div>
                         <div className={clsx(
                           'text-xs font-semibold',
-                          dayAdjustment.amount >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                          dayAdjustment.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'
                         )}>
                           {dayAdjustment.amount >= 0 ? '+' : ''}{formatCurrency(dayAdjustment.amount)}
                         </div>
                       </div>
                     ) : (
                       <div className="space-y-1">
-                        <div className="text-xs text-[#8B94A7]">0 trades</div>
-                        <div className="text-xs text-[#8B94A7]">0% WR</div>
+                        <div className="text-xs text-zinc-400">0 trades</div>
+                        <div className="text-xs text-zinc-400">0% WR</div>
                       </div>
                     )}
                   </div>
@@ -1528,15 +1524,15 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
               })}
               
               {/* Weekly summary - Updated with gradient theme */}
-              <div className="p-3 h-24 rounded-lg bg-gradient-to-r from-[#3BF68A]/10 to-[#A78BFA]/10 border border-[#3BF68A]/30">
-                <div className="text-xs text-[#8B94A7] mb-1">Week {weekIndex + 1}</div>
+              <div className="p-3 h-24 rounded-lg bg-white/5 border border-emerald-500/30">
+                <div className="text-xs text-zinc-400 mb-1">Week {weekIndex + 1}</div>
                 <div className={clsx(
                   'text-sm font-bold mb-1',
-                  week.pnl >= 0 ? 'bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] bg-clip-text text-transparent' : 'text-[#F45B69]'
+                  week.pnl >= 0 ? 'text-zinc-50' : 'text-rose-500'
                 )}>
                   {formatCurrency(week.pnl)}
                 </div>
-                <div className="text-xs text-[#8B94A7] mb-1">
+                <div className="text-xs text-zinc-400 mb-1">
                   {week.tradingDays} days
                 </div>
               </div>

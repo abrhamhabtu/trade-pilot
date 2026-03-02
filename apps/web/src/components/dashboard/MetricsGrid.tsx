@@ -30,7 +30,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
         format="currency"
         trend={displayBalance >= 0 ? "up" : "down"}
         icon={DollarSign}
-        iconColor="text-[#3BF68A]"
+        iconColor="text-emerald-500"
         tooltip="Your account balance including all trades and adjustments (payouts, deposits). This matches your Accounts page balance."
       />
       <MetricCard
@@ -39,7 +39,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
         format="number"
         trend={metrics.profitFactor >= 1.5 ? "up" : metrics.profitFactor >= 1.0 ? "neutral" : "down"}
         icon={BarChart2}
-        iconColor="text-[#3BF68A]"
+        iconColor="text-emerald-500"
         tooltip="Ratio of gross profit to gross loss. A profit factor above 1.0 means you're profitable. Values above 2.0 are considered excellent."
       />
       <MetricCard
@@ -48,7 +48,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
         format="percentage"
         trend={metrics.winRate >= 60 ? "up" : metrics.winRate >= 50 ? "neutral" : "down"}
         icon={Target}
-        iconColor="text-[#3BF68A]"
+        iconColor="text-emerald-500"
         tooltip="Percentage of trades that were profitable. A higher win rate indicates more consistent trading, though it should be balanced with risk-reward ratios."
       />
       <MetricCard
@@ -57,7 +57,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
         format="currency"
         trend={metrics.expectancy >= 0 ? "up" : "down"}
         icon={TrendingUp}
-        iconColor="text-[#3BF68A]"
+        iconColor="text-emerald-500"
         tooltip="Average amount you can expect to win or lose per trade. Positive expectancy means your trading strategy is profitable over time."
       />
       <MetricCard
@@ -66,7 +66,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
         format="number"
         trend="neutral"
         icon={Zap}
-        iconColor="text-[#3BF68A]"
+        iconColor="text-emerald-500"
         subtitle={trades.length > 0 ? (trades[0].outcome === 'win' ? 'WINS' : 'LOSSES') : 'TRADES'}
         tooltip="Number of consecutive winning or losing trades. Helps track momentum and psychological state in your trading."
       />
@@ -76,7 +76,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
         format="number"
         trend="neutral"
         icon={Activity}
-        iconColor="text-[#8B94A7]"
+        iconColor="text-zinc-400"
         tooltip="Total number of completed trades. A larger sample size provides more reliable statistics for performance analysis."
       />
     </div>

@@ -12,12 +12,12 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className={clsx('min-h-screen transition-colors duration-300', theme === 'dark' ? 'text-slate-100' : 'text-slate-900')}
+      className={clsx('min-h-screen transition-colors duration-300', theme === 'dark' ? 'dark text-slate-100' : 'text-slate-900')}
       style={{
         background:
           theme === 'dark'
-            ? 'linear-gradient(135deg, #0B0D10 0%, #0F1419 50%, #0B0D10 100%)'
-            : 'linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 50%, #F8FAFC 100%)'
+            ? '#181B24'
+            : '#F8FAFC'
       }}
     >
       <Sidebar />

@@ -326,8 +326,8 @@ export const JourneyPage: React.FC = () => {
   if (!account) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
-        <div className="w-16 h-16 rounded-2xl bg-[#1F2937] flex items-center justify-center mb-4">
-          <AlertCircle className="w-8 h-8 text-[#8B94A7]" />
+        <div className="w-16 h-16 rounded-2xl bg-[#242838] flex items-center justify-center mb-4">
+          <AlertCircle className="w-8 h-8 text-zinc-400" />
         </div>
         <h2 className="text-xl font-bold text-white mb-2">No Account Selected</h2>
       </div>
@@ -356,10 +356,10 @@ export const JourneyPage: React.FC = () => {
     <div className="p-4 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
 
       {/* 1. HERO HEADER - REDESIGNED WITH INLINE CONTROLS */}
-      <div className="relative p-6 rounded-[2rem] overflow-hidden border border-[#1F2937] bg-gradient-to-br from-[#0D0F12] to-[#15181F] shadow-xl">
+      <div className="relative p-6 rounded-[2rem] overflow-hidden border border-white/5 bg-gradient-to-br from-[#1E2130] to-[#1E2130] shadow-xl">
         <div className={clsx(
           "absolute -right-20 -top-20 w-64 h-64 blur-[100px] rounded-full opacity-10 transition-all duration-1000",
-          isFunded ? "bg-[#3BF68A]" : "bg-[#A78BFA]"
+          isFunded ? "bg-emerald-500" : "bg-zinc-200"
         )} />
 
         <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
@@ -370,7 +370,7 @@ export const JourneyPage: React.FC = () => {
               {/* Glow Effect */}
               <div className={clsx(
                 "absolute inset-0 rounded-full blur-2xl opacity-20 group-hover:opacity-30 transition-opacity duration-500",
-                isPayoutReady ? "bg-[#3BF68A]" : "bg-[#A78BFA]"
+                isPayoutReady ? "bg-emerald-500" : "bg-zinc-200"
               )} />
 
               <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 100 100">
@@ -379,7 +379,7 @@ export const JourneyPage: React.FC = () => {
                   cx="50" cy="50" r="42"
                   stroke="currentColor" strokeWidth="6"
                   fill="transparent"
-                  className="text-[#1F2937]"
+                  className="text-[#2C3148]"
                 />
                 {/* Outer Ring: Balance Progress */}
                 <circle
@@ -390,7 +390,7 @@ export const JourneyPage: React.FC = () => {
                   strokeDashoffset={264 - (264 * balanceProgress) / 100}
                   className={clsx(
                     "transition-all duration-1000 ease-out",
-                    balanceTargetMet ? "text-[#3BF68A]" : "text-[#A78BFA]"
+                    balanceTargetMet ? "text-emerald-500" : "text-zinc-400"
                   )}
                   strokeLinecap="round"
                 />
@@ -399,7 +399,7 @@ export const JourneyPage: React.FC = () => {
                   cx="50" cy="50" r="33"
                   stroke="currentColor" strokeWidth="5"
                   fill="transparent"
-                  className="text-[#1F2937]"
+                  className="text-[#2C3148]"
                 />
                 {/* Inner Ring: Consistency Progress */}
                 <circle
@@ -410,7 +410,7 @@ export const JourneyPage: React.FC = () => {
                   strokeDashoffset={207 - (207 * consistencyProgress) / 100}
                   className={clsx(
                     "transition-all duration-1000 ease-out",
-                    consistencyMet ? "text-[#3BF68A]" : "text-[#F59E0B]"
+                    consistencyMet ? "text-emerald-500" : "text-[#F59E0B]"
                   )}
                   strokeLinecap="round"
                 />
@@ -418,8 +418,8 @@ export const JourneyPage: React.FC = () => {
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                 {isPayoutReady ? (
                   <>
-                    <span className="text-lg font-black text-[#3BF68A] tracking-tighter">Ready</span>
-                    <span className="text-[8px] font-bold text-[#3BF68A]/60 uppercase tracking-widest mt-0.5">Payout</span>
+                    <span className="text-lg font-black text-emerald-500 tracking-tighter">Ready</span>
+                    <span className="text-[8px] font-bold text-emerald-500/60 uppercase tracking-widest mt-0.5">Payout</span>
                   </>
                 ) : (
                   <>
@@ -441,11 +441,11 @@ export const JourneyPage: React.FC = () => {
                 <div className="text-[9px] font-black text-[#6B7280] uppercase tracking-[0.2em] mb-1">Balance</div>
                 <div className="text-2xl font-black tabular-nums tracking-tight">${currentPnL.toLocaleString()}</div>
               </div>
-              <div className="w-px h-8 bg-[#1F2937]" />
+              <div className="w-px h-8 bg-[#242838]" />
               <div>
                 <div className="text-[9px] font-black text-[#6B7280] uppercase tracking-[0.2em] mb-1">Target</div>
                 <div className="relative group flex items-center">
-                  <span className="text-2xl font-black text-[#3BF68A] mr-1">$</span>
+                  <span className="text-2xl font-black text-emerald-500 mr-1">$</span>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -456,10 +456,10 @@ export const JourneyPage: React.FC = () => {
                       setTarget(val);
                       updateAccount(account.id, { profitTarget: val });
                     }}
-                    className="w-32 bg-transparent text-2xl font-black text-[#3BF68A] tabular-nums focus:outline-none placeholder-[#3BF68A]/50"
+                    className="w-32 bg-transparent text-2xl font-black text-emerald-500 tabular-nums focus:outline-none placeholder-[#3BF68A]/50"
                   />
                   {/* Invisible overlay to hint editability on hover */}
-                  <div className="absolute inset-0 border-b-2 border-[#3BF68A]/0 group-hover:border-[#3BF68A]/20 transition-colors pointer-events-none" />
+                  <div className="absolute inset-0 border-b-2 border-emerald-500/30/0 group-hover:border-emerald-500/30/20 transition-colors pointer-events-none" />
                 </div>
               </div>
             </div>
@@ -470,7 +470,7 @@ export const JourneyPage: React.FC = () => {
             {/* Account Type Toggle */}
             <div className="space-y-2">
               <label className="text-[8px] font-black text-[#4B5563] uppercase tracking-[0.2em] ml-1">Account Status</label>
-              <div className="flex bg-[#0B0D10] p-1.5 rounded-2xl border border-[#1F2937]">
+              <div className="flex bg-[#181B24] p-1.5 rounded-2xl border border-white/5">
                 <button
                   onClick={() => {
                     setIsFunded(false);
@@ -478,7 +478,7 @@ export const JourneyPage: React.FC = () => {
                   }}
                   className={clsx(
                     "flex-1 py-3 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2",
-                    !isFunded ? "bg-[#A78BFA] text-white shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
+                    !isFunded ? "bg-zinc-200 text-white shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
                   )}
                 >
                   <Mountain className="w-3.5 h-3.5" />
@@ -491,7 +491,7 @@ export const JourneyPage: React.FC = () => {
                   }}
                   className={clsx(
                     "flex-1 py-3 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2",
-                    isFunded ? "bg-[#3BF68A] text-black shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
+                    isFunded ? "bg-emerald-500 text-black shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
                   )}
                 >
                   <Trophy className="w-3.5 h-3.5" />
@@ -503,7 +503,7 @@ export const JourneyPage: React.FC = () => {
             {/* Pacing Strategy */}
             <div className="space-y-2">
               <label className="text-[8px] font-black text-[#4B5563] uppercase tracking-[0.2em] ml-1">Trading Pace</label>
-              <div className="flex bg-[#0B0D10] p-1.5 rounded-2xl border border-[#1F2937]">
+              <div className="flex bg-[#181B24] p-1.5 rounded-2xl border border-white/5">
                 {(['conservative', 'moderate', 'aggressive'] as const).map((p) => {
                   const Icon = PACE_CONFIG[p].icon;
                   return (
@@ -515,7 +515,7 @@ export const JourneyPage: React.FC = () => {
                       }}
                       className={clsx(
                         "flex-1 py-3 rounded-xl text-[8px] font-black tracking-wider uppercase transition-all flex items-center justify-center gap-1.5",
-                        pace === p ? "bg-white text-black shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
+                        pace === p ? "bg-white text-zinc-950 shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
                       )}
                     >
                       <Icon className="w-3.5 h-3.5" style={{ color: pace === p ? 'black' : PACE_CONFIG[p].color }} />
@@ -532,14 +532,14 @@ export const JourneyPage: React.FC = () => {
       {/* TAB NAVIGATION */}
       <div className={clsx(
         "flex p-1.5 rounded-2xl border",
-        theme === 'dark' ? "bg-[#0B0D10] border-[#1F2937]" : "bg-gray-100 border-gray-200"
+        theme === 'dark' ? "bg-[#181B24] border-white/5" : "bg-gray-100 border-gray-200"
       )}>
         <button
           onClick={() => setActiveTab('overview')}
           className={clsx(
             "flex-1 py-3 rounded-xl text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2",
             activeTab === 'overview'
-              ? (theme === 'dark' ? "bg-[#1F2937] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
+              ? (theme === 'dark' ? "bg-[#242838] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
               : (theme === 'dark' ? "text-[#6B7280] hover:text-[#9CA3AF]" : "text-gray-500 hover:text-gray-700")
           )}
         >
@@ -551,7 +551,7 @@ export const JourneyPage: React.FC = () => {
           className={clsx(
             "flex-1 py-3 rounded-xl text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2",
             activeTab === 'consistency'
-              ? (theme === 'dark' ? "bg-[#1F2937] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
+              ? (theme === 'dark' ? "bg-[#242838] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
               : (theme === 'dark' ? "text-[#6B7280] hover:text-[#9CA3AF]" : "text-gray-500 hover:text-gray-700")
           )}
         >
@@ -567,7 +567,7 @@ export const JourneyPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
             {/* PROGRESSIVE ROADMAP CALENDAR */}
-            <div className="lg:col-span-8 space-y-6 bg-[#0D0F12]/60 p-8 rounded-[2.5rem] border border-[#1F2937]/50 backdrop-blur-xl shadow-2xl">
+            <div className="lg:col-span-8 space-y-6 bg-[#1E2130]/60 p-8 rounded-[2.5rem] border border-white/5/50 backdrop-blur-xl shadow-2xl">
               <div className="flex items-center justify-between px-2">
                 <div className="flex items-center space-x-6">
                   <div className="flex flex-col">
@@ -589,7 +589,7 @@ export const JourneyPage: React.FC = () => {
                     <div className="w-px h-4 bg-white/10 mx-1" />
                     <button
                       onClick={() => setCurrentMonth(new Date())}
-                      className="px-4 text-[10px] font-bold uppercase text-white/40 hover:text-[#A78BFA] transition-colors tracking-widest"
+                      className="px-4 text-[10px] font-bold uppercase text-white/40 hover:text-zinc-400 transition-colors tracking-widest"
                     >
                       Current
                     </button>
@@ -605,7 +605,7 @@ export const JourneyPage: React.FC = () => {
 
                 {calendarData.goalReachedDay && (
                   <div className="flex flex-col items-end">
-                    <div className="flex items-center space-x-2 text-[#3BF68A]">
+                    <div className="flex items-center space-x-2 text-emerald-500">
                       <Trophy className="w-4 h-4" />
                       <span className="text-[10px] font-black uppercase tracking-[0.2em]">Target Reach</span>
                     </div>
@@ -630,10 +630,10 @@ export const JourneyPage: React.FC = () => {
                       "relative aspect-square rounded-[1.25rem] transition-all duration-500 group overflow-hidden",
                       day.isWeekend ? "bg-transparent opacity-30" :
                         day.isGoalDay ? "bg-white shadow-[0_0_40px_rgba(255,255,255,0.15)] scale-105 z-10" :
-                          day.isToday ? "bg-white/5 border border-[#A78BFA]/50" :
+                          day.isToday ? "bg-white/5 border border-zinc-500" :
                             day.isProjected ? "bg-white/[0.02] border border-dashed border-white/10" :
                               !day.isCurrentMonth ? "opacity-10" :
-                                "bg-white/[0.03] border border-white/[0.05] hover:border-white/20"
+                                "bg-white/[0.03] border border-white/[0.05] hover:border-slate-300 dark:border-white/20"
                     )}
                   >
                     {/* Background Pattern for Weekends */}
@@ -646,13 +646,13 @@ export const JourneyPage: React.FC = () => {
                         <span className={clsx(
                           "text-[10px] font-medium tracking-tight",
                           day.isGoalDay ? "text-black" :
-                            day.isToday ? "text-[#A78BFA] font-bold" :
+                            day.isToday ? "text-zinc-400 font-bold" :
                               "text-white/40"
                         )}>
                           {day.date.getDate().toString().padStart(2, '0')}
                         </span>
                         {day.isToday && (
-                          <div className="w-1 h-1 rounded-full bg-[#A78BFA] shadow-[0_0_10px_#A78BFA]" />
+                          <div className="w-1 h-1 rounded-full bg-zinc-200 shadow-[0_0_10px_#A78BFA]" />
                         )}
                       </div>
 
@@ -669,7 +669,7 @@ export const JourneyPage: React.FC = () => {
                                 <div className={clsx(
                                   "text-[11px] font-bold tabular-nums tracking-tighter",
                                   day.isProjected ? "text-white/20" :
-                                    day.pnl > 0 ? "text-[#3BF68A]" : "text-[#F45B69]"
+                                    day.pnl > 0 ? "text-emerald-500" : "text-rose-500"
                                 )}>
                                   {formatCurrency(day.pnl)}
                                 </div>
@@ -679,7 +679,7 @@ export const JourneyPage: React.FC = () => {
 
                               {day.isProjected && !day.isGoalDay && day.pnl !== 0 && (
                                 <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
-                                  <div className="h-full bg-[#A78BFA]/20 w-full" />
+                                  <div className="h-full bg-[#242838]/80 w-full" />
                                 </div>
                               )}
                             </div>
@@ -701,11 +701,11 @@ export const JourneyPage: React.FC = () => {
             <div className="lg:col-span-4 space-y-6">
 
               {/* TRADING QUOTE WIDGET */}
-              <div className="p-6 rounded-[2.5rem] bg-[#15181F] border border-[#1F2937] shadow-xl relative overflow-hidden group">
-                <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-[#A78BFA]/5 rounded-full blur-xl" />
+              <div className="p-6 rounded-[2.5rem] bg-[#181B24]/80 backdrop-blur-md border border-white/5 shadow-xl relative overflow-hidden group">
+                <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-zinc-200/5 rounded-full blur-xl" />
                 <div className="relative z-10 space-y-4">
                   <div className="flex items-center gap-2">
-                    <Quote className="w-4 h-4 text-[#A78BFA]" />
+                    <Quote className="w-4 h-4 text-zinc-400" />
                     <span className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em]">Daily Wisdom</span>
                   </div>
                   <p className="text-sm text-white font-medium italic leading-relaxed">
@@ -715,11 +715,11 @@ export const JourneyPage: React.FC = () => {
               </div>
 
               {/* FOCUS TASKS WIDGET */}
-              <div className="p-6 rounded-[2.5rem] bg-[#0D0F12] border border-[#1F2937] shadow-xl relative overflow-hidden group">
-                <div className="absolute -left-4 -top-4 w-16 h-16 bg-[#3BF68A]/5 rounded-full blur-xl" />
+              <div className="p-6 rounded-[2.5rem] bg-[#1E2130] border border-white/5 shadow-xl relative overflow-hidden group">
+                <div className="absolute -left-4 -top-4 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl" />
                 <div className="relative z-10 space-y-4">
                   <div className="flex items-center gap-2">
-                    <CheckSquare className="w-4 h-4 text-[#3BF68A]" />
+                    <CheckSquare className="w-4 h-4 text-emerald-500" />
                     <span className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em]">Focus Points</span>
                   </div>
                   <div className="space-y-3">
@@ -728,8 +728,8 @@ export const JourneyPage: React.FC = () => {
                       "Respect the hard stop loss",
                       "Check daily economic news"
                     ].map((task, i) => (
-                      <div key={i} className="flex items-center gap-3 text-xs text-[#8B94A7] font-medium border-b border-[#1F2937] pb-2 last:border-0 last:pb-0">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#3BF68A]" />
+                      <div key={i} className="flex items-center gap-3 text-xs text-zinc-400 font-medium border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                         {task}
                       </div>
                     ))}
@@ -740,25 +740,25 @@ export const JourneyPage: React.FC = () => {
               {/* PAYOUT READINESS - Dual Condition Qualification */}
               <div className={clsx(
                 "p-6 rounded-[2.5rem] border shadow-xl overflow-hidden relative transition-colors",
-                theme === 'dark' ? "bg-[#15181F] border-[#1F2937]" : "bg-[#F8F9FB] border-gray-100"
+                theme === 'dark' ? "bg-[#181B24]/80 backdrop-blur-md border-white/5" : "bg-[#F8F9FB] border-gray-100"
               )}>
                 {/* Overall Status Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className={clsx(
                       "p-1.5 rounded-lg",
-                      isPayoutReady ? "bg-[#3BF68A]/10" : "bg-[#F59E0B]/10"
+                      isPayoutReady ? "bg-emerald-500/10" : "bg-[#F59E0B]/10"
                     )}>
-                      <Shield className={clsx("w-4 h-4", isPayoutReady ? "text-[#3BF68A]" : "text-[#F59E0B]")} />
+                      <Shield className={clsx("w-4 h-4", isPayoutReady ? "text-emerald-500" : "text-[#F59E0B]")} />
                     </div>
                     <span className={clsx(
                       "text-sm font-bold",
-                      theme === 'dark' ? "text-[#E5E7EB]" : "text-gray-900"
+                      theme === 'dark' ? "text-zinc-100" : "text-gray-900"
                     )}>Payout Readiness</span>
                   </div>
                   <div className={clsx(
                     "px-3 py-1 rounded-full text-xs font-bold text-white",
-                    isPayoutReady ? "bg-[#3BF68A]" : "bg-[#F45B69]"
+                    isPayoutReady ? "bg-emerald-500" : "bg-rose-500"
                   )}>
                     {isPayoutReady ? "Ready" : "Not Ready"}
                   </div>
@@ -768,7 +768,7 @@ export const JourneyPage: React.FC = () => {
                 {lastPayoutDate && (
                   <div className={clsx(
                     "flex items-center gap-2 p-2 rounded-lg text-xs mb-4",
-                    theme === 'dark' ? "bg-[#A78BFA]/10 text-[#A78BFA]" : "bg-purple-50 text-purple-600"
+                    theme === 'dark' ? "bg-[#242838] text-zinc-400" : "bg-purple-50 text-purple-600"
                   )}>
                     <RefreshCw className="w-3 h-3" />
                     <span>
@@ -781,48 +781,48 @@ export const JourneyPage: React.FC = () => {
                 <div className={clsx(
                   "p-4 rounded-2xl border mb-3",
                   balanceTargetMet
-                    ? (theme === 'dark' ? "bg-[#3BF68A]/5 border-[#3BF68A]/20" : "bg-green-50 border-green-200")
-                    : (theme === 'dark' ? "bg-[#A78BFA]/5 border-[#1F2937]" : "bg-gray-50 border-gray-200")
+                    ? (theme === 'dark' ? "bg-emerald-500/5 border-emerald-500/30/20" : "bg-green-50 border-green-200")
+                    : (theme === 'dark' ? "bg-zinc-200/5 border-white/5" : "bg-gray-50 border-gray-200")
                 )}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Mountain className={clsx("w-3.5 h-3.5", balanceTargetMet ? "text-[#3BF68A]" : "text-[#A78BFA]")} />
-                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8B94A7]">
+                      <Mountain className={clsx("w-3.5 h-3.5", balanceTargetMet ? "text-emerald-500" : "text-zinc-400")} />
+                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-400">
                         ① Balance Target
                       </span>
                     </div>
                     <div className={clsx(
                       "px-2 py-0.5 rounded-full text-[10px] font-bold",
-                      balanceTargetMet ? "bg-[#3BF68A]/20 text-[#3BF68A]" : "bg-[#F45B69]/20 text-[#F45B69]"
+                      balanceTargetMet ? "bg-emerald-500/20 text-emerald-500" : "bg-rose-500/20 text-rose-500"
                     )}>
                       {balanceTargetMet ? "Met" : "Not Met"}
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
-                      <span className="text-[#8B94A7]">Balance</span>
+                      <span className="text-zinc-400">Balance</span>
                       <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
                         {formatCurrency(currentPnL)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span className="text-[#8B94A7]">Payout Target</span>
+                      <span className="text-zinc-400">Payout Target</span>
                       <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
                         {formatCurrency(target)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span className="text-[#8B94A7]">Gap to Summit</span>
-                      <span className={clsx("font-bold", balanceTargetMet ? "text-[#3BF68A]" : "text-[#F59E0B]")}>
+                      <span className="text-zinc-400">Gap to Summit</span>
+                      <span className={clsx("font-bold", balanceTargetMet ? "text-emerald-500" : "text-[#F59E0B]")}>
                         {balanceTargetMet ? "Target reached!" : formatCurrency(remainingPnL)}
                       </span>
                     </div>
                     {/* Progress bar */}
-                    <div className="h-1.5 w-full bg-[#1F2937] rounded-full overflow-hidden mt-1">
+                    <div className="h-1.5 w-full bg-[#242838] rounded-full overflow-hidden mt-1">
                       <div
                         className={clsx(
                           "h-full rounded-full transition-all duration-1000",
-                          balanceTargetMet ? "bg-[#3BF68A]" : "bg-[#A78BFA]"
+                          balanceTargetMet ? "bg-emerald-500" : "bg-zinc-200"
                         )}
                         style={{ width: `${balanceProgress}%` }}
                       />
@@ -834,47 +834,47 @@ export const JourneyPage: React.FC = () => {
                 <div className={clsx(
                   "p-4 rounded-2xl border mb-3",
                   consistencyMet
-                    ? (theme === 'dark' ? "bg-[#3BF68A]/5 border-[#3BF68A]/20" : "bg-green-50 border-green-200")
-                    : (theme === 'dark' ? "bg-[#F59E0B]/5 border-[#1F2937]" : "bg-amber-50 border-amber-200")
+                    ? (theme === 'dark' ? "bg-emerald-500/5 border-emerald-500/30/20" : "bg-green-50 border-green-200")
+                    : (theme === 'dark' ? "bg-[#F59E0B]/5 border-white/5" : "bg-amber-50 border-amber-200")
                 )}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <ShieldCheck className={clsx("w-3.5 h-3.5", consistencyMet ? "text-[#3BF68A]" : "text-[#F59E0B]")} />
-                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8B94A7]">
+                      <ShieldCheck className={clsx("w-3.5 h-3.5", consistencyMet ? "text-emerald-500" : "text-[#F59E0B]")} />
+                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-400">
                         ② Consistency Rule ({consistencyRule}%)
                       </span>
                     </div>
                     <div className={clsx(
                       "px-2 py-0.5 rounded-full text-[10px] font-bold",
-                      consistencyMet ? "bg-[#3BF68A]/20 text-[#3BF68A]" : "bg-[#F45B69]/20 text-[#F45B69]"
+                      consistencyMet ? "bg-emerald-500/20 text-emerald-500" : "bg-rose-500/20 text-rose-500"
                     )}>
                       {consistencyMet ? "Qualified" : "Not Yet"}
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
-                      <span className="text-[#8B94A7]">Highest Profit Day</span>
+                      <span className="text-zinc-400">Highest Profit Day</span>
                       <span className="font-semibold text-[#F59E0B]">
                         {formatCurrency(consistencyMetrics.highestDay)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span className="text-[#8B94A7]">Current Total Profit</span>
+                      <span className="text-zinc-400">Current Total Profit</span>
                       <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
                         {formatCurrency(consistencyMetrics.currentTotalProfit)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span className="text-[#8B94A7]">Min. Required Profit</span>
+                      <span className="text-zinc-400">Min. Required Profit</span>
                       <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
                         {formatCurrency(consistencyMetrics.minimumRequiredProfit)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span className="text-[#8B94A7]">Consistency</span>
+                      <span className="text-zinc-400">Consistency</span>
                       <span className={clsx(
                         "font-bold",
-                        consistencyMetrics.currentConsistencyPercent <= consistencyRule ? "text-[#3BF68A]" : "text-[#F45B69]"
+                        consistencyMetrics.currentConsistencyPercent <= consistencyRule ? "text-emerald-500" : "text-rose-500"
                       )}>
                         {consistencyMetrics.currentConsistencyPercent.toFixed(1)}% / {consistencyRule}%
                       </span>
@@ -887,25 +887,25 @@ export const JourneyPage: React.FC = () => {
                     )}>
                       <span className={clsx(
                         "font-semibold flex items-center gap-1.5",
-                        consistencyMet ? "text-[#3BF68A]" : "text-[#F59E0B]"
+                        consistencyMet ? "text-emerald-500" : "text-[#F59E0B]"
                       )}>
                         <Zap className="w-3 h-3" />
                         Profit Still Needed
                       </span>
                       <span className={clsx(
                         "font-black text-sm",
-                        consistencyMet ? "text-[#3BF68A]" : "text-[#F59E0B]"
+                        consistencyMet ? "text-emerald-500" : "text-[#F59E0B]"
                       )}>
                         {consistencyMet ? "Qualified!" : formatCurrency(consistencyGap)}
                       </span>
                     </div>
 
                     {/* Progress bar */}
-                    <div className="h-1.5 w-full bg-[#1F2937] rounded-full overflow-hidden mt-1">
+                    <div className="h-1.5 w-full bg-[#242838] rounded-full overflow-hidden mt-1">
                       <div
                         className={clsx(
                           "h-full rounded-full transition-all duration-1000",
-                          consistencyMet ? "bg-[#3BF68A]" : "bg-[#F59E0B]"
+                          consistencyMet ? "bg-emerald-500" : "bg-[#F59E0B]"
                         )}
                         style={{ width: `${consistencyProgress}%` }}
                       />
@@ -920,7 +920,7 @@ export const JourneyPage: React.FC = () => {
                   </label>
                   <div className={clsx(
                     "flex p-1 rounded-xl border",
-                    theme === 'dark' ? "bg-[#0B0D10] border-[#1F2937]" : "bg-gray-50 border-gray-200"
+                    theme === 'dark' ? "bg-[#181B24] border-white/5" : "bg-gray-50 border-gray-200"
                   )}>
                     {[15, 20, 30, 40, 50].map((rule) => (
                       <button
@@ -929,8 +929,8 @@ export const JourneyPage: React.FC = () => {
                         className={clsx(
                           "flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all",
                           consistencyRule === rule
-                            ? (theme === 'dark' ? "bg-[#1F2937] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm border border-gray-100")
-                            : (theme === 'dark' ? "text-[#8B94A7] hover:text-[#E5E7EB]" : "text-gray-500 hover:text-gray-900")
+                            ? (theme === 'dark' ? "bg-[#242838] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm border border-gray-100")
+                            : (theme === 'dark' ? "text-zinc-400 hover:text-zinc-100" : "text-gray-500 hover:text-gray-900")
                         )}
                       >
                         {rule}%
@@ -945,49 +945,49 @@ export const JourneyPage: React.FC = () => {
 
           {/* FOOTER METRICS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-8 rounded-[2.5rem] bg-[#15181F] border border-[#1F2937] shadow-xl">
+            <div className="p-8 rounded-[2.5rem] bg-[#181B24]/80 backdrop-blur-md border border-white/5 shadow-xl">
               <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em] mb-4">Pacing Analysis</div>
               <div className="space-y-4">
                 <div>
                   <div className="text-3xl font-black text-white">${PACE_CONFIG[pace].dailyTarget}</div>
-                  <div className="text-[9px] font-bold text-[#3BF68A] uppercase tracking-widest mt-1">Daily Pace Target</div>
+                  <div className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mt-1">Daily Pace Target</div>
                 </div>
                 <div>
                   <div className="text-3xl font-black text-white">
                     {remainingPnL > 0 ? Math.ceil(remainingPnL / PACE_CONFIG[pace].dailyTarget) : 0}
                   </div>
-                  <div className="text-[9px] font-bold text-[#A78BFA] uppercase tracking-widest mt-1">Trading Days Left</div>
+                  <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Trading Days Left</div>
                 </div>
               </div>
             </div>
 
-            <div className="p-8 rounded-[2.5rem] bg-[#15181F] border border-[#1F2937] shadow-xl">
+            <div className="p-8 rounded-[2.5rem] bg-[#181B24]/80 backdrop-blur-md border border-white/5 shadow-xl">
               <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em] mb-4">Gap to Payout</div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#8B94A7]">Balance Gap</span>
-                  <span className={clsx("text-lg font-black", balanceTargetMet ? "text-[#3BF68A]" : "text-white")}>
+                  <span className="text-xs text-zinc-400">Balance Gap</span>
+                  <span className={clsx("text-lg font-black", balanceTargetMet ? "text-emerald-500" : "text-white")}>
                     {balanceTargetMet ? "Met" : formatCurrency(remainingPnL)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#8B94A7]">Consistency Gap</span>
-                  <span className={clsx("text-lg font-black", consistencyMet ? "text-[#3BF68A]" : "text-white")}>
+                  <span className="text-xs text-zinc-400">Consistency Gap</span>
+                  <span className={clsx("text-lg font-black", consistencyMet ? "text-emerald-500" : "text-white")}>
                     {consistencyMet ? "Met" : formatCurrency(consistencyGap)}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-[#0D0F12] to-[#1A1D25] border border-[#1F2937] shadow-xl flex items-center justify-between">
+            <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-[#1E2130] to-[#242838] border border-white/5 shadow-xl flex items-center justify-between">
               <div className="space-y-4">
                 <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em]">Execution Insight</div>
-                <p className="text-xs text-[#8B94A7] leading-relaxed max-w-[300px] font-medium italic">
+                <p className="text-xs text-zinc-400 leading-relaxed max-w-[300px] font-medium italic">
                   "The {pace} approach is about precision over volume. Every single trade should move you closer to the {target.toLocaleString()} target with maximum discipline."
                 </p>
               </div>
               <div className="w-16 h-16 rounded-[1.5rem] bg-white/5 flex items-center justify-center border border-white/10">
-                <TrendingUp className="w-8 h-8 text-[#3BF68A]" />
+                <TrendingUp className="w-8 h-8 text-emerald-500" />
               </div>
             </div>
           </div>

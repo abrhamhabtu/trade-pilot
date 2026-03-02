@@ -215,10 +215,10 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       {/* ACCOUNT CONFIGURATION */}
       <div className={clsx(
         "p-6 rounded-[2rem] border",
-        theme === 'dark' ? "bg-[#0D0F12] border-[#1F2937]" : "bg-white border-gray-200"
+        theme === 'dark' ? "bg-[#1E2130] border-white/5" : "bg-white border-gray-200"
       )}>
         <div className="flex items-center gap-2 mb-4">
-          <Shield className="w-5 h-5 text-[#A78BFA]" />
+          <Shield className="w-5 h-5 text-zinc-400" />
           <h3 className={clsx(
             "text-sm font-bold uppercase tracking-wider",
             theme === 'dark' ? "text-white" : "text-gray-900"
@@ -233,7 +233,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             </label>
             <div className={clsx(
               "flex p-1.5 rounded-2xl border",
-              theme === 'dark' ? "bg-[#0B0D10] border-[#1F2937]" : "bg-gray-50 border-gray-200"
+              theme === 'dark' ? "bg-[#181B24] border-white/5" : "bg-gray-50 border-gray-200"
             )}>
               {(['instant', 'elite'] as const).map((tier) => (
                 <button
@@ -263,7 +263,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             <div className="relative">
               <span className={clsx(
                 "absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold",
-                theme === 'dark' ? "text-[#3BF68A]" : "text-green-600"
+                theme === 'dark' ? "text-emerald-500" : "text-green-600"
               )}>$</span>
               <input
                 type="text"
@@ -277,7 +277,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 className={clsx(
                   "w-full pl-10 pr-4 py-3 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50",
                   theme === 'dark'
-                    ? "bg-[#1F2937] text-white border border-[#374151]"
+                    ? "bg-[#242838] text-white border border-white/10"
                     : "bg-gray-100 text-gray-900 border border-gray-200"
                 )}
               />
@@ -291,18 +291,18 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
         <div className={clsx(
           "p-4 rounded-2xl border flex items-center gap-4",
           theme === 'dark'
-            ? "bg-[#A78BFA]/10 border-[#A78BFA]/30"
+            ? "bg-[#242838] border-zinc-700"
             : "bg-purple-50 border-purple-200"
         )}>
           <div className={clsx(
             "w-12 h-12 rounded-xl flex items-center justify-center",
-            theme === 'dark' ? "bg-[#A78BFA]/20" : "bg-purple-100"
+            theme === 'dark' ? "bg-[#242838]/80" : "bg-purple-100"
           )}>
-            <RefreshCw className="w-6 h-6 text-[#A78BFA]" />
+            <RefreshCw className="w-6 h-6 text-zinc-400" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-4 h-4 text-[#A78BFA]" />
+              <DollarSign className="w-4 h-4 text-zinc-400" />
               <span className={clsx(
                 "text-sm font-bold",
                 theme === 'dark' ? "text-white" : "text-gray-900"
@@ -312,7 +312,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             </div>
             <p className={clsx(
               "text-xs",
-              theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600"
+              theme === 'dark' ? "text-zinc-400" : "text-gray-600"
             )}>
               Last payout on {new Date(lastPayoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. 
               Consistency tracking restarted with {tradingDaysSincePayout} trading day{tradingDaysSincePayout !== 1 ? 's' : ''} since then.
@@ -325,15 +325,15 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       <div className={clsx(
         "p-4 rounded-[2rem] border flex items-center justify-between",
         isPayoutReady
-          ? (theme === 'dark' ? "bg-[#3BF68A]/5 border-[#3BF68A]/20" : "bg-green-50 border-green-200")
-          : (theme === 'dark' ? "bg-[#15181F] border-[#1F2937]" : "bg-white border-gray-200")
+          ? (theme === 'dark' ? "bg-emerald-500/5 border-emerald-500/30/20" : "bg-green-50 border-green-200")
+          : (theme === 'dark' ? "bg-[#181B24]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200")
       )}>
         <div className="flex items-center gap-3">
           <div className={clsx(
             "w-10 h-10 rounded-xl flex items-center justify-center",
-            isPayoutReady ? "bg-[#3BF68A]/20" : "bg-[#F59E0B]/10"
+            isPayoutReady ? "bg-emerald-500/20" : "bg-[#F59E0B]/10"
           )}>
-            <Shield className={clsx("w-5 h-5", isPayoutReady ? "text-[#3BF68A]" : "text-[#F59E0B]")} />
+            <Shield className={clsx("w-5 h-5", isPayoutReady ? "text-emerald-500" : "text-[#F59E0B]")} />
           </div>
           <div>
             <div className={clsx(
@@ -342,19 +342,19 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             )}>Payout Qualification</div>
             <div className="flex items-center gap-3 mt-0.5">
               <div className="flex items-center gap-1">
-                <div className={clsx("w-2 h-2 rounded-full", balanceTargetMet ? "bg-[#3BF68A]" : "bg-[#F45B69]")} />
-                <span className="text-[10px] text-[#8B94A7]">Balance {balanceTargetMet ? "Met" : `Gap: ${formatCurrency(balanceGap)}`}</span>
+                <div className={clsx("w-2 h-2 rounded-full", balanceTargetMet ? "bg-emerald-500" : "bg-rose-500")} />
+                <span className="text-[10px] text-zinc-400">Balance {balanceTargetMet ? "Met" : `Gap: ${formatCurrency(balanceGap)}`}</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className={clsx("w-2 h-2 rounded-full", consistencyMet ? "bg-[#3BF68A]" : "bg-[#F45B69]")} />
-                <span className="text-[10px] text-[#8B94A7]">Consistency {consistencyMet ? "Qualified" : "Not Yet"}</span>
+                <div className={clsx("w-2 h-2 rounded-full", consistencyMet ? "bg-emerald-500" : "bg-rose-500")} />
+                <span className="text-[10px] text-zinc-400">Consistency {consistencyMet ? "Qualified" : "Not Yet"}</span>
               </div>
             </div>
           </div>
         </div>
         <div className={clsx(
           "px-4 py-1.5 rounded-full text-xs font-bold text-white",
-          isPayoutReady ? "bg-[#3BF68A]" : "bg-[#F45B69]"
+          isPayoutReady ? "bg-emerald-500" : "bg-rose-500"
         )}>
           {isPayoutReady ? "Ready for Payout" : "Not Ready"}
         </div>
@@ -369,7 +369,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           {/* Consistency Gauge */}
           <div className={clsx(
             "p-8 rounded-[2rem] border relative overflow-hidden",
-            theme === 'dark' ? "bg-[#15181F] border-[#1F2937]" : "bg-white border-gray-200"
+            theme === 'dark' ? "bg-[#181B24]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
           )}>
             <div className="absolute -right-10 -top-10 w-40 h-40 blur-[80px] rounded-full opacity-20"
               style={{ backgroundColor: gaugeColor }} />
@@ -383,8 +383,8 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 <div className={clsx(
                   "px-3 py-1 rounded-full text-xs font-bold",
                   metrics.isQualified
-                    ? "bg-[#3BF68A]/20 text-[#3BF68A]"
-                    : "bg-[#F45B69]/20 text-[#F45B69]"
+                    ? "bg-emerald-500/20 text-emerald-500"
+                    : "bg-rose-500/20 text-rose-500"
                 )}>
                   {metrics.isQualified ? 'Qualified' : 'Not Yet'}
                 </div>
@@ -398,7 +398,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                     <path
                       d="M 10 50 A 40 40 0 0 1 90 50"
                       fill="none"
-                      stroke={theme === 'dark' ? '#1F2937' : '#E5E7EB'}
+                      stroke={theme === 'dark' ? '#2C3148' : '#E5E7EB'}
                       strokeWidth="8"
                       strokeLinecap="round"
                     />
@@ -432,20 +432,20 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
               <div className="space-y-3">
                 <div className={clsx(
                   "flex justify-between py-2 border-b",
-                  theme === 'dark' ? "border-[#1F2937]" : "border-gray-100"
+                  theme === 'dark' ? "border-white/5" : "border-gray-100"
                 )}>
-                  <span className={clsx("text-sm", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                  <span className={clsx("text-sm", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                     Current Total Profit
                   </span>
-                  <span className="text-sm font-bold text-[#3BF68A]">
+                  <span className="text-sm font-bold text-emerald-500">
                     {formatCurrency(metrics.currentTotalProfit)}
                   </span>
                 </div>
                 <div className={clsx(
                   "flex justify-between py-2 border-b",
-                  theme === 'dark' ? "border-[#1F2937]" : "border-gray-100"
+                  theme === 'dark' ? "border-white/5" : "border-gray-100"
                 )}>
-                  <span className={clsx("text-sm", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                  <span className={clsx("text-sm", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                     Highest Profit Day
                   </span>
                   <div className="text-right">
@@ -464,14 +464,14 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 </div>
                 <div className={clsx(
                   "flex justify-between py-2 border-b",
-                  theme === 'dark' ? "border-[#1F2937]" : "border-gray-100"
+                  theme === 'dark' ? "border-white/5" : "border-gray-100"
                 )}>
-                  <span className={clsx("text-sm", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                  <span className={clsx("text-sm", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                     Required Profit Target
                   </span>
                   <span className={clsx(
                     "text-sm font-bold",
-                    metrics.effectiveTarget > originalTarget ? "text-[#F45B69]" : "text-white"
+                    metrics.effectiveTarget > originalTarget ? "text-rose-500" : "text-white"
                   )}>
                     {formatCurrency(metrics.effectiveTarget)}
                     {metrics.effectiveTarget > originalTarget && (
@@ -480,7 +480,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className={clsx("text-sm", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                  <span className={clsx("text-sm", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                     Gap to Payout
                   </span>
                   <span className={clsx(
@@ -502,14 +502,14 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           <div className={clsx(
             "p-6 rounded-[2rem] border relative overflow-hidden",
             theme === 'dark'
-              ? "bg-gradient-to-br from-[#0D0F12] to-[#15181F] border-[#1F2937]"
+              ? "bg-gradient-to-br from-[#1E2130] to-[#1E2130] border-white/5"
               : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
           )}>
-            <div className="absolute -left-10 -bottom-10 w-40 h-40 blur-[80px] rounded-full opacity-10 bg-[#3BF68A]" />
+            <div className="absolute -left-10 -bottom-10 w-40 h-40 blur-[80px] rounded-full opacity-10 bg-emerald-500" />
 
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-4">
-                <Target className="w-5 h-5 text-[#3BF68A]" />
+                <Target className="w-5 h-5 text-emerald-500" />
                 <h3 className={clsx(
                   "text-sm font-bold uppercase tracking-wider",
                   theme === 'dark' ? "text-white" : "text-gray-900"
@@ -519,25 +519,25 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
               {/* Safe Daily Max - HERO */}
               <div className={clsx(
                 "p-6 rounded-2xl mb-4",
-                theme === 'dark' ? "bg-[#3BF68A]/10 border border-[#3BF68A]/20" : "bg-green-50 border border-green-200"
+                theme === 'dark' ? "bg-emerald-500/10 border border-emerald-500/30/20" : "bg-green-50 border border-green-200"
               )}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] font-black text-[#3BF68A] uppercase tracking-[0.2em] mb-1">
+                    <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">
                       Safe Daily Max
                     </div>
-                    <div className="text-3xl font-black text-[#3BF68A]">
+                    <div className="text-3xl font-black text-emerald-500">
                       {formatCurrency(metrics.safeMaxToday)}
                     </div>
                     <div className={clsx(
                       "text-xs mt-1",
-                      theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600"
+                      theme === 'dark' ? "text-zinc-400" : "text-gray-600"
                     )}>
                       Max profit today without increasing your target
                     </div>
                   </div>
-                  <div className="w-16 h-16 rounded-2xl bg-[#3BF68A]/20 flex items-center justify-center">
-                    <Shield className="w-8 h-8 text-[#3BF68A]" />
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
+                    <Shield className="w-8 h-8 text-emerald-500" />
                   </div>
                 </div>
               </div>
@@ -557,24 +557,24 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   </div>
                   <div className={clsx(
                     "text-[10px] mt-1",
-                    theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600"
+                    theme === 'dark' ? "text-zinc-400" : "text-gray-600"
                   )}>Approaching your highest day</div>
                 </div>
 
                 <div className={clsx(
                   "p-4 rounded-xl",
-                  theme === 'dark' ? "bg-[#F45B69]/10 border border-[#F45B69]/20" : "bg-red-50 border border-red-200"
+                  theme === 'dark' ? "bg-rose-500/10 border border-rose-500/30/20" : "bg-red-50 border border-red-200"
                 )}>
                   <div className="flex items-center gap-2 mb-2">
-                    <XCircle className="w-4 h-4 text-[#F45B69]" />
-                    <span className="text-[9px] font-black text-[#F45B69] uppercase tracking-wider">Danger Zone</span>
+                    <XCircle className="w-4 h-4 text-rose-500" />
+                    <span className="text-[9px] font-black text-rose-500 uppercase tracking-wider">Danger Zone</span>
                   </div>
-                  <div className="text-lg font-bold text-[#F45B69]">
+                  <div className="text-lg font-bold text-rose-500">
                     &gt; {formatCurrency(metrics.highestDay)}
                   </div>
                   <div className={clsx(
                     "text-[10px] mt-1",
-                    theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600"
+                    theme === 'dark' ? "text-zinc-400" : "text-gray-600"
                   )}>Would increase your target</div>
                 </div>
               </div>
@@ -584,10 +584,10 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           {/* WHAT-IF SCENARIO PLANNER */}
           <div className={clsx(
             "p-6 rounded-[2rem] border",
-            theme === 'dark' ? "bg-[#15181F] border-[#1F2937]" : "bg-white border-gray-200"
+            theme === 'dark' ? "bg-[#181B24]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
           )}>
             <div className="flex items-center gap-2 mb-4">
-              <Calculator className="w-5 h-5 text-[#A78BFA]" />
+              <Calculator className="w-5 h-5 text-zinc-400" />
               <h3 className={clsx(
                 "text-sm font-bold uppercase tracking-wider",
                 theme === 'dark' ? "text-white" : "text-gray-900"
@@ -598,12 +598,12 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             <div className="mb-4">
               <div className={clsx(
                 "flex items-center gap-3 mb-3 px-4 py-2.5 rounded-xl",
-                theme === 'dark' ? "bg-[#A78BFA]/5 border border-[#A78BFA]/10" : "bg-purple-50 border border-purple-100"
+                theme === 'dark' ? "bg-zinc-200/5 border border-[#A78BFA]/10" : "bg-purple-50 border border-purple-100"
               )}>
                 <span className="text-base">🔮</span>
                 <span className={clsx(
                   "text-sm font-semibold tracking-wide",
-                  theme === 'dark' ? "text-[#A78BFA]" : "text-purple-700"
+                  theme === 'dark' ? "text-zinc-400" : "text-purple-700"
                 )}>
                   If I profit tomorrow...
                 </span>
@@ -612,7 +612,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 <div className="relative flex-1">
                   <span className={clsx(
                     "absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold",
-                    theme === 'dark' ? "text-[#A78BFA]" : "text-purple-600"
+                    theme === 'dark' ? "text-zinc-400" : "text-purple-600"
                   )}>$</span>
                   <input
                     type="text"
@@ -629,7 +629,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                     className={clsx(
                       "w-full pl-10 pr-4 py-3.5 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 transition-all",
                       theme === 'dark'
-                        ? "bg-[#0B0D10] text-white border border-[#A78BFA]/20 placeholder-[#4B5563]"
+                        ? "bg-[#181B24] text-white border border-[#A78BFA]/20 placeholder-[#4B5563]"
                         : "bg-gray-100 text-gray-900 border border-gray-200 placeholder-gray-400"
                     )}
                   />
@@ -641,7 +641,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   step="50"
                   value={whatIfAmount}
                   onChange={(e) => setWhatIfInput(e.target.value)}
-                  className="flex-1 h-2 bg-[#1F2937] rounded-lg appearance-none cursor-pointer accent-[#A78BFA]"
+                  className="flex-1 h-2 bg-[#242838] rounded-lg appearance-none cursor-pointer accent-[#A78BFA]"
                 />
               </div>
             </div>
@@ -650,19 +650,19 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             <div className={clsx(
               "p-4 rounded-xl",
               whatIfScenario.wouldIncreaseTarget
-                ? (theme === 'dark' ? "bg-[#F45B69]/10 border border-[#F45B69]/20" : "bg-red-50 border border-red-200")
+                ? (theme === 'dark' ? "bg-rose-500/10 border border-rose-500/30/20" : "bg-red-50 border border-red-200")
                 : whatIfScenario.wouldBecomeHighestDay
                   ? (theme === 'dark' ? "bg-[#F59E0B]/10 border border-[#F59E0B]/20" : "bg-amber-50 border border-amber-200")
                   : whatIfAmount > metrics.highestDay * 0.8
                     ? (theme === 'dark' ? "bg-[#F59E0B]/10 border border-[#F59E0B]/20" : "bg-amber-50 border border-amber-200")
-                    : (theme === 'dark' ? "bg-[#3BF68A]/10 border border-[#3BF68A]/20" : "bg-green-50 border border-green-200")
+                    : (theme === 'dark' ? "bg-emerald-500/10 border border-emerald-500/30/20" : "bg-green-50 border border-green-200")
             )}>
               {/* Verdict badge */}
               <div className="flex items-center gap-3 mb-4">
                 {whatIfScenario.wouldIncreaseTarget ? (
                   <>
-                    <XCircle className="w-5 h-5 text-[#F45B69]" />
-                    <span className="text-sm font-bold text-[#F45B69]">
+                    <XCircle className="w-5 h-5 text-rose-500" />
+                    <span className="text-sm font-bold text-rose-500">
                       New highest day — payout target increases
                     </span>
                   </>
@@ -682,8 +682,8 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-5 h-5 text-[#3BF68A]" />
-                    <span className="text-sm font-bold text-[#3BF68A]">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    <span className="text-sm font-bold text-emerald-500">
                       Safe — no impact on consistency
                     </span>
                   </>
@@ -696,12 +696,12 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 <div className="grid grid-cols-3 gap-2 pb-2 mb-2 border-b border-white/5">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#4B5563]"></span>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#4B5563] text-right">Now</span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA] text-right">After</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 text-right">After</span>
                 </div>
 
                 {/* Highest Day - moved to top since it drives everything */}
                 <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
-                  <span className={clsx("text-xs", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                  <span className={clsx("text-xs", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                     Highest Day
                   </span>
                   <span className="text-sm font-bold text-right text-[#F59E0B]">
@@ -709,29 +709,29 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   </span>
                   <span className={clsx(
                     "text-sm font-bold text-right",
-                    whatIfScenario.wouldBecomeHighestDay ? "text-[#F45B69]" : "text-[#F59E0B]"
+                    whatIfScenario.wouldBecomeHighestDay ? "text-rose-500" : "text-[#F59E0B]"
                   )}>
                     {formatCurrency(whatIfScenario.newHighestDay)}
                     {whatIfScenario.wouldBecomeHighestDay && (
-                      <span className="text-[10px] ml-0.5 text-[#F45B69]"> NEW</span>
+                      <span className="text-[10px] ml-0.5 text-rose-500"> NEW</span>
                     )}
                   </span>
                 </div>
 
                 {/* Consistency % */}
                 <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
-                  <span className={clsx("text-xs", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                  <span className={clsx("text-xs", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                     Consistency %
                   </span>
                   <span className={clsx(
                     "text-sm font-bold text-right",
-                    metrics.currentConsistencyPercent > consistencyRule ? "text-[#F45B69]" : "text-[#3BF68A]"
+                    metrics.currentConsistencyPercent > consistencyRule ? "text-rose-500" : "text-emerald-500"
                   )}>
                     {metrics.currentConsistencyPercent.toFixed(1)}%
                   </span>
                   <span className={clsx(
                     "text-sm font-bold text-right",
-                    whatIfScenario.newConsistencyPercent > consistencyRule ? "text-[#F45B69]" : "text-[#3BF68A]"
+                    whatIfScenario.newConsistencyPercent > consistencyRule ? "text-rose-500" : "text-emerald-500"
                   )}>
                     {whatIfScenario.newConsistencyPercent.toFixed(1)}%
                   </span>
@@ -739,29 +739,29 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
 
                 {/* Consistency Required Target (the one that changes with highest day) */}
                 <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
-                  <span className={clsx("text-xs", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                  <span className={clsx("text-xs", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                     Min. Required Profit
                   </span>
                   <span className={clsx(
                     "text-sm font-bold text-right",
-                    metrics.requiredProfitTarget > originalTarget ? "text-[#F45B69]" : (theme === 'dark' ? "text-white" : "text-gray-900")
+                    metrics.requiredProfitTarget > originalTarget ? "text-rose-500" : (theme === 'dark' ? "text-white" : "text-gray-900")
                   )}>
                     {formatCurrency(metrics.requiredProfitTarget)}
                   </span>
                   <span className={clsx(
                     "text-sm font-bold text-right",
-                    whatIfScenario.consistencyRequiredIncreased ? "text-[#F45B69]" : (theme === 'dark' ? "text-white" : "text-gray-900")
+                    whatIfScenario.consistencyRequiredIncreased ? "text-rose-500" : (theme === 'dark' ? "text-white" : "text-gray-900")
                   )}>
                     {formatCurrency(whatIfScenario.newConsistencyRequired)}
                     {whatIfScenario.consistencyRequiredIncreased && (
-                      <span className="text-[10px] ml-0.5 text-[#F45B69]"> {'\u2191'}</span>
+                      <span className="text-[10px] ml-0.5 text-rose-500"> {'\u2191'}</span>
                     )}
                   </span>
                 </div>
 
                 {/* Payout Target (effective - the actual number to hit) */}
                 <div className="grid grid-cols-3 gap-2 py-1.5 items-center border-t border-white/5 mt-1 pt-2">
-                  <span className={clsx("text-xs font-semibold", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                  <span className={clsx("text-xs font-semibold", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                     Payout Target
                   </span>
                   <span className={clsx("text-sm font-bold text-right", theme === 'dark' ? "text-white" : "text-gray-900")}>
@@ -769,18 +769,18 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   </span>
                   <span className={clsx(
                     "text-sm font-bold text-right",
-                    whatIfScenario.wouldIncreaseTarget ? "text-[#F45B69]" : (theme === 'dark' ? "text-white" : "text-gray-900")
+                    whatIfScenario.wouldIncreaseTarget ? "text-rose-500" : (theme === 'dark' ? "text-white" : "text-gray-900")
                   )}>
                     {formatCurrency(whatIfScenario.newEffectiveTarget)}
                     {whatIfScenario.wouldIncreaseTarget && (
-                      <span className="text-[10px] ml-0.5 text-[#F45B69]"> +{formatCurrency(whatIfScenario.targetIncrease)}</span>
+                      <span className="text-[10px] ml-0.5 text-rose-500"> +{formatCurrency(whatIfScenario.targetIncrease)}</span>
                     )}
                   </span>
                 </div>
 
                 {/* Gap to Payout */}
                 <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
-                  <span className={clsx("text-xs font-semibold", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                  <span className={clsx("text-xs font-semibold", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                     Gap to Payout
                   </span>
                   <span className={clsx("text-sm font-bold text-right", theme === 'dark' ? "text-white" : "text-gray-900")}>
@@ -796,16 +796,16 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
               <div className={clsx(
                 "mt-3 p-3 rounded-xl border",
                 whatIfScenario.newPayoutReady
-                  ? (theme === 'dark' ? "bg-[#3BF68A]/5 border-[#3BF68A]/20" : "bg-green-50 border-green-200")
-                  : (theme === 'dark' ? "bg-white/[0.02] border-[#1F2937]" : "bg-gray-50 border-gray-200")
+                  ? (theme === 'dark' ? "bg-emerald-500/5 border-emerald-500/30/20" : "bg-green-50 border-green-200")
+                  : (theme === 'dark' ? "bg-white/[0.02] border-white/5" : "bg-gray-50 border-gray-200")
               )}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8B94A7]">
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-400">
                     Payout Status After
                   </span>
                   <div className={clsx(
                     "px-2 py-0.5 rounded-full text-[10px] font-bold text-white",
-                    whatIfScenario.newPayoutReady ? "bg-[#3BF68A]" : "bg-[#F45B69]"
+                    whatIfScenario.newPayoutReady ? "bg-emerald-500" : "bg-rose-500"
                   )}>
                     {whatIfScenario.newPayoutReady ? "Ready" : "Not Ready"}
                   </div>
@@ -814,12 +814,12 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   {/* Balance condition */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <div className={clsx("w-2 h-2 rounded-full", whatIfScenario.newBalanceTargetMet ? "bg-[#3BF68A]" : "bg-[#F45B69]")} />
-                      <span className="text-[11px] text-[#8B94A7]">Balance Target</span>
+                      <div className={clsx("w-2 h-2 rounded-full", whatIfScenario.newBalanceTargetMet ? "bg-emerald-500" : "bg-rose-500")} />
+                      <span className="text-[11px] text-zinc-400">Balance Target</span>
                     </div>
                     <span className={clsx(
                       "text-[11px] font-bold",
-                      whatIfScenario.newBalanceTargetMet ? "text-[#3BF68A]" : (theme === 'dark' ? "text-white" : "text-gray-900")
+                      whatIfScenario.newBalanceTargetMet ? "text-emerald-500" : (theme === 'dark' ? "text-white" : "text-gray-900")
                     )}>
                       {whatIfScenario.newBalanceTargetMet ? "Met" : `${formatCurrency(whatIfScenario.newBalanceGap)} left`}
                     </span>
@@ -827,12 +827,12 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   {/* Consistency condition */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <div className={clsx("w-2 h-2 rounded-full", whatIfScenario.newConsistencyMet ? "bg-[#3BF68A]" : "bg-[#F45B69]")} />
-                      <span className="text-[11px] text-[#8B94A7]">Consistency Rule</span>
+                      <div className={clsx("w-2 h-2 rounded-full", whatIfScenario.newConsistencyMet ? "bg-emerald-500" : "bg-rose-500")} />
+                      <span className="text-[11px] text-zinc-400">Consistency Rule</span>
                     </div>
                     <span className={clsx(
                       "text-[11px] font-bold",
-                      whatIfScenario.newConsistencyMet ? "text-[#3BF68A]" : (theme === 'dark' ? "text-white" : "text-gray-900")
+                      whatIfScenario.newConsistencyMet ? "text-emerald-500" : (theme === 'dark' ? "text-white" : "text-gray-900")
                     )}>
                       {whatIfScenario.newConsistencyMet ? "Qualified" : `${formatCurrency(whatIfScenario.newConsistencyGap)} left`}
                     </span>
@@ -858,10 +858,10 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       {/* PATH TO PAYOUT */}
       <div className={clsx(
         "p-6 rounded-[2rem] border",
-        theme === 'dark' ? "bg-[#0D0F12] border-[#1F2937]" : "bg-white border-gray-200"
+        theme === 'dark' ? "bg-[#1E2130] border-white/5" : "bg-white border-gray-200"
       )}>
         <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="w-5 h-5 text-[#3BF68A]" />
+          <TrendingUp className="w-5 h-5 text-emerald-500" />
           <h3 className={clsx(
             "text-sm font-bold uppercase tracking-wider",
             theme === 'dark' ? "text-white" : "text-gray-900"
@@ -871,16 +871,16 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
         {/* Progress Bar */}
         <div className="mb-6">
           <div className="flex justify-between text-xs mb-2">
-            <span className={clsx(theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+            <span className={clsx(theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
               Progress: {formatCurrency(metrics.currentTotalProfit)}
             </span>
-            <span className={clsx(theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+            <span className={clsx(theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
               Target: {formatCurrency(metrics.effectiveTarget)}
             </span>
           </div>
           <div className={clsx(
             "h-4 rounded-full overflow-hidden relative",
-            theme === 'dark' ? "bg-[#1F2937]" : "bg-gray-200"
+            theme === 'dark' ? "bg-[#242838]" : "bg-gray-200"
           )}>
             {/* Original target marker */}
             {metrics.effectiveTarget > originalTarget && (
@@ -891,7 +891,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             )}
             {/* Progress */}
             <div
-              className="h-full bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] transition-all duration-1000"
+              className="h-full bg-white text-zinc-950 hover:bg-zinc-200 transition-all duration-1000"
               style={{ width: `${Math.min(100, (metrics.currentTotalProfit / metrics.effectiveTarget) * 100)}%` }}
             />
           </div>
@@ -919,11 +919,11 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 if (riskRatio <= 0.25) {
                   // Very conservative - green
                   return {
-                    bg: theme === 'dark' ? 'bg-[#3BF68A]/10' : 'bg-green-50',
-                    border: theme === 'dark' ? 'border-[#3BF68A]/30' : 'border-green-300',
-                    text: 'text-[#3BF68A]',
+                    bg: theme === 'dark' ? 'bg-emerald-500/10' : 'bg-green-50',
+                    border: theme === 'dark' ? 'border-emerald-500/30' : 'border-green-300',
+                    text: 'text-emerald-500',
                     label: 'Safe',
-                    labelBg: 'bg-[#3BF68A]/20 text-[#3BF68A]'
+                    labelBg: 'bg-emerald-500/20 text-emerald-500'
                   };
                 }
                 if (riskRatio <= 0.5) {
@@ -958,11 +958,11 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                 }
                 // Danger - exceeds or equals highest day (would increase target)
                 return {
-                  bg: theme === 'dark' ? 'bg-[#F45B69]/10' : 'bg-red-50',
-                  border: theme === 'dark' ? 'border-[#F45B69]/30' : 'border-red-300',
-                  text: 'text-[#F45B69]',
+                  bg: theme === 'dark' ? 'bg-rose-500/10' : 'bg-red-50',
+                  border: theme === 'dark' ? 'border-rose-500/30/30' : 'border-red-300',
+                  text: 'text-rose-500',
                   label: 'Danger',
-                  labelBg: 'bg-[#F45B69]/20 text-[#F45B69]'
+                  labelBg: 'bg-rose-500/20 text-rose-500'
                 };
               };
 
@@ -982,7 +982,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   </div>
                   <div className={clsx(
                     "text-[9px] uppercase tracking-wider mb-2",
-                    theme === 'dark' ? "text-[#8B94A7]" : "text-gray-500"
+                    theme === 'dark' ? "text-zinc-400" : "text-gray-500"
                   )}>
                     days @ ${dailyRate}/day
                   </div>
@@ -1001,17 +1001,17 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       {/* EDUCATION SECTION */}
       <div className={clsx(
         "rounded-[2rem] border overflow-hidden",
-        theme === 'dark' ? "bg-[#15181F] border-[#1F2937]" : "bg-white border-gray-200"
+        theme === 'dark' ? "bg-[#181B24]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
       )}>
         <button
           onClick={() => setShowEducation(!showEducation)}
           className={clsx(
             "w-full p-4 flex items-center justify-between transition-colors",
-            theme === 'dark' ? "hover:bg-[#1F2937]/50" : "hover:bg-gray-50"
+            theme === 'dark' ? "hover:bg-[#242838]/50" : "hover:bg-gray-50"
           )}
         >
           <div className="flex items-center gap-2">
-            <Info className="w-5 h-5 text-[#A78BFA]" />
+            <Info className="w-5 h-5 text-zinc-400" />
             <span className={clsx(
               "text-sm font-bold",
               theme === 'dark' ? "text-white" : "text-gray-900"
@@ -1027,7 +1027,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
         {showEducation && (
           <div className={clsx(
             "p-6 border-t space-y-4",
-            theme === 'dark' ? "border-[#1F2937]" : "border-gray-200"
+            theme === 'dark' ? "border-white/5" : "border-gray-200"
           )}>
             <div>
               <h4 className={clsx(
@@ -1036,12 +1036,12 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
               )}>The Formula</h4>
               <div className={clsx(
                 "p-4 rounded-xl font-mono text-sm",
-                theme === 'dark' ? "bg-[#0B0D10]" : "bg-gray-100"
+                theme === 'dark' ? "bg-[#181B24]" : "bg-gray-100"
               )}>
-                <div className={clsx(theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                <div className={clsx(theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                   Consistency % = (Highest Profit Day / Total Profit) × 100
                 </div>
-                <div className={clsx("mt-2", theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600")}>
+                <div className={clsx("mt-2", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                   Required Target = Highest Day / (Consistency Rule % / 100)
                 </div>
               </div>
@@ -1054,7 +1054,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
               )}>Why Your Target Might Increase</h4>
               <p className={clsx(
                 "text-sm",
-                theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600"
+                theme === 'dark' ? "text-zinc-400" : "text-gray-600"
               )}>
                 If your highest profit day exceeds the consistency threshold relative to your total profits,
                 your required profit target increases. This ensures no single day represents more than
@@ -1069,18 +1069,18 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
               )}>Strategy Tips</h4>
               <ul className={clsx(
                 "text-sm space-y-2",
-                theme === 'dark' ? "text-[#8B94A7]" : "text-gray-600"
+                theme === 'dark' ? "text-zinc-400" : "text-gray-600"
               )}>
                 <li className="flex items-start gap-2">
-                  <Zap className="w-4 h-4 text-[#3BF68A] mt-0.5 flex-shrink-0" />
+                  <Zap className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                   <span>Keep daily profits consistent - avoid one massive day that skews your ratio</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Zap className="w-4 h-4 text-[#3BF68A] mt-0.5 flex-shrink-0" />
+                  <Zap className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                   <span>Use the "Safe Daily Max" as your profit target for the day</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Zap className="w-4 h-4 text-[#3BF68A] mt-0.5 flex-shrink-0" />
+                  <Zap className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                   <span>If you're close to payout, be extra careful not to exceed your highest day</span>
                 </li>
               </ul>

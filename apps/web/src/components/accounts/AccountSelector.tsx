@@ -56,25 +56,25 @@ export const AccountSelector: React.FC = () => {
         className={clsx(
           'flex items-center space-x-3 px-4 py-2 rounded-lg border transition-all',
           theme === 'dark'
-            ? 'bg-[#15181F] border-[#1F2937] hover:border-[#3BF68A]/50'
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5 hover:border-emerald-500/50'
             : 'bg-white border-gray-200 hover:border-purple-300',
-          isOpen && (theme === 'dark' ? 'border-[#3BF68A]/50' : 'border-purple-300')
+          isOpen && (theme === 'dark' ? 'border-emerald-500/50' : 'border-purple-300')
         )}
       >
         {showAllAccounts ? (
           <>
             <div className={clsx(
               'w-8 h-8 rounded-lg flex items-center justify-center',
-              theme === 'dark' ? 'bg-[#3BF68A]/10' : 'bg-purple-100'
+              theme === 'dark' ? 'bg-emerald-500/10' : 'bg-purple-100'
             )}>
               <Layers className={clsx(
                 'h-4 w-4',
-                theme === 'dark' ? 'text-[#3BF68A]' : 'text-purple-600'
+                theme === 'dark' ? 'text-emerald-500' : 'text-purple-600'
               )} />
             </div>
             <span className={clsx(
               'font-medium',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
             )}>
               All Accounts
             </span>
@@ -83,26 +83,26 @@ export const AccountSelector: React.FC = () => {
           <>
             <div className={clsx(
               'w-8 h-8 rounded-lg flex items-center justify-center text-lg',
-              theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-100'
+              theme === 'dark' ? 'bg-[#242838]' : 'bg-gray-100'
             )}>
               {getBrokerIcon(selectedAccount.broker)}
             </div>
             <span className={clsx(
               'font-medium',
-              theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+              theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
             )}>
               {selectedAccount.name}
             </span>
           </>
         ) : (
-          <span className={theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'}>
+          <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}>
             Select Account
           </span>
         )}
         <ChevronDown className={clsx(
           'h-4 w-4 transition-transform',
           isOpen && 'rotate-180',
-          theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400'
+          theme === 'dark' ? 'text-zinc-400' : 'text-gray-400'
         )} />
       </button>
 
@@ -110,7 +110,7 @@ export const AccountSelector: React.FC = () => {
         <div className={clsx(
           'absolute right-0 mt-2 w-64 rounded-xl border shadow-2xl z-50 overflow-hidden',
           theme === 'dark'
-            ? 'bg-[#15181F] border-[#1F2937]'
+            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
             : 'bg-white border-gray-200'
         )}>
           {/* All Accounts Option */}
@@ -121,11 +121,11 @@ export const AccountSelector: React.FC = () => {
                 className={clsx(
                   'w-full px-4 py-3 flex items-center justify-between transition-colors',
                   theme === 'dark'
-                    ? 'hover:bg-[#1F2937]'
+                    ? 'hover:bg-[#242838]'
                     : 'hover:bg-gray-50',
                   showAllAccounts && (
                     theme === 'dark' 
-                      ? 'bg-[#3BF68A]/10' 
+                      ? 'bg-emerald-500/10' 
                       : 'bg-purple-50'
                   )
                 )}
@@ -133,35 +133,35 @@ export const AccountSelector: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <div className={clsx(
                     'w-8 h-8 rounded-lg flex items-center justify-center',
-                    theme === 'dark' ? 'bg-[#3BF68A]/10' : 'bg-purple-100'
+                    theme === 'dark' ? 'bg-emerald-500/10' : 'bg-purple-100'
                   )}>
                     <Layers className={clsx(
                       'h-4 w-4',
-                      theme === 'dark' ? 'text-[#3BF68A]' : 'text-purple-600'
+                      theme === 'dark' ? 'text-emerald-500' : 'text-purple-600'
                     )} />
                   </div>
                   <div className="text-left">
                     <p className={clsx(
                       'font-medium text-sm',
-                      theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                      theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
                     )}>
                       All Accounts
                     </p>
                     <p className={clsx(
                       'text-xs',
-                      theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                      theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
                     )}>
                       View combined data
                     </p>
                   </div>
                 </div>
                 {showAllAccounts && (
-                  <Check className="h-4 w-4 text-[#3BF68A]" />
+                  <Check className="h-4 w-4 text-emerald-500" />
                 )}
               </button>
               <div className={clsx(
                 'border-t mx-2',
-                theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-100'
+                theme === 'dark' ? 'border-white/5' : 'border-gray-100'
               )} />
             </>
           )}
@@ -170,7 +170,7 @@ export const AccountSelector: React.FC = () => {
           <div className="py-1">
             <div className={clsx(
               'px-4 py-1 text-xs font-semibold uppercase tracking-wider',
-              theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400'
+              theme === 'dark' ? 'text-zinc-400' : 'text-gray-400'
             )}>
               Active Accounts
             </div>
@@ -181,11 +181,11 @@ export const AccountSelector: React.FC = () => {
                 className={clsx(
                   'w-full px-4 py-3 flex items-center justify-between transition-colors',
                   theme === 'dark'
-                    ? 'hover:bg-[#1F2937]'
+                    ? 'hover:bg-[#242838]'
                     : 'hover:bg-gray-50',
                   !showAllAccounts && selectedAccountId === account.id && (
                     theme === 'dark' 
-                      ? 'bg-[#3BF68A]/10' 
+                      ? 'bg-emerald-500/10' 
                       : 'bg-purple-50'
                   )
                 )}
@@ -193,20 +193,20 @@ export const AccountSelector: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <div className={clsx(
                     'w-8 h-8 rounded-lg flex items-center justify-center text-lg',
-                    theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-100'
+                    theme === 'dark' ? 'bg-[#242838]' : 'bg-gray-100'
                   )}>
                     {getBrokerIcon(account.broker)}
                   </div>
                   <div className="text-left">
                     <p className={clsx(
                       'font-medium text-sm',
-                      theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                      theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
                     )}>
                       {account.name}
                     </p>
                     <p className={clsx(
                       'text-xs',
-                      theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                      theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
                     )}>
                       {account.broker}
                     </p>
@@ -215,12 +215,12 @@ export const AccountSelector: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <span className={clsx(
                     'text-sm font-medium',
-                    account.balance >= 0 ? 'text-[#3BF68A]' : 'text-[#F45B69]'
+                    account.balance >= 0 ? 'text-emerald-500' : 'text-rose-500'
                   )}>
                     ${Math.abs(account.balance).toLocaleString()}
                   </span>
                   {!showAllAccounts && selectedAccountId === account.id && (
-                    <Check className="h-4 w-4 text-[#3BF68A]" />
+                    <Check className="h-4 w-4 text-emerald-500" />
                   )}
                 </div>
               </button>
@@ -232,12 +232,12 @@ export const AccountSelector: React.FC = () => {
             <>
               <div className={clsx(
                 'border-t mx-2',
-                theme === 'dark' ? 'border-[#1F2937]' : 'border-gray-100'
+                theme === 'dark' ? 'border-white/5' : 'border-gray-100'
               )} />
               <div className="py-1">
                 <div className={clsx(
                   'px-4 py-1 text-xs font-semibold uppercase tracking-wider',
-                  theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-400'
+                  theme === 'dark' ? 'text-zinc-400' : 'text-gray-400'
                 )}>
                   Paid Out / Blown
                 </div>
@@ -248,11 +248,11 @@ export const AccountSelector: React.FC = () => {
                     className={clsx(
                       'w-full px-4 py-3 flex items-center justify-between transition-colors opacity-70 hover:opacity-100',
                       theme === 'dark'
-                        ? 'hover:bg-[#1F2937]'
+                        ? 'hover:bg-[#242838]'
                         : 'hover:bg-gray-50',
                       !showAllAccounts && selectedAccountId === account.id && (
                         theme === 'dark' 
-                          ? 'bg-[#3BF68A]/10' 
+                          ? 'bg-emerald-500/10' 
                           : 'bg-purple-50'
                       )
                     )}
@@ -260,7 +260,7 @@ export const AccountSelector: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       <div className={clsx(
                         'w-8 h-8 rounded-lg flex items-center justify-center text-lg grayscale',
-                        theme === 'dark' ? 'bg-[#1F2937]' : 'bg-gray-100'
+                        theme === 'dark' ? 'bg-[#242838]' : 'bg-gray-100'
                       )}>
                         {getBrokerIcon(account.broker)}
                       </div>
@@ -268,7 +268,7 @@ export const AccountSelector: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <p className={clsx(
                             'font-medium text-sm',
-                            theme === 'dark' ? 'text-[#E5E7EB]' : 'text-gray-900'
+                            theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
                           )}>
                             {account.name}
                           </p>
@@ -284,7 +284,7 @@ export const AccountSelector: React.FC = () => {
                         </div>
                         <p className={clsx(
                           'text-xs',
-                          theme === 'dark' ? 'text-[#8B94A7]' : 'text-gray-500'
+                          theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
                         )}>
                           {account.broker}
                         </p>
@@ -297,7 +297,7 @@ export const AccountSelector: React.FC = () => {
                         ${Math.abs(account.balance).toLocaleString()}
                       </span>
                       {!showAllAccounts && selectedAccountId === account.id && (
-                        <Check className="h-4 w-4 text-[#3BF68A]" />
+                        <Check className="h-4 w-4 text-emerald-500" />
                       )}
                     </div>
                   </button>

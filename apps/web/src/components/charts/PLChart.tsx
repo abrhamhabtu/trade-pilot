@@ -35,28 +35,24 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
   if (type === 'cumulative') {
     return (
       <div 
-        className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-        style={{
-          background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-        }}
+        className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+        
       >
         {/* Gradient border on hover */}
-        <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+        <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
           <div 
             className="w-full h-full rounded-xl"
-            style={{
-              background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-            }}
+            
           />
         </div>
         
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <h3 className="text-[#E5E7EB] text-lg font-semibold">Daily net cumulative P&L</h3>
+              <h3 className="text-zinc-100 text-lg font-semibold">Daily net cumulative P&L</h3>
               <Tooltip content={tooltipContent} position="top">
-                <div className="w-4 h-4 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help hover:bg-gradient-to-r hover:from-[#3BF68A]/20 hover:to-[#A78BFA]/20 transition-all">
-                  <span className="text-[#8B94A7] text-xs">?</span>
+                <div className="w-4 h-4 rounded-full bg-[#242838] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
+                  <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
             </div>
@@ -66,16 +62,16 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
               <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="plGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3BF68A" stopOpacity={0.4}/>
-                    <stop offset="50%" stopColor="#A78BFA" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#3BF68A" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
+                    <stop offset="50%" stopColor="#71717A" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="plStroke" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#3BF68A" />
-                    <stop offset="100%" stopColor="#A78BFA" />
+                    <stop offset="0%" stopColor="#10B981" />
+                    <stop offset="100%" stopColor="#71717A" />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#2C3148" />
                 <XAxis 
                   dataKey="date" 
                   axisLine={false}
@@ -91,7 +87,7 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
                 />
                 <RechartsTooltip
                   contentStyle={{
-                    background: 'linear-gradient(135deg, #1F2937 0%, #374151 100%)',
+                    background: 'linear-gradient(135deg, #2C3148 0%, #364060 100%)',
                     border: '2px solid #3BF68A',
                     borderRadius: '12px',
                     boxShadow: '0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 246, 138, 0.3)',

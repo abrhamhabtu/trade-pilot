@@ -108,7 +108,7 @@ export const DurationPerformanceChart: React.FC<DurationPerformanceChartProps> =
       return (
         <div 
           style={{
-            background: 'linear-gradient(135deg, #1F2937 0%, #374151 100%)',
+            background: 'linear-gradient(135deg, #2C3148 0%, #364060 100%)',
             border: '2px solid #3BF68A',
             borderRadius: '12px',
             boxShadow: '0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 246, 138, 0.3)',
@@ -142,18 +142,14 @@ export const DurationPerformanceChart: React.FC<DurationPerformanceChartProps> =
 
   return (
     <div 
-      className="rounded-xl p-4 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group h-full"
-      style={{
-        background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-      }}
+      className="rounded-xl p-4 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group h-full"
+      
     >
       {/* Gradient border on hover */}
-      <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+      <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
         <div 
           className="w-full h-full rounded-xl"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          
         />
       </div>
       
@@ -161,10 +157,10 @@ export const DurationPerformanceChart: React.FC<DurationPerformanceChartProps> =
         {/* Header - Compact */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <h3 className="text-[#E5E7EB] text-lg font-semibold">Trade duration performance</h3>
+            <h3 className="text-zinc-100 text-lg font-semibold">Trade duration performance</h3>
             <Tooltip content={tooltipContent} position="top">
-              <div className="w-4 h-4 rounded-full bg-[#1F2937] flex items-center justify-center cursor-help hover:bg-gradient-to-r hover:from-[#3BF68A]/20 hover:to-[#A78BFA]/20 transition-all">
-                <span className="text-[#8B94A7] text-xs">?</span>
+              <div className="w-4 h-4 rounded-full bg-[#242838] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
+                <span className="text-zinc-400 text-xs">?</span>
               </div>
             </Tooltip>
           </div>
@@ -177,13 +173,13 @@ export const DurationPerformanceChart: React.FC<DurationPerformanceChartProps> =
               data={processedData} 
               margin={{ top: 20, right: 30, left: 50, bottom: 40 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" opacity={0.3} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#2C3148" opacity={0.3} />
               <XAxis 
                 type="number"
                 dataKey="displayDuration"
                 domain={[Math.max(0, minDuration - durationPadding), maxDuration + durationPadding]}
-                axisLine={{ stroke: '#374151', strokeWidth: 1 }}
-                tickLine={{ stroke: '#374151', strokeWidth: 1 }}
+                axisLine={{ stroke: '#364060', strokeWidth: 1 }}
+                tickLine={{ stroke: '#364060', strokeWidth: 1 }}
                 tick={{ fill: '#8B94A7', fontSize: 10 }}
                 tickFormatter={formatDurationAxis}
                 ticks={cleanTicks}
@@ -198,8 +194,8 @@ export const DurationPerformanceChart: React.FC<DurationPerformanceChartProps> =
                 type="number"
                 dataKey="displayPnl"
                 domain={[minPnL - pnlPadding, maxPnL + pnlPadding]}
-                axisLine={{ stroke: '#374151', strokeWidth: 1 }}
-                tickLine={{ stroke: '#374151', strokeWidth: 1 }}
+                axisLine={{ stroke: '#364060', strokeWidth: 1 }}
+                tickLine={{ stroke: '#364060', strokeWidth: 1 }}
                 tick={{ fill: '#8B94A7', fontSize: 10 }}
                 tickFormatter={(value) => `$${Math.round(value)}`}
                 label={{ 
@@ -219,7 +215,7 @@ export const DurationPerformanceChart: React.FC<DurationPerformanceChartProps> =
                 dataKey="displayPnl" 
                 r={6}
                 strokeWidth={1}
-                stroke="#1A1D25"
+                stroke="#242838"
               >
                 {processedData.map((entry, index) => (
                   <Cell 
@@ -237,14 +233,14 @@ export const DurationPerformanceChart: React.FC<DurationPerformanceChartProps> =
         </div>
 
         {/* Legend - More padding from bottom */}
-        <div className="flex items-center justify-center space-x-6 mt-4 pt-4 pb-3 border-t border-[#1F2937]">
+        <div className="flex items-center justify-center space-x-6 mt-4 pt-4 pb-3 border-t border-white/5">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-[#3BF68A]"></div>
-            <span className="text-[#8B94A7] text-xs">Winning Trades</span>
+            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+            <span className="text-zinc-400 text-xs">Winning Trades</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-[#F45B69]"></div>
-            <span className="text-[#8B94A7] text-xs">Losing Trades</span>
+            <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+            <span className="text-zinc-400 text-xs">Losing Trades</span>
           </div>
         </div>
       </div>

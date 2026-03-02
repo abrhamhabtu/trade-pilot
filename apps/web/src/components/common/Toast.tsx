@@ -30,19 +30,19 @@ export const Toast: React.FC<ToastProps> = ({ id, message, type, onClose }) => {
 
   const colors = {
     success: {
-      bg: 'bg-[#3BF68A]/20',
-      border: 'border-[#3BF68A]/50',
-      icon: 'text-[#3BF68A]'
+      bg: 'bg-emerald-500/20',
+      border: 'border-emerald-500/50',
+      icon: 'text-emerald-500'
     },
     error: {
-      bg: 'bg-[#F45B69]/20',
-      border: 'border-[#F45B69]/50',
-      icon: 'text-[#F45B69]'
+      bg: 'bg-rose-500/20',
+      border: 'border-rose-500/50',
+      icon: 'text-rose-500'
     },
     info: {
-      bg: 'bg-[#A78BFA]/20',
-      border: 'border-[#A78BFA]/50',
-      icon: 'text-[#A78BFA]'
+      bg: 'bg-[#242838]/80',
+      border: 'border-zinc-500',
+      icon: 'text-zinc-400'
     }
   };
 
@@ -62,10 +62,10 @@ export const Toast: React.FC<ToastProps> = ({ id, message, type, onClose }) => {
       }}
     >
       <Icon className={clsx('h-5 w-5 flex-shrink-0', colorClasses.icon)} />
-      <p className="text-[#E5E7EB] text-sm flex-1">{message}</p>
+      <p className="text-zinc-100 text-sm flex-1">{message}</p>
       <button
         onClick={() => onClose(id)}
-        className="text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
+        className="text-zinc-400 hover:text-zinc-100 transition-colors"
       >
         <X className="h-4 w-4" />
       </button>

@@ -40,10 +40,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center space-x-6">
         <div
-          className="flex items-center space-x-2 rounded-lg px-3 py-2 border border-[#1F2937]"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          className="flex items-center space-x-2 rounded-lg px-3 py-2 border border-white/5"
+          
         >
           {TIME_PERIODS.map((period) => (
             <button
@@ -52,8 +50,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-all duration-200',
                 period === selectedTimePeriod
-                  ? 'bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium shadow-lg'
-                  : 'text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-gradient-to-r hover:from-[#3BF68A]/10 hover:to-[#A78BFA]/10'
+                  ? 'bg-white text-zinc-950 hover:bg-zinc-200 font-medium shadow-lg'
+                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
               )}
             >
               {period}
@@ -61,8 +59,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
           ))}
         </div>
 
-        <div className="text-sm text-[#8B94A7]">
-          Showing: <span className="text-[#E5E7EB] font-medium">{TIME_PERIOD_LABELS[selectedTimePeriod]}</span>
+        <div className="text-sm text-zinc-400">
+          Showing: <span className="text-zinc-100 font-medium">{TIME_PERIOD_LABELS[selectedTimePeriod]}</span>
           {displayTradesCount !== totalTradesCount && (
             <span className="ml-2">({displayTradesCount} of {totalTradesCount} trades)</span>
           )}
@@ -73,17 +71,15 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          className="flex items-center space-x-2 px-4 py-2 border border-[#1F2937] rounded-lg text-[#8B94A7] hover:text-[#E5E7EB] hover:border-transparent hover:bg-gradient-to-r hover:from-[#3BF68A]/10 hover:to-[#A78BFA]/10 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          className="flex items-center space-x-2 px-4 py-2 border border-white/5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:border-transparent hover:bg-white/5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          
         >
           <RefreshCw className={clsx('h-4 w-4', isLoading && 'animate-spin')} />
           <span className="text-sm">{isLoading ? 'Refreshing...' : 'Refresh Data'}</span>
         </button>
         <button
           onClick={onImport}
-          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 hover:shadow-lg transition-all duration-200"
+          className="flex items-center space-x-2 px-4 py-2 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 hover:shadow-lg transition-all duration-200"
         >
           <Download className="h-4 w-4" />
           <span className="text-sm">Import Trades from TradingView</span>

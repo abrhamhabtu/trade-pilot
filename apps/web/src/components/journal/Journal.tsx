@@ -33,11 +33,11 @@ interface JournalEntry {
 }
 
 const MOODS = [
-  { value: 'great', label: 'Great', icon: TrendingUp, color: 'text-[#3BF68A]', bg: 'bg-[#3BF68A]/20' },
-  { value: 'good', label: 'Good', icon: TrendingUp, color: 'text-[#3BF68A]/70', bg: 'bg-[#3BF68A]/10' },
-  { value: 'neutral', label: 'Neutral', icon: Minus, color: 'text-[#8B94A7]', bg: 'bg-[#8B94A7]/20' },
-  { value: 'bad', label: 'Bad', icon: TrendingDown, color: 'text-[#F45B69]/70', bg: 'bg-[#F45B69]/10' },
-  { value: 'terrible', label: 'Terrible', icon: TrendingDown, color: 'text-[#F45B69]', bg: 'bg-[#F45B69]/20' },
+  { value: 'great', label: 'Great', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/20' },
+  { value: 'good', label: 'Good', icon: TrendingUp, color: 'text-emerald-500/70', bg: 'bg-emerald-500/10' },
+  { value: 'neutral', label: 'Neutral', icon: Minus, color: 'text-zinc-400', bg: 'bg-[#8B94A7]/20' },
+  { value: 'bad', label: 'Bad', icon: TrendingDown, color: 'text-rose-500/70', bg: 'bg-rose-500/10' },
+  { value: 'terrible', label: 'Terrible', icon: TrendingDown, color: 'text-rose-500', bg: 'bg-rose-500/20' },
 ] as const;
 
 const STORAGE_KEY = 'tradepilot_journal';
@@ -282,21 +282,19 @@ export const Journal: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div
-        className="rounded-xl border border-[#1F2937] p-6"
-        style={{
-          background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-        }}
+        className="rounded-xl border border-white/5 p-6"
+        
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-[#E5E7EB]">Trading Journal</h2>
-            <p className="text-[#8B94A7] mt-1">
+            <h2 className="text-2xl font-bold text-zinc-100">Trading Journal</h2>
+            <p className="text-zinc-400 mt-1">
               Record your thoughts, emotions, and lessons from each trading session
             </p>
           </div>
           <button
             onClick={handleNewEntry}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
+            className="flex items-center space-x-2 px-4 py-2 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all"
           >
             <Plus className="h-4 w-4" />
             <span>New Entry</span>
@@ -306,13 +304,13 @@ export const Journal: React.FC = () => {
         {/* Filters */}
         <div className="flex items-center space-x-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#8B94A7]" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search entries..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-[#0B0D10] border border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A]"
+              className="w-full pl-10 pr-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
             />
           </div>
 
@@ -327,7 +325,7 @@ export const Journal: React.FC = () => {
                   'p-2 rounded-lg border transition-all',
                   selectedMoodFilter === mood.value
                     ? `${mood.bg} border-transparent`
-                    : 'border-[#1F2937] hover:border-[#3BF68A]/50'
+                    : 'border-white/5 hover:border-emerald-500/50'
                 )}
                 title={mood.label}
               >
@@ -351,8 +349,8 @@ export const Journal: React.FC = () => {
             className={clsx(
               'px-4 py-2 rounded-lg text-sm font-medium transition-all',
               viewFilter === tab.value
-                ? 'bg-gradient-to-r from-[#3BF68A]/20 to-[#A78BFA]/20 text-[#E5E7EB] border border-[#3BF68A]/30'
-                : 'text-[#8B94A7] hover:text-[#E5E7EB] border border-transparent hover:border-[#1F2937]'
+                ? 'bg-white/10 text-zinc-100 border border-emerald-500/30'
+                : 'text-zinc-400 hover:text-zinc-100 border border-transparent hover:border-white/5'
             )}
           >
             {tab.label}
@@ -363,16 +361,14 @@ export const Journal: React.FC = () => {
       {/* Entries List */}
       {filteredEntries.length === 0 ? (
         <div
-          className="rounded-xl border border-[#1F2937] p-12 text-center"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          className="rounded-xl border border-white/5 p-12 text-center"
+          
         >
-          <Calendar className="h-12 w-12 text-[#8B94A7] mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-[#E5E7EB] mb-2">
+          <Calendar className="h-12 w-12 text-zinc-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-zinc-100 mb-2">
             {combinedEntries.length === 0 ? 'No journal entries yet' : 'No matching entries'}
           </h3>
-          <p className="text-[#8B94A7] mb-6">
+          <p className="text-zinc-400 mb-6">
             {combinedEntries.length === 0
               ? 'Start documenting your trading journey by creating your first entry or adding notes from the Calendar.'
               : 'Try adjusting your search or filters.'}
@@ -380,7 +376,7 @@ export const Journal: React.FC = () => {
           {combinedEntries.length === 0 && (
             <button
               onClick={handleNewEntry}
-              className="px-6 py-2 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium rounded-lg hover:opacity-90 transition-all"
+              className="px-6 py-2 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 transition-all"
             >
               Create First Entry
             </button>
@@ -395,18 +391,14 @@ export const Journal: React.FC = () => {
             return (
               <div
                 key={entry.id}
-                className="rounded-xl border border-[#1F2937] p-6 hover:border-transparent hover:shadow-lg transition-all group relative overflow-hidden"
-                style={{
-                  background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-                }}
+                className="rounded-xl border border-white/5 p-6 hover:border-transparent hover:shadow-lg transition-all group relative overflow-hidden"
+                
               >
                 {/* Gradient border on hover */}
-                <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200 pointer-events-none">
+                <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300 pointer-events-none">
                   <div
                     className="w-full h-full rounded-xl"
-                    style={{
-                      background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-                    }}
+                    
                   />
                 </div>
 
@@ -415,8 +407,8 @@ export const Journal: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       {/* Icon based on entry type */}
                       {isDailyNote ? (
-                        <div className="p-2 rounded-lg bg-[#A78BFA]/20">
-                          <MessageSquare className="h-5 w-5 text-[#A78BFA]" />
+                        <div className="p-2 rounded-lg bg-[#242838]/80">
+                          <MessageSquare className="h-5 w-5 text-zinc-400" />
                         </div>
                       ) : moodInfo ? (
                         <div className={clsx('p-2 rounded-lg', moodInfo.bg)}>
@@ -424,29 +416,29 @@ export const Journal: React.FC = () => {
                         </div>
                       ) : (
                         <div className="p-2 rounded-lg bg-[#8B94A7]/20">
-                          <Calendar className="h-5 w-5 text-[#8B94A7]" />
+                          <Calendar className="h-5 w-5 text-zinc-400" />
                         </div>
                       )}
                       <div>
                         <div className="flex items-center space-x-2">
-                          <h3 className="text-lg font-semibold text-[#E5E7EB]">{entry.title}</h3>
+                          <h3 className="text-lg font-semibold text-zinc-100">{entry.title}</h3>
                           {/* Entry type badge */}
                           <span className={clsx(
                             'px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full',
                             isDailyNote 
-                              ? 'bg-[#A78BFA]/20 text-[#A78BFA]' 
-                              : 'bg-[#3BF68A]/20 text-[#3BF68A]'
+                              ? 'bg-[#242838]/80 text-zinc-400' 
+                              : 'bg-emerald-500/20 text-emerald-500'
                           )}>
                             {isDailyNote ? 'Calendar' : 'Journal'}
                           </span>
                         </div>
                         <div className="flex items-center space-x-2 mt-0.5">
-                          <p className="text-sm text-[#8B94A7]">{formatDate(entry.date)}</p>
+                          <p className="text-sm text-zinc-400">{formatDate(entry.date)}</p>
                           {/* Account badge for daily notes */}
                           {isDailyNote && entry.accountName && (
                             <>
-                              <span className="text-[#1F2937]">•</span>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-[#1F2937] text-[#8B94A7] flex items-center space-x-1">
+                              <span className="text-[#2C3148]">•</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-[#242838] text-zinc-400 flex items-center space-x-1">
                                 <User className="h-3 w-3" />
                                 <span>{entry.accountName}</span>
                               </span>
@@ -463,7 +455,7 @@ export const Journal: React.FC = () => {
                             const journalEntry = entries.find(e => e.id === entry.id);
                             if (journalEntry) handleEditEntry(journalEntry);
                           }}
-                          className="p-2 text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
+                          className="p-2 text-zinc-400 hover:text-zinc-100 transition-colors"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
@@ -478,14 +470,14 @@ export const Journal: React.FC = () => {
                             handleDeleteEntry(entry.id);
                           }
                         }}
-                        className="p-2 text-[#8B94A7] hover:text-[#F45B69] transition-colors"
+                        className="p-2 text-zinc-400 hover:text-rose-500 transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
 
-                  <p className="text-[#E5E7EB] mb-4 line-clamp-3">{entry.content}</p>
+                  <p className="text-zinc-100 mb-4 line-clamp-3">{entry.content}</p>
 
                   {/* Images for daily notes */}
                   {isDailyNote && entry.images && entry.images.length > 0 && (
@@ -495,7 +487,7 @@ export const Journal: React.FC = () => {
                           <img 
                             src={img.dataUrl} 
                             alt={img.caption || `Screenshot ${idx + 1}`}
-                            className="h-20 w-auto rounded-lg border border-[#1F2937] object-cover"
+                            className="h-20 w-auto rounded-lg border border-white/5 object-cover"
                           />
                           {entry.images && entry.images.length > 4 && idx === 3 && (
                             <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
@@ -508,9 +500,9 @@ export const Journal: React.FC = () => {
                   )}
 
                   {entry.lessonsLearned && (
-                    <div className="mb-4 p-3 rounded-lg bg-[#0B0D10] border border-[#1F2937]">
-                      <p className="text-xs text-[#8B94A7] mb-1">Lessons Learned</p>
-                      <p className="text-sm text-[#E5E7EB]">{entry.lessonsLearned}</p>
+                    <div className="mb-4 p-3 rounded-lg bg-[#181B24] border border-white/5">
+                      <p className="text-xs text-zinc-400 mb-1">Lessons Learned</p>
+                      <p className="text-sm text-zinc-100">{entry.lessonsLearned}</p>
                     </div>
                   )}
 
@@ -519,7 +511,7 @@ export const Journal: React.FC = () => {
                       {entry.tags.map((tag, index) => (
                         <span
                           key={index}
-                          className="px-2 py-1 text-xs rounded-full bg-[#1F2937] text-[#8B94A7]"
+                          className="px-2 py-1 text-xs rounded-full bg-[#242838] text-zinc-400"
                         >
                           #{tag}
                         </span>
@@ -541,19 +533,17 @@ export const Journal: React.FC = () => {
             onClick={handleCloseEditor}
           />
           <div
-            className="relative w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto rounded-2xl border border-[#1F2937]"
-            style={{
-              background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-            }}
+            className="relative w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto rounded-2xl border border-white/5"
+            
           >
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-[#1F2937]" style={{ background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)' }}>
-              <h2 className="text-xl font-bold text-[#E5E7EB]">
+            <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-white/5" >
+              <h2 className="text-xl font-bold text-zinc-100">
                 {editingEntry ? 'Edit Entry' : 'New Journal Entry'}
               </h2>
               <button
                 onClick={handleCloseEditor}
-                className="p-2 rounded-lg text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937] transition-colors"
+                className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -562,18 +552,18 @@ export const Journal: React.FC = () => {
             {/* Form */}
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-[#8B94A7] mb-2">Title</label>
+                <label className="block text-sm text-zinc-400 mb-2">Title</label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-[#0B0D10] border border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A]"
+                  className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
                   placeholder="How was your trading day?"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-[#8B94A7] mb-2">Mood</label>
+                <label className="block text-sm text-zinc-400 mb-2">Mood</label>
                 <div className="flex space-x-2">
                   {MOODS.map(mood => (
                     <button
@@ -584,11 +574,11 @@ export const Journal: React.FC = () => {
                         'flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg border transition-all',
                         formData.mood === mood.value
                           ? `${mood.bg} border-transparent`
-                          : 'border-[#1F2937] hover:border-[#3BF68A]/50'
+                          : 'border-white/5 hover:border-emerald-500/50'
                       )}
                     >
                       <mood.icon className={clsx('h-4 w-4', mood.color)} />
-                      <span className={clsx('text-sm', formData.mood === mood.value ? mood.color : 'text-[#8B94A7]')}>
+                      <span className={clsx('text-sm', formData.mood === mood.value ? mood.color : 'text-zinc-400')}>
                         {mood.label}
                       </span>
                     </button>
@@ -597,45 +587,45 @@ export const Journal: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm text-[#8B94A7] mb-2">Journal Entry</label>
+                <label className="block text-sm text-zinc-400 mb-2">Journal Entry</label>
                 <textarea
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   rows={6}
-                  className="w-full px-4 py-2 rounded-lg bg-[#0B0D10] border border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A] resize-none"
+                  className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30 resize-none"
                   placeholder="Write about your trading session, thoughts, emotions..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-[#8B94A7] mb-2">Market Conditions</label>
+                <label className="block text-sm text-zinc-400 mb-2">Market Conditions</label>
                 <input
                   type="text"
                   value={formData.marketConditions}
                   onChange={(e) => setFormData({ ...formData, marketConditions: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-[#0B0D10] border border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A]"
+                  className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
                   placeholder="Trending, ranging, volatile..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-[#8B94A7] mb-2">Lessons Learned</label>
+                <label className="block text-sm text-zinc-400 mb-2">Lessons Learned</label>
                 <textarea
                   value={formData.lessonsLearned}
                   onChange={(e) => setFormData({ ...formData, lessonsLearned: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 rounded-lg bg-[#0B0D10] border border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A] resize-none"
+                  className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30 resize-none"
                   placeholder="What did you learn today?"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-[#8B94A7] mb-2">Tags (comma separated)</label>
+                <label className="block text-sm text-zinc-400 mb-2">Tags (comma separated)</label>
                 <input
                   type="text"
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-[#0B0D10] border border-[#1F2937] text-[#E5E7EB] placeholder-[#8B94A7] focus:outline-none focus:border-[#3BF68A]"
+                  className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
                   placeholder="scalping, momentum, breakout..."
                 />
               </div>
@@ -643,13 +633,13 @@ export const Journal: React.FC = () => {
               <div className="flex space-x-3 pt-4">
                 <button
                   onClick={handleCloseEditor}
-                  className="flex-1 py-3 rounded-lg border border-[#1F2937] text-[#8B94A7] hover:text-[#E5E7EB] hover:border-[#3BF68A] transition-all"
+                  className="flex-1 py-3 rounded-lg border border-white/5 text-zinc-400 hover:text-zinc-100 hover:border-emerald-500/30 transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveEntry}
-                  className="flex-1 flex items-center justify-center space-x-2 py-3 rounded-lg bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] text-black font-medium hover:opacity-90 transition-all"
+                  className="flex-1 flex items-center justify-center space-x-2 py-3 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 font-medium hover:opacity-90 transition-all"
                 >
                   <Save className="h-4 w-4" />
                   <span>{editingEntry ? 'Save Changes' : 'Create Entry'}</span>

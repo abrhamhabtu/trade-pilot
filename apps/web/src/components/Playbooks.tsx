@@ -434,28 +434,24 @@ export const Playbooks: React.FC = () => {
 
     return (
       <div 
-        className="rounded-xl border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-        style={{
-          background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-        }}
+        className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+        
       >
         {/* Gradient border on hover */}
-        <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+        <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
           <div 
             className="w-full h-full rounded-xl"
-            style={{
-              background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-            }}
+            
           />
         </div>
 
         <div className="relative z-10">
           {/* Header */}
-          <div className="p-6 border-b border-[#1F2937]">
+          <div className="p-6 border-b border-white/5">
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => setSelectedStrategy(null)}
-                className="flex items-center space-x-2 text-[#8B94A7] hover:text-[#E5E7EB] transition-colors"
+                className="flex items-center space-x-2 text-zinc-400 hover:text-zinc-100 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span className="text-sm">Back to Strategies</span>
@@ -465,37 +461,37 @@ export const Playbooks: React.FC = () => {
             <div className="flex items-start justify-between mb-6">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-3">
-                  <h1 className="text-3xl font-bold text-[#E5E7EB]">{strategy.name}</h1>
+                  <h1 className="text-3xl font-bold text-zinc-100">{strategy.name}</h1>
                   <span className={clsx(
                     'px-3 py-1 rounded-full text-sm font-medium border',
                     strategy.difficulty === 'Beginner' 
-                      ? 'bg-[#3BF68A]/20 text-[#3BF68A] border-[#3BF68A]/30'
+                      ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
                       : strategy.difficulty === 'Intermediate'
                       ? 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/30'
-                      : 'bg-[#F45B69]/20 text-[#F45B69] border-[#F45B69]/30'
+                      : 'bg-rose-500/20 text-rose-500 border-rose-500/30/30'
                   )}>
                     {strategy.difficulty}
                   </span>
                 </div>
-                <p className="text-[#8B94A7] text-lg mb-4">{strategy.description}</p>
+                <p className="text-zinc-400 text-lg mb-4">{strategy.description}</p>
                 
                 {/* Quick Stats */}
                 <div className="grid grid-cols-4 gap-6">
                   <div className="text-center">
-                    <div className="text-sm text-[#8B94A7] mb-1">Win Rate</div>
-                    <div className="text-xl font-bold text-[#3BF68A]">{strategy.winRate}%</div>
+                    <div className="text-sm text-zinc-400 mb-1">Win Rate</div>
+                    <div className="text-xl font-bold text-emerald-500">{strategy.winRate}%</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-sm text-[#8B94A7] mb-1">Risk/Reward</div>
-                    <div className="text-xl font-bold text-[#E5E7EB]">{strategy.riskReward}</div>
+                    <div className="text-sm text-zinc-400 mb-1">Risk/Reward</div>
+                    <div className="text-xl font-bold text-zinc-100">{strategy.riskReward}</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-sm text-[#8B94A7] mb-1">Timeframe</div>
-                    <div className="text-xl font-bold text-[#E5E7EB]">{strategy.timeframe}</div>
+                    <div className="text-sm text-zinc-400 mb-1">Timeframe</div>
+                    <div className="text-xl font-bold text-zinc-100">{strategy.timeframe}</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-sm text-[#8B94A7] mb-1">Market Condition</div>
-                    <div className="text-sm font-medium text-[#E5E7EB]">{strategy.marketCondition}</div>
+                    <div className="text-sm text-zinc-400 mb-1">Market Condition</div>
+                    <div className="text-sm font-medium text-zinc-100">{strategy.marketCondition}</div>
                   </div>
                 </div>
               </div>
@@ -517,8 +513,8 @@ export const Playbooks: React.FC = () => {
                     className={clsx(
                       'flex items-center space-x-2 text-sm font-medium pb-3 border-b-2 transition-all duration-200',
                       activeTab === tab.id
-                        ? 'text-[#E5E7EB] border-[#3BF68A]'
-                        : 'text-[#8B94A7] hover:text-[#E5E7EB] border-transparent'
+                        ? 'text-zinc-100 border-emerald-500/30'
+                        : 'text-zinc-400 hover:text-zinc-100 border-transparent'
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -534,8 +530,8 @@ export const Playbooks: React.FC = () => {
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-xl font-bold text-[#E5E7EB] mb-4">Strategy Overview</h3>
-                  <p className="text-[#8B94A7] leading-relaxed text-lg">{strategy.overview}</p>
+                  <h3 className="text-xl font-bold text-zinc-100 mb-4">Strategy Overview</h3>
+                  <p className="text-zinc-400 leading-relaxed text-lg">{strategy.overview}</p>
                 </div>
               </div>
             )}
@@ -545,16 +541,16 @@ export const Playbooks: React.FC = () => {
                 {/* Entry Rules */}
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
-                    <TrendingUp className="h-5 w-5 text-[#3BF68A]" />
-                    <h3 className="text-xl font-bold text-[#E5E7EB]">Entry Rules</h3>
+                    <TrendingUp className="h-5 w-5 text-emerald-500" />
+                    <h3 className="text-xl font-bold text-zinc-100">Entry Rules</h3>
                   </div>
                   <div className="space-y-3">
                     {strategy.entryRules.map((rule, index) => (
                       <div key={index} className="flex items-start space-x-3">
-                        <div className="flex-shrink-0 w-6 h-6 bg-[#3BF68A]/20 text-[#3BF68A] rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
+                        <div className="flex-shrink-0 w-6 h-6 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
                           {index + 1}
                         </div>
-                        <p className="text-[#8B94A7] leading-relaxed">{rule}</p>
+                        <p className="text-zinc-400 leading-relaxed">{rule}</p>
                       </div>
                     ))}
                   </div>
@@ -564,7 +560,7 @@ export const Playbooks: React.FC = () => {
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
                     <TrendingDown className="h-5 w-5 text-[#F59E0B]" />
-                    <h3 className="text-xl font-bold text-[#E5E7EB]">Exit Rules</h3>
+                    <h3 className="text-xl font-bold text-zinc-100">Exit Rules</h3>
                   </div>
                   <div className="space-y-3">
                     {strategy.exitRules.map((rule, index) => (
@@ -572,7 +568,7 @@ export const Playbooks: React.FC = () => {
                         <div className="flex-shrink-0 w-6 h-6 bg-[#F59E0B]/20 text-[#F59E0B] rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
                           {index + 1}
                         </div>
-                        <p className="text-[#8B94A7] leading-relaxed">{rule}</p>
+                        <p className="text-zinc-400 leading-relaxed">{rule}</p>
                       </div>
                     ))}
                   </div>
@@ -581,16 +577,16 @@ export const Playbooks: React.FC = () => {
                 {/* Risk Management */}
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
-                    <Shield className="h-5 w-5 text-[#F45B69]" />
-                    <h3 className="text-xl font-bold text-[#E5E7EB]">Risk Management</h3>
+                    <Shield className="h-5 w-5 text-rose-500" />
+                    <h3 className="text-xl font-bold text-zinc-100">Risk Management</h3>
                   </div>
                   <div className="space-y-3">
                     {strategy.riskManagement.map((rule, index) => (
                       <div key={index} className="flex items-start space-x-3">
-                        <div className="flex-shrink-0 w-6 h-6 bg-[#F45B69]/20 text-[#F45B69] rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
+                        <div className="flex-shrink-0 w-6 h-6 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
                           {index + 1}
                         </div>
-                        <p className="text-[#8B94A7] leading-relaxed">{rule}</p>
+                        <p className="text-zinc-400 leading-relaxed">{rule}</p>
                       </div>
                     ))}
                   </div>
@@ -600,40 +596,40 @@ export const Playbooks: React.FC = () => {
 
             {activeTab === 'examples' && (
               <div className="space-y-6">
-                <h3 className="text-xl font-bold text-[#E5E7EB] mb-6">Real Trading Examples</h3>
+                <h3 className="text-xl font-bold text-zinc-100 mb-6">Real Trading Examples</h3>
                 {strategy.examples.map((example, index) => (
                   <div 
                     key={index}
-                    className="p-6 rounded-xl border border-[#1F2937] hover:border-[#3BF68A]/30 transition-all duration-200"
+                    className="p-6 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all duration-200"
                     style={{
-                      background: 'linear-gradient(135deg, #1A1D25 0%, #1F2937 100%)'
+                      background: 'linear-gradient(135deg, #242838 0%, #2C3148 100%)'
                     }}
                   >
                     <div className="flex items-center space-x-3 mb-4">
-                      <div className="w-8 h-8 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] rounded-full flex items-center justify-center text-black font-bold">
+                      <div className="w-8 h-8 bg-white text-zinc-950 hover:bg-zinc-200 rounded-full flex items-center justify-center text-black font-bold">
                         {index + 1}
                       </div>
-                      <h4 className="text-lg font-bold text-[#E5E7EB]">{example.title}</h4>
+                      <h4 className="text-lg font-bold text-zinc-100">{example.title}</h4>
                     </div>
                     
-                    <p className="text-[#8B94A7] mb-4">{example.description}</p>
+                    <p className="text-zinc-400 mb-4">{example.description}</p>
                     
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <div className="text-sm font-medium text-[#3BF68A] mb-2">Setup</div>
-                        <p className="text-[#8B94A7] text-sm">{example.setup}</p>
+                        <div className="text-sm font-medium text-emerald-500 mb-2">Setup</div>
+                        <p className="text-zinc-400 text-sm">{example.setup}</p>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-[#3BF68A] mb-2">Entry</div>
-                        <p className="text-[#8B94A7] text-sm">{example.entry}</p>
+                        <div className="text-sm font-medium text-emerald-500 mb-2">Entry</div>
+                        <p className="text-zinc-400 text-sm">{example.entry}</p>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-[#F59E0B] mb-2">Exit</div>
-                        <p className="text-[#8B94A7] text-sm">{example.exit}</p>
+                        <p className="text-zinc-400 text-sm">{example.exit}</p>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-[#3BF68A] mb-2">Result</div>
-                        <p className="text-[#3BF68A] text-sm font-semibold">{example.result}</p>
+                        <div className="text-sm font-medium text-emerald-500 mb-2">Result</div>
+                        <p className="text-emerald-500 text-sm font-semibold">{example.result}</p>
                       </div>
                     </div>
                   </div>
@@ -646,14 +642,14 @@ export const Playbooks: React.FC = () => {
                 {/* Pro Tips */}
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
-                    <Lightbulb className="h-5 w-5 text-[#3BF68A]" />
-                    <h3 className="text-xl font-bold text-[#E5E7EB]">Pro Tips</h3>
+                    <Lightbulb className="h-5 w-5 text-emerald-500" />
+                    <h3 className="text-xl font-bold text-zinc-100">Pro Tips</h3>
                   </div>
                   <div className="space-y-3">
                     {strategy.tips.map((tip, index) => (
                       <div key={index} className="flex items-start space-x-3">
-                        <CheckCircle className="h-5 w-5 text-[#3BF68A] mt-0.5 flex-shrink-0" />
-                        <p className="text-[#8B94A7] leading-relaxed">{tip}</p>
+                        <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-zinc-400 leading-relaxed">{tip}</p>
                       </div>
                     ))}
                   </div>
@@ -662,14 +658,14 @@ export const Playbooks: React.FC = () => {
                 {/* Common Mistakes */}
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
-                    <AlertTriangle className="h-5 w-5 text-[#F45B69]" />
-                    <h3 className="text-xl font-bold text-[#E5E7EB]">Common Mistakes to Avoid</h3>
+                    <AlertTriangle className="h-5 w-5 text-rose-500" />
+                    <h3 className="text-xl font-bold text-zinc-100">Common Mistakes to Avoid</h3>
                   </div>
                   <div className="space-y-3">
                     {strategy.commonMistakes.map((mistake, index) => (
                       <div key={index} className="flex items-start space-x-3">
-                        <AlertTriangle className="h-5 w-5 text-[#F45B69] mt-0.5 flex-shrink-0" />
-                        <p className="text-[#8B94A7] leading-relaxed">{mistake}</p>
+                        <AlertTriangle className="h-5 w-5 text-rose-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-zinc-400 leading-relaxed">{mistake}</p>
                       </div>
                     ))}
                   </div>
@@ -684,47 +680,43 @@ export const Playbooks: React.FC = () => {
 
   return (
     <div 
-      className="rounded-xl border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-      style={{
-        background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-      }}
+      className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+      
     >
       {/* Gradient border on hover */}
-      <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+      <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
         <div 
           className="w-full h-full rounded-xl"
-          style={{
-            background: 'linear-gradient(135deg, #15181F 0%, #1A1D25 100%)'
-          }}
+          
         />
       </div>
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="p-6 border-b border-[#1F2937]">
+        <div className="p-6 border-b border-white/5">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-3xl font-bold text-[#E5E7EB] mb-2">Trading Playbooks</h2>
-              <p className="text-[#8B94A7] text-lg">Master proven trading strategies with step-by-step guides</p>
+              <h2 className="text-3xl font-bold text-zinc-100 mb-2">Trading Playbooks</h2>
+              <p className="text-zinc-400 text-lg">Master proven trading strategies with step-by-step guides</p>
             </div>
           </div>
 
           {/* Educational Banner */}
           <div 
-            className="rounded-xl p-6 mb-6 border border-[#3BF68A]/30 relative overflow-hidden"
+            className="rounded-xl p-6 mb-6 border border-emerald-500/30 relative overflow-hidden"
             style={{
-              background: 'linear-gradient(135deg, #3BF68A/10 0%, #A78BFA/10 100%)'
+              background: 'none'
             }}
           >
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gradient-to-r from-[#3BF68A] to-[#A78BFA] rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-white text-zinc-950 hover:bg-zinc-200 rounded-full flex items-center justify-center">
                   <BookOpen className="h-6 w-6 text-black" />
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-[#E5E7EB] text-xl font-bold mb-2">Learn Professional Trading Strategies</h3>
-                <p className="text-[#8B94A7] leading-relaxed">
+                <h3 className="text-zinc-100 text-xl font-bold mb-2">Learn Professional Trading Strategies</h3>
+                <p className="text-zinc-400 leading-relaxed">
                   Each playbook contains detailed entry/exit rules, risk management guidelines, real examples, and pro tips. 
                   These strategies are used by professional traders worldwide and have been proven effective across different market conditions.
                 </p>
@@ -739,18 +731,18 @@ export const Playbooks: React.FC = () => {
             {tradingStrategies.map((strategy) => (
               <div
                 key={strategy.id}
-                className="rounded-xl p-6 border border-[#1F2937] hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group cursor-pointer"
+                className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group cursor-pointer"
                 style={{
-                  background: 'linear-gradient(135deg, #1A1D25 0%, #1F2937 100%)'
+                  background: 'linear-gradient(135deg, #242838 0%, #2C3148 100%)'
                 }}
                 onClick={() => setSelectedStrategy(strategy.id)}
               >
                 {/* Gradient border on hover */}
-                <div className="absolute inset-0 rounded-xl p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
+                <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
                   <div 
                     className="w-full h-full rounded-xl"
                     style={{
-                      background: 'linear-gradient(135deg, #1A1D25 0%, #1F2937 100%)'
+                      background: 'linear-gradient(135deg, #242838 0%, #2C3148 100%)'
                     }}
                   />
                 </div>
@@ -760,21 +752,21 @@ export const Playbooks: React.FC = () => {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-bold text-[#E5E7EB]">{strategy.name}</h3>
+                        <h3 className="text-xl font-bold text-zinc-100">{strategy.name}</h3>
                         <span className={clsx(
                           'px-2 py-1 rounded-full text-xs font-medium border',
                           strategy.difficulty === 'Beginner' 
-                            ? 'bg-[#3BF68A]/20 text-[#3BF68A] border-[#3BF68A]/30'
+                            ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
                             : strategy.difficulty === 'Intermediate'
                             ? 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/30'
-                            : 'bg-[#F45B69]/20 text-[#F45B69] border-[#F45B69]/30'
+                            : 'bg-rose-500/20 text-rose-500 border-rose-500/30/30'
                         )}>
                           {strategy.difficulty}
                         </span>
                       </div>
-                      <p className="text-[#8B94A7] text-sm mb-4">{strategy.description}</p>
+                      <p className="text-zinc-400 text-sm mb-4">{strategy.description}</p>
                     </div>
-                    <button className="p-2 text-[#8B94A7] hover:text-[#E5E7EB] hover:bg-[#1F2937] rounded-lg transition-all">
+                    <button className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] rounded-lg transition-all">
                       <Eye className="h-5 w-5" />
                     </button>
                   </div>
@@ -782,46 +774,46 @@ export const Playbooks: React.FC = () => {
                   {/* Metrics */}
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <div className="text-center">
-                      <div className="text-xs text-[#8B94A7] mb-1">Win Rate</div>
-                      <div className="text-lg font-bold text-[#3BF68A]">{strategy.winRate}%</div>
+                      <div className="text-xs text-zinc-400 mb-1">Win Rate</div>
+                      <div className="text-lg font-bold text-emerald-500">{strategy.winRate}%</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xs text-[#8B94A7] mb-1">Risk/Reward</div>
-                      <div className="text-lg font-bold text-[#E5E7EB]">{strategy.riskReward}</div>
+                      <div className="text-xs text-zinc-400 mb-1">Risk/Reward</div>
+                      <div className="text-lg font-bold text-zinc-100">{strategy.riskReward}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xs text-[#8B94A7] mb-1">Timeframe</div>
-                      <div className="text-sm font-medium text-[#E5E7EB]">{strategy.timeframe}</div>
+                      <div className="text-xs text-zinc-400 mb-1">Timeframe</div>
+                      <div className="text-sm font-medium text-zinc-100">{strategy.timeframe}</div>
                     </div>
                   </div>
 
                   {/* Features */}
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center space-x-2 text-sm">
-                      <Target className="h-4 w-4 text-[#3BF68A]" />
-                      <span className="text-[#8B94A7]">Detailed entry & exit rules</span>
+                      <Target className="h-4 w-4 text-emerald-500" />
+                      <span className="text-zinc-400">Detailed entry & exit rules</span>
                     </div>
                     <div className="flex items-center space-x-2 text-sm">
-                      <Shield className="h-4 w-4 text-[#F45B69]" />
-                      <span className="text-[#8B94A7]">Risk management guidelines</span>
+                      <Shield className="h-4 w-4 text-rose-500" />
+                      <span className="text-zinc-400">Risk management guidelines</span>
                     </div>
                     <div className="flex items-center space-x-2 text-sm">
                       <Play className="h-4 w-4 text-[#F59E0B]" />
-                      <span className="text-[#8B94A7]">Real trading examples</span>
+                      <span className="text-zinc-400">Real trading examples</span>
                     </div>
                     <div className="flex items-center space-x-2 text-sm">
-                      <Lightbulb className="h-4 w-4 text-[#A78BFA]" />
-                      <span className="text-[#8B94A7]">Pro tips & common mistakes</span>
+                      <Lightbulb className="h-4 w-4 text-zinc-400" />
+                      <span className="text-zinc-400">Pro tips & common mistakes</span>
                     </div>
                   </div>
 
                   {/* Market Condition */}
-                  <div className="flex items-center justify-between pt-4 border-t border-[#1F2937]">
+                  <div className="flex items-center justify-between pt-4 border-t border-white/5">
                     <div className="flex items-center space-x-2">
-                      <Activity className="h-4 w-4 text-[#8B94A7]" />
-                      <span className="text-sm text-[#8B94A7]">Best for: {strategy.marketCondition}</span>
+                      <Activity className="h-4 w-4 text-zinc-400" />
+                      <span className="text-sm text-zinc-400">Best for: {strategy.marketCondition}</span>
                     </div>
-                    <div className="flex items-center space-x-1 text-[#3BF68A] hover:text-[#E5E7EB] transition-colors">
+                    <div className="flex items-center space-x-1 text-emerald-500 hover:text-zinc-100 transition-colors">
                       <span className="text-sm font-medium">Learn Strategy</span>
                       <ArrowLeft className="h-4 w-4 rotate-180" />
                     </div>
