@@ -9,6 +9,7 @@ import { Journal } from '@/components/journal';
 import { ImportModal } from '@/components/ImportModal';
 import { AccountsPage, AccountSelector } from '@/components/accounts';
 import { RoutinePage, JourneyPage } from '@/components/routine';
+import { Backtest } from '@/components/Backtest';
 import { ToastContainer } from '@/components/common/Toast';
 import { useTradingStore, Trade, TimePeriod } from '@/store/tradingStore';
 import { useAccountStore } from '@/store/accountStore';
@@ -258,6 +259,8 @@ export default function AppClient() {
     switch (currentView) {
       case 'accounts':
         return <AccountsPage onImportForAccount={handleImportForAccount} />;
+      case 'backtest':
+        return <Backtest />;
       case 'routine':
         return <RoutinePage />;
       case 'journey':
@@ -306,7 +309,7 @@ export default function AppClient() {
   };
 
   return (
-    <div>
+    <div className="h-full">
       {showBackupReminder && (
         <div className="fixed top-0 left-0 right-0 z-50">
           <div
@@ -354,7 +357,7 @@ export default function AppClient() {
         </div>
       )}
 
-      <div className={`${currentView !== 'accounts' ? 'pt-16' : ''}`}>{renderCurrentView()}</div>
+      <div className={`${currentView === 'backtest' ? 'h-full' : currentView !== 'accounts' ? 'pt-16' : ''}`}>{renderCurrentView()}</div>
 
       <ImportModal
         isOpen={showImportModal}

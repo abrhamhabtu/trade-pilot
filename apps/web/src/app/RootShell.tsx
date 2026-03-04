@@ -18,7 +18,7 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className={clsx('min-h-screen transition-colors duration-300', theme === 'dark' ? 'dark text-slate-100' : 'text-slate-900')}
+      className={clsx('h-screen overflow-hidden transition-colors duration-300', theme === 'dark' ? 'dark text-slate-100' : 'text-slate-900')}
       style={{
         background:
           theme === 'dark'
@@ -27,7 +27,7 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
       }}
     >
       <Sidebar />
-      <main className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
+      <main className={`h-full overflow-auto transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
         {children}
       </main>
       {Agentation && <Agentation />}
