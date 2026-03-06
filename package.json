@@ -12,10 +12,9 @@
   "scripts": {
     "setup": "npm run install:web",
     "install:web": "npm --prefix apps/web install",
-    "dev": "npm --prefix apps/web run dev -- -p 3001",
-    "dev:3000": "npm --prefix apps/web run dev -- -p 3000",
+    "dev": "npm --prefix apps/web run dev",
     "build": "npm --prefix apps/web run build",
-    "start": "npm --prefix apps/web run start -- -p 3001",
+    "start": "npm --prefix apps/web run start",
     "lint": "npm --prefix apps/web run lint"
   }
 }

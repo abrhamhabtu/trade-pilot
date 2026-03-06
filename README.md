@@ -67,7 +67,7 @@ Most trading journals charge **$30-60/month** for features that should be access
 - ✅ **Rule compliance tracking** — Free (self-hosted)
 - ✅ **All features unlocked** — Free (self-hosted)
 
-> **Note:** TradePilot is free when you run it yourself on your own computer or server. Clone the repo, run `npm run install:web && npm run dev`, and you're up. Default local port is `3001` to avoid common conflicts on `3000`. No account needed, no data leaves your machine.
+> **Note:** TradePilot is free when you run it yourself on your own computer or server. Clone the repo, run `npm run install:web && npm run dev`, and you're up. Runs on port `4040` by default. No account needed, no data leaves your machine.
 
 Whether you're grinding prop firm evaluations or trading a funded account, you deserve proper analytics without breaking the bank.
 
@@ -106,7 +106,7 @@ cd trade-pilot
 docker-compose up -d
 ```
 
-Open [http://localhost:3001](http://localhost:3001) 🎉
+Open [http://localhost:4040](http://localhost:4040) 🎉
 
 ### Option B: Manual Setup (For developers)
 
@@ -122,7 +122,7 @@ npm run install:web
 npm run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) 🎉
+Open [http://localhost:4040](http://localhost:4040) 🎉
 
 > **New to this?** Check out [GETTING_STARTED.md](GETTING_STARTED.md) for a beginner-friendly guide with screenshots and troubleshooting tips.
 
@@ -188,10 +188,9 @@ Instrument, Market pos., Qty, Entry price, Exit price, Profit, Commission, Entry
 |---------|-------------|
 | `npm run setup` | One-time project setup (installs app dependencies) |
 | `npm run install:web` | Install app dependencies |
-| `npm run dev` | Start development server on port 3001 |
-| `npm run dev:3000` | Start development server on port 3000 |
+| `npm run dev` | Start development server on port 4040 |
 | `npm run build` | Build for production |
-| `npm run start` | Start production server on port 3001 |
+| `npm run start` | Start production server on port 4040 |
 | `npm run lint` | Run ESLint |
 
 ---
