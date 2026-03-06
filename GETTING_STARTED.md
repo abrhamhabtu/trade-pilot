@@ -81,7 +81,7 @@ Can you help me:
 Please run the commands for me and let me know when it's ready.
 ```
 
-The AI will run the commands and tell you when it's ready. Usually it opens at **http://localhost:3001**.
+The AI will run the commands and tell you when it's ready. Usually it opens at **http://localhost:4040**.
 
 ### That's It!
 
@@ -128,7 +128,7 @@ Docker is like a "container" that runs the app for you. You don't need to instal
 ### Step 4: Open TradePilot
 
 1. Open your web browser (Chrome, Firefox, Edge, etc.)
-2. Go to: **http://localhost:3001**
+2. Go to: **http://localhost:4040**
 3. You should see TradePilot! 🎉
 
 ### To Stop TradePilot
@@ -172,7 +172,7 @@ This starts the Next.js development server.
 
 ### Step 4: Open TradePilot
 
-Go to: **http://localhost:3001**
+Go to: **http://localhost:4040**
 
 ---
 
@@ -229,7 +229,7 @@ TradePilot can import trades from these platforms:
 
 ## Troubleshooting
 
-### "I can't access localhost:3001"
+### "I can't access localhost:4040"
 
 - **Docker users:** Make sure Docker Desktop is running (green icon), try `docker-compose up -d` again, and wait 1-2 minutes for it to fully start
 - **Manual users:** Make sure you ran `npm run dev` and see "ready" output in your terminal. Requires Node.js 20+.
