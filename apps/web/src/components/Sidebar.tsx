@@ -14,7 +14,8 @@ import {
   Moon,
   Users,
   ClipboardCheck,
-  Compass
+  Compass,
+  FlaskConical
 } from 'lucide-react';
 import { useTradingStore } from '../store/tradingStore';
 import { useThemeStore } from '../store/themeStore';
@@ -25,6 +26,7 @@ const navigation = [
   { name: 'Accounts', icon: Users, view: 'accounts' as const },
   { name: 'Journey', icon: Compass, view: 'journey' as const },
   { name: 'Routine', icon: ClipboardCheck, view: 'routine' as const },
+  { name: 'Backtest', icon: FlaskConical, view: 'backtest' as const },
   { name: 'Calendar', icon: Calendar, view: 'calendar' as const },
   { name: 'Trades', icon: TrendingUp, view: 'trades' as const },
   { name: 'Playbooks', icon: Target, view: 'playbooks' as const },

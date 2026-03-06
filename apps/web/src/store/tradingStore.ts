@@ -63,7 +63,7 @@ interface TradingState {
   isLoading: boolean;
   selectedTimePeriod: TimePeriod;
   sidebarCollapsed: boolean;
-  currentView: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine' | 'journey';
+  currentView: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine' | 'journey' | 'backtest';
   hasImportedData: boolean;
   lastImportTime: number;
 
@@ -79,7 +79,7 @@ interface TradingState {
   toggleSidebar: () => void;
   importTrades: (file: File) => Promise<ImportResult>;
   refreshData: () => void;
-  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine' | 'journey') => void;
+  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine' | 'journey' | 'backtest') => void;
   getFilteredTrades: () => Trade[];
 }
 
@@ -744,7 +744,7 @@ export const useTradingStore = create<TradingState>((set, get) => ({
   currentView: (() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('tradepilot_current_view');
-      const valid = ['dashboard', 'trades', 'calendar', 'playbooks', 'journal', 'accounts', 'routine', 'journey'];
+      const valid = ['dashboard', 'trades', 'calendar', 'playbooks', 'journal', 'accounts', 'routine', 'journey', 'backtest'];
       if (saved && valid.includes(saved)) return saved as TradingState['currentView'];
     }
     return 'dashboard';
@@ -920,7 +920,7 @@ export const useTradingStore = create<TradingState>((set, get) => ({
     set(state => ({ sidebarCollapsed: !state.sidebarCollapsed }));
   },
 
-  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine' | 'journey') => {
+  setCurrentView: (view: 'dashboard' | 'trades' | 'calendar' | 'playbooks' | 'journal' | 'accounts' | 'routine' | 'journey' | 'backtest') => {
     set({ currentView: view });
     try { localStorage.setItem('tradepilot_current_view', view); } catch { }
   },
