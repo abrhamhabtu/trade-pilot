@@ -49,7 +49,7 @@ export function ReplayChart({
   const candleWidth = Math.max(5, step - 3);
 
   return (
-    <div className="relative h-[680px] min-h-[680px] w-full overflow-hidden rounded-[28px] border border-white/5 bg-[#0B1120] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+    <div className="relative h-full w-full overflow-hidden rounded-xl border border-white/5 bg-[#0B1120] shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
       <svg viewBox={`0 0 ${width} ${height}`} className="block h-full w-full">
         <rect x={0} y={0} width={width} height={height} fill="#0B1120" rx={28} />
         {Array.from({ length: 6 }).map((_, index) => {

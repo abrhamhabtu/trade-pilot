@@ -536,11 +536,11 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full overflow-hidden">
             {showAddTrade && <AddTradeModal session={session} onClose={() => setShowAddTrade(false)} />}
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 flex-shrink-0">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 flex-shrink-0">
                 <div className="flex items-center gap-3">
                     <button onClick={onBack} className="p-2 rounded-xl text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors">
                         <ChevronRight className="h-5 w-5 rotate-180" />
@@ -592,17 +592,17 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                 </div>
             </div>
 
-            {/* Stats bar */}
-            <div className="grid grid-cols-4 gap-3 px-6 py-3 border-b border-white/5 flex-shrink-0">
+            {/* Stats bar — compact single row */}
+            <div className="flex items-center gap-5 px-4 py-1.5 border-b border-white/5 flex-shrink-0 bg-[#181B24]/60">
                 {[
                     { label: 'Balance', value: fmt(session.currentBalance), color: pnlPos ? 'text-emerald-400' : 'text-rose-400' },
                     { label: 'P&L', value: `${pnlPos ? '+' : ''}${fmt(session.totalPnL)}`, color: pnlPos ? 'text-emerald-400' : 'text-rose-400' },
                     { label: 'Win Rate', value: session.totalTrades > 0 ? fmtPct(session.winRate) : '—', color: 'text-zinc-200' },
                     { label: 'Profit Factor', value: session.totalTrades > 0 ? session.profitFactor.toFixed(2) : '—', color: 'text-zinc-200' },
                 ].map(({ label, value, color }) => (
-                    <div key={label} className="bg-white/[0.03] rounded-xl px-4 py-2.5 border border-white/5">
-                        <p className="text-xs text-zinc-500 mb-0.5">{label}</p>
-                        <p className={clsx('text-sm font-bold', color)}>{value}</p>
+                    <div key={label} className="flex items-center gap-2">
+                        <span className="text-[11px] text-zinc-500">{label}</span>
+                        <span className={clsx('text-xs font-bold', color)}>{value}</span>
                     </div>
                 ))}
             </div>
@@ -666,41 +666,23 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                 </div>
             ) : (
                 /* ─── Replay View ─── */
-                <div className="flex-1 min-h-0 bg-[#121826]">
-                    <div className="grid h-full min-h-0 grid-cols-[240px,minmax(0,1fr),340px]">
-                        <div className="flex min-h-0 flex-col border-r border-white/5 bg-[#171D2B]">
-                            <div className="border-b border-white/5 px-4 py-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Replay Session</p>
-                                        <h3 className="mt-1 text-sm font-semibold text-zinc-100">{session.replayDate || session.startDate || session.createdAt.slice(0, 10)}</h3>
-                                    </div>
-                                    <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-[11px] font-medium text-blue-300">
+                <div className="flex-1 min-h-0 bg-[#0F1320]">
+                    <div className="grid h-full min-h-0 grid-cols-[200px,minmax(0,1fr),290px]">
+                        <div className="flex min-h-0 flex-col border-r border-white/5 bg-[#141926]">
+                            <div className="border-b border-white/5 px-3 py-2 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Executions</span>
+                                    <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
                                         {session.replaySettings?.timeframe || '1m'}
                                     </span>
+                                    <span className="text-[10px] text-zinc-600">{replayProgress}%</span>
                                 </div>
-                                <div className="mt-3 grid grid-cols-2 gap-2">
-                                    <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
-                                        <p className="text-[11px] uppercase tracking-wide text-zinc-500">Provider</p>
-                                        <p className="mt-1 text-sm font-semibold text-zinc-200">{(session.dataProvider || 'mock').toUpperCase()}</p>
-                                    </div>
-                                    <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
-                                        <p className="text-[11px] uppercase tracking-wide text-zinc-500">Progress</p>
-                                        <p className="mt-1 text-sm font-semibold text-zinc-200">{replayProgress}%</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="border-b border-white/5 px-4 py-3">
-                                <div className="flex items-center justify-between">
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Executions</p>
-                                    <button
-                                        onClick={() => setShowAddTrade(true)}
-                                        className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-[11px] font-semibold text-[#181B24] transition-all hover:bg-emerald-400"
-                                    >
-                                        <Plus className="h-3 w-3" /> Log
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={() => setShowAddTrade(true)}
+                                    className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2 py-1 text-[10px] font-semibold text-[#181B24] transition-all hover:bg-emerald-400"
+                                >
+                                    <Plus className="h-2.5 w-2.5" /> Log
+                                </button>
                             </div>
 
                             <div className="min-h-0 flex-1 overflow-y-auto p-3">
@@ -770,81 +752,57 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                         </div>
 
                         <div className="flex min-h-0 flex-col">
-                            <div className="border-b border-white/5 px-5 py-4">
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="min-w-0">
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Replay Engine</p>
-                                        <div className="mt-1 flex flex-wrap items-center gap-2">
-                                            <h3 className="text-xl font-semibold text-zinc-100">{session.symbol}</h3>
-                                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-zinc-400">
-                                                {replay.dayStats.replayDateLabel}
-                                            </span>
-                                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-zinc-400">
-                                                {replay.dayStats.replayTimeLabel}
-                                            </span>
-                                            {activePrice && (
-                                                <span className="rounded-full border border-sky-400/20 bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-300">
-                                                    Last {activePrice.toFixed(2)}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {replay.activeCandle && (
-                                            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-500">
-                                                <span>O {replay.activeCandle.open.toFixed(2)}</span>
-                                                <span>H {replay.activeCandle.high.toFixed(2)}</span>
-                                                <span>L {replay.activeCandle.low.toFixed(2)}</span>
-                                                <span>C {replay.activeCandle.close.toFixed(2)}</span>
-                                                <span>Vol {replay.activeCandle.volume.toLocaleString()}</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        {(['1m', '5m', '15m', '1h'] as const).map((label) => (
-                                            <button
-                                                key={label}
-                                                type="button"
-                                                className={clsx(
-                                                    'rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all',
-                                                    label === '1m'
-                                                        ? 'bg-blue-500/20 text-blue-300'
-                                                        : 'bg-white/[0.03] text-zinc-500 hover:text-zinc-300'
-                                                )}
-                                            >
-                                                {label}
-                                            </button>
-                                        ))}
-                                    </div>
+                            {/* Chart top bar — ultra compact */}
+                            <div className="flex items-center justify-between border-b border-white/5 px-3 py-1.5 flex-shrink-0 bg-[#0F1320]">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-bold text-zinc-100">{session.symbol}</span>
+                                    <span className="text-[11px] text-zinc-500">{replay.dayStats.replayDateLabel}</span>
+                                    <span className="rounded border border-sky-400/20 bg-sky-500/10 px-1.5 py-0.5 text-[11px] font-medium text-sky-300">
+                                        {replay.dayStats.replayTimeLabel}
+                                    </span>
+                                    {activePrice && (
+                                        <span className="text-[11px] font-mono font-semibold text-zinc-200">
+                                            {activePrice.toFixed(2)}
+                                        </span>
+                                    )}
+                                    {replay.activeCandle && (
+                                        <span className="hidden xl:flex items-center gap-2 text-[11px] text-zinc-600">
+                                            <span>O {replay.activeCandle.open.toFixed(2)}</span>
+                                            <span>H {replay.activeCandle.high.toFixed(2)}</span>
+                                            <span>L {replay.activeCandle.low.toFixed(2)}</span>
+                                            <span>C {replay.activeCandle.close.toFixed(2)}</span>
+                                        </span>
+                                    )}
                                 </div>
-
-                                <div className="mt-4 grid grid-cols-3 gap-3">
-                                    <div className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
-                                        <p className="text-[11px] uppercase tracking-wide text-zinc-500">Visible</p>
-                                        <p className="mt-1 text-sm font-semibold text-zinc-200">{replay.visibleCandles.length} candles</p>
-                                    </div>
-                                    <div className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
-                                        <p className="text-[11px] uppercase tracking-wide text-zinc-500">Trades</p>
-                                        <p className="mt-1 text-sm font-semibold text-zinc-200">{session.totalTrades}</p>
-                                    </div>
-                                    <div className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
-                                        <p className="text-[11px] uppercase tracking-wide text-zinc-500">P&L</p>
-                                        <p className={clsx('mt-1 text-sm font-semibold', pnlPos ? 'text-emerald-400' : 'text-rose-400')}>
-                                            {pnlPos ? '+' : ''}{fmt(session.totalPnL)}
-                                        </p>
-                                    </div>
+                                <div className="flex items-center gap-1">
+                                    {(['1m', '5m', '15m', '1h'] as const).map((label) => (
+                                        <button
+                                            key={label}
+                                            type="button"
+                                            className={clsx(
+                                                'rounded px-2 py-1 text-[11px] font-medium transition-all',
+                                                label === '1m'
+                                                    ? 'bg-blue-500/20 text-blue-300'
+                                                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+                                            )}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
 
-                            <div className="min-h-0 flex-1 px-4 pb-4 pt-4">
+                            {/* Chart fills all remaining space */}
+                            <div className="min-h-0 flex-1 overflow-hidden">
                                 {replay.error ? (
-                                    <div className="flex h-[680px] min-h-[680px] items-center justify-center rounded-2xl border border-rose-500/20 bg-rose-500/5 px-6 text-center">
+                                    <div className="flex h-full items-center justify-center border border-rose-500/20 bg-rose-500/5 px-6 text-center">
                                         <div>
                                             <p className="text-sm font-semibold text-rose-300">Replay data failed to load</p>
                                             <p className="mt-1 text-xs text-zinc-400">{replay.error}</p>
                                         </div>
                                     </div>
                                 ) : replay.isLoading ? (
-                                    <div className="flex h-[680px] min-h-[680px] items-center justify-center rounded-2xl border border-white/5 bg-[#0F1422] text-sm text-zinc-500">
+                                    <div className="flex h-full items-center justify-center bg-[#0F1422] text-sm text-zinc-500">
                                         Loading replay candles...
                                     </div>
                                 ) : (
@@ -858,75 +816,57 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                                 )}
                             </div>
 
-                            <div className="border-t border-white/5 px-5 py-4">
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={replay.stepBackward}
-                                            className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-zinc-300 transition-all hover:bg-white/[0.06]"
-                                        >
-                                            <SkipBack className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => replay.setIsPlaying(!replay.isPlaying)}
-                                            className={clsx(
-                                                'rounded-xl px-4 py-2 text-sm font-semibold transition-all',
-                                                replay.isPlaying
-                                                    ? 'bg-amber-500 text-[#181B24] hover:bg-amber-400'
-                                                    : 'bg-emerald-500 text-[#181B24] hover:bg-emerald-400'
-                                            )}
-                                        >
-                                            {replay.isPlaying ? 'Pause' : 'Play'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={replay.stepForward}
-                                            className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-zinc-300 transition-all hover:bg-white/[0.06]"
-                                        >
-                                            <SkipForward className="h-4 w-4" />
-                                        </button>
-                                    </div>
+                            {/* Compact playback bar */}
+                            <div className="flex items-center gap-3 border-t border-white/5 px-3 py-1.5 flex-shrink-0 bg-[#0F1320]">
+                                <button type="button" onClick={replay.stepBackward}
+                                    className="rounded-lg border border-white/10 bg-white/[0.03] p-1.5 text-zinc-300 transition-all hover:bg-white/[0.06]">
+                                    <SkipBack className="h-3.5 w-3.5" />
+                                </button>
+                                <button type="button" onClick={() => replay.setIsPlaying(!replay.isPlaying)}
+                                    className={clsx(
+                                        'rounded-lg px-4 py-1.5 text-xs font-semibold transition-all',
+                                        replay.isPlaying
+                                            ? 'bg-amber-500 text-[#181B24] hover:bg-amber-400'
+                                            : 'bg-emerald-500 text-[#181B24] hover:bg-emerald-400'
+                                    )}>
+                                    {replay.isPlaying ? 'Pause' : 'Play'}
+                                </button>
+                                <button type="button" onClick={replay.stepForward}
+                                    className="rounded-lg border border-white/10 bg-white/[0.03] p-1.5 text-zinc-300 transition-all hover:bg-white/[0.06]">
+                                    <SkipForward className="h-3.5 w-3.5" />
+                                </button>
 
-                                    <div className="flex items-center gap-2">
-                                        {REPLAY_SPEEDS.map((speed) => (
-                                            <button
-                                                key={speed}
-                                                type="button"
-                                                onClick={() => replay.setPlaybackSpeed(speed)}
-                                                className={clsx(
-                                                    'rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all',
-                                                    replay.playbackSpeed === speed
-                                                        ? 'bg-blue-500/20 text-blue-300'
-                                                        : 'bg-white/[0.03] text-zinc-500 hover:text-zinc-300'
-                                                )}
-                                            >
-                                                {speed}x
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="mt-4">
-                                    <input
-                                        type="range"
-                                        min={0}
-                                        max={Math.max(0, replay.candles.length - 1)}
-                                        value={replay.candleIndex}
-                                        onChange={(event) => replay.jumpToIndex(Number(event.target.value))}
-                                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/10"
-                                    />
-                                    <div className="mt-2 flex items-center justify-between text-[11px] text-zinc-500">
-                                        <span>{replay.candles.length > 0 ? `${replay.candleIndex + 1} / ${replay.candles.length}` : '0 / 0'} candles</span>
-                                        <span>{replay.dayStats.replayTimeLabel}</span>
-                                    </div>
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={Math.max(0, replay.candles.length - 1)}
+                                    value={replay.candleIndex}
+                                    onChange={(event) => replay.jumpToIndex(Number(event.target.value))}
+                                    className="flex-1 h-1.5 cursor-pointer appearance-none rounded-full bg-white/10"
+                                />
+                                <span className="text-[11px] text-zinc-500 whitespace-nowrap">
+                                    {replay.candles.length > 0 ? `${replay.candleIndex + 1}/${replay.candles.length}` : '0/0'}
+                                </span>
+
+                                <div className="flex items-center gap-1">
+                                    {REPLAY_SPEEDS.map((speed) => (
+                                        <button key={speed} type="button" onClick={() => replay.setPlaybackSpeed(speed)}
+                                            className={clsx(
+                                                'rounded px-1.5 py-1 text-[11px] font-medium transition-all',
+                                                replay.playbackSpeed === speed
+                                                    ? 'bg-blue-500/20 text-blue-300'
+                                                    : 'text-zinc-600 hover:text-zinc-300'
+                                            )}>
+                                            {speed}x
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex min-h-0 flex-col border-l border-white/5 bg-[#171D2B]">
-                            <div className="border-b border-white/5 px-4 py-4">
-                                <div className="rounded-2xl border border-white/5 bg-[#101728] p-4">
+                        <div className="flex min-h-0 flex-col border-l border-white/5 bg-[#141926] overflow-y-auto">
+                            <div className="border-b border-white/5 px-3 py-3">
+                                <div className="rounded-xl border border-white/5 bg-[#0F1728] p-3">
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Order Ticket</p>
@@ -1008,15 +948,14 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                                 </div>
                             </div>
 
-                            <div className="border-b border-white/5 px-4 py-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Journal</p>
-                                        <h3 className="mt-1 text-sm font-semibold text-zinc-100">{selectedTrade ? `${selectedTrade.side} setup` : 'Session review'}</h3>
+                            <div className="border-b border-white/5 px-3 py-2">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <NotepadText className="h-3.5 w-3.5 text-zinc-500" />
+                                        <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{selectedTrade ? `${selectedTrade.side} setup` : 'Journal'}</p>
                                     </div>
-                                    <NotepadText className="h-4 w-4 text-zinc-500" />
                                 </div>
-                                <div className="mt-3 flex rounded-xl border border-white/5 bg-white/[0.03] p-1">
+                                <div className="flex rounded-lg border border-white/5 bg-white/[0.03] p-0.5">
                                     {([
                                         ['trade', 'Trade'],
                                         ['day', 'Day'],
@@ -1027,7 +966,7 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                                             type="button"
                                             onClick={() => setPanelTab(id)}
                                             className={clsx(
-                                                'flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all',
+                                                'flex-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-all',
                                                 panelTab === id ? 'bg-white/10 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
                                             )}
                                         >
