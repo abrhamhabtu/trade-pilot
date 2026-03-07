@@ -8,6 +8,7 @@ import {
   FlaskConical,
   Target,
   Users,
+  Crosshair,
 } from 'lucide-react';
 
 export const APP_ROUTES = {
@@ -16,6 +17,7 @@ export const APP_ROUTES = {
   journey: '/app/journey',
   routine: '/app/routine',
   backtest: '/app/backtest',
+  setups: '/app/setups',
   calendar: '/app/calendar',
   trades: '/app/trades',
   playbooks: '/app/playbooks',
@@ -30,6 +32,7 @@ export const APP_NAVIGATION = [
   { name: 'Journey', icon: Compass, href: APP_ROUTES.journey },
   { name: 'Routine', icon: ClipboardCheck, href: APP_ROUTES.routine },
   { name: 'Backtest', icon: FlaskConical, href: APP_ROUTES.backtest },
+  { name: 'Setups', icon: Crosshair, href: APP_ROUTES.setups },
   { name: 'Calendar', icon: Calendar, href: APP_ROUTES.calendar },
   { name: 'Trades', icon: TrendingUp, href: APP_ROUTES.trades },
   { name: 'Playbooks', icon: Target, href: APP_ROUTES.playbooks },
