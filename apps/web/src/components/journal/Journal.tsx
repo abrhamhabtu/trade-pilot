@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus,
@@ -18,6 +19,7 @@ import {
 import clsx from 'clsx';
 import { useDailyNotesStore } from '../../store/dailyNotesStore';
 import { useAccountStore } from '../../store/accountStore';
+import { persistence } from '@/lib/persistence';
 
 interface JournalEntry {
   id: string;
@@ -40,23 +42,12 @@ const MOODS = [
   { value: 'terrible', label: 'Terrible', icon: TrendingDown, color: 'text-rose-500', bg: 'bg-rose-500/20' },
 ] as const;
 
-const STORAGE_KEY = 'tradepilot_journal';
-
 const loadEntriesFromStorage = (): JournalEntry[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
+  return persistence.loadJournalEntries<JournalEntry>() || [];
 };
 
 const saveEntriesToStorage = (entries: JournalEntry[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  } catch (error) {
-    console.error('Failed to save journal entries:', error);
-  }
+  persistence.saveJournalEntries(entries);
 };
 
 // Combined entry type for display
@@ -484,10 +475,13 @@ export const Journal: React.FC = () => {
                     <div className="mb-4 flex flex-wrap gap-2">
                       {entry.images.slice(0, 4).map((img, idx) => (
                         <div key={img.id} className="relative group/img">
-                          <img 
+                          <Image
                             src={img.dataUrl} 
                             alt={img.caption || `Screenshot ${idx + 1}`}
                             className="h-20 w-auto rounded-lg border border-white/5 object-cover"
+                            width={160}
+                            height={80}
+                            unoptimized
                           />
                           {entry.images && entry.images.length > 4 && idx === 3 && (
                             <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">

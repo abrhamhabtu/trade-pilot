@@ -2,40 +2,18 @@
 
 import React from 'react';
 import {
-  BarChart3,
-  Calendar,
-  TrendingUp,
-  BookOpen,
-  Search,
-  Menu,
   Activity,
-  Target,
   Sun,
-  Moon,
-  Users,
-  ClipboardCheck,
-  Compass,
-  FlaskConical
+  Search,
 } from 'lucide-react';
-import { useTradingStore } from '../store/tradingStore';
-import { useThemeStore } from '../store/themeStore';
 import clsx from 'clsx';
-
-const navigation = [
-  { name: 'Dashboard', icon: BarChart3, view: 'dashboard' as const },
-  { name: 'Accounts', icon: Users, view: 'accounts' as const },
-  { name: 'Journey', icon: Compass, view: 'journey' as const },
-  { name: 'Routine', icon: ClipboardCheck, view: 'routine' as const },
-  { name: 'Backtest', icon: FlaskConical, view: 'backtest' as const },
-  { name: 'Calendar', icon: Calendar, view: 'calendar' as const },
-  { name: 'Trades', icon: TrendingUp, view: 'trades' as const },
-  { name: 'Playbooks', icon: Target, view: 'playbooks' as const },
-  { name: 'Journal', icon: BookOpen, view: 'journal' as const },
-];
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { APP_NAVIGATION, isActiveRoute } from '@/lib/navigation';
 
 export const Sidebar: React.FC = () => {
-  const { sidebarCollapsed, toggleSidebar, currentView, setCurrentView } = useTradingStore();
-  const { theme, toggleTheme } = useThemeStore();
+  const pathname = usePathname();
+  const sidebarCollapsed = false;
 
   return (
     <div
@@ -67,15 +45,7 @@ export const Sidebar: React.FC = () => {
           </div>
         )}
 
-        <button
-          onClick={toggleSidebar}
-          className={clsx(
-            'text-zinc-500 hover:text-zinc-100 transition-colors rounded hover:bg-white/5',
-            sidebarCollapsed ? 'p-2 mt-4' : 'p-1'
-          )}
-        >
-          <Menu className={clsx(sidebarCollapsed ? 'h-6 w-6' : 'h-5 w-5')} />
-        </button>
+        <div className="h-7 w-7" />
       </div>
 
       {/* Search */}
@@ -98,14 +68,14 @@ export const Sidebar: React.FC = () => {
         'flex-1 transition-all duration-300 overflow-y-auto',
         sidebarCollapsed ? 'px-2 py-4 space-y-2' : 'px-4 py-2 space-y-1'
       )}>
-        {navigation.map((item) => {
+        {APP_NAVIGATION.map((item) => {
           const Icon = item.icon;
-          const isActive = currentView === item.view;
+          const isActive = isActiveRoute(pathname, item.href);
 
           return (
-            <button
+            <Link
               key={item.name}
-              onClick={() => setCurrentView(item.view)}
+              href={item.href}
               className={clsx(
                 'w-full flex items-center text-sm font-medium rounded-lg transition-all duration-200 group relative',
                 sidebarCollapsed
@@ -136,7 +106,7 @@ export const Sidebar: React.FC = () => {
                   <div className="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-[#1E2130]"></div>
                 </div>
               )}
-            </button>
+            </Link>
           );
         })}
       </nav>

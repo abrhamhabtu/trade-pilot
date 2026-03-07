@@ -2,15 +2,19 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    Plus, Play, CheckCircle, Pause, Trash2, ChevronRight,
+    Plus, Play, CheckCircle, Trash2, ChevronRight,
     TrendingUp, TrendingDown, Clock, BarChart2, Target,
     ArrowUpRight, ArrowDownLeft, Edit3, X, Search,
     FlaskConical, LayoutDashboard, FileBarChart, MoreVertical,
-    Zap, Award, AlertTriangle, Calendar, DollarSign, Activity
+    Zap, Award, AlertTriangle, Calendar, DollarSign, Activity,
+    SkipBack, SkipForward, NotepadText, Waves, CandlestickChart
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useBacktestStore, BacktestSession, BacktestTrade, SessionStatus } from '@/store/backtestStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useReplaySession } from '@/hooks/useReplaySession';
+import { ReplayChart } from '@/components/backtest/ReplayChart';
+import { buildReplayTimestamp, REPLAY_SPEEDS } from '@/lib/backtest/replay';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -80,6 +84,12 @@ function CreateSessionModal({ onClose }: { onClose: () => void }) {
             timeframe: form.timeframe,
             startDate: form.startDate || undefined,
             endDate: form.endDate || undefined,
+            replayDate: form.startDate || new Date().toISOString().slice(0, 10),
+            dataProvider: 'mock',
+            replaySettings: {
+                timeframe: '1m',
+                speed: 1,
+            },
             status: 'active',
         });
         onClose();
@@ -205,9 +215,15 @@ function AddTradeModal({ session, onClose }: { session: BacktestSession; onClose
 
     const submit = () => {
         if (!entry || !exit || !qty) return;
+        const enteredAt = buildReplayTimestamp(form.date, form.time);
+        const exitedAt = form.time
+            ? buildReplayTimestamp(form.date, form.time, parseInt(form.duration) || 1)
+            : undefined;
         addTrade(session.id, {
             date: form.date,
             time: form.time || undefined,
+            enteredAt,
+            exitedAt,
             side: form.side,
             entryPrice: entry,
             exitPrice: exit,
@@ -423,112 +439,101 @@ function SessionRow({ session, onOpen, onDelete, onComplete }: {
     );
 }
 
-// ─── TradingView symbol mapping ───────────────────────────────────────────────
-
-const TV_SYMBOL_MAP: Record<string, string> = {
-    MNQ: 'CME_MINI:MNQ1!',
-    MES: 'CME_MINI:MES1!',
-    ES: 'CME_MINI:ES1!',
-    NQ: 'CME_MINI:NQ1!',
-    YM: 'CBOT_MINI:YM1!',
-    RTY: 'CME_MINI:RTY1!',
-    MCL: 'NYMEX:MCL1!',
-    CL: 'NYMEX:CL1!',
-    GC: 'COMEX:GC1!',
-    SI: 'COMEX:SI1!',
-    ZB: 'CBOT:ZB1!',
-    ZN: 'CBOT:ZN1!',
-    BTC: 'BITSTAMP:BTCUSD',
-    ETH: 'BITSTAMP:ETHUSD',
-    SPY: 'AMEX:SPY',
-    QQQ: 'NASDAQ:QQQ',
-    AAPL: 'NASDAQ:AAPL',
-    TSLA: 'NASDAQ:TSLA',
-    NVDA: 'NASDAQ:NVDA',
-};
-
-const TV_INTERVAL_MAP: Record<string, string> = {
-    '1m': '1', '5m': '5', '15m': '15', '30m': '30',
-    '1h': '60', '4h': '240', '1D': 'D', '1W': 'W',
-};
-
-function resolveTvSymbol(raw: string): string {
-    const upper = raw.trim().toUpperCase();
-    return TV_SYMBOL_MAP[upper] || upper;
-}
-
-// ─── TradingView Chart Embed ──────────────────────────────────────────────────
-
-function TradingViewChart({ symbol, timeframe }: { symbol: string; timeframe?: string }) {
-    const containerId = `tv_chart_${symbol.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    const tvSymbol = resolveTvSymbol(symbol);
-    const interval = TV_INTERVAL_MAP[timeframe || '5m'] || '5';
-
-    useEffect(() => {
-        // Remove any previous widget
-        const prev = document.getElementById(containerId);
-        if (prev) prev.innerHTML = '';
-
-        const script = document.createElement('script');
-        script.src = 'https://s3.tradingview.com/tv.js';
-        script.async = true;
-        script.onload = () => {
-            if (typeof (window as unknown as Record<string, unknown>).TradingView === 'undefined') return;
-            const TV = (window as unknown as Record<string, { widget: new (cfg: Record<string, unknown>) => void }>).TradingView;
-            new TV.widget({
-                container_id: containerId,
-                autosize: true,
-                symbol: tvSymbol,
-                interval,
-                timezone: 'America/New_York',
-                theme: 'dark',
-                style: '1',
-                locale: 'en',
-                toolbar_bg: '#1E2130',
-                enable_publishing: false,
-                hide_top_toolbar: false,
-                hide_legend: false,
-                save_to_server: false,
-                allow_symbol_change: true,
-                studies: ['Volume@tv-basicstudies'],
-                overrides: {
-                    'paneProperties.background': '#181B24',
-                    'paneProperties.backgroundType': 'solid',
-                    'scalesProperties.textColor': '#71717a',
-                },
-            });
-        };
-        document.head.appendChild(script);
-
-        return () => {
-            try {
-                const el = document.getElementById(containerId);
-                if (el) el.innerHTML = '';
-                if (script.parentNode) script.parentNode.removeChild(script);
-            } catch { /* ignore cleanup errors */ }
-        };
-    }, [symbol, timeframe]);
-
-    return (
-        <div id={containerId} className="w-full h-full rounded-l-xl overflow-hidden" />
-    );
-}
-
 // ─── Session Detail ───────────────────────────────────────────────────────────
 
-type SessionView = 'log' | 'chart';
+type SessionView = 'log' | 'replay';
+type ReplayPanelTab = 'trade' | 'day' | 'notes';
+type ReplayPosition = {
+    side: 'Long' | 'Short';
+    quantity: number;
+    entryPrice: number;
+    entryTimestamp: string;
+    notes?: string;
+};
 
 function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: () => void }) {
-    const { deleteTrade, completeSession } = useBacktestStore();
+    const { deleteTrade, completeSession, addTrade } = useBacktestStore();
     const { theme } = useThemeStore();
     const [showAddTrade, setShowAddTrade] = useState(false);
-    const [sessionView, setSessionView] = useState<SessionView>('log');
+    const [sessionView, setSessionView] = useState<SessionView>('replay');
+    const [panelTab, setPanelTab] = useState<ReplayPanelTab>('trade');
+    const [orderQuantity, setOrderQuantity] = useState('1');
+    const [orderNotes, setOrderNotes] = useState('');
+    const [openPosition, setOpenPosition] = useState<ReplayPosition | null>(null);
     const pnlPos = session.totalPnL >= 0;
+    const replay = useReplaySession(session);
 
     const losses = session.trades.filter((t: BacktestTrade) => t.outcome === 'loss');
     const wins = session.trades.filter((t: BacktestTrade) => t.outcome === 'win');
-    const avgWin = wins.length > 0 ? wins.reduce((s: number, t: BacktestTrade) => s + t.netPL, 0) / wins.length : 0;
     const sc = statusColors[session.status];
+    const replayProgress = replay.candles.length > 0
+        ? Math.round(((replay.candleIndex + 1) / replay.candles.length) * 100)
+        : 0;
+    const replayRailItems = replay.executions.length > 0
+        ? replay.executions
+        : session.trades.map((trade) => ({
+            id: `${trade.id}:trade`,
+            tradeId: trade.id,
+            timestamp: trade.enteredAt || buildReplayTimestamp(trade.date, trade.time) || `${trade.date}T00:00:00.000Z`,
+            side: trade.side,
+            price: trade.entryPrice,
+            quantity: trade.quantity,
+            type: 'entry' as const,
+            notes: trade.notes,
+            pnl: trade.netPL,
+        }));
+    const selectedRailItem = replayRailItems.find((item) => item.id === replay.selectedExecutionId) || replayRailItems[0];
+    const selectedTrade = selectedRailItem
+        ? session.trades.find((trade) => trade.id === selectedRailItem.tradeId) || replay.selectedTrade
+        : replay.selectedTrade;
+    const selectedExecution = replay.executions.find((item) => item.id === replay.selectedExecutionId)
+        || (selectedRailItem && replay.executions.length === 0 ? selectedRailItem : null)
+        || replay.selectedExecution;
+    const activePrice = replay.activeCandle?.close || replay.candles[replay.candleIndex]?.close || null;
+    const quantityValue = Math.max(1, parseInt(orderQuantity || '1', 10) || 1);
+    const unrealizedPnL = openPosition && activePrice
+        ? Number(((openPosition.side === 'Long'
+            ? activePrice - openPosition.entryPrice
+            : openPosition.entryPrice - activePrice) * openPosition.quantity).toFixed(2))
+        : 0;
+
+    const openReplayPosition = (side: 'Long' | 'Short') => {
+        if (!replay.activeTimestamp || !activePrice || openPosition) return;
+        setOpenPosition({
+            side,
+            quantity: quantityValue,
+            entryPrice: activePrice,
+            entryTimestamp: replay.activeTimestamp,
+            notes: orderNotes.trim() || undefined,
+        });
+        setPanelTab('trade');
+    };
+
+    const closeReplayPosition = () => {
+        if (!openPosition || !activePrice || !replay.activeTimestamp) return;
+        const netPL = Number(((openPosition.side === 'Long'
+            ? activePrice - openPosition.entryPrice
+            : openPosition.entryPrice - activePrice) * openPosition.quantity).toFixed(2));
+        const entryDate = openPosition.entryTimestamp.slice(0, 10);
+        const entryTime = openPosition.entryTimestamp.slice(11, 16);
+        const duration = Math.max(1, Math.round((new Date(replay.activeTimestamp).getTime() - new Date(openPosition.entryTimestamp).getTime()) / 60000));
+        addTrade(session.id, {
+            date: entryDate,
+            time: entryTime,
+            enteredAt: openPosition.entryTimestamp,
+            exitedAt: replay.activeTimestamp,
+            side: openPosition.side,
+            entryPrice: openPosition.entryPrice,
+            exitPrice: activePrice,
+            quantity: openPosition.quantity,
+            netPL,
+            outcome: netPL > 0 ? 'win' : netPL < 0 ? 'loss' : 'breakeven',
+            duration,
+            notes: openPosition.notes,
+        });
+        setOpenPosition(null);
+        setOrderNotes('');
+    };
 
     return (
         <div className="flex flex-col h-full">
@@ -567,10 +572,10 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                                 sessionView === 'log' ? 'bg-emerald-500/20 text-emerald-400' : 'text-zinc-500 hover:text-zinc-300')}>
                             <FlaskConical className="h-3.5 w-3.5" /> Trade Log
                         </button>
-                        <button onClick={() => setSessionView('chart')}
+                        <button onClick={() => setSessionView('replay')}
                             className={clsx('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                                sessionView === 'chart' ? 'bg-blue-500/20 text-blue-400' : 'text-zinc-500 hover:text-zinc-300')}>
-                            <BarChart2 className="h-3.5 w-3.5" /> TradingView
+                                sessionView === 'replay' ? 'bg-blue-500/20 text-blue-400' : 'text-zinc-500 hover:text-zinc-300')}>
+                            <CandlestickChart className="h-3.5 w-3.5" /> Replay
                         </button>
                     </div>
 
@@ -660,80 +665,550 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                     </div>
                 </div>
             ) : (
-                /* ─── Chart View ─── */
-                <div className="flex-1 flex min-h-0">
-                    {/* TradingView chart — takes ~70% width */}
-                    <div className="flex-1 min-h-0 bg-[#181B24]">
-                        <TradingViewChart symbol={session.symbol} timeframe={session.timeframe} />
-                    </div>
+                /* ─── Replay View ─── */
+                <div className="flex-1 min-h-0 bg-[#121826]">
+                    <div className="grid h-full min-h-0 grid-cols-[240px,minmax(0,1fr),340px]">
+                        <div className="flex min-h-0 flex-col border-r border-white/5 bg-[#171D2B]">
+                            <div className="border-b border-white/5 px-4 py-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Replay Session</p>
+                                        <h3 className="mt-1 text-sm font-semibold text-zinc-100">{session.replayDate || session.startDate || session.createdAt.slice(0, 10)}</h3>
+                                    </div>
+                                    <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-[11px] font-medium text-blue-300">
+                                        {session.replaySettings?.timeframe || '1m'}
+                                    </span>
+                                </div>
+                                <div className="mt-3 grid grid-cols-2 gap-2">
+                                    <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                                        <p className="text-[11px] uppercase tracking-wide text-zinc-500">Provider</p>
+                                        <p className="mt-1 text-sm font-semibold text-zinc-200">{(session.dataProvider || 'mock').toUpperCase()}</p>
+                                    </div>
+                                    <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                                        <p className="text-[11px] uppercase tracking-wide text-zinc-500">Progress</p>
+                                        <p className="mt-1 text-sm font-semibold text-zinc-200">{replayProgress}%</p>
+                                    </div>
+                                </div>
+                            </div>
 
-                    {/* Right panel — compact trade log */}
-                    <div className="w-80 flex-shrink-0 border-l border-white/5 bg-[#1E2130] flex flex-col overflow-hidden">
-                        <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between flex-shrink-0">
-                            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Trade Log</span>
-                            <button onClick={() => setShowAddTrade(true)}
-                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500 text-[#181B24] text-xs font-semibold hover:bg-emerald-400 transition-all">
-                                <Plus className="h-3 w-3" /> Log
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto">
-                            {session.trades.length === 0 ? (
-                                <div className="py-12 text-center px-4">
-                                    <p className="text-zinc-500 text-sm font-medium">No trades yet</p>
-                                    <p className="text-zinc-600 text-xs mt-1">Analyze the chart, then log your trades here</p>
+                            <div className="border-b border-white/5 px-4 py-3">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Executions</p>
+                                    <button
+                                        onClick={() => setShowAddTrade(true)}
+                                        className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-[11px] font-semibold text-[#181B24] transition-all hover:bg-emerald-400"
+                                    >
+                                        <Plus className="h-3 w-3" /> Log
+                                    </button>
                                 </div>
-                            ) : (
-                                <div className="divide-y divide-white/5">
-                                    {[...session.trades].reverse().map((t: BacktestTrade, i: number) => {
-                                        const pos = t.netPL >= 0;
-                                        return (
-                                            <div key={t.id} className="px-4 py-3 hover:bg-white/[0.02] transition-colors group">
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="text-zinc-600 text-xs">#{session.trades.length - i}</span>
-                                                        <span className={clsx('text-xs font-medium flex items-center gap-0.5',
-                                                            t.side === 'Long' ? 'text-emerald-400' : 'text-rose-400')}>
-                                                            {t.side === 'Long' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownLeft className="h-3 w-3" />}
-                                                            {t.side}
+                            </div>
+
+                            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                                {replayRailItems.length === 0 ? (
+                                    <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center">
+                                        <p className="text-sm font-medium text-zinc-300">No replay executions yet</p>
+                                        <p className="mt-1 text-xs text-zinc-500">Log trades with timestamps to anchor them to the replay timeline.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {replayRailItems.map((execution, index) => {
+                                            const trade = session.trades.find((item) => item.id === execution.tradeId);
+                                            const active = execution.id === replay.selectedExecutionId;
+                                            const positive = (execution.pnl ?? trade?.netPL ?? 0) >= 0;
+                                            const onSelect = () => {
+                                                if (replay.executions.find((item) => item.id === execution.id)) {
+                                                    replay.jumpToExecution(execution.id);
+                                                    return;
+                                                }
+                                                replay.setSelectedExecutionId(execution.id);
+                                            };
+
+                                            return (
+                                                <button
+                                                    key={execution.id}
+                                                    type="button"
+                                                    onClick={onSelect}
+                                                    className={clsx(
+                                                        'w-full rounded-2xl border px-3 py-3 text-left transition-all',
+                                                        active
+                                                            ? 'border-blue-400/50 bg-blue-500/10'
+                                                            : 'border-white/5 bg-white/[0.03] hover:border-white/10 hover:bg-white/[0.05]'
+                                                    )}
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-[11px] uppercase tracking-wide text-zinc-500">
+                                                                #{replayRailItems.length - index} · {execution.type}
+                                                            </p>
+                                                            <p className={clsx(
+                                                                'mt-1 flex items-center gap-1 text-sm font-semibold',
+                                                                execution.side === 'Long' ? 'text-emerald-400' : 'text-rose-400'
+                                                            )}>
+                                                                {execution.side === 'Long' ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownLeft className="h-3.5 w-3.5" />}
+                                                                {execution.side} {session.symbol}
+                                                            </p>
+                                                        </div>
+                                                        <span className={clsx('text-sm font-semibold', positive ? 'text-emerald-400' : 'text-rose-400')}>
+                                                            {positive ? '+' : ''}{fmt(execution.pnl ?? trade?.netPL ?? 0)}
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        {t.rMultiple && <span className="text-xs text-zinc-500">{t.rMultiple >= 0 ? '+' : ''}{t.rMultiple}R</span>}
-                                                        <span className={clsx('text-xs font-bold', pos ? 'text-emerald-400' : 'text-rose-400')}>
-                                                            {pos ? '+' : ''}{fmt(t.netPL)}
-                                                        </span>
-                                                        <button onClick={() => deleteTrade(session.id, t.id)}
-                                                            className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-rose-400 transition-all">
-                                                            <Trash2 className="h-3 w-3" />
-                                                        </button>
+                                                    <div className="mt-2 flex items-center gap-2 text-xs text-zinc-500">
+                                                        <Clock className="h-3 w-3" />
+                                                        <span>{new Date(execution.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+                                                        <span>·</span>
+                                                        <span className="font-mono">{execution.price.toFixed(2)}</span>
+                                                        <span>·</span>
+                                                        <span>{execution.quantity} ct</span>
                                                     </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-xs text-zinc-600">
-                                                    <span>{t.date}</span>
-                                                    <span>·</span>
-                                                    <span className="font-mono">{t.entryPrice.toFixed(2)} → {t.exitPrice.toFixed(2)}</span>
-                                                    <span>·</span>
-                                                    <span>{t.quantity} ct</span>
-                                                </div>
-                                                {t.notes && <p className="text-xs text-zinc-600 mt-1 truncate">{t.notes}</p>}
+                                                    {trade?.notes && <p className="mt-2 truncate text-xs text-zinc-400">{trade.notes}</p>}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex min-h-0 flex-col">
+                            <div className="border-b border-white/5 px-5 py-4">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="min-w-0">
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Replay Engine</p>
+                                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                                            <h3 className="text-xl font-semibold text-zinc-100">{session.symbol}</h3>
+                                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-zinc-400">
+                                                {replay.dayStats.replayDateLabel}
+                                            </span>
+                                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-zinc-400">
+                                                {replay.dayStats.replayTimeLabel}
+                                            </span>
+                                            {activePrice && (
+                                                <span className="rounded-full border border-sky-400/20 bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-300">
+                                                    Last {activePrice.toFixed(2)}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {replay.activeCandle && (
+                                            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+                                                <span>O {replay.activeCandle.open.toFixed(2)}</span>
+                                                <span>H {replay.activeCandle.high.toFixed(2)}</span>
+                                                <span>L {replay.activeCandle.low.toFixed(2)}</span>
+                                                <span>C {replay.activeCandle.close.toFixed(2)}</span>
+                                                <span>Vol {replay.activeCandle.volume.toLocaleString()}</span>
                                             </div>
-                                        );
-                                    })}
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        {(['1m', '5m', '15m', '1h'] as const).map((label) => (
+                                            <button
+                                                key={label}
+                                                type="button"
+                                                className={clsx(
+                                                    'rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all',
+                                                    label === '1m'
+                                                        ? 'bg-blue-500/20 text-blue-300'
+                                                        : 'bg-white/[0.03] text-zinc-500 hover:text-zinc-300'
+                                                )}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            )}
+
+                                <div className="mt-4 grid grid-cols-3 gap-3">
+                                    <div className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
+                                        <p className="text-[11px] uppercase tracking-wide text-zinc-500">Visible</p>
+                                        <p className="mt-1 text-sm font-semibold text-zinc-200">{replay.visibleCandles.length} candles</p>
+                                    </div>
+                                    <div className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
+                                        <p className="text-[11px] uppercase tracking-wide text-zinc-500">Trades</p>
+                                        <p className="mt-1 text-sm font-semibold text-zinc-200">{session.totalTrades}</p>
+                                    </div>
+                                    <div className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
+                                        <p className="text-[11px] uppercase tracking-wide text-zinc-500">P&L</p>
+                                        <p className={clsx('mt-1 text-sm font-semibold', pnlPos ? 'text-emerald-400' : 'text-rose-400')}>
+                                            {pnlPos ? '+' : ''}{fmt(session.totalPnL)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="min-h-0 flex-1 px-4 pb-4 pt-4">
+                                {replay.error ? (
+                                    <div className="flex h-[680px] min-h-[680px] items-center justify-center rounded-2xl border border-rose-500/20 bg-rose-500/5 px-6 text-center">
+                                        <div>
+                                            <p className="text-sm font-semibold text-rose-300">Replay data failed to load</p>
+                                            <p className="mt-1 text-xs text-zinc-400">{replay.error}</p>
+                                        </div>
+                                    </div>
+                                ) : replay.isLoading ? (
+                                    <div className="flex h-[680px] min-h-[680px] items-center justify-center rounded-2xl border border-white/5 bg-[#0F1422] text-sm text-zinc-500">
+                                        Loading replay candles...
+                                    </div>
+                                ) : (
+                                    <ReplayChart
+                                        candles={replay.visibleCandles}
+                                        executions={replay.visibleExecutions}
+                                        activeExecutionId={replay.selectedExecutionId}
+                                        currentPrice={activePrice}
+                                        openPosition={openPosition}
+                                    />
+                                )}
+                            </div>
+
+                            <div className="border-t border-white/5 px-5 py-4">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={replay.stepBackward}
+                                            className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-zinc-300 transition-all hover:bg-white/[0.06]"
+                                        >
+                                            <SkipBack className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => replay.setIsPlaying(!replay.isPlaying)}
+                                            className={clsx(
+                                                'rounded-xl px-4 py-2 text-sm font-semibold transition-all',
+                                                replay.isPlaying
+                                                    ? 'bg-amber-500 text-[#181B24] hover:bg-amber-400'
+                                                    : 'bg-emerald-500 text-[#181B24] hover:bg-emerald-400'
+                                            )}
+                                        >
+                                            {replay.isPlaying ? 'Pause' : 'Play'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={replay.stepForward}
+                                            className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-zinc-300 transition-all hover:bg-white/[0.06]"
+                                        >
+                                            <SkipForward className="h-4 w-4" />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        {REPLAY_SPEEDS.map((speed) => (
+                                            <button
+                                                key={speed}
+                                                type="button"
+                                                onClick={() => replay.setPlaybackSpeed(speed)}
+                                                className={clsx(
+                                                    'rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all',
+                                                    replay.playbackSpeed === speed
+                                                        ? 'bg-blue-500/20 text-blue-300'
+                                                        : 'bg-white/[0.03] text-zinc-500 hover:text-zinc-300'
+                                                )}
+                                            >
+                                                {speed}x
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="mt-4">
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={Math.max(0, replay.candles.length - 1)}
+                                        value={replay.candleIndex}
+                                        onChange={(event) => replay.jumpToIndex(Number(event.target.value))}
+                                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/10"
+                                    />
+                                    <div className="mt-2 flex items-center justify-between text-[11px] text-zinc-500">
+                                        <span>{replay.candles.length > 0 ? `${replay.candleIndex + 1} / ${replay.candles.length}` : '0 / 0'} candles</span>
+                                        <span>{replay.dayStats.replayTimeLabel}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        {/* Running totals */}
-                        <div className="px-4 py-3 border-t border-white/5 bg-[#181B24] flex-shrink-0 space-y-1.5">
-                            {[
-                                { label: 'Total P&L', value: `${pnlPos ? '+' : ''}${fmt(session.totalPnL)}`, color: pnlPos ? 'text-emerald-400' : 'text-rose-400' },
-                                { label: 'Win Rate', value: session.totalTrades > 0 ? fmtPct(session.winRate) : '—', color: 'text-zinc-200' },
-                                { label: 'Trades', value: `${wins.length}W / ${losses.length}L`, color: 'text-zinc-400' },
-                            ].map(({ label, value, color }) => (
-                                <div key={label} className="flex items-center justify-between text-xs">
-                                    <span className="text-zinc-600">{label}</span>
-                                    <span className={clsx('font-semibold', color)}>{value}</span>
+
+                        <div className="flex min-h-0 flex-col border-l border-white/5 bg-[#171D2B]">
+                            <div className="border-b border-white/5 px-4 py-4">
+                                <div className="rounded-2xl border border-white/5 bg-[#101728] p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Order Ticket</p>
+                                            <p className="mt-1 text-sm font-semibold text-zinc-200">
+                                                {openPosition ? `${openPosition.side} open` : 'Ready to place'}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[11px] uppercase tracking-wide text-zinc-500">Mark</p>
+                                            <p className="mt-1 font-mono text-sm text-zinc-200">{activePrice ? activePrice.toFixed(2) : '—'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 grid grid-cols-2 gap-3">
+                                        <label className="text-xs text-zinc-500">
+                                            Qty
+                                            <input
+                                                value={orderQuantity}
+                                                onChange={(event) => setOrderQuantity(event.target.value)}
+                                                type="number"
+                                                min="1"
+                                                className="mt-1 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-100 outline-none transition-all focus:border-emerald-400/30"
+                                            />
+                                        </label>
+                                        <label className="text-xs text-zinc-500">
+                                            Notes
+                                            <input
+                                                value={orderNotes}
+                                                onChange={(event) => setOrderNotes(event.target.value)}
+                                                placeholder="Optional"
+                                                className="mt-1 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-100 outline-none transition-all focus:border-emerald-400/30"
+                                            />
+                                        </label>
+                                    </div>
+                                    <div className="mt-4 grid grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            disabled={!activePrice || !!openPosition}
+                                            onClick={() => openReplayPosition('Long')}
+                                            className="rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-[#181B24] transition-all hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            Buy Market
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={!activePrice || !!openPosition}
+                                            onClick={() => openReplayPosition('Short')}
+                                            className="rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-[#181B24] transition-all hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            Sell Market
+                                        </button>
+                                    </div>
+                                    <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-3">
+                                        {openPosition ? (
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span className="text-zinc-500">Open position</span>
+                                                    <span className={clsx('font-semibold', unrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                                                        {unrealizedPnL >= 0 ? '+' : ''}{fmt(unrealizedPnL)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between text-xs text-zinc-400">
+                                                    <span>{openPosition.side} · {openPosition.quantity} ct</span>
+                                                    <span className="font-mono">{openPosition.entryPrice.toFixed(2)}</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={closeReplayPosition}
+                                                    className="w-full rounded-xl border border-sky-400/20 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 transition-all hover:bg-sky-500/20"
+                                                >
+                                                    Close Position
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs leading-5 text-zinc-500">
+                                                Place a market order at the active candle close, step the replay forward, then close the position to journal the result.
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
-                            ))}
+                            </div>
+
+                            <div className="border-b border-white/5 px-4 py-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Journal</p>
+                                        <h3 className="mt-1 text-sm font-semibold text-zinc-100">{selectedTrade ? `${selectedTrade.side} setup` : 'Session review'}</h3>
+                                    </div>
+                                    <NotepadText className="h-4 w-4 text-zinc-500" />
+                                </div>
+                                <div className="mt-3 flex rounded-xl border border-white/5 bg-white/[0.03] p-1">
+                                    {([
+                                        ['trade', 'Trade'],
+                                        ['day', 'Day'],
+                                        ['notes', 'Notes'],
+                                    ] as const).map(([id, label]) => (
+                                        <button
+                                            key={id}
+                                            type="button"
+                                            onClick={() => setPanelTab(id)}
+                                            className={clsx(
+                                                'flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all',
+                                                panelTab === id ? 'bg-white/10 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
+                                            )}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                                {panelTab === 'trade' && (
+                                    <div className="space-y-3">
+                                        {openPosition && (
+                                            <div className="rounded-2xl border border-sky-400/20 bg-sky-500/10 p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-xs uppercase tracking-wide text-sky-300">Live position</p>
+                                                    <span className={clsx('text-sm font-semibold', unrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                                                        {unrealizedPnL >= 0 ? '+' : ''}{fmt(unrealizedPnL)}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                                                    <div>
+                                                        <p className="text-xs text-sky-200/70">Side</p>
+                                                        <p className="mt-1 text-zinc-100">{openPosition.side}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-sky-200/70">Contracts</p>
+                                                        <p className="mt-1 text-zinc-100">{openPosition.quantity}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-sky-200/70">Entry</p>
+                                                        <p className="mt-1 font-mono text-zinc-100">{openPosition.entryPrice.toFixed(2)}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-sky-200/70">Mark</p>
+                                                        <p className="mt-1 font-mono text-zinc-100">{activePrice ? activePrice.toFixed(2) : '—'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-xs uppercase tracking-wide text-zinc-500">Selected trade</p>
+                                                {selectedTrade && (
+                                                    <span className={clsx(
+                                                        'rounded-full px-2 py-1 text-[11px] font-medium',
+                                                        selectedTrade.side === 'Long' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'
+                                                    )}>
+                                                        {selectedTrade.side}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {selectedTrade ? (
+                                                <div className="mt-3 space-y-3">
+                                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                                        <div>
+                                                            <p className="text-xs text-zinc-500">Entry</p>
+                                                            <p className="mt-1 font-mono text-zinc-200">{selectedTrade.entryPrice.toFixed(2)}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-zinc-500">Exit</p>
+                                                            <p className="mt-1 font-mono text-zinc-200">{selectedTrade.exitPrice.toFixed(2)}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-zinc-500">Quantity</p>
+                                                            <p className="mt-1 text-zinc-200">{selectedTrade.quantity} contracts</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-zinc-500">Net P&L</p>
+                                                            <p className={clsx('mt-1 font-semibold', selectedTrade.netPL >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                                                                {selectedTrade.netPL >= 0 ? '+' : ''}{fmt(selectedTrade.netPL)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                                        <div>
+                                                            <p className="text-xs text-zinc-500">Outcome</p>
+                                                            <p className="mt-1 capitalize text-zinc-200">{selectedTrade.outcome}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-zinc-500">R multiple</p>
+                                                            <p className="mt-1 text-zinc-200">{selectedTrade.rMultiple ? `${selectedTrade.rMultiple}R` : '—'}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="mt-3 text-sm text-zinc-500">Select a trade or log one to review stats.</p>
+                                            )}
+                                        </div>
+
+                                        <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                                            <p className="text-xs uppercase tracking-wide text-zinc-500">Execution sync</p>
+                                            <div className="mt-3 space-y-2 text-sm">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-zinc-500">Active timestamp</span>
+                                                    <span className="text-zinc-200">{replay.dayStats.replayTimeLabel}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-zinc-500">Execution</span>
+                                                    <span className="text-zinc-200">{selectedExecution ? selectedExecution.type : '—'}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-zinc-500">Price</span>
+                                                    <span className="font-mono text-zinc-200">{selectedExecution ? selectedExecution.price.toFixed(2) : '—'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {panelTab === 'day' && (
+                                    <div className="space-y-3">
+                                        <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                                            <p className="text-xs uppercase tracking-wide text-zinc-500">Replay day stats</p>
+                                            <div className="mt-3 grid grid-cols-2 gap-3">
+                                                <div className="rounded-xl bg-[#101522] p-3">
+                                                    <p className="text-[11px] uppercase tracking-wide text-zinc-500">Wins</p>
+                                                    <p className="mt-1 text-lg font-semibold text-emerald-400">{replay.dayStats.wins}</p>
+                                                </div>
+                                                <div className="rounded-xl bg-[#101522] p-3">
+                                                    <p className="text-[11px] uppercase tracking-wide text-zinc-500">Losses</p>
+                                                    <p className="mt-1 text-lg font-semibold text-rose-400">{replay.dayStats.losses}</p>
+                                                </div>
+                                                <div className="rounded-xl bg-[#101522] p-3">
+                                                    <p className="text-[11px] uppercase tracking-wide text-zinc-500">Average trade</p>
+                                                    <p className={clsx('mt-1 text-lg font-semibold', replay.dayStats.averageTrade >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                                                        {replay.dayStats.averageTrade >= 0 ? '+' : ''}{fmt(replay.dayStats.averageTrade)}
+                                                    </p>
+                                                </div>
+                                                <div className="rounded-xl bg-[#101522] p-3">
+                                                    <p className="text-[11px] uppercase tracking-wide text-zinc-500">Replay date</p>
+                                                    <p className="mt-1 text-sm font-semibold text-zinc-200">{replay.dayStats.replayDateLabel}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                                            <p className="text-xs uppercase tracking-wide text-zinc-500">Session totals</p>
+                                            <div className="mt-3 space-y-2 text-sm">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-zinc-500">Current balance</span>
+                                                    <span className="text-zinc-200">{fmt(session.currentBalance)}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-zinc-500">Profit factor</span>
+                                                    <span className="text-zinc-200">{session.totalTrades > 0 ? session.profitFactor.toFixed(2) : '—'}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-zinc-500">Trade split</span>
+                                                    <span className="text-zinc-200">{wins.length}W / {losses.length}L</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {panelTab === 'notes' && (
+                                    <div className="space-y-3">
+                                        <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                                            <p className="text-xs uppercase tracking-wide text-zinc-500">Trade notes</p>
+                                            <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-300">
+                                                {selectedTrade?.notes || 'No notes recorded for the selected trade yet.'}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                                            <p className="text-xs uppercase tracking-wide text-zinc-500">Session notes</p>
+                                            <p className="mt-3 text-sm leading-6 text-zinc-300">
+                                                {session.description || 'Use the session description to store strategy context, replay observations, and what to test next.'}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                                            <div className="flex items-center gap-2 text-zinc-300">
+                                                <Waves className="h-4 w-4 text-blue-300" />
+                                                <p className="text-sm font-medium">Next step</p>
+                                            </div>
+                                            <p className="mt-2 text-sm leading-6 text-zinc-400">
+                                                This foundation is ready for richer replay features later: multi-timeframe sync, richer provider adapters, and strategy event overlays.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1142,7 +1617,7 @@ export const Backtest: React.FC = () => {
     const { theme } = useThemeStore();
     const [activeTab, setActiveTab] = useState<BacktestTab>('sessions');
 
-    useEffect(() => { hydrate(); }, []);
+    useEffect(() => { hydrate(); }, [hydrate]);
 
     return (
         <div className="h-full flex flex-col" style={{ background: theme === 'dark' ? '#181B24' : '#F8FAFC' }}>

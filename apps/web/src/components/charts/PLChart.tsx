@@ -3,6 +3,7 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { Tooltip } from '../Tooltip';
+import { useHasMounted } from '@/hooks/useHasMounted';
 
 interface PLData {
   date: string;
@@ -16,6 +17,7 @@ interface PLChartProps {
 }
 
 export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
+  const hasMounted = useHasMounted();
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -31,6 +33,10 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
   };
 
   const tooltipContent = `Shows cumulative profit and loss over time.\n\nTracks how your account balance has grown or declined with each trading day.\n\nHelps visualize overall trading trajectory.`;
+
+  if (!hasMounted) {
+    return <div className="h-64 rounded-xl border border-white/5 bg-[#181B24]/40" />;
+  }
 
   if (type === 'cumulative') {
     return (

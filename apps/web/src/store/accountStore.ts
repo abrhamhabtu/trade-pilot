@@ -2,12 +2,7 @@
 
 import { create } from 'zustand';
 import { Trade } from './tradingStore';
-import {
-  saveAccountsToIDB,
-  loadAccountsFromIDB,
-  saveSelectedAccountId,
-  loadSelectedAccountId,
-} from '../utils/indexedDB';
+import { persistence } from '@/lib/persistence';
 
 // Import history entry
 export interface ImportHistoryEntry {
@@ -93,11 +88,11 @@ const SELECTED_ACCOUNT_KEY = 'tradepilot_selected_account';
 // ─── Sync helper to persist accounts (IDB primary, localStorage fallback) ─────
 function persistAccounts(accounts: Account[], selectedId?: string | null): void {
   // Fire-and-forget async save to IndexedDB
-  saveAccountsToIDB(accounts as unknown[]).catch(e =>
+  persistence.saveAccounts(accounts as unknown[]).catch(e =>
     console.error('Failed to persist accounts to IDB:', e)
   );
   // selectedAccountId stays in localStorage (tiny value, always safe)
-  if (selectedId !== undefined) saveSelectedAccountId(selectedId);
+  if (selectedId !== undefined) persistence.saveSelectedAccountId(selectedId);
 }
 
 // Generate demo account with sample trades
@@ -166,41 +161,15 @@ const generateDemoAccount = (): Account => {
   };
 };
 
-// ─── Synchronous initial load (localStorage only — IDB is async) ────
-// Reads from localStorage as initial state. initializeFromIDB() is called
-// from useEffect to hydrate from IndexedDB asynchronously.
-const loadAccountsFromStorage = (): { accounts: Account[]; selectedId: string | null } => {
-  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-    const demoAccount = generateDemoAccount();
-    return { accounts: [demoAccount], selectedId: demoAccount.id };
-  }
-  try {
-    const accountsJson = localStorage.getItem(ACCOUNTS_STORAGE_KEY);
-    const selectedId = localStorage.getItem(SELECTED_ACCOUNT_KEY);
-
-    if (accountsJson) {
-      const rawAccounts = JSON.parse(accountsJson) as Account[];
-      if (Array.isArray(rawAccounts) && rawAccounts.length > 0) {
-        const accounts = rawAccounts.map(account => ({
-          ...account,
-          importHistory: account.importHistory || [],
-          status: account.status || 'active',
-          trades: account.trades || [],
-        }));
-        return { accounts, selectedId: selectedId || accounts[0].id };
-      }
-    }
-  } catch (error) {
-    console.error('Failed to load accounts from localStorage:', error);
-  }
-
-  // No data anywhere — return demo account as placeholder.
-  // initializeFromIDB() will replace once IDB is ready.
+// ─── Stable initial state for SSR and first client render ────
+// Always start from the same placeholder state and hydrate from persistence
+// in initializeFromIDB() after mount. This prevents SSR/client mismatches.
+const createInitialAccountsState = (): { accounts: Account[]; selectedId: string | null } => {
   const demoAccount = generateDemoAccount();
   return { accounts: [demoAccount], selectedId: demoAccount.id };
 };
 
-const initialData = loadAccountsFromStorage();
+const initialData = createInitialAccountsState();
 
 export const useAccountStore = create<AccountState>((set, get) => ({
   accounts: initialData.accounts,
@@ -256,7 +225,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
   selectAccount: (id) => {
     set({ selectedAccountId: id, showAllAccounts: false });
-    saveSelectedAccountId(id);
+    persistence.saveSelectedAccountId(id);
   },
 
   setShowAllAccounts: (show) => {
@@ -502,14 +471,14 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   },
 
   initializeFromStorage: () => {
-    const data = loadAccountsFromStorage();
+    const data = createInitialAccountsState();
     set({ accounts: data.accounts, selectedAccountId: data.selectedId });
   },
 
   initializeFromIDB: async () => {
     try {
       // loadAccountsFromIDB already handles IDB → localStorage fallback internally
-      const rawAccounts = await loadAccountsFromIDB();
+      const rawAccounts = await persistence.loadAccounts();
 
       // Nothing in IDB or localStorage — keep current state (demo account placeholder)
       if (!rawAccounts || !Array.isArray(rawAccounts) || rawAccounts.length === 0) {
@@ -527,7 +496,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       const hasRealAccounts = accounts.some(a => a.type !== 'demo');
       if (!hasRealAccounts) return;
 
-      const selectedId = loadSelectedAccountId();
+      const selectedId = persistence.loadSelectedAccountId();
       set({
         accounts,
         selectedAccountId: selectedId || accounts[0]?.id || null,

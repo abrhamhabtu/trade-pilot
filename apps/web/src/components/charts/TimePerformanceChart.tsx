@@ -3,6 +3,7 @@
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Tooltip } from '../Tooltip';
+import { useHasMounted } from '@/hooks/useHasMounted';
 
 interface TimeData {
   time: number; // Hour in 24-hour format
@@ -15,6 +16,7 @@ interface TimePerformanceChartProps {
 }
 
 export const TimePerformanceChart: React.FC<TimePerformanceChartProps> = ({ data }) => {
+  const hasMounted = useHasMounted();
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -122,6 +124,10 @@ export const TimePerformanceChart: React.FC<TimePerformanceChartProps> = ({ data
     }
     return null;
   };
+
+  if (!hasMounted) {
+    return <div className="h-[22rem] rounded-xl border border-white/5 bg-[#181B24]/40" />;
+  }
 
   return (
     <div 

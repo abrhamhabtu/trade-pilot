@@ -1,6 +1,10 @@
 'use client';
 
 import { create } from 'zustand';
+import type {
+    ReplayDataProvider,
+    ReplayPlaybackSettings,
+} from '@/lib/backtest/replay';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -13,6 +17,8 @@ export interface BacktestTrade {
     sessionId: string;
     date: string;          // YYYY-MM-DD
     time?: string;
+    enteredAt?: string;
+    exitedAt?: string;
     side: BacktestSide;
     entryPrice: number;
     exitPrice: number;
@@ -42,6 +48,10 @@ export interface BacktestSession {
     startDate?: string;    // date range being tested
     endDate?: string;
     timeframe?: string;    // '1m' | '5m' | '15m' | '1h' | '4h' | '1D'
+    replayDate?: string;
+    dataProvider?: ReplayDataProvider;
+    replaySettings?: ReplayPlaybackSettings;
+    activeCandleTimestamp?: string;
     tags?: string[];
     createdAt: string;
     updatedAt: string;
@@ -144,6 +154,9 @@ export const useBacktestStore = create<BacktestState>((set, get) => ({
             id,
             trades: [],
             currentBalance: data.startBalance,
+            replayDate: data.replayDate || data.startDate || now.slice(0, 10),
+            dataProvider: data.dataProvider || 'mock',
+            replaySettings: data.replaySettings || { timeframe: '1m', speed: 1 },
             totalPnL: 0,
             winRate: 0,
             profitFactor: 0,

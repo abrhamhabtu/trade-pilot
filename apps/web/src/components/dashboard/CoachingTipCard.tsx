@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Clock, LucideIcon } from 'lucide-react';
+import { SurfaceCard } from '@/components/ui';
 
 interface CoachingTipCardProps {
   title: string;
@@ -19,10 +20,7 @@ export const CoachingTipCard: React.FC<CoachingTipCardProps> = React.memo(({
   const isPerformance = variant === 'performance';
 
   return (
-    <div
-      className="rounded-xl p-6 mb-6 border border-white/5 relative overflow-hidden"
-
-    >
+    <SurfaceCard className="mb-6">
       <div className="flex items-start space-x-4">
         <div className="flex-shrink-0">
           {isPerformance ? (
@@ -42,7 +40,7 @@ export const CoachingTipCard: React.FC<CoachingTipCardProps> = React.memo(({
           </p>
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Tooltip } from './Tooltip';
+import { CardHeader, HelpTooltip, SurfaceCard } from '@/components/ui';
 
 interface SummaryData {
   duration: string;
@@ -27,30 +27,18 @@ export const TradeSummaryTable: React.FC<TradeSummaryTableProps> = ({ data }) =>
   const tooltipContent = `Summary of trading performance by duration ranges.\n\nShows net profits, win rates, and total profits for different holding periods.\n\nHelps identify most profitable trade durations.`;
 
   return (
-    <div 
-      className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group h-full"
-      
-    >
-      {/* Gradient border on hover */}
-      <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
-        <div 
-          className="w-full h-full rounded-xl"
-          
-        />
-      </div>
-      
+    <SurfaceCard hoverable fullHeight>
       <div className="relative z-10 h-full flex flex-col">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2">
-            <h3 className="text-zinc-100 text-lg font-semibold">SUMMARY</h3>
-            <Tooltip content={tooltipContent} position="top">
-              <div className="w-4 h-4 rounded-full bg-[#242838] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
-                <span className="text-zinc-400 text-xs">?</span>
-              </div>
-            </Tooltip>
-          </div>
-        </div>
-        
+        <CardHeader
+          title={
+            <>
+              <h3 className="text-zinc-100 text-lg font-semibold">SUMMARY</h3>
+              <HelpTooltip content={tooltipContent} />
+            </>
+          }
+          className="mb-6"
+        />
+
         <div className="flex-1 overflow-hidden">
           <table className="w-full">
             <thead>
@@ -97,6 +85,6 @@ export const TradeSummaryTable: React.FC<TradeSummaryTableProps> = ({ data }) =>
           </table>
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 };

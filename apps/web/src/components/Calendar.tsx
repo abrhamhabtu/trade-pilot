@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { 
   ChevronLeft, 
@@ -488,10 +489,13 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
                     className="group relative aspect-video rounded-lg overflow-hidden border border-white/5 bg-[#181B24] cursor-pointer"
                     onClick={() => setSelectedImage(image)}
                   >
-                    <img
+                    <Image
                       src={image.dataUrl}
                       alt="Trade screenshot"
                       className="w-full h-full object-cover"
+                      width={320}
+                      height={180}
+                      unoptimized
                     />
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
                       <button
@@ -544,10 +548,13 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
               onClick={() => setSelectedImage(null)}
             >
               <div className="relative max-w-5xl max-h-[90vh]">
-                <img
+                <Image
                   src={selectedImage.dataUrl}
                   alt="Trade screenshot"
                   className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                  width={1600}
+                  height={900}
+                  unoptimized
                 />
                 <button
                   onClick={() => setSelectedImage(null)}
@@ -588,7 +595,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
     if (existingDayStrategy && !dayStrategy) {
       setDayStrategy(existingDayStrategy);
     }
-  }, [existingDayStrategy]);
+  }, [dayStrategy, existingDayStrategy]);
 
   // Handle setting strategy for a single trade
   const handleSetTradeStrategy = (tradeId: string, strategy: string) => {

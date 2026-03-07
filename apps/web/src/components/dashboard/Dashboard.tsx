@@ -9,6 +9,7 @@ import { ChartsContainer } from './ChartsContainer';
 import { useChartData } from '../../hooks/useChartData';
 import { useCoachingTips } from '../../hooks/useCoachingTips';
 import { Trade, TradingMetrics, TimePeriod } from '../../store/tradingStore';
+import { PageSection } from '@/components/ui';
 
 interface DashboardProps {
   trades: Trade[];
@@ -52,7 +53,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   } = useCoachingTips(metrics, timePerformanceData, durationPerformanceData);
 
   return (
-    <div className="p-6">
+    <PageSection>
       <DashboardHeader
         selectedTimePeriod={selectedTimePeriod}
         onTimePeriodChange={onTimePeriodChange}
@@ -90,7 +91,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         variant="performance"
         icon={Clock}
       />
-    </div>
+    </PageSection>
   );
 };
 

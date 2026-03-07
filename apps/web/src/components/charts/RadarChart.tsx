@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { Tooltip } from '../Tooltip';
+import { useHasMounted } from '@/hooks/useHasMounted';
 
 interface PerformanceData {
   category: string;
@@ -16,6 +17,7 @@ interface RadarChartComponentProps {
 }
 
 export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, score }) => {
+  const hasMounted = useHasMounted();
   const [hoveredPoint, setHoveredPoint] = useState<{ category: string; value: number } | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
@@ -100,6 +102,10 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
       </div>
     );
   };
+
+  if (!hasMounted) {
+    return <div className="h-full min-h-[22rem] rounded-xl border border-white/5 bg-[#181B24]/40" />;
+  }
 
   return (
     <div 

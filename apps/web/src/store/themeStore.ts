@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persistence } from '@/lib/persistence';
 
 type Theme = 'dark' | 'light';
 
@@ -10,14 +11,11 @@ interface ThemeState {
   setTheme: (theme: Theme) => void;
 }
 
-const THEME_KEY = 'tradepilot_theme';
-
 const getInitialTheme = (): Theme => {
-  // Light mode is coming soon — always use dark theme for now
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(THEME_KEY, 'dark');
-  }
-  return 'dark';
+  const stored = persistence.loadTheme();
+  const theme = stored === 'light' ? 'light' : 'dark';
+  persistence.saveTheme(theme);
+  return theme;
 };
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
@@ -27,7 +25,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     const newTheme = get().theme === 'dark' ? 'light' : 'dark';
     set({ theme: newTheme });
     if (typeof window !== 'undefined') {
-      localStorage.setItem(THEME_KEY, newTheme);
+      persistence.saveTheme(newTheme);
       document.documentElement.setAttribute('data-theme', newTheme);
     }
   },
@@ -35,7 +33,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   setTheme: (theme: Theme) => {
     set({ theme });
     if (typeof window !== 'undefined') {
-      localStorage.setItem(THEME_KEY, theme);
+      persistence.saveTheme(theme);
       document.documentElement.setAttribute('data-theme', theme);
     }
   }
@@ -45,4 +43,3 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
 if (typeof window !== 'undefined') {
   document.documentElement.setAttribute('data-theme', 'dark');
 }
-

@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persistence } from '@/lib/persistence';
 
 // Checklist item interface
 export interface ChecklistItem {
@@ -111,8 +112,18 @@ interface RoutineState {
 }
 
 const ROUTINE_STORAGE_KEY = 'tradepilot_routine';
-const GAMEPLAN_STORAGE_KEY = 'tradepilot_gameplans';
-const RULES_STORAGE_KEY = 'tradepilot_trading_rules';
+
+function persistRoutineData(
+  checklistItems: ChecklistItem[],
+  gamePlans: Record<string, DailyGamePlan>,
+  tradingRules: TradingRule[]
+): void {
+  persistence.saveRoutine({
+    checklistItems,
+    gamePlans,
+    tradingRules,
+  });
+}
 
 // Create empty game plan
 const createEmptyGamePlan = (date: string): DailyGamePlan => ({
@@ -145,13 +156,14 @@ const loadFromStorage = (): {
     };
   }
   try {
-    const checklistJson = localStorage.getItem(ROUTINE_STORAGE_KEY);
-    const gamePlansJson = localStorage.getItem(GAMEPLAN_STORAGE_KEY);
-    const rulesJson = localStorage.getItem(RULES_STORAGE_KEY);
+    const storedRoutine = persistence.loadRoutine();
+    const checklistJson = storedRoutine?.checklistItems;
+    const gamePlansJson = storedRoutine?.gamePlans;
+    const rulesJson = storedRoutine?.tradingRules;
     
     let checklistItems: ChecklistItem[];
-    if (checklistJson) {
-      checklistItems = JSON.parse(checklistJson);
+    if (Array.isArray(checklistJson) && checklistJson.length > 0) {
+      checklistItems = checklistJson as ChecklistItem[];
     } else {
       // Initialize with default items, all unchecked
       checklistItems = DEFAULT_CHECKLIST_ITEMS.map(item => ({
@@ -160,8 +172,10 @@ const loadFromStorage = (): {
       }));
     }
     
-    const gamePlans = gamePlansJson ? JSON.parse(gamePlansJson) : {};
-    const tradingRules = rulesJson ? JSON.parse(rulesJson) : DEFAULT_TRADING_RULES;
+    const gamePlans = gamePlansJson ? (gamePlansJson as Record<string, DailyGamePlan>) : {};
+    const tradingRules = Array.isArray(rulesJson) && rulesJson.length > 0
+      ? (rulesJson as TradingRule[])
+      : DEFAULT_TRADING_RULES;
     
     return { checklistItems, gamePlans, tradingRules };
   } catch (error) {
@@ -187,11 +201,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
         item.id === id ? { ...item, checked: !item.checked } : item
       );
       // Save to storage
-      try {
-        localStorage.setItem(ROUTINE_STORAGE_KEY, JSON.stringify(newItems));
-      } catch (e) {
-        console.error('Failed to save checklist:', e);
-      }
+      persistRoutineData(newItems, state.gamePlans, state.tradingRules);
       return { checklistItems: newItems };
     });
   },
@@ -205,11 +215,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
         isDefault: false,
       };
       const newItems = [...state.checklistItems, newItem];
-      try {
-        localStorage.setItem(ROUTINE_STORAGE_KEY, JSON.stringify(newItems));
-      } catch (e) {
-        console.error('Failed to save checklist:', e);
-      }
+      persistRoutineData(newItems, state.gamePlans, state.tradingRules);
       return { checklistItems: newItems };
     });
   },
@@ -217,11 +223,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
   removeChecklistItem: (id) => {
     set((state) => {
       const newItems = state.checklistItems.filter((item) => item.id !== id);
-      try {
-        localStorage.setItem(ROUTINE_STORAGE_KEY, JSON.stringify(newItems));
-      } catch (e) {
-        console.error('Failed to save checklist:', e);
-      }
+      persistRoutineData(newItems, state.gamePlans, state.tradingRules);
       return { checklistItems: newItems };
     });
   },
@@ -232,11 +234,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
         ...item,
         checked: false,
       }));
-      try {
-        localStorage.setItem(ROUTINE_STORAGE_KEY, JSON.stringify(newItems));
-      } catch (e) {
-        console.error('Failed to save checklist:', e);
-      }
+      persistRoutineData(newItems, state.gamePlans, state.tradingRules);
       return { checklistItems: newItems };
     });
   },
@@ -256,11 +254,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
       const existing = state.gamePlans[date] || createEmptyGamePlan(date);
       const updated = { ...existing, ...plan, date };
       const newPlans = { ...state.gamePlans, [date]: updated };
-      try {
-        localStorage.setItem(GAMEPLAN_STORAGE_KEY, JSON.stringify(newPlans));
-      } catch (e) {
-        console.error('Failed to save game plan:', e);
-      }
+      persistRoutineData(state.checklistItems, newPlans, state.tradingRules);
       return { gamePlans: newPlans };
     });
   },
@@ -276,11 +270,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
         },
       };
       const newPlans = { ...state.gamePlans, [date]: updated };
-      try {
-        localStorage.setItem(GAMEPLAN_STORAGE_KEY, JSON.stringify(newPlans));
-      } catch (e) {
-        console.error('Failed to save game plan:', e);
-      }
+      persistRoutineData(state.checklistItems, newPlans, state.tradingRules);
       return { gamePlans: newPlans };
     });
   },
@@ -296,11 +286,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
         },
       };
       const newPlans = { ...state.gamePlans, [date]: updated };
-      try {
-        localStorage.setItem(GAMEPLAN_STORAGE_KEY, JSON.stringify(newPlans));
-      } catch (e) {
-        console.error('Failed to save game plan:', e);
-      }
+      persistRoutineData(state.checklistItems, newPlans, state.tradingRules);
       return { gamePlans: newPlans };
     });
   },
@@ -313,11 +299,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
         watchlist: [...existing.watchlist, symbol.toUpperCase()],
       };
       const newPlans = { ...state.gamePlans, [date]: updated };
-      try {
-        localStorage.setItem(GAMEPLAN_STORAGE_KEY, JSON.stringify(newPlans));
-      } catch (e) {
-        console.error('Failed to save game plan:', e);
-      }
+      persistRoutineData(state.checklistItems, newPlans, state.tradingRules);
       return { gamePlans: newPlans };
     });
   },
@@ -330,11 +312,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
         watchlist: existing.watchlist.filter((_, i) => i !== index),
       };
       const newPlans = { ...state.gamePlans, [date]: updated };
-      try {
-        localStorage.setItem(GAMEPLAN_STORAGE_KEY, JSON.stringify(newPlans));
-      } catch (e) {
-        console.error('Failed to save game plan:', e);
-      }
+      persistRoutineData(state.checklistItems, newPlans, state.tradingRules);
       return { gamePlans: newPlans };
     });
   },
@@ -350,11 +328,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
         createdAt: new Date().toISOString(),
       };
       const newRules = [...state.tradingRules, newRule];
-      try {
-        localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(newRules));
-      } catch (e) {
-        console.error('Failed to save trading rules:', e);
-      }
+      persistRoutineData(state.checklistItems, state.gamePlans, newRules);
       return { tradingRules: newRules };
     });
   },
@@ -362,11 +336,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
   removeTradingRule: (id) => {
     set((state) => {
       const newRules = state.tradingRules.filter((rule) => rule.id !== id);
-      try {
-        localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(newRules));
-      } catch (e) {
-        console.error('Failed to save trading rules:', e);
-      }
+      persistRoutineData(state.checklistItems, state.gamePlans, newRules);
       return { tradingRules: newRules };
     });
   },
@@ -376,11 +346,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
       const newRules = state.tradingRules.map((rule) =>
         rule.id === id ? { ...rule, isActive: !rule.isActive } : rule
       );
-      try {
-        localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(newRules));
-      } catch (e) {
-        console.error('Failed to save trading rules:', e);
-      }
+      persistRoutineData(state.checklistItems, state.gamePlans, newRules);
       return { tradingRules: newRules };
     });
   },
@@ -390,11 +356,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
       const newRules = state.tradingRules.map((rule) =>
         rule.id === id ? { ...rule, ...updates } : rule
       );
-      try {
-        localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(newRules));
-      } catch (e) {
-        console.error('Failed to save trading rules:', e);
-      }
+      persistRoutineData(state.checklistItems, state.gamePlans, newRules);
       return { tradingRules: newRules };
     });
   },
@@ -419,11 +381,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
       const updated = { ...existing, ruleCompliance: newCompliance };
       const newPlans = { ...state.gamePlans, [date]: updated };
       
-      try {
-        localStorage.setItem(GAMEPLAN_STORAGE_KEY, JSON.stringify(newPlans));
-      } catch (e) {
-        console.error('Failed to save rule compliance:', e);
-      }
+      persistRoutineData(state.checklistItems, newPlans, state.tradingRules);
       return { gamePlans: newPlans };
     });
   },
@@ -446,11 +404,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
       const updated = { ...existing, ruleCompliance: newCompliance };
       const newPlans = { ...state.gamePlans, [date]: updated };
 
-      try {
-        localStorage.setItem(GAMEPLAN_STORAGE_KEY, JSON.stringify(newPlans));
-      } catch (e) {
-        console.error('Failed to save batch rule compliance:', e);
-      }
+      persistRoutineData(state.checklistItems, newPlans, state.tradingRules);
       return { gamePlans: newPlans };
     });
   },
@@ -491,12 +445,6 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
 
   saveToStorage: () => {
     const { checklistItems, gamePlans, tradingRules } = get();
-    try {
-      localStorage.setItem(ROUTINE_STORAGE_KEY, JSON.stringify(checklistItems));
-      localStorage.setItem(GAMEPLAN_STORAGE_KEY, JSON.stringify(gamePlans));
-      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(tradingRules));
-    } catch (e) {
-      console.error('Failed to save routine data:', e);
-    }
+    persistRoutineData(checklistItems, gamePlans, tradingRules);
   },
 }));

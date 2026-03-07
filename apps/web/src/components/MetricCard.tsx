@@ -3,7 +3,7 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
-import { Tooltip } from './Tooltip';
+import { CardHeader, HelpTooltip, SurfaceCard } from '@/components/ui';
 
 interface MetricCardProps {
   title: string;
@@ -80,31 +80,19 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   };
 
   return (
-    <div 
-      className="rounded-lg p-4 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-      
-    >
-      {/* Gradient border on hover */}
-      <div className="absolute inset-0 rounded-lg p-[1px] bg-gradient-to-r from-[#3BF68A]/0 to-[#A78BFA]/0 group-hover:from-[#3BF68A]/50 group-hover:to-[#A78BFA]/50 transition-all duration-200">
-        <div 
-          className="w-full h-full rounded-lg"
-          
-        />
-      </div>
-      
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
+    <SurfaceCard padding="sm" hoverable>
+      <CardHeader
+        title={
+          <>
             <span className="text-zinc-400 text-xs font-medium">{title}</span>
-            <Tooltip content={getTooltipContent(title)} position="top">
-              <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
-                <span className="text-zinc-400 text-xs">?</span>
-              </div>
-            </Tooltip>
-          </div>
-          {Icon && <Icon className={clsx('h-4 w-4', iconColor)} />}
-        </div>
-        
+            <HelpTooltip content={getTooltipContent(title)} />
+          </>
+        }
+        action={Icon ? <Icon className={clsx('h-4 w-4', iconColor)} /> : undefined}
+        className="mb-3"
+      />
+
+      <div className="relative z-10">
         <div className="space-y-1">
           <div className={clsx('text-xl font-bold', getTrendColor())}>
             {formatValue(value)}
@@ -117,6 +105,6 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 };

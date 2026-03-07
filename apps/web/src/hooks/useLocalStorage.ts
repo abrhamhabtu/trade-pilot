@@ -1,9 +1,7 @@
 'use client';
 
 import { Trade } from '../store/tradingStore';
-
-const STORAGE_KEY = 'tradepilot_trades';
-const SETTINGS_KEY = 'tradepilot_settings';
+import { persistence } from '@/lib/persistence';
 
 interface StoredSettings {
   hasImportedData: boolean;
@@ -13,56 +11,26 @@ interface StoredSettings {
 const canUseStorage = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined';
 
 export function saveTradesToStorage(trades: Trade[]): void {
-  if (!canUseStorage()) return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trades));
-  } catch (error) {
-    console.error('Failed to save trades to localStorage:', error);
-  }
+  persistence.saveTrades(trades);
 }
 
 export function loadTradesFromStorage(): Trade[] | null {
-  if (!canUseStorage()) return null;
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored) as Trade[];
-    }
-    return null;
-  } catch (error) {
-    console.error('Failed to load trades from localStorage:', error);
-    return null;
-  }
+  return persistence.loadTrades<Trade>();
 }
 
 export function saveSettingsToStorage(settings: StoredSettings): void {
-  if (!canUseStorage()) return;
-  try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  } catch (error) {
-    console.error('Failed to save settings to localStorage:', error);
-  }
+  persistence.saveSettings(settings);
 }
 
 export function loadSettingsFromStorage(): StoredSettings | null {
-  if (!canUseStorage()) return null;
-  try {
-    const stored = localStorage.getItem(SETTINGS_KEY);
-    if (stored) {
-      return JSON.parse(stored) as StoredSettings;
-    }
-    return null;
-  } catch (error) {
-    console.error('Failed to load settings from localStorage:', error);
-    return null;
-  }
+  return persistence.loadSettings();
 }
 
 export function clearStorage(): void {
   if (!canUseStorage()) return;
   try {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(SETTINGS_KEY);
+    localStorage.removeItem('tradepilot_trades');
+    localStorage.removeItem('tradepilot_settings');
   } catch (error) {
     console.error('Failed to clear localStorage:', error);
   }

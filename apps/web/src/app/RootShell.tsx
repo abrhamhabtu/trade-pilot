@@ -3,7 +3,6 @@
 import React from 'react';
 import clsx from 'clsx';
 import { Sidebar } from '@/components/Sidebar';
-import { useTradingStore } from '@/store/tradingStore';
 import { useThemeStore } from '@/store/themeStore';
 import dynamic from 'next/dynamic';
 
@@ -13,7 +12,6 @@ const Agentation = process.env.NODE_ENV !== 'production'
   : null;
 
 export default function RootShell({ children }: { children: React.ReactNode }) {
-  const { sidebarCollapsed } = useTradingStore();
   const { theme } = useThemeStore();
 
   return (
@@ -27,7 +25,7 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
       }}
     >
       <Sidebar />
-      <main className={`h-full overflow-auto transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
+      <main className="h-full overflow-auto transition-all duration-300 ml-64">
         {children}
       </main>
       {Agentation && <Agentation />}

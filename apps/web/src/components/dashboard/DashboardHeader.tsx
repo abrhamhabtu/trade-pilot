@@ -4,6 +4,7 @@ import React from 'react';
 import clsx from 'clsx';
 import { RefreshCw, Download } from 'lucide-react';
 import { TimePeriod } from '../../store/tradingStore';
+import { AppButton, SegmentedControl } from '@/components/ui';
 
 interface DashboardHeaderProps {
   selectedTimePeriod: TimePeriod;
@@ -39,25 +40,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center space-x-6">
-        <div
-          className="flex items-center space-x-2 rounded-lg px-3 py-2 border border-white/5"
-          
-        >
-          {TIME_PERIODS.map((period) => (
-            <button
-              key={period}
-              onClick={() => onTimePeriodChange(period)}
-              className={clsx(
-                'px-3 py-1 text-sm rounded transition-all duration-200',
-                period === selectedTimePeriod
-                  ? 'bg-white text-zinc-950 hover:bg-zinc-200 font-medium shadow-lg'
-                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
-              )}
-            >
-              {period}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl options={TIME_PERIODS} value={selectedTimePeriod} onChange={onTimePeriodChange} />
 
         <div className="text-sm text-zinc-400">
           Showing: <span className="text-zinc-100 font-medium">{TIME_PERIOD_LABELS[selectedTimePeriod]}</span>
@@ -68,22 +51,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
       </div>
 
       <div className="flex items-center space-x-3">
-        <button
-          onClick={onRefresh}
-          disabled={isLoading}
-          className="flex items-center space-x-2 px-4 py-2 border border-white/5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:border-transparent hover:bg-white/5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          
-        >
+        <AppButton onClick={onRefresh} disabled={isLoading} variant="secondary">
           <RefreshCw className={clsx('h-4 w-4', isLoading && 'animate-spin')} />
           <span className="text-sm">{isLoading ? 'Refreshing...' : 'Refresh Data'}</span>
-        </button>
-        <button
-          onClick={onImport}
-          className="flex items-center space-x-2 px-4 py-2 bg-white text-zinc-950 hover:bg-zinc-200 font-medium rounded-lg hover:opacity-90 hover:shadow-lg transition-all duration-200"
-        >
+        </AppButton>
+        <AppButton onClick={onImport} variant="primary">
           <Download className="h-4 w-4" />
           <span className="text-sm">Import Trades from TradingView</span>
-        </button>
+        </AppButton>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Tooltip } from '../Tooltip';
+import { useHasMounted } from '@/hooks/useHasMounted';
 
 interface DurationData {
   duration: number; // Duration in minutes
@@ -15,6 +16,7 @@ interface DurationPerformanceChartProps {
 }
 
 export const DurationPerformanceChart: React.FC<DurationPerformanceChartProps> = ({ data }) => {
+  const hasMounted = useHasMounted();
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -139,6 +141,10 @@ export const DurationPerformanceChart: React.FC<DurationPerformanceChartProps> =
     }
     return null;
   };
+
+  if (!hasMounted) {
+    return <div className="h-[22rem] rounded-xl border border-white/5 bg-[#181B24]/40" />;
+  }
 
   return (
     <div 

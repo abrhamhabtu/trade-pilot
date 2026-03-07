@@ -1,7 +1,5 @@
-import dynamic from 'next/dynamic';
-
-const AppClient = dynamic(() => import('./AppClient'), { ssr: false });
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return <AppClient />;
+  redirect('/app/dashboard');
 }

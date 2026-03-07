@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import RootShell from './RootShell';
 
 export const metadata: Metadata = {
   title: 'TradePilot',
@@ -14,9 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        <RootShell>{children}</RootShell>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

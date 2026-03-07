@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { Plus, MoreVertical, Upload, Trash2, Edit2, ChevronDown, FileText, AlertTriangle, History, X, Download, HardDrive, DollarSign, ArrowDownLeft, ArrowUpRight, Calendar } from 'lucide-react';
 import { useAccountStore, Account, AccountStatus, BalanceAdjustment } from '../../store/accountStore';
@@ -80,10 +81,12 @@ const renderBrokerBadge = (option?: BrokerOption) => {
           option.logoBgClass || 'bg-white'
         )}
       >
-        <img
+        <Image
           src={option.logoSrc}
           alt={option.logoAlt || `${option.label} logo`}
           className="h-6 w-6 object-contain"
+          width={24}
+          height={24}
           loading="lazy"
         />
       </div>
@@ -1928,7 +1931,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
     } else {
       setShowAdjustments(null);
     }
-  }, [accounts, showAdjustments?.id]);
+  }, [accounts, showAdjustments]);
 
   // Keep the import history modal in sync with store updates
   React.useEffect(() => {
@@ -1939,7 +1942,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
     } else {
       setShowImportHistory(null);
     }
-  }, [accounts, showImportHistory?.id]);
+  }, [accounts, showImportHistory]);
 
   const formatBalance = (balance: number) => {
     const formatted = new Intl.NumberFormat('en-US', {

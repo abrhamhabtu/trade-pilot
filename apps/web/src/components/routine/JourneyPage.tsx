@@ -81,7 +81,7 @@ export const JourneyPage: React.FC = () => {
       setIsFunded(account.isFunded || false);
       setPace(account.pacingPreference || 'moderate');
     }
-  }, [account?.id]);
+  }, [account]);
 
   // Group existing trades by date
   const [consistencyRule, setConsistencyRule] = useState(account?.consistencyRulePercentage || 30);

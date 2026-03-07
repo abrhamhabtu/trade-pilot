@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { saveNotesToIDB, loadNotesFromIDB } from '../utils/indexedDB';
+import { persistence } from '@/lib/persistence';
 
 export interface NoteImage {
   id: string;
@@ -41,7 +41,7 @@ const makeKey = (date: string, accountId?: string) =>
 
 // Fire-and-forget persist to IDB
 function persistNotes(notes: Record<string, DailyNote>): void {
-  saveNotesToIDB(notes as Record<string, unknown>).catch(e =>
+  persistence.saveNotes(notes as Record<string, unknown>).catch(e =>
     console.error('Failed to persist notes to IDB:', e)
   );
 }
@@ -54,7 +54,7 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
   hydrate: async () => {
     if (get()._hydrated) return;
     try {
-      const stored = await loadNotesFromIDB();
+      const stored = await persistence.loadNotes();
       set({ notes: stored as Record<string, DailyNote>, _hydrated: true });
     } catch (e) {
       console.error('Failed to hydrate notes from IDB:', e);
