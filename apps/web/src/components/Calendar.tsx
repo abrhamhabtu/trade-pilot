@@ -120,7 +120,7 @@ const EquityCurve: React.FC<{ trades: Trade[] }> = ({ trades }) => {
           y1={height - padding - ((-minY) / range) * (height - padding * 2)}
           x2={width - padding}
           y2={height - padding - ((-minY) / range) * (height - padding * 2)}
-          stroke="#2C3148"
+          stroke="#1E2F4A"
           strokeWidth="1"
           strokeDasharray="4,4"
         />
@@ -136,7 +136,7 @@ const EquityCurve: React.FC<{ trades: Trade[] }> = ({ trades }) => {
         <path
           d={pathPoints}
           fill="none"
-          stroke={isPositive ? '#3BF68A' : '#F45B69'}
+          stroke={isPositive ? '#00D68F' : '#FF4868'}
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -152,7 +152,7 @@ const EquityCurve: React.FC<{ trades: Trade[] }> = ({ trades }) => {
               cx={x}
               cy={y}
               r="3"
-              fill={point.y >= 0 ? '#3BF68A' : '#F45B69'}
+              fill={point.y >= 0 ? '#00D68F' : '#FF4868'}
               className="opacity-70"
             />
           );
@@ -161,12 +161,12 @@ const EquityCurve: React.FC<{ trades: Trade[] }> = ({ trades }) => {
         {/* Gradient definitions */}
         <defs>
           <linearGradient id="greenGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#10B981" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+            <stop offset="0%" stopColor="#00D68F" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#00D68F" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="redGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#F45B69" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#F45B69" stopOpacity="0" />
+            <stop offset="0%" stopColor="#FF4868" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#FF4868" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>
@@ -351,12 +351,12 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
       {/* Toggle Header */}
       <button
         onClick={onToggle}
-        className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#242838]/30 transition-colors"
+        className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#172035]/30 transition-colors"
       >
         <div className="flex items-center space-x-3">
           <div className={clsx(
             'p-2 rounded-lg',
-            hasContent ? 'bg-[#242838]/80' : 'bg-[#242838]'
+            hasContent ? 'bg-[#172035]/80' : 'bg-[#172035]'
           )}>
             <FileText className={clsx(
               'h-4 w-4',
@@ -365,7 +365,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
           </div>
           <span className="text-zinc-100 font-medium">Daily Notes</span>
           {hasContent && (
-            <span className="text-xs text-zinc-400 bg-[#242838] px-2 py-0.5 rounded">
+            <span className="text-xs text-zinc-400 bg-[#172035] px-2 py-0.5 rounded">
               {note?.images?.length || 0} images
             </span>
           )}
@@ -387,39 +387,39 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
         <div className="px-6 pb-6">
           {/* Toolbar */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-1 bg-[#181B24] rounded-lg p-1 border border-white/5">
+            <div className="flex items-center space-x-1 bg-[#0D1628] rounded-lg p-1 border border-white/5">
               <button
                 onClick={handleBold}
-                className="p-2 rounded hover:bg-[#242838] text-zinc-400 hover:text-zinc-100 transition-colors"
+                className="p-2 rounded hover:bg-[#172035] text-zinc-400 hover:text-zinc-100 transition-colors"
                 title="Bold (**text**)"
               >
                 <Bold className="h-4 w-4" />
               </button>
               <button
                 onClick={handleItalic}
-                className="p-2 rounded hover:bg-[#242838] text-zinc-400 hover:text-zinc-100 transition-colors"
+                className="p-2 rounded hover:bg-[#172035] text-zinc-400 hover:text-zinc-100 transition-colors"
                 title="Italic (*text*)"
               >
                 <Italic className="h-4 w-4" />
               </button>
               <button
                 onClick={handleBullet}
-                className="p-2 rounded hover:bg-[#242838] text-zinc-400 hover:text-zinc-100 transition-colors"
+                className="p-2 rounded hover:bg-[#172035] text-zinc-400 hover:text-zinc-100 transition-colors"
                 title="Bullet Point"
               >
                 <List className="h-4 w-4" />
               </button>
-              <div className="w-px h-6 bg-[#242838] mx-1" />
+              <div className="w-px h-6 bg-[#172035] mx-1" />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded hover:bg-[#242838] text-zinc-400 hover:text-zinc-100 transition-colors"
+                className="p-2 rounded hover:bg-[#172035] text-zinc-400 hover:text-zinc-100 transition-colors"
                 title="Add Image"
               >
                 <ImageIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded hover:bg-[#242838] text-zinc-400 hover:text-zinc-100 transition-colors"
+                className="p-2 rounded hover:bg-[#172035] text-zinc-400 hover:text-zinc-100 transition-colors"
                 title="Add Screenshot"
               >
                 <Camera className="h-4 w-4" />
@@ -465,8 +465,8 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
 • *Italic* for observations"
             className={clsx(
               'w-full min-h-[120px] overflow-y-auto p-4 rounded-xl border text-zinc-100 text-sm resize-y',
-              'bg-[#181B24] border-white/5',
-              'focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 focus:border-zinc-500',
+              'bg-[#0D1628] border-white/5',
+              'focus:outline-none focus:ring-2 focus:ring-[#4F9CF9]/50 focus:border-zinc-500',
               'placeholder:text-[#4B5563]'
             )}
             dir="ltr"
@@ -486,7 +486,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
                 {note.images.map((image) => (
                   <div
                     key={image.id}
-                    className="group relative aspect-video rounded-lg overflow-hidden border border-white/5 bg-[#181B24] cursor-pointer"
+                    className="group relative aspect-video rounded-lg overflow-hidden border border-white/5 bg-[#0D1628] cursor-pointer"
                     onClick={() => setSelectedImage(image)}
                   >
                     <Image
@@ -503,7 +503,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
                           e.stopPropagation();
                           setSelectedImage(image);
                         }}
-                        className="p-2 rounded-lg bg-[#242838] text-zinc-100 hover:bg-[#2D3748]"
+                        className="p-2 rounded-lg bg-[#172035] text-zinc-100 hover:bg-[#2D3748]"
                       >
                         <Maximize2 className="h-4 w-4" />
                       </button>
@@ -523,7 +523,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
                 {/* Add More Button */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="aspect-video rounded-lg border-2 border-dashed border-white/5 bg-[#181B24] hover:border-zinc-500 hover:bg-[#242838]/50 transition-all flex flex-col items-center justify-center text-zinc-400 hover:text-zinc-400"
+                  className="aspect-video rounded-lg border-2 border-dashed border-white/5 bg-[#0D1628] hover:border-zinc-500 hover:bg-[#172035]/50 transition-all flex flex-col items-center justify-center text-zinc-400 hover:text-zinc-400"
                 >
                   <Plus className="h-6 w-6 mb-1" />
                   <span className="text-xs">Add Image</span>
@@ -534,7 +534,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({ date, isExpanded, onToggle, a
 
           {/* Empty state for images */}
           {(!note?.images || note.images.length === 0) && (
-            <div className="mt-4 p-6 rounded-xl border-2 border-dashed border-white/5 bg-[#181B24]/50 text-center">
+            <div className="mt-4 p-6 rounded-xl border-2 border-dashed border-white/5 bg-[#0D1628]/50 text-center">
               <Camera className="h-8 w-8 text-[#4B5563] mx-auto mb-2" />
               <p className="text-sm text-zinc-400 mb-1">Add screenshots or chart images</p>
               <p className="text-xs text-[#4B5563]">Click the image button above or paste directly (Ctrl/Cmd+V)</p>
@@ -706,7 +706,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
       <div 
         className="rounded-2xl border border-white/5 max-w-6xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl"
         style={{
-          background: 'linear-gradient(180deg, #1E2130 0%, #1E2130 100%)'
+          background: 'linear-gradient(180deg, #111F35 0%, #111F35 100%)'
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -741,7 +741,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                   'flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm transition-all',
                   dateHasNote
                     ? 'bg-zinc-200 text-white hover:bg-zinc-300'
-                    : 'bg-emerald-500 text-[#181B24] hover:bg-[#2EE07A]'
+                    : 'bg-emerald-500 text-[#0D1628] hover:bg-[#2EE07A]'
                 )}
               >
                 <FileText className="h-4 w-4" />
@@ -749,7 +749,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
               </button>
               <button
                 onClick={onClose}
-                className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] rounded-lg transition-all"
+                className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#172035] rounded-lg transition-all"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -770,7 +770,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
           <div className="grid grid-cols-12 gap-6">
             {/* Equity Curve */}
             <div className="col-span-5">
-              <div className="bg-[#181B24] rounded-xl p-4 border border-white/5">
+              <div className="bg-[#0D1628] rounded-xl p-4 border border-white/5">
                 <div className="ml-8">
                   <EquityCurve trades={trades} />
                 </div>
@@ -781,31 +781,31 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
             <div className="col-span-7">
               <div className="grid grid-cols-4 gap-3">
                 {/* Total Trades */}
-                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                <div className="bg-[#0D1628] rounded-xl p-3 border border-white/5">
                   <div className="text-zinc-400 text-xs mb-1">Total trades</div>
                   <div className="text-zinc-100 text-xl font-bold">{stats.totalTrades}</div>
                 </div>
                 
                 {/* Winners */}
-                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                <div className="bg-[#0D1628] rounded-xl p-3 border border-white/5">
                   <div className="text-zinc-400 text-xs mb-1">Winners</div>
                   <div className="text-emerald-500 text-xl font-bold">{stats.winners}</div>
                 </div>
                 
                 {/* Gross P&L */}
-                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                <div className="bg-[#0D1628] rounded-xl p-3 border border-white/5">
                   <div className="text-zinc-400 text-xs mb-1">Gross P&L</div>
                   <div className="text-zinc-100 text-xl font-bold">{formatCurrencyShort(stats.grossPnL)}</div>
                 </div>
                 
                 {/* Commissions */}
-                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                <div className="bg-[#0D1628] rounded-xl p-3 border border-white/5">
                   <div className="text-zinc-400 text-xs mb-1">Commissions</div>
                   <div className="text-rose-500 text-xl font-bold">{formatCurrencyShort(stats.commissions)}</div>
                 </div>
                 
                 {/* Win Rate */}
-                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                <div className="bg-[#0D1628] rounded-xl p-3 border border-white/5">
                   <div className="text-zinc-400 text-xs mb-1">Winrate</div>
                   <div className={clsx(
                     'text-xl font-bold',
@@ -816,19 +816,19 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                 </div>
                 
                 {/* Losers */}
-                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                <div className="bg-[#0D1628] rounded-xl p-3 border border-white/5">
                   <div className="text-zinc-400 text-xs mb-1">Losers</div>
                   <div className="text-rose-500 text-xl font-bold">{stats.losers}</div>
                 </div>
                 
                 {/* Volume */}
-                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                <div className="bg-[#0D1628] rounded-xl p-3 border border-white/5">
                   <div className="text-zinc-400 text-xs mb-1">Volume</div>
                   <div className="text-zinc-100 text-xl font-bold">{stats.volume}</div>
                 </div>
                 
                 {/* Profit Factor */}
-                <div className="bg-[#181B24] rounded-xl p-3 border border-white/5">
+                <div className="bg-[#0D1628] rounded-xl p-3 border border-white/5">
                   <div className="text-zinc-400 text-xs mb-1">Profit factor</div>
                   <div className={clsx(
                     'text-xl font-bold',
@@ -855,8 +855,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                 className={clsx(
                   'flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all min-w-[180px] justify-between',
                   dayStrategy
-                    ? 'bg-[#242838] border-zinc-700 text-zinc-400'
-                    : 'bg-[#242838] border-white/5 text-zinc-400 hover:border-zinc-500'
+                    ? 'bg-[#172035] border-zinc-700 text-zinc-400'
+                    : 'bg-[#172035] border-white/5 text-zinc-400 hover:border-zinc-500'
                 )}
               >
                 <span>{dayStrategy || 'Select strategy...'}</span>
@@ -864,10 +864,10 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
               </button>
               
               {showDayStrategyDropdown && (
-                <div className="absolute right-0 mt-2 w-56 bg-[#181B24]/80 backdrop-blur-md border border-white/5 rounded-lg shadow-xl z-50 py-1 max-h-64 overflow-y-auto">
+                <div className="absolute right-0 mt-2 w-56 bg-[#0D1628]/80 backdrop-blur-md border border-white/5 rounded-lg shadow-xl z-50 py-1 max-h-64 overflow-y-auto">
                   <button
                     onClick={() => handleSetDayStrategy('')}
-                    className="w-full px-4 py-2 text-left text-sm text-zinc-400 hover:bg-[#242838] hover:text-zinc-100"
+                    className="w-full px-4 py-2 text-left text-sm text-zinc-400 hover:bg-[#172035] hover:text-zinc-100"
                   >
                     Clear strategy
                   </button>
@@ -879,8 +879,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                       className={clsx(
                         'w-full px-4 py-2 text-left text-sm transition-colors',
                         dayStrategy === strategy
-                          ? 'bg-[#242838]/80 text-zinc-400'
-                          : 'text-zinc-100 hover:bg-[#242838]'
+                          ? 'bg-[#172035]/80 text-zinc-400'
+                          : 'text-zinc-100 hover:bg-[#172035]'
                       )}
                     >
                       {strategy}
@@ -897,9 +897,9 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
 
         {/* Trades Table Section */}
         <div className="px-6 pb-6">
-          <div className="bg-[#181B24] rounded-xl border border-white/5 overflow-hidden">
+          <div className="bg-[#0D1628] rounded-xl border border-white/5 overflow-hidden">
             {/* Table Header */}
-            <div className="grid grid-cols-16 gap-2 px-4 py-3 bg-[#1E2130] border-b border-white/5 text-xs text-zinc-400 font-medium">
+            <div className="grid grid-cols-16 gap-2 px-4 py-3 bg-[#111F35] border-b border-white/5 text-xs text-zinc-400 font-medium">
               <div className="col-span-2">Open time</div>
               <div className="col-span-2">Ticker</div>
               <div className="col-span-1">Side</div>
@@ -922,8 +922,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                     key={trade.id}
                     className={clsx(
                       'grid grid-cols-16 gap-2 px-4 py-3 items-center transition-all duration-200',
-                      index % 2 === 0 ? 'bg-transparent' : 'bg-[#1E2130]/50',
-                      'hover:bg-[#242838]/30'
+                      index % 2 === 0 ? 'bg-transparent' : 'bg-[#111F35]/50',
+                      'hover:bg-[#172035]/30'
                     )}
                   >
                     {/* Time */}
@@ -933,7 +933,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                     
                     {/* Ticker */}
                     <div className="col-span-2 flex items-center space-x-2">
-                      <span className="px-2 py-1 rounded-md bg-[#242838] text-zinc-100 text-sm font-medium">
+                      <span className="px-2 py-1 rounded-md bg-[#172035] text-zinc-100 text-sm font-medium">
                         {trade.symbol.replace(/\d{4}$/, '').substring(0, 3)}
                       </span>
                       <span className={clsx(
@@ -998,8 +998,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                         className={clsx(
                           'flex items-center space-x-1 px-2 py-1 rounded text-sm transition-all w-full justify-between',
                           trade.strategy
-                            ? 'bg-[#242838] text-zinc-400 hover:bg-[#242838]/80'
-                            : 'text-zinc-400 hover:bg-[#242838] hover:text-zinc-100'
+                            ? 'bg-[#172035] text-zinc-400 hover:bg-[#172035]/80'
+                            : 'text-zinc-400 hover:bg-[#172035] hover:text-zinc-100'
                         )}
                       >
                         <span className="truncate">{trade.strategy || '— Select —'}</span>
@@ -1007,10 +1007,10 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                       </button>
                       
                       {openStrategyDropdown === trade.id && (
-                        <div className="absolute right-0 mt-1 w-48 bg-[#181B24]/80 backdrop-blur-md border border-white/5 rounded-lg shadow-xl z-50 py-1 max-h-48 overflow-y-auto">
+                        <div className="absolute right-0 mt-1 w-48 bg-[#0D1628]/80 backdrop-blur-md border border-white/5 rounded-lg shadow-xl z-50 py-1 max-h-48 overflow-y-auto">
                           <button
                             onClick={() => handleSetTradeStrategy(trade.id, '')}
-                            className="w-full px-3 py-1.5 text-left text-xs text-zinc-400 hover:bg-[#242838] hover:text-zinc-100"
+                            className="w-full px-3 py-1.5 text-left text-xs text-zinc-400 hover:bg-[#172035] hover:text-zinc-100"
                           >
                             Clear
                           </button>
@@ -1022,8 +1022,8 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
                               className={clsx(
                                 'w-full px-3 py-1.5 text-left text-xs transition-colors',
                                 trade.strategy === strategy
-                                  ? 'bg-[#242838]/80 text-zinc-400'
-                                  : 'text-zinc-100 hover:bg-[#242838]'
+                                  ? 'bg-[#172035]/80 text-zinc-400'
+                                  : 'text-zinc-100 hover:bg-[#172035]'
                               )}
                             >
                               {strategy}
@@ -1043,7 +1043,7 @@ const TradePreviewModal: React.FC<TradePreviewModalProps> = ({ isOpen, onClose, 
         <div className="px-6 py-4 border-t border-white/5 flex justify-end space-x-3">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-lg font-medium text-zinc-400 bg-[#242838] hover:bg-[#2D3748] transition-colors"
+            className="px-6 py-2.5 rounded-lg font-medium text-zinc-400 bg-[#172035] hover:bg-[#2D3748] transition-colors"
           >
             Cancel
           </button>
@@ -1357,7 +1357,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                   'px-3 py-1 rounded-full text-sm font-medium border transition-all duration-200',
                   hasDataForMonth
                     ? 'bg-white/10 text-emerald-500 border-emerald-500/30'
-                    : 'bg-[#242838] text-zinc-400 border-white/5 hover:bg-white/5 hover:text-zinc-100 hover:border-emerald-500/30'
+                    : 'bg-[#172035] text-zinc-400 border-white/5 hover:bg-white/5 hover:text-zinc-100 hover:border-emerald-500/30'
                 )}
               >
                 {getCurrentMonthLabel()}
@@ -1427,9 +1427,9 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                       isToday 
                         ? 'border-blue-500 bg-blue-500/10' 
                         : isFuture
-                          ? 'border-white/5 bg-[#242838]/20 opacity-50' // Future dates styling
+                          ? 'border-white/5 bg-[#172035]/20 opacity-50' // Future dates styling
                           : isWeekendDay
-                            ? 'border-white/5 bg-[#242838]/30' // Weekend styling
+                            ? 'border-white/5 bg-[#172035]/30' // Weekend styling
                             : dayData && dayData.pnl > 0 
                               ? 'border-emerald-500/30 bg-emerald-500/10' 
                               : dayData && dayData.pnl < 0 
@@ -1451,7 +1451,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                               ? "bg-rose-500/30" 
                               : dayAdjustment?.type === 'deposit'
                                 ? "bg-emerald-500/30"
-                                : "bg-[#2C3148]"
+                                : "bg-[#1E2F4A]"
                           )}
                           title={`${dayAdjustment?.type}: ${dayAdjustment?.amount && dayAdjustment.amount < 0 ? '-' : '+'}$${Math.abs(dayAdjustment?.amount || 0).toLocaleString()}`}
                         >
@@ -1468,7 +1468,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                       
                       {/* Notes indicator */}
                       {dayHasNote && (
-                        <div className="p-1 rounded-full bg-[#242838]/80">
+                        <div className="p-1 rounded-full bg-[#172035]/80">
                           <FileText className="h-3 w-3 text-zinc-400" />
                         </div>
                       )}

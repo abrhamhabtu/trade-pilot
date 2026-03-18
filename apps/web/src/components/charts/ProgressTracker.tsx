@@ -356,7 +356,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
           <div className="flex items-center space-x-2">
             <h3 className="text-white text-sm font-bold tracking-tight">Progress Tracker</h3>
             <Tooltip content={tooltipContent} position="top">
-              <div className="w-4 h-4 rounded-full bg-[#364060] flex items-center justify-center cursor-help hover:bg-[#2C3148] transition-colors">
+              <div className="w-4 h-4 rounded-full bg-[#364060] flex items-center justify-center cursor-help hover:bg-[#1E2F4A] transition-colors">
                 <span className="text-[#9CA3AF] text-[10px] font-bold">?</span>
               </div>
             </Tooltip>
@@ -376,7 +376,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                 'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center space-x-1',
                 showQuickLog
                   ? 'bg-white text-zinc-950 shadow-lg shadow-white/10'
-                  : 'bg-[#242838] text-zinc-400 hover:bg-[#242838]/80 border border-zinc-700'
+                  : 'bg-[#172035] text-zinc-400 hover:bg-[#172035]/80 border border-zinc-700'
               )}
             >
               <Zap className="w-3 h-3" />
@@ -403,7 +403,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
             />
 
             {/* Modal */}
-            <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[480px] max-w-[90vw] rounded-2xl overflow-hidden border border-white/10 bg-[#1E2130] shadow-2xl shadow-black/80">
+            <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[480px] max-w-[90vw] rounded-2xl overflow-hidden border border-white/10 bg-[#111F35] shadow-2xl shadow-black/80">
               {/* Success Overlay */}
               {showSuccess && (
                 <div className="absolute inset-0 bg-[#22C55E]/10 backdrop-blur-sm flex items-center justify-center z-20 rounded-2xl">
@@ -415,10 +415,10 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
               )}
 
               {/* Header */}
-              <div className="px-6 py-4 bg-[#1E2130]/50 border-b border-white/10/50">
+              <div className="px-6 py-4 bg-[#111F35]/50 border-b border-white/10/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#242838]/80 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[#172035]/80 flex items-center justify-center">
                       <Calendar className="w-5 h-5 text-zinc-400" />
                     </div>
                     <div>
@@ -436,7 +436,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
 
                 {/* Date Navigator */}
                 <div className="mt-4 flex items-center justify-center">
-                  <div className="flex items-center space-x-2 bg-[#242838] rounded-xl p-1">
+                  <div className="flex items-center space-x-2 bg-[#172035] rounded-xl p-1">
                     <button
                       onClick={() => navigateDay('prev')}
                       className="w-10 h-10 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-white hover:bg-[#364060] transition-all"
@@ -475,7 +475,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                         'flex items-center justify-between p-4 rounded-xl transition-all',
                         isPending
                           ? 'bg-white/5 border-2 border-slate-300 dark:border-white/20'
-                          : 'bg-[#242838]/70 hover:bg-[#242838] border-2 border-transparent'
+                          : 'bg-[#172035]/70 hover:bg-[#172035] border-2 border-transparent'
                       )}
                     >
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -520,7 +520,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 bg-[#181B24]/80 backdrop-blur-md border-t border-white/10/50">
+              <div className="px-6 py-4 bg-[#0D1628]/80 backdrop-blur-md border-t border-white/10/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     {/* Progress bar */}
@@ -665,7 +665,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                               {/* Hover Tooltip */}
                               {isHovered && !isFuture && (
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
-                                  <div className="bg-[#242838] border border-white/10 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap">
+                                  <div className="bg-[#172035] border border-white/10 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap">
                                     <div className="text-[10px] font-bold text-white">
                                       {day.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                     </div>
@@ -679,7 +679,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                                     </div>
                                   </div>
                                   {/* Arrow */}
-                                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-[#242838] border-r border-b border-white/10 rotate-45" />
+                                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-[#172035] border-r border-b border-white/10 rotate-45" />
                                 </div>
                               )}
 
@@ -694,7 +694,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                                 }}
                                 className={clsx(
                                   'rounded-md transition-all duration-200 cursor-pointer',
-                                  isToday && 'ring-2 ring-[#A78BFA] ring-offset-1 ring-offset-[#1E2130]',
+                                  isToday && 'ring-2 ring-[#4F9CF9] ring-offset-1 ring-offset-[#111F35]',
                                   isLogDateCell && 'ring-2 ring-white scale-105 z-10',
                                   !isFuture && !isLogDateCell && 'hover:scale-110 hover:brightness-125',
                                   isFuture && 'opacity-20 cursor-not-allowed',
@@ -733,7 +733,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
           </div>
 
           {/* Right Side - Today's Score Circle & Stats */}
-          <div className="w-[100px] flex-shrink-0 flex flex-col items-center justify-center pl-2 border-l border-white/10 bg-[#1E2130]/40 rounded-r-xl">
+          <div className="w-[100px] flex-shrink-0 flex flex-col items-center justify-center pl-2 border-l border-white/10 bg-[#111F35]/40 rounded-r-xl">
             {/* Score Circle */}
             <div className="relative mb-1">
               <svg width="70" height="70" viewBox="0 0 90 90">
@@ -815,7 +815,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
 
             {/* Full Routine Button */}
             <button
-              className="mt-3 w-full px-1 py-1.5 bg-[#242838] hover:bg-[#2C3148] border border-white/5 rounded-lg text-zinc-300 text-[10px] font-semibold transition-all shadow hover:shadow-lg flex items-center justify-center group"
+              className="mt-3 w-full px-1 py-1.5 bg-[#172035] hover:bg-[#1E2F4A] border border-white/5 rounded-lg text-zinc-300 text-[10px] font-semibold transition-all shadow hover:shadow-lg flex items-center justify-center group"
               onClick={onViewMore}
             >
               <span>Full Routine</span>

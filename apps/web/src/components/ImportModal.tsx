@@ -745,7 +745,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] rounded-lg transition-all"
+            className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#172035] rounded-lg transition-all"
           >
             <X className="h-5 w-5" />
           </button>
@@ -805,7 +805,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               </div>
 
               {/* File Requirements */}
-              <div className="mt-6 p-4 bg-[#242838]/50 rounded-lg">
+              <div className="mt-6 p-4 bg-[#172035]/50 rounded-lg">
                 <div className="flex items-start space-x-3">
                   <Info className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                   <div>
@@ -857,7 +857,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                   : 'Your trades have been imported and processed'}
               </p>
 
-              <div className="bg-[#242838]/50 rounded-lg p-4 mb-6">
+              <div className="bg-[#172035]/50 rounded-lg p-4 mb-6">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-zinc-400">Total Rows:</span>

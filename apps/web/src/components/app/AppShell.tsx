@@ -79,8 +79,8 @@ export function AppShell({
           style={{
             background:
               theme === 'dark'
-                ? 'linear-gradient(180deg, rgba(24,27,36,0.97) 0%, rgba(24,27,36,0) 100%)'
-                : 'linear-gradient(180deg, rgba(248,250,252,0.97) 0%, rgba(248,250,252,0) 100%)',
+                ? 'linear-gradient(180deg, rgba(13,22,40,0.97) 0%, rgba(13,22,40,0) 100%)'
+                : 'linear-gradient(180deg, rgba(240,244,252,0.97) 0%, rgba(240,244,252,0) 100%)',
           }}
         >
           <div className="flex justify-end">

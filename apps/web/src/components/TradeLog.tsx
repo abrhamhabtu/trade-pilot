@@ -353,7 +353,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                   placeholder="Search symbols or notes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 bg-[#242838] border border-white/10 rounded-lg text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30 transition-all w-64"
+                  className="pl-10 pr-4 py-2 bg-[#172035] border border-white/10 rounded-lg text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30 transition-all w-64"
                 />
               </div>
 
@@ -362,7 +362,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value as 'all' | 'win' | 'loss')}
-                  className="appearance-none bg-[#242838] border border-white/10 rounded-lg px-4 py-2 pr-8 text-zinc-100 focus:outline-none focus:border-emerald-500/30 transition-all"
+                  className="appearance-none bg-[#172035] border border-white/10 rounded-lg px-4 py-2 pr-8 text-zinc-100 focus:outline-none focus:border-emerald-500/30 transition-all"
                 >
                   <option value="all">All Trades</option>
                   <option value="win">Winning Trades</option>
@@ -402,7 +402,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                     type="checkbox"
                     checked={selectedTrades.length === paginatedTrades.length && paginatedTrades.length > 0}
                     onChange={handleSelectAll}
-                    className="rounded border-white/10 bg-[#242838] text-emerald-500 focus:ring-[#3BF68A]"
+                    className="rounded border-white/10 bg-[#172035] text-emerald-500 focus:ring-[#00D68F]"
                   />
                 </th>
                 <th className="text-left p-4">
@@ -459,14 +459,14 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
               {paginatedTrades.map((trade) => (
                 <tr
                   key={trade.id}
-                  className="border-b border-white/5/50 hover:bg-gradient-to-r hover:from-[#3BF68A]/5 hover:to-[#A78BFA]/5 transition-all duration-200"
+                  className="border-b border-white/5/50 hover:bg-gradient-to-r hover:from-[#00D68F]/5 hover:to-[#4F9CF9]/5 transition-all duration-200"
                 >
                   <td className="p-4">
                     <input
                       type="checkbox"
                       checked={selectedTrades.includes(trade.id)}
                       onChange={() => handleSelectTrade(trade.id)}
-                      className="rounded border-white/10 bg-[#242838] text-emerald-500 focus:ring-[#3BF68A]"
+                      className="rounded border-white/10 bg-[#172035] text-emerald-500 focus:ring-[#00D68F]"
                     />
                   </td>
                   <td className="p-4 text-zinc-400 text-sm">
@@ -549,7 +549,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                   setTradesPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="bg-[#242838] border border-white/10 rounded px-3 py-1 text-zinc-100 text-sm focus:outline-none focus:border-emerald-500/30"
+                className="bg-[#172035] border border-white/10 rounded px-3 py-1 text-zinc-100 text-sm focus:outline-none focus:border-emerald-500/30"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -578,7 +578,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades }) => {
                         'px-3 py-1 rounded text-sm transition-all',
                         currentPage === page
                           ? 'bg-white text-zinc-950 hover:bg-zinc-200 font-medium'
-                          : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#242838]'
+                          : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#172035]'
                       )}
                     >
                       {page}

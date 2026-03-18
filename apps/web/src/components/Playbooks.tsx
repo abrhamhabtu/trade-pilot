@@ -602,7 +602,7 @@ export const Playbooks: React.FC = () => {
                     key={index}
                     className="p-6 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all duration-200"
                     style={{
-                      background: 'linear-gradient(135deg, #242838 0%, #2C3148 100%)'
+                      background: 'linear-gradient(135deg, #172035 0%, #1E2F4A 100%)'
                     }}
                   >
                     <div className="flex items-center space-x-3 mb-4">
@@ -733,7 +733,7 @@ export const Playbooks: React.FC = () => {
                 key={strategy.id}
                 className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group cursor-pointer"
                 style={{
-                  background: 'linear-gradient(135deg, #242838 0%, #2C3148 100%)'
+                  background: 'linear-gradient(135deg, #172035 0%, #1E2F4A 100%)'
                 }}
                 onClick={() => setSelectedStrategy(strategy.id)}
               >
@@ -742,7 +742,7 @@ export const Playbooks: React.FC = () => {
                   <div 
                     className="w-full h-full rounded-xl"
                     style={{
-                      background: 'linear-gradient(135deg, #242838 0%, #2C3148 100%)'
+                      background: 'linear-gradient(135deg, #172035 0%, #1E2F4A 100%)'
                     }}
                   />
                 </div>
@@ -766,7 +766,7 @@ export const Playbooks: React.FC = () => {
                       </div>
                       <p className="text-zinc-400 text-sm mb-4">{strategy.description}</p>
                     </div>
-                    <button className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] rounded-lg transition-all">
+                    <button className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#172035] rounded-lg transition-all">
                       <Eye className="h-5 w-5" />
                     </button>
                   </div>

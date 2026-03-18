@@ -98,7 +98,7 @@ function CreateSessionModal({ onClose }: { onClose: () => void }) {
     const inputCls = clsx(
         'w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 transition-all',
         theme === 'dark'
-            ? 'bg-[#242838] border-white/10 text-zinc-100 placeholder:text-zinc-600 focus:ring-emerald-500/30 focus:border-emerald-500/50'
+            ? 'bg-[#172035] border-white/10 text-zinc-100 placeholder:text-zinc-600 focus:ring-emerald-500/30 focus:border-emerald-500/50'
             : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:ring-emerald-500/30'
     );
     const labelCls = 'text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block';
@@ -108,7 +108,7 @@ function CreateSessionModal({ onClose }: { onClose: () => void }) {
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
             <div className={clsx(
                 'relative w-full max-w-lg mx-4 rounded-2xl border shadow-2xl',
-                theme === 'dark' ? 'bg-[#1E2130] border-white/10' : 'bg-white border-gray-200'
+                theme === 'dark' ? 'bg-[#111F35] border-white/10' : 'bg-white border-gray-200'
             )}>
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/5">
@@ -174,7 +174,7 @@ function CreateSessionModal({ onClose }: { onClose: () => void }) {
                     <button
                         onClick={submit}
                         disabled={!form.name.trim() || !form.symbol.trim()}
-                        className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-[#181B24] font-semibold text-sm hover:bg-emerald-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-sm hover:bg-emerald-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         Create Session
                     </button>
@@ -242,7 +242,7 @@ function AddTradeModal({ session, onClose }: { session: BacktestSession; onClose
     const inputCls = clsx(
         'w-full px-3 py-2 rounded-xl border text-sm focus:outline-none focus:ring-2 transition-all',
         theme === 'dark'
-            ? 'bg-[#242838] border-white/10 text-zinc-100 placeholder:text-zinc-600 focus:ring-emerald-500/30 focus:border-emerald-500/50'
+            ? 'bg-[#172035] border-white/10 text-zinc-100 placeholder:text-zinc-600 focus:ring-emerald-500/30 focus:border-emerald-500/50'
             : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:ring-emerald-500/30'
     );
 
@@ -251,7 +251,7 @@ function AddTradeModal({ session, onClose }: { session: BacktestSession; onClose
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
             <div className={clsx(
                 'relative w-full max-w-md mx-4 rounded-2xl border shadow-2xl',
-                theme === 'dark' ? 'bg-[#1E2130] border-white/10' : 'bg-white border-gray-200'
+                theme === 'dark' ? 'bg-[#111F35] border-white/10' : 'bg-white border-gray-200'
             )}>
                 <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/5">
                     <div>
@@ -326,7 +326,7 @@ function AddTradeModal({ session, onClose }: { session: BacktestSession; onClose
                     <button
                         onClick={submit}
                         disabled={!entry || !exit || !qty}
-                        className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-[#181B24] font-semibold text-sm hover:bg-emerald-400 transition-all disabled:opacity-40"
+                        className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-sm hover:bg-emerald-400 transition-all disabled:opacity-40"
                     >
                         Log Trade
                     </button>
@@ -414,7 +414,7 @@ function SessionRow({ session, onOpen, onDelete, onComplete }: {
                         <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                         <div className={clsx(
                             'absolute right-0 top-full mt-1 w-44 rounded-xl border shadow-xl z-50 py-1 overflow-hidden',
-                            theme === 'dark' ? 'bg-[#1E2130] border-white/10' : 'bg-white border-gray-200'
+                            theme === 'dark' ? 'bg-[#111F35] border-white/10' : 'bg-white border-gray-200'
                         )}>
                             <button onClick={() => { onOpen(); setMenuOpen(false); }}
                                 className="w-full px-4 py-2 text-left text-sm text-zinc-300 hover:bg-white/5 flex items-center gap-2">
@@ -566,7 +566,7 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
 
                 <div className="flex items-center gap-3">
                     {/* View toggle */}
-                    <div className="flex p-1 rounded-xl gap-1 bg-[#242838]/70 border border-white/5">
+                    <div className="flex p-1 rounded-xl gap-1 bg-[#172035]/70 border border-white/5">
                         <button onClick={() => setSessionView('log')}
                             className={clsx('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                                 sessionView === 'log' ? 'bg-emerald-500/20 text-emerald-400' : 'text-zinc-500 hover:text-zinc-300')}>
@@ -586,14 +586,14 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                         </button>
                     )}
                     <button onClick={() => setShowAddTrade(true)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-[#181B24] font-semibold text-xs hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-xs hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
                         <Plus className="h-4 w-4" /> Log Trade
                     </button>
                 </div>
             </div>
 
             {/* Stats bar — compact single row */}
-            <div className="flex items-center gap-5 px-4 py-1.5 border-b border-white/5 flex-shrink-0 bg-[#181B24]/60">
+            <div className="flex items-center gap-5 px-4 py-1.5 border-b border-white/5 flex-shrink-0 bg-[#0D1628]/60">
                 {[
                     { label: 'Balance', value: fmt(session.currentBalance), color: pnlPos ? 'text-emerald-400' : 'text-rose-400' },
                     { label: 'P&L', value: `${pnlPos ? '+' : ''}${fmt(session.totalPnL)}`, color: pnlPos ? 'text-emerald-400' : 'text-rose-400' },
@@ -613,18 +613,18 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                 <div className="flex-1 overflow-auto p-6">
                     <div className={clsx('rounded-xl border overflow-hidden', theme === 'dark' ? 'border-white/5' : 'border-gray-200')}>
                         <div className={clsx('grid grid-cols-[60px,1fr,1fr,1fr,1fr,1fr,1fr,80px,40px] gap-3 px-6 py-2.5 text-xs font-semibold uppercase tracking-wider border-b',
-                            theme === 'dark' ? 'bg-[#181B24] border-white/5 text-zinc-500' : 'bg-gray-50 border-gray-100 text-gray-400')}>
+                            theme === 'dark' ? 'bg-[#0D1628] border-white/5 text-zinc-500' : 'bg-gray-50 border-gray-100 text-gray-400')}>
                             <span>#</span><span>Date</span><span>Side</span><span>Entry</span>
                             <span>Exit</span><span>Qty</span><span>P&L</span><span>R</span><span></span>
                         </div>
-                        <div className={theme === 'dark' ? 'bg-[#181B24]' : 'bg-white'}>
+                        <div className={theme === 'dark' ? 'bg-[#0D1628]' : 'bg-white'}>
                             {session.trades.length === 0 ? (
                                 <div className="py-20 text-center">
                                     <FlaskConical className="h-12 w-12 text-zinc-700 mx-auto mb-4" />
                                     <p className="text-zinc-400 font-semibold">No trades logged yet</p>
                                     <p className="text-zinc-600 text-sm mt-1">Click "Log Trade" or switch to TradingView to start</p>
                                     <button onClick={() => setShowAddTrade(true)}
-                                        className="mt-4 px-5 py-2.5 rounded-xl bg-emerald-500 text-[#181B24] font-semibold text-sm hover:bg-emerald-400 transition-all">
+                                        className="mt-4 px-5 py-2.5 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-sm hover:bg-emerald-400 transition-all">
                                         Log First Trade
                                     </button>
                                 </div>
@@ -679,7 +679,7 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                                 </div>
                                 <button
                                     onClick={() => setShowAddTrade(true)}
-                                    className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2 py-1 text-[10px] font-semibold text-[#181B24] transition-all hover:bg-emerald-400"
+                                    className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2 py-1 text-[10px] font-semibold text-[#0D1628] transition-all hover:bg-emerald-400"
                                 >
                                     <Plus className="h-2.5 w-2.5" /> Log
                                 </button>
@@ -826,8 +826,8 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                                     className={clsx(
                                         'rounded-lg px-4 py-1.5 text-xs font-semibold transition-all',
                                         replay.isPlaying
-                                            ? 'bg-amber-500 text-[#181B24] hover:bg-amber-400'
-                                            : 'bg-emerald-500 text-[#181B24] hover:bg-emerald-400'
+                                            ? 'bg-amber-500 text-[#0D1628] hover:bg-amber-400'
+                                            : 'bg-emerald-500 text-[#0D1628] hover:bg-emerald-400'
                                     )}>
                                     {replay.isPlaying ? 'Pause' : 'Play'}
                                 </button>
@@ -905,7 +905,7 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                                             type="button"
                                             disabled={!activePrice || !!openPosition}
                                             onClick={() => openReplayPosition('Long')}
-                                            className="rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-[#181B24] transition-all hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+                                            className="rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-[#0D1628] transition-all hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
                                         >
                                             Buy Market
                                         </button>
@@ -913,7 +913,7 @@ function SessionDetail({ session, onBack }: { session: BacktestSession; onBack: 
                                             type="button"
                                             disabled={!activePrice || !!openPosition}
                                             onClick={() => openReplayPosition('Short')}
-                                            className="rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-[#181B24] transition-all hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
+                                            className="rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-[#0D1628] transition-all hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
                                         >
                                             Sell Market
                                         </button>
@@ -1202,7 +1202,7 @@ function SessionsTab() {
                 </div>
                 <button
                     onClick={() => setShowCreate(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-[#181B24] font-semibold text-sm hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-sm hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20"
                 >
                     <Plus className="h-4 w-4" /> New Session
                 </button>
@@ -1219,7 +1219,7 @@ function SessionsTab() {
                         </div>
                     </div>
                     <button onClick={() => setOpenSession(mostRecent)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-[#181B24] font-semibold text-sm hover:bg-emerald-400 transition-all">
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-sm hover:bg-emerald-400 transition-all">
                         <Play className="h-3.5 w-3.5" /> Continue
                     </button>
                 </div>
@@ -1227,7 +1227,7 @@ function SessionsTab() {
 
             {/* Controls */}
             <div className="flex items-center gap-4 mb-4">
-                <div className={clsx('flex p-1 rounded-xl gap-1', theme === 'dark' ? 'bg-[#242838]/50' : 'bg-gray-100')}>
+                <div className={clsx('flex p-1 rounded-xl gap-1', theme === 'dark' ? 'bg-[#172035]/50' : 'bg-gray-100')}>
                     {(['all', 'active', 'completed'] as const).map(f => (
                         <button key={f} onClick={() => setFilter(f)}
                             className={clsx('px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-all',
@@ -1238,7 +1238,7 @@ function SessionsTab() {
                     ))}
                 </div>
                 <div className={clsx('flex items-center gap-2 px-3 py-2 rounded-xl border flex-1 max-w-xs',
-                    theme === 'dark' ? 'bg-[#242838]/50 border-white/10' : 'bg-white border-gray-200')}>
+                    theme === 'dark' ? 'bg-[#172035]/50 border-white/10' : 'bg-white border-gray-200')}>
                     <Search className="h-4 w-4 text-zinc-500" />
                     <input className="bg-transparent text-sm text-zinc-300 placeholder:text-zinc-600 focus:outline-none flex-1"
                         placeholder="Search sessions..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -1250,19 +1250,19 @@ function SessionsTab() {
                 {/* Header row */}
                 <div className={clsx(
                     'grid grid-cols-[2fr,1fr,1fr,1fr,1fr,1fr,1fr,auto] gap-4 px-6 py-3 text-xs font-semibold uppercase tracking-wider border-b',
-                    theme === 'dark' ? 'bg-[#181B24] border-white/5 text-zinc-500' : 'bg-gray-50 border-gray-200 text-gray-400'
+                    theme === 'dark' ? 'bg-[#0D1628] border-white/5 text-zinc-500' : 'bg-gray-50 border-gray-200 text-gray-400'
                 )}>
                     <span>Session</span><span>Status</span><span>Start Balance</span>
                     <span>Balance</span><span>P&L</span><span>Win %</span><span>Trades</span><span></span>
                 </div>
-                <div className={theme === 'dark' ? 'bg-[#181B24]' : 'bg-white'}>
+                <div className={theme === 'dark' ? 'bg-[#0D1628]' : 'bg-white'}>
                     {filtered.length === 0 ? (
                         <div className="py-20 text-center">
                             <FlaskConical className="h-12 w-12 text-zinc-700 mx-auto mb-4" />
                             <p className="text-zinc-400 font-semibold text-lg">No sessions yet</p>
                             <p className="text-zinc-600 text-sm mt-1">Create your first backtesting session to get started</p>
                             <button onClick={() => setShowCreate(true)}
-                                className="mt-4 px-5 py-2.5 rounded-xl bg-emerald-500 text-[#181B24] font-semibold text-sm hover:bg-emerald-400 transition-all">
+                                className="mt-4 px-5 py-2.5 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-sm hover:bg-emerald-400 transition-all">
                                 Create Session
                             </button>
                         </div>
@@ -1341,7 +1341,7 @@ function DashboardTab() {
             {/* Two-column layout */}
             <div className="grid grid-cols-2 gap-4 mb-4">
                 {/* Trade outcomes */}
-                <div className="bg-[#181B24] border border-white/5 rounded-xl p-5">
+                <div className="bg-[#0D1628] border border-white/5 rounded-xl p-5">
                     <h3 className="text-sm font-semibold text-zinc-400 mb-4 uppercase tracking-wider">Trade Outcomes</h3>
                     <div className="space-y-3">
                         {[
@@ -1364,7 +1364,7 @@ function DashboardTab() {
                 </div>
 
                 {/* Symbol breakdown */}
-                <div className="bg-[#181B24] border border-white/5 rounded-xl p-5">
+                <div className="bg-[#0D1628] border border-white/5 rounded-xl p-5">
                     <h3 className="text-sm font-semibold text-zinc-400 mb-4 uppercase tracking-wider">By Symbol</h3>
                     <div className="space-y-2">
                         {symbols.length === 0 ? (
@@ -1462,7 +1462,7 @@ function ReportsTab() {
 
             {/* Long vs Short */}
             <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-[#181B24] border border-white/5 rounded-xl p-5">
+                <div className="bg-[#0D1628] border border-white/5 rounded-xl p-5">
                     <h3 className="text-sm font-semibold text-zinc-400 mb-4 uppercase tracking-wider">Long vs Short</h3>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -1493,7 +1493,7 @@ function ReportsTab() {
                 </div>
 
                 {/* Sessions summary table */}
-                <div className="bg-[#181B24] border border-white/5 rounded-xl p-5">
+                <div className="bg-[#0D1628] border border-white/5 rounded-xl p-5">
                     <h3 className="text-sm font-semibold text-zinc-400 mb-4 uppercase tracking-wider">Session Summary</h3>
                     <div className="space-y-2">
                         {sessions.slice(0, 5).map(s => (
@@ -1559,11 +1559,11 @@ export const Backtest: React.FC = () => {
     useEffect(() => { hydrate(); }, [hydrate]);
 
     return (
-        <div className="h-full flex flex-col" style={{ background: theme === 'dark' ? '#181B24' : '#F8FAFC' }}>
+        <div className="h-full flex flex-col" style={{ background: theme === 'dark' ? '#0D1628' : '#F8FAFC' }}>
             {/* Sub-navigation */}
             <div className={clsx(
                 'border-b sticky top-0 z-10',
-                theme === 'dark' ? 'bg-[#1E2130] border-white/5' : 'bg-white border-gray-200'
+                theme === 'dark' ? 'bg-[#111F35] border-white/5' : 'bg-white border-gray-200'
             )}>
                 <div className="flex items-center gap-1 px-6">
                     {tabs.map(tab => {

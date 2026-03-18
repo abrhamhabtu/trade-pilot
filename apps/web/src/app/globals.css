@@ -2,67 +2,82 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── TradePilot Design Tokens ────────────────────────────────────────────────
+   Single source of truth. Tailwind config maps to these same hex values.
+   Update tailwind.config.js tp.* tokens to change the app-wide palette.
+   ──────────────────────────────────────────────────────────────────────────── */
 :root {
-  /* Dark navy palette — similar feel to TradeZilla */
-  --bg-primary:   #181B24;   /* Main page background */
-  --bg-secondary: #1E2130;   /* Section / panel bg */
-  --bg-tertiary:  #242838;   /* Card background */
-  --bg-card: linear-gradient(135deg, #1E2130 0%, #242838 100%);
-  --border-color: #2C3148;
-  --text-primary: #E5E7EB;
-  --text-secondary: #8B94A7;
-  --accent-green: #10B981;
-  --accent-red: #F43F5E;
+  /* Surfaces */
+  --surface-base:    #0D1628;
+  --surface-panel:   #111F35;
+  --surface-card:    #172035;
+  --surface-raised:  #1C2A42;
+  --surface-border:  #1E2F4A;
+
+  /* Text */
+  --text-primary:    #E0EAF8;
+  --text-secondary:  #7B91B4;
+  --text-muted:      #4A5E7A;
+
+  /* Accents */
+  --accent-green:    #00D68F;
+  --accent-red:      #FF4868;
+  --accent-blue:     #4F9CF9;
+  --accent-yellow:   #FFB800;
 }
 
 [data-theme="light"] {
-  --bg-primary: #F8FAFC;
-  --bg-secondary: #FFFFFF;
-  --bg-tertiary: #F1F5F9;
-  --bg-card: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
-  --border-color: #E2E8F0;
-  --text-primary: #1E293B;
-  --text-secondary: #64748B;
-  --accent-green: #10B981;
-  --accent-purple: #8B5CF6;
-  --accent-red: #EF4444;
+  --surface-base:    #F0F4FC;
+  --surface-panel:   #FFFFFF;
+  --surface-card:    #F8FAFF;
+  --surface-raised:  #FFFFFF;
+  --surface-border:  #DDE4F0;
+  --text-primary:    #1A2A42;
+  --text-secondary:  #5A6A84;
+  --text-muted:      #8A9AB4;
+  --accent-green:    #00B876;
+  --accent-red:      #E53551;
+  --accent-blue:     #2D7EE8;
+  --accent-yellow:   #D49600;
 }
 
+/* ─── Ambient Glow ────────────────────────────────────────────────────────────
+   The radial glow is the anti-mirror trick. It adds depth to the dark bg so
+   you see screen content rather than your own reflection. Tradesea-inspired.
+   ──────────────────────────────────────────────────────────────────────────── */
+body {
+  background:
+    radial-gradient(ellipse 140% 65% at 50% -5%, rgba(20, 60, 140, 0.22) 0%, transparent 65%),
+    var(--surface-base);
+  min-height: 100vh;
+}
+
+/* ─── Theme utility classes ───────────────────────────────────────────────── */
+.theme-bg-primary   { background: var(--surface-base); }
+.theme-bg-secondary { background: var(--surface-panel); }
+.theme-bg-card      { background: var(--surface-card); }
+.theme-border       { border-color: var(--surface-border); }
+.theme-text-primary { color: var(--text-primary); }
+.theme-text-secondary { color: var(--text-secondary); }
+
+/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(79, 156, 249, 0.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(79, 156, 249, 0.4); }
+
+/* ─── Transitions ─────────────────────────────────────────────────────────── */
 * {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-.theme-bg-primary {
-  background: var(--bg-primary);
-}
-
-.theme-bg-secondary {
-  background: var(--bg-secondary);
-}
-
-.theme-bg-card {
-  background: var(--bg-card);
-}
-
-.theme-border {
-  border-color: var(--border-color);
-}
-
-.theme-text-primary {
-  color: var(--text-primary);
-}
-
-.theme-text-secondary {
-  color: var(--text-secondary);
-}
-
+/* ─── Animations ──────────────────────────────────────────────────────────── */
 @keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes fadeUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
 }

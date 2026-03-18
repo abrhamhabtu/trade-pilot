@@ -37,7 +37,7 @@ interface JournalEntry {
 const MOODS = [
   { value: 'great', label: 'Great', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/20' },
   { value: 'good', label: 'Good', icon: TrendingUp, color: 'text-emerald-500/70', bg: 'bg-emerald-500/10' },
-  { value: 'neutral', label: 'Neutral', icon: Minus, color: 'text-zinc-400', bg: 'bg-[#8B94A7]/20' },
+  { value: 'neutral', label: 'Neutral', icon: Minus, color: 'text-zinc-400', bg: 'bg-[#7B91B4]/20' },
   { value: 'bad', label: 'Bad', icon: TrendingDown, color: 'text-rose-500/70', bg: 'bg-rose-500/10' },
   { value: 'terrible', label: 'Terrible', icon: TrendingDown, color: 'text-rose-500', bg: 'bg-rose-500/20' },
 ] as const;
@@ -301,7 +301,7 @@ export const Journal: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search entries..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
+              className="w-full pl-10 pr-4 py-2 rounded-lg bg-[#0D1628] border border-white/5 text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30"
             />
           </div>
 
@@ -398,7 +398,7 @@ export const Journal: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       {/* Icon based on entry type */}
                       {isDailyNote ? (
-                        <div className="p-2 rounded-lg bg-[#242838]/80">
+                        <div className="p-2 rounded-lg bg-[#172035]/80">
                           <MessageSquare className="h-5 w-5 text-zinc-400" />
                         </div>
                       ) : moodInfo ? (
@@ -406,7 +406,7 @@ export const Journal: React.FC = () => {
                           <moodInfo.icon className={clsx('h-5 w-5', moodInfo.color)} />
                         </div>
                       ) : (
-                        <div className="p-2 rounded-lg bg-[#8B94A7]/20">
+                        <div className="p-2 rounded-lg bg-[#7B91B4]/20">
                           <Calendar className="h-5 w-5 text-zinc-400" />
                         </div>
                       )}
@@ -417,7 +417,7 @@ export const Journal: React.FC = () => {
                           <span className={clsx(
                             'px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full',
                             isDailyNote 
-                              ? 'bg-[#242838]/80 text-zinc-400' 
+                              ? 'bg-[#172035]/80 text-zinc-400' 
                               : 'bg-emerald-500/20 text-emerald-500'
                           )}>
                             {isDailyNote ? 'Calendar' : 'Journal'}
@@ -428,8 +428,8 @@ export const Journal: React.FC = () => {
                           {/* Account badge for daily notes */}
                           {isDailyNote && entry.accountName && (
                             <>
-                              <span className="text-[#2C3148]">•</span>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-[#242838] text-zinc-400 flex items-center space-x-1">
+                              <span className="text-[#1E2F4A]">•</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-[#172035] text-zinc-400 flex items-center space-x-1">
                                 <User className="h-3 w-3" />
                                 <span>{entry.accountName}</span>
                               </span>
@@ -494,7 +494,7 @@ export const Journal: React.FC = () => {
                   )}
 
                   {entry.lessonsLearned && (
-                    <div className="mb-4 p-3 rounded-lg bg-[#181B24] border border-white/5">
+                    <div className="mb-4 p-3 rounded-lg bg-[#0D1628] border border-white/5">
                       <p className="text-xs text-zinc-400 mb-1">Lessons Learned</p>
                       <p className="text-sm text-zinc-100">{entry.lessonsLearned}</p>
                     </div>
@@ -505,7 +505,7 @@ export const Journal: React.FC = () => {
                       {entry.tags.map((tag, index) => (
                         <span
                           key={index}
-                          className="px-2 py-1 text-xs rounded-full bg-[#242838] text-zinc-400"
+                          className="px-2 py-1 text-xs rounded-full bg-[#172035] text-zinc-400"
                         >
                           #{tag}
                         </span>
@@ -537,7 +537,7 @@ export const Journal: React.FC = () => {
               </h2>
               <button
                 onClick={handleCloseEditor}
-                className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] transition-colors"
+                className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-[#172035] transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -551,7 +551,7 @@ export const Journal: React.FC = () => {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
+                  className="w-full px-4 py-2 rounded-lg bg-[#0D1628] border border-white/5 text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30"
                   placeholder="How was your trading day?"
                 />
               </div>
@@ -586,7 +586,7 @@ export const Journal: React.FC = () => {
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   rows={6}
-                  className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30 resize-none"
+                  className="w-full px-4 py-2 rounded-lg bg-[#0D1628] border border-white/5 text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30 resize-none"
                   placeholder="Write about your trading session, thoughts, emotions..."
                 />
               </div>
@@ -597,7 +597,7 @@ export const Journal: React.FC = () => {
                   type="text"
                   value={formData.marketConditions}
                   onChange={(e) => setFormData({ ...formData, marketConditions: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
+                  className="w-full px-4 py-2 rounded-lg bg-[#0D1628] border border-white/5 text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30"
                   placeholder="Trending, ranging, volatile..."
                 />
               </div>
@@ -608,7 +608,7 @@ export const Journal: React.FC = () => {
                   value={formData.lessonsLearned}
                   onChange={(e) => setFormData({ ...formData, lessonsLearned: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30 resize-none"
+                  className="w-full px-4 py-2 rounded-lg bg-[#0D1628] border border-white/5 text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30 resize-none"
                   placeholder="What did you learn today?"
                 />
               </div>
@@ -619,7 +619,7 @@ export const Journal: React.FC = () => {
                   type="text"
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
+                  className="w-full px-4 py-2 rounded-lg bg-[#0D1628] border border-white/5 text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30"
                   placeholder="scalping, momentum, breakout..."
                 />
               </div>
