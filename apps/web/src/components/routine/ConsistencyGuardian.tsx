@@ -32,8 +32,8 @@ const formatCurrency = (value: number) => {
 
 // Account tier configurations
 const TIER_CONFIG = {
-  instant: { label: 'Instant Funded', defaultRule: 20, color: '#3BF68A' },
-  elite: { label: 'Elite Funded', defaultRule: 25, color: '#A78BFA' }
+  instant: { label: 'Instant Funded', defaultRule: 20, color: '#00D68F' },
+  elite: { label: 'Elite Funded', defaultRule: 25, color: '#4F9CF9' }
 };
 
 interface ConsistencyGuardianProps {
@@ -201,7 +201,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
 
   // Gauge percentage for visualization
   const gaugePercent = Math.min(100, (metrics.currentConsistencyPercent / consistencyRule) * 100);
-  const gaugeColor = gaugePercent <= 70 ? '#3BF68A' : gaugePercent <= 90 ? '#F59E0B' : '#F45B69';
+  const gaugeColor = gaugePercent <= 70 ? '#00D68F' : gaugePercent <= 90 ? '#F59E0B' : '#FF4868';
 
   // Dual-condition payout qualification (mirrors Overview tab logic)
   const balanceTargetMet = account.balance >= profitTarget;
@@ -215,7 +215,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       {/* ACCOUNT CONFIGURATION */}
       <div className={clsx(
         "p-6 rounded-[2rem] border",
-        theme === 'dark' ? "bg-[#1E2130] border-white/5" : "bg-white border-gray-200"
+        theme === 'dark' ? "bg-[#111F35] border-white/5" : "bg-white border-gray-200"
       )}>
         <div className="flex items-center gap-2 mb-4">
           <Shield className="w-5 h-5 text-zinc-400" />
@@ -233,7 +233,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             </label>
             <div className={clsx(
               "flex p-1.5 rounded-2xl border",
-              theme === 'dark' ? "bg-[#181B24] border-white/5" : "bg-gray-50 border-gray-200"
+              theme === 'dark' ? "bg-[#0D1628] border-white/5" : "bg-gray-50 border-gray-200"
             )}>
               {(['instant', 'elite'] as const).map((tier) => (
                 <button
@@ -275,9 +275,9 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   handleOriginalTargetChange(value);
                 }}
                 className={clsx(
-                  "w-full pl-10 pr-4 py-3 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50",
+                  "w-full pl-10 pr-4 py-3 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#00D68F]/50",
                   theme === 'dark'
-                    ? "bg-[#242838] text-white border border-white/10"
+                    ? "bg-[#172035] text-white border border-white/10"
                     : "bg-gray-100 text-gray-900 border border-gray-200"
                 )}
               />
@@ -291,12 +291,12 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
         <div className={clsx(
           "p-4 rounded-2xl border flex items-center gap-4",
           theme === 'dark'
-            ? "bg-[#242838] border-zinc-700"
+            ? "bg-[#172035] border-zinc-700"
             : "bg-purple-50 border-purple-200"
         )}>
           <div className={clsx(
             "w-12 h-12 rounded-xl flex items-center justify-center",
-            theme === 'dark' ? "bg-[#242838]/80" : "bg-purple-100"
+            theme === 'dark' ? "bg-[#172035]/80" : "bg-purple-100"
           )}>
             <RefreshCw className="w-6 h-6 text-zinc-400" />
           </div>
@@ -326,7 +326,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
         "p-4 rounded-[2rem] border flex items-center justify-between",
         isPayoutReady
           ? (theme === 'dark' ? "bg-emerald-500/5 border-emerald-500/30/20" : "bg-green-50 border-green-200")
-          : (theme === 'dark' ? "bg-[#181B24]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200")
+          : (theme === 'dark' ? "bg-[#0D1628]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200")
       )}>
         <div className="flex items-center gap-3">
           <div className={clsx(
@@ -369,7 +369,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           {/* Consistency Gauge */}
           <div className={clsx(
             "p-8 rounded-[2rem] border relative overflow-hidden",
-            theme === 'dark' ? "bg-[#181B24]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
+            theme === 'dark' ? "bg-[#0D1628]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
           )}>
             <div className="absolute -right-10 -top-10 w-40 h-40 blur-[80px] rounded-full opacity-20"
               style={{ backgroundColor: gaugeColor }} />
@@ -398,7 +398,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                     <path
                       d="M 10 50 A 40 40 0 0 1 90 50"
                       fill="none"
-                      stroke={theme === 'dark' ? '#2C3148' : '#E5E7EB'}
+                      stroke={theme === 'dark' ? '#1E2F4A' : '#E0EAF8'}
                       strokeWidth="8"
                       strokeLinecap="round"
                     />
@@ -502,7 +502,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           <div className={clsx(
             "p-6 rounded-[2rem] border relative overflow-hidden",
             theme === 'dark'
-              ? "bg-gradient-to-br from-[#1E2130] to-[#1E2130] border-white/5"
+              ? "bg-gradient-to-br from-[#111F35] to-[#111F35] border-white/5"
               : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
           )}>
             <div className="absolute -left-10 -bottom-10 w-40 h-40 blur-[80px] rounded-full opacity-10 bg-emerald-500" />
@@ -584,7 +584,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           {/* WHAT-IF SCENARIO PLANNER */}
           <div className={clsx(
             "p-6 rounded-[2rem] border",
-            theme === 'dark' ? "bg-[#181B24]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
+            theme === 'dark' ? "bg-[#0D1628]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
           )}>
             <div className="flex items-center gap-2 mb-4">
               <Calculator className="w-5 h-5 text-zinc-400" />
@@ -598,7 +598,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
             <div className="mb-4">
               <div className={clsx(
                 "flex items-center gap-3 mb-3 px-4 py-2.5 rounded-xl",
-                theme === 'dark' ? "bg-zinc-200/5 border border-[#A78BFA]/10" : "bg-purple-50 border border-purple-100"
+                theme === 'dark' ? "bg-zinc-200/5 border border-[#4F9CF9]/10" : "bg-purple-50 border border-purple-100"
               )}>
                 <span className="text-base">🔮</span>
                 <span className={clsx(
@@ -627,9 +627,9 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                       if (whatIfInput === '0') setWhatIfInput('');
                     }}
                     className={clsx(
-                      "w-full pl-10 pr-4 py-3.5 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50 transition-all",
+                      "w-full pl-10 pr-4 py-3.5 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#4F9CF9]/50 transition-all",
                       theme === 'dark'
-                        ? "bg-[#181B24] text-white border border-[#A78BFA]/20 placeholder-[#4B5563]"
+                        ? "bg-[#0D1628] text-white border border-[#4F9CF9]/20 placeholder-[#4B5563]"
                         : "bg-gray-100 text-gray-900 border border-gray-200 placeholder-gray-400"
                     )}
                   />
@@ -641,7 +641,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
                   step="50"
                   value={whatIfAmount}
                   onChange={(e) => setWhatIfInput(e.target.value)}
-                  className="flex-1 h-2 bg-[#242838] rounded-lg appearance-none cursor-pointer accent-[#A78BFA]"
+                  className="flex-1 h-2 bg-[#172035] rounded-lg appearance-none cursor-pointer accent-[#4F9CF9]"
                 />
               </div>
             </div>
@@ -858,7 +858,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       {/* PATH TO PAYOUT */}
       <div className={clsx(
         "p-6 rounded-[2rem] border",
-        theme === 'dark' ? "bg-[#1E2130] border-white/5" : "bg-white border-gray-200"
+        theme === 'dark' ? "bg-[#111F35] border-white/5" : "bg-white border-gray-200"
       )}>
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-emerald-500" />
@@ -880,7 +880,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
           </div>
           <div className={clsx(
             "h-4 rounded-full overflow-hidden relative",
-            theme === 'dark' ? "bg-[#242838]" : "bg-gray-200"
+            theme === 'dark' ? "bg-[#172035]" : "bg-gray-200"
           )}>
             {/* Original target marker */}
             {metrics.effectiveTarget > originalTarget && (
@@ -1001,13 +1001,13 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       {/* EDUCATION SECTION */}
       <div className={clsx(
         "rounded-[2rem] border overflow-hidden",
-        theme === 'dark' ? "bg-[#181B24]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
+        theme === 'dark' ? "bg-[#0D1628]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
       )}>
         <button
           onClick={() => setShowEducation(!showEducation)}
           className={clsx(
             "w-full p-4 flex items-center justify-between transition-colors",
-            theme === 'dark' ? "hover:bg-[#242838]/50" : "hover:bg-gray-50"
+            theme === 'dark' ? "hover:bg-[#172035]/50" : "hover:bg-gray-50"
           )}
         >
           <div className="flex items-center gap-2">
@@ -1036,7 +1036,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
               )}>The Formula</h4>
               <div className={clsx(
                 "p-4 rounded-xl font-mono text-sm",
-                theme === 'dark' ? "bg-[#181B24]" : "bg-gray-100"
+                theme === 'dark' ? "bg-[#0D1628]" : "bg-gray-100"
               )}>
                 <div className={clsx(theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
                   Consistency % = (Highest Profit Day / Total Profit) × 100

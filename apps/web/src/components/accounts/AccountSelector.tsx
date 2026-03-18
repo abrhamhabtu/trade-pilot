@@ -56,7 +56,7 @@ export const AccountSelector: React.FC = () => {
         className={clsx(
           'flex items-center space-x-3 px-4 py-2 rounded-lg border transition-all',
           theme === 'dark'
-            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5 hover:border-emerald-500/50'
+            ? 'bg-[#0D1628]/80 backdrop-blur-md border-white/5 hover:border-emerald-500/50'
             : 'bg-white border-gray-200 hover:border-purple-300',
           isOpen && (theme === 'dark' ? 'border-emerald-500/50' : 'border-purple-300')
         )}
@@ -83,7 +83,7 @@ export const AccountSelector: React.FC = () => {
           <>
             <div className={clsx(
               'w-8 h-8 rounded-lg flex items-center justify-center text-lg',
-              theme === 'dark' ? 'bg-[#242838]' : 'bg-gray-100'
+              theme === 'dark' ? 'bg-[#172035]' : 'bg-gray-100'
             )}>
               {getBrokerIcon(selectedAccount.broker)}
             </div>
@@ -110,7 +110,7 @@ export const AccountSelector: React.FC = () => {
         <div className={clsx(
           'absolute right-0 mt-2 w-64 rounded-xl border shadow-2xl z-50 overflow-hidden',
           theme === 'dark'
-            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5'
+            ? 'bg-[#0D1628]/80 backdrop-blur-md border-white/5'
             : 'bg-white border-gray-200'
         )}>
           {/* All Accounts Option */}
@@ -121,7 +121,7 @@ export const AccountSelector: React.FC = () => {
                 className={clsx(
                   'w-full px-4 py-3 flex items-center justify-between transition-colors',
                   theme === 'dark'
-                    ? 'hover:bg-[#242838]'
+                    ? 'hover:bg-[#172035]'
                     : 'hover:bg-gray-50',
                   showAllAccounts && (
                     theme === 'dark' 
@@ -181,7 +181,7 @@ export const AccountSelector: React.FC = () => {
                 className={clsx(
                   'w-full px-4 py-3 flex items-center justify-between transition-colors',
                   theme === 'dark'
-                    ? 'hover:bg-[#242838]'
+                    ? 'hover:bg-[#172035]'
                     : 'hover:bg-gray-50',
                   !showAllAccounts && selectedAccountId === account.id && (
                     theme === 'dark' 
@@ -193,7 +193,7 @@ export const AccountSelector: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <div className={clsx(
                     'w-8 h-8 rounded-lg flex items-center justify-center text-lg',
-                    theme === 'dark' ? 'bg-[#242838]' : 'bg-gray-100'
+                    theme === 'dark' ? 'bg-[#172035]' : 'bg-gray-100'
                   )}>
                     {getBrokerIcon(account.broker)}
                   </div>
@@ -248,7 +248,7 @@ export const AccountSelector: React.FC = () => {
                     className={clsx(
                       'w-full px-4 py-3 flex items-center justify-between transition-colors opacity-70 hover:opacity-100',
                       theme === 'dark'
-                        ? 'hover:bg-[#242838]'
+                        ? 'hover:bg-[#172035]'
                         : 'hover:bg-gray-50',
                       !showAllAccounts && selectedAccountId === account.id && (
                         theme === 'dark' 
@@ -260,7 +260,7 @@ export const AccountSelector: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       <div className={clsx(
                         'w-8 h-8 rounded-lg flex items-center justify-center text-lg grayscale',
-                        theme === 'dark' ? 'bg-[#242838]' : 'bg-gray-100'
+                        theme === 'dark' ? 'bg-[#172035]' : 'bg-gray-100'
                       )}>
                         {getBrokerIcon(account.broker)}
                       </div>

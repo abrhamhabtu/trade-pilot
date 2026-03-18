@@ -6,7 +6,6 @@ import { Sidebar } from '@/components/Sidebar';
 import { useThemeStore } from '@/store/themeStore';
 import dynamic from 'next/dynamic';
 
-// Only load Agentation in development — zero impact on production bundle
 const Agentation = process.env.NODE_ENV !== 'production'
   ? dynamic(() => import('agentation').then(m => ({ default: m.Agentation })), { ssr: false })
   : null;
@@ -16,12 +15,15 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className={clsx('h-screen overflow-hidden transition-colors duration-300', theme === 'dark' ? 'dark text-slate-100' : 'text-slate-900')}
+      className={clsx(
+        'h-screen overflow-hidden transition-colors duration-300',
+        theme === 'dark' ? 'dark' : ''
+      )}
       style={{
-        background:
-          theme === 'dark'
-            ? '#181B24'
-            : '#F8FAFC'
+        background: theme === 'dark'
+          ? 'radial-gradient(ellipse 140% 65% at 50% -5%, rgba(20,60,140,0.22) 0%, transparent 65%), #0D1628'
+          : 'radial-gradient(ellipse 140% 65% at 50% -5%, rgba(100,160,255,0.08) 0%, transparent 65%), #F0F4FC',
+        color: theme === 'dark' ? '#E0EAF8' : '#1A2A42',
       }}
     >
       <Sidebar />

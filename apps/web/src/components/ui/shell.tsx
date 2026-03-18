@@ -19,22 +19,33 @@ export function SurfaceCard({
   padding = 'md',
   hoverable = false,
   fullHeight = false,
+  glow,
 }: {
   children: React.ReactNode;
   className?: string;
   padding?: 'sm' | 'md' | 'lg';
   hoverable?: boolean;
   fullHeight?: boolean;
+  glow?: 'green' | 'red' | 'blue' | 'none';
 }) {
+  const glowStyles: Record<string, string> = {
+    green: 'shadow-[0_0_24px_rgba(0,214,143,0.07)] border-tp-green/10',
+    red:   'shadow-[0_0_24px_rgba(255,72,104,0.07)] border-tp-red/10',
+    blue:  'shadow-[0_0_24px_rgba(79,156,249,0.07)] border-tp-blue/10',
+    none:  '',
+  };
+
   return (
     <div
       className={clsx(
-        'relative overflow-hidden rounded-xl border border-white/5 bg-[rgba(30,33,48,0.55)] backdrop-blur-sm transition-all duration-200',
+        'relative overflow-hidden rounded-xl border border-white/[0.07] transition-all duration-200',
+        'bg-gradient-to-br from-tp-card/90 to-tp-panel/70 backdrop-blur-sm',
         padding === 'sm' && 'p-4',
         padding === 'md' && 'p-6',
         padding === 'lg' && 'p-8',
-        hoverable && 'hover:border-white/10 hover:shadow-lg',
+        hoverable && 'hover:border-white/[0.12] hover:shadow-lg hover:shadow-black/20 cursor-pointer',
         fullHeight && 'h-full',
+        glow && glow !== 'none' ? glowStyles[glow] : '',
         className
       )}
     >

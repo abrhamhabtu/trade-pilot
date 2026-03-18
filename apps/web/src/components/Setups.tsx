@@ -171,7 +171,7 @@ function CreateCardModal({ onClose }: { onClose: () => void }) {
                         Cancel
                     </button>
                     <button onClick={submit} disabled={!form.symbol.trim()}
-                        className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-[#181B24] font-semibold text-sm hover:bg-emerald-400 transition-all disabled:opacity-40">
+                        className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-sm hover:bg-emerald-400 transition-all disabled:opacity-40">
                         Create Card
                     </button>
                 </div>
@@ -332,7 +332,7 @@ function AddSetupModal({ cardId, onClose }: { cardId: string; onClose: () => voi
                         className={clsx(
                             'flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40',
                             form.direction === 'bullish'
-                                ? 'bg-emerald-500 text-[#181B24] hover:bg-emerald-400'
+                                ? 'bg-emerald-500 text-[#0D1628] hover:bg-emerald-400'
                                 : 'bg-rose-500 text-white hover:bg-rose-400'
                         )}>
                         Add {form.direction === 'bullish' ? 'Bullish' : 'Bearish'} Setup
@@ -498,7 +498,7 @@ function SetupRow({
                                             'w-4 h-4 rounded border flex-shrink-0 mt-0.5 flex items-center justify-center transition-all',
                                             c.checked ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 group-hover:border-white/40'
                                         )}>
-                                            {c.checked && <Check className="h-2.5 w-2.5 text-[#181B24]" />}
+                                            {c.checked && <Check className="h-2.5 w-2.5 text-[#0D1628]" />}
                                         </div>
                                         <span className={clsx('text-xs leading-relaxed transition-colors',
                                             c.checked ? 'text-zinc-500 line-through' : 'text-zinc-300'
@@ -854,7 +854,7 @@ function DateSidebar({
                     <span className="text-sm font-semibold text-zinc-200">Setups</span>
                 </div>
                 <button onClick={onNew}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-emerald-500 text-[#181B24] font-semibold text-xs hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-xs hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
                     <Plus className="h-3.5 w-3.5" /> New Setup Card
                 </button>
             </div>
@@ -945,7 +945,7 @@ function EmptyState({ onNew, date }: { onNew: () => void; date: string }) {
                         : "No setup cards were logged for this date. Select another date or create a new one."}
                 </p>
                 <button onClick={onNew}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-[#181B24] font-semibold text-sm hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-sm hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
                     <Plus className="h-4 w-4" /> New Setup Card
                 </button>
                 <div className="mt-6 flex flex-col gap-1.5 text-left">
@@ -1164,7 +1164,7 @@ export const Setups: React.FC = () => {
                         Auto-generation coming soon
                     </div>
                     <button onClick={() => setShowCreate(true)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500 text-[#181B24] font-semibold text-xs hover:bg-emerald-400 transition-all shadow-md shadow-emerald-500/20">
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-xs hover:bg-emerald-400 transition-all shadow-md shadow-emerald-500/20">
                         <Plus className="h-3.5 w-3.5" /> New Card
                     </button>
                 </div>
