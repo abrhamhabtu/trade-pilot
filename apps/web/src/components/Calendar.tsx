@@ -1333,16 +1333,16 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
       
       <div className="relative z-10">
         {/* Header */}
-        <div className="p-6 border-b border-white/5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        <div className="border-b border-white/5 p-4 sm:p-6">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
               <button
                 onClick={previousMonth}
                 className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-white/5 rounded-lg transition-all"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <h3 className="text-zinc-100 text-xl font-semibold">
+              <h3 className="min-w-[10rem] text-lg font-semibold text-zinc-100 sm:text-xl">
                 {monthNames[month]} {year}
               </h3>
               <button
@@ -1364,7 +1364,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
               </button>
             </div>
             
-            <div className="flex items-center space-x-8">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-8 xl:justify-end">
               <div className="text-right">
                 <div className="text-sm text-zinc-400 mb-1">Monthly stats:</div>
                 <div className="text-2xl font-bold text-zinc-50">
@@ -1385,166 +1385,170 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
           </div>
         </div>
         
-        <div className="p-6">
-          {/* Week day headers */}
-          <div className="grid grid-cols-8 gap-2 mb-4">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="p-3 text-center text-sm font-medium text-zinc-400">
-                {day}
+        <div className="p-4 sm:p-6">
+          <div className="overflow-x-auto pb-2">
+            <div className="min-w-[760px]">
+              {/* Week day headers */}
+              <div className="mb-4 grid grid-cols-[repeat(7,minmax(84px,1fr))_minmax(96px,1fr)] gap-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <div key={day} className="px-3 py-2 text-center text-sm font-medium text-zinc-400">
+                    {day}
+                  </div>
+                ))}
+                <div className="px-3 py-2 text-center text-sm font-medium text-zinc-400">
+                  Weekly
+                </div>
               </div>
-            ))}
-            <div className="p-3 text-center text-sm font-medium text-zinc-400">
-              Weekly
+
+              {/* Calendar weeks */}
+              {weeklyData.map((week, weekIndex) => (
+                <div key={weekIndex} className="mb-2 grid grid-cols-[repeat(7,minmax(84px,1fr))_minmax(96px,1fr)] gap-2">
+                  {/* Days of the week */}
+                  {week.days.map((day, dayIndex) => {
+                    if (!day) {
+                      return <div key={`empty-${weekIndex}-${dayIndex}`} className="h-24 rounded-lg" />;
+                    }
+                    
+                    const dayData = getDayData(day);
+                    const today = new Date();
+                    const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+                    const isWeekendDay = isWeekend(day);
+                    const isFuture = isFutureDate(day);
+                    const winRate = calculateDayWinRate(dayData);
+                    const hasTradesForDay = dayData && dayData.trades > 0;
+                    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const dayHasNote = hasNote(dateString, accountId);
+                    const dayHasAdjustment = hasAdjustment(dateString);
+                    const dayAdjustment = getAdjustmentForDate(dateString);
+                    
+                    return (
+                      <div
+                        key={`${weekIndex}-${day}`}
+                        className={clsx(
+                          'relative h-24 rounded-lg border-2 p-3 transition-all duration-200 group',
+                          isToday 
+                            ? 'border-blue-500 bg-blue-500/10' 
+                            : isFuture
+                              ? 'border-white/5 bg-[#172035]/20 opacity-50' // Future dates styling
+                              : isWeekendDay
+                                ? 'border-white/5 bg-[#172035]/30' // Weekend styling
+                                : dayData && dayData.pnl > 0 
+                                  ? 'border-emerald-500/30 bg-emerald-500/10' 
+                                  : dayData && dayData.pnl < 0 
+                                    ? 'border-rose-500/30 bg-rose-500/10'
+                                    : 'border-white/5 hover:border-emerald-500/50',
+                          !isWeekendDay && !isFuture && 'hover:bg-white/5',
+                          hasTradesForDay && !isWeekendDay && !isFuture && 'cursor-pointer'
+                        )}
+                        onClick={() => handleDayClick(day)}
+                      >
+                        {/* Top-right indicators container */}
+                        <div className="absolute right-1 top-1 flex items-center space-x-1">
+                          {/* Adjustment indicator */}
+                          {dayHasAdjustment && (
+                            <div 
+                              className={clsx(
+                                "rounded-full p-1",
+                                dayAdjustment?.type === 'payout' 
+                                  ? "bg-rose-500/30" 
+                                  : dayAdjustment?.type === 'deposit'
+                                    ? "bg-emerald-500/30"
+                                    : "bg-[#1E2F4A]"
+                              )}
+                              title={`${dayAdjustment?.type}: ${dayAdjustment?.amount && dayAdjustment.amount < 0 ? '-' : '+'}$${Math.abs(dayAdjustment?.amount || 0).toLocaleString()}`}
+                            >
+                              <DollarSign className={clsx(
+                                "h-3 w-3",
+                                dayAdjustment?.type === 'payout' 
+                                  ? "text-rose-500" 
+                                  : dayAdjustment?.type === 'deposit'
+                                    ? "text-emerald-500"
+                                    : "text-zinc-400"
+                              )} />
+                            </div>
+                          )}
+                          
+                          {/* Notes indicator */}
+                          {dayHasNote && (
+                            <div className="rounded-full bg-[#172035]/80 p-1">
+                              <FileText className="h-3 w-3 text-zinc-400" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className={clsx(
+                          'mb-1 text-sm font-medium',
+                          isFuture ? 'text-zinc-400/50' : isWeekendDay ? 'text-zinc-400' : 'text-zinc-100'
+                        )}>
+                          {day}
+                        </div>
+                        
+                        {isFuture ? (
+                          <div className="space-y-1">
+                            {/* Empty space for future dates */}
+                          </div>
+                        ) : isWeekendDay ? (
+                          <div className="space-y-1">
+                            <div className="text-xs leading-snug text-zinc-400">Market closed</div>
+                          </div>
+                        ) : dayData && dayData.trades > 0 ? (
+                          <div className="space-y-1">
+                            {/* Net P&L (includes adjustments like TopOne shows) */}
+                            <div className={clsx(
+                              'truncate text-xs font-bold',
+                              dayData.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                            )}>
+                              {formatCurrency(dayData.pnl)}
+                            </div>
+                            <div className="text-xs leading-snug text-zinc-400">
+                              {dayData.trades} trade{dayData.trades !== 1 ? 's' : ''}
+                            </div>
+                            <div className="text-xs leading-snug text-zinc-400">
+                              {winRate}% WR
+                            </div>
+                          </div>
+                        ) : dayHasAdjustment && dayAdjustment ? (
+                          <div className="space-y-1">
+                            <div className={clsx(
+                              'truncate text-xs font-bold',
+                              dayAdjustment.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                            )}>
+                              {dayAdjustment.type === 'payout' ? 'Payout' : dayAdjustment.type === 'deposit' ? 'Deposit' : 'Adj'}
+                            </div>
+                            <div className={clsx(
+                              'truncate text-xs font-semibold',
+                              dayAdjustment.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                            )}>
+                              {dayAdjustment.amount >= 0 ? '+' : ''}{formatCurrency(dayAdjustment.amount)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="text-xs leading-snug text-zinc-400">0 trades</div>
+                            <div className="text-xs leading-snug text-zinc-400">0% WR</div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Weekly summary - Updated with gradient theme */}
+                  <div className="h-24 rounded-lg border border-emerald-500/30 bg-white/5 p-3">
+                    <div className="mb-1 text-xs text-zinc-400">Week {weekIndex + 1}</div>
+                    <div className={clsx(
+                      'mb-1 truncate text-sm font-bold',
+                      week.pnl >= 0 ? 'text-zinc-50' : 'text-rose-500'
+                    )}>
+                      {formatCurrency(week.pnl)}
+                    </div>
+                    <div className="mb-1 text-xs text-zinc-400">
+                      {week.tradingDays} days
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          
-          {/* Calendar weeks */}
-          {weeklyData.map((week, weekIndex) => (
-            <div key={weekIndex} className="grid grid-cols-8 gap-2 mb-2">
-              {/* Days of the week */}
-              {week.days.map((day, dayIndex) => {
-                if (!day) {
-                  return <div key={`empty-${weekIndex}-${dayIndex}`} className="p-3 h-24" />;
-                }
-                
-                const dayData = getDayData(day);
-                const today = new Date();
-                const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-                const isWeekendDay = isWeekend(day);
-                const isFuture = isFutureDate(day);
-                const winRate = calculateDayWinRate(dayData);
-                const hasTradesForDay = dayData && dayData.trades > 0;
-                const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const dayHasNote = hasNote(dateString, accountId);
-                const dayHasAdjustment = hasAdjustment(dateString);
-                const dayAdjustment = getAdjustmentForDate(dateString);
-                
-                return (
-                  <div
-                    key={`${weekIndex}-${day}`}
-                    className={clsx(
-                      'p-3 h-24 rounded-lg transition-all duration-200 relative group border-2',
-                      isToday 
-                        ? 'border-blue-500 bg-blue-500/10' 
-                        : isFuture
-                          ? 'border-white/5 bg-[#172035]/20 opacity-50' // Future dates styling
-                          : isWeekendDay
-                            ? 'border-white/5 bg-[#172035]/30' // Weekend styling
-                            : dayData && dayData.pnl > 0 
-                              ? 'border-emerald-500/30 bg-emerald-500/10' 
-                              : dayData && dayData.pnl < 0 
-                                ? 'border-rose-500/30 bg-rose-500/10'
-                                : 'border-white/5 hover:border-emerald-500/50',
-                      !isWeekendDay && !isFuture && 'hover:bg-white/5',
-                      hasTradesForDay && !isWeekendDay && !isFuture && 'cursor-pointer'
-                    )}
-                    onClick={() => handleDayClick(day)}
-                  >
-                    {/* Top-right indicators container */}
-                    <div className="absolute top-1 right-1 flex items-center space-x-1">
-                      {/* Adjustment indicator */}
-                      {dayHasAdjustment && (
-                        <div 
-                          className={clsx(
-                            "p-1 rounded-full",
-                            dayAdjustment?.type === 'payout' 
-                              ? "bg-rose-500/30" 
-                              : dayAdjustment?.type === 'deposit'
-                                ? "bg-emerald-500/30"
-                                : "bg-[#1E2F4A]"
-                          )}
-                          title={`${dayAdjustment?.type}: ${dayAdjustment?.amount && dayAdjustment.amount < 0 ? '-' : '+'}$${Math.abs(dayAdjustment?.amount || 0).toLocaleString()}`}
-                        >
-                          <DollarSign className={clsx(
-                            "h-3 w-3",
-                            dayAdjustment?.type === 'payout' 
-                              ? "text-rose-500" 
-                              : dayAdjustment?.type === 'deposit'
-                                ? "text-emerald-500"
-                                : "text-zinc-400"
-                          )} />
-                        </div>
-                      )}
-                      
-                      {/* Notes indicator */}
-                      {dayHasNote && (
-                        <div className="p-1 rounded-full bg-[#172035]/80">
-                          <FileText className="h-3 w-3 text-zinc-400" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className={clsx(
-                      'text-sm font-medium mb-1',
-                      isFuture ? 'text-zinc-400/50' : isWeekendDay ? 'text-zinc-400' : 'text-zinc-100'
-                    )}>
-                      {day}
-                    </div>
-                    
-                    {isFuture ? (
-                      <div className="space-y-1">
-                        {/* Empty space for future dates */}
-                      </div>
-                    ) : isWeekendDay ? (
-                      <div className="space-y-1">
-                        <div className="text-xs text-zinc-400">Market closed</div>
-                      </div>
-                    ) : dayData && dayData.trades > 0 ? (
-                      <div className="space-y-1">
-                        {/* Net P&L (includes adjustments like TopOne shows) */}
-                        <div className={clsx(
-                          'text-xs font-bold',
-                          dayData.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'
-                        )}>
-                          {formatCurrency(dayData.pnl)}
-                        </div>
-                        <div className="text-xs text-zinc-400">
-                          {dayData.trades} trade{dayData.trades !== 1 ? 's' : ''}
-                        </div>
-                        <div className="text-xs text-zinc-400">
-                          {winRate}% WR
-                        </div>
-                      </div>
-                    ) : dayHasAdjustment && dayAdjustment ? (
-                      <div className="space-y-1">
-                        <div className={clsx(
-                          'text-xs font-bold',
-                          dayAdjustment.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'
-                        )}>
-                          {dayAdjustment.type === 'payout' ? '💰 Payout' : dayAdjustment.type === 'deposit' ? '➕ Deposit' : '⚡ Adj'}
-                        </div>
-                        <div className={clsx(
-                          'text-xs font-semibold',
-                          dayAdjustment.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'
-                        )}>
-                          {dayAdjustment.amount >= 0 ? '+' : ''}{formatCurrency(dayAdjustment.amount)}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        <div className="text-xs text-zinc-400">0 trades</div>
-                        <div className="text-xs text-zinc-400">0% WR</div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              
-              {/* Weekly summary - Updated with gradient theme */}
-              <div className="p-3 h-24 rounded-lg bg-white/5 border border-emerald-500/30">
-                <div className="text-xs text-zinc-400 mb-1">Week {weekIndex + 1}</div>
-                <div className={clsx(
-                  'text-sm font-bold mb-1',
-                  week.pnl >= 0 ? 'text-zinc-50' : 'text-rose-500'
-                )}>
-                  {formatCurrency(week.pnl)}
-                </div>
-                <div className="text-xs text-zinc-400 mb-1">
-                  {week.tradingDays} days
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 

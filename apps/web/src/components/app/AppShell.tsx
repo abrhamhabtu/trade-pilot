@@ -7,6 +7,7 @@ import { ImportModal } from '@/components/ImportModal';
 import { ToastContainer } from '@/components/common/Toast';
 import { useThemeStore } from '@/store/themeStore';
 import { useToastStore } from '@/store/toastStore';
+import { useUIStore } from '@/store/uiStore';
 import { dismissBackupReminder, shouldShowBackupReminder } from '@/hooks/useLocalStorage';
 import clsx from 'clsx';
 
@@ -31,6 +32,7 @@ export function AppShell({
 }: AppShellProps) {
   const { theme } = useThemeStore();
   const { toasts, removeToast } = useToastStore();
+  const { sidebarCollapsed } = useUIStore();
   const [showBackupReminder, setShowBackupReminder] = useState(false);
 
   useEffect(() => {
@@ -75,7 +77,10 @@ export function AppShell({
 
       {showAccountSelector && (
         <div
-          className="fixed top-0 right-0 z-40 p-4 transition-all duration-300 left-64"
+          className={clsx(
+            'fixed top-0 right-0 z-40 p-3 transition-all duration-300 sm:p-4',
+            sidebarCollapsed ? 'left-20' : 'left-64'
+          )}
           style={{
             background:
               theme === 'dark'
@@ -83,7 +88,7 @@ export function AppShell({
                 : 'linear-gradient(180deg, rgba(240,244,252,0.97) 0%, rgba(240,244,252,0) 100%)',
           }}
         >
-          <div className="flex justify-end">
+          <div className="flex justify-end min-w-0">
             <AccountSelector />
           </div>
         </div>

@@ -154,7 +154,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       {/* Header row */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-1.5">
-          <span className="text-white/40 text-xs font-medium tracking-wide uppercase">
+          <span className="text-xs font-medium uppercase tracking-wide text-white/40">
             {title}
           </span>
           <HelpTooltip content={tooltipMap[title] ?? tooltip ?? ''} />
@@ -169,7 +169,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       <div className="flex items-end justify-between gap-3">
         {/* Value + subtitle */}
         <div className="min-w-0">
-          <div className={clsx('text-2xl font-bold tabular-nums leading-none', getTrendColor())}>
+          <div className={clsx('truncate text-xl font-bold tabular-nums leading-none sm:text-2xl', getTrendColor())}>
             {formatValue(value)}
           </div>
           {subtitle && (

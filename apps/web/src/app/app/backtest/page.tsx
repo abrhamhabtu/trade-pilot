@@ -1,12 +1,5 @@
-'use client';
-
-import { AppShell } from '@/components/app/AppShell';
-import { Backtest } from '@/components/Backtest';
+import { redirect } from 'next/navigation';
 
 export default function BacktestPage() {
-  return (
-    <AppShell fullHeight>
-      <Backtest />
-    </AppShell>
-  );
+  redirect('/app/dashboard');
 }

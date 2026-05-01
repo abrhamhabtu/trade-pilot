@@ -21,7 +21,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, ac
   const pfPct = Math.min((metrics.profitFactor / 3) * 100, 100);
 
   return (
-    <div className="grid grid-cols-4 gap-4 mb-6">
+    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <MetricCard
         title="Net P&L"
         value={displayBalance}

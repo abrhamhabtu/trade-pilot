@@ -10,7 +10,7 @@ export function PageSection({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <section className={clsx('p-6', className)}>{children}</section>;
+  return <section className={clsx('p-4 sm:p-6', className)}>{children}</section>;
 }
 
 export function SurfaceCard({
