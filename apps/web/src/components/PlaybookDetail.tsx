@@ -145,10 +145,10 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
             </div>
             
             <div className="flex items-center space-x-2">
-              <button className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] rounded-lg transition-all">
+              <button className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#172035] rounded-lg transition-all">
                 <Edit className="h-4 w-4" />
               </button>
-              <button className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] rounded-lg transition-all">
+              <button className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#172035] rounded-lg transition-all">
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </div>
@@ -183,7 +183,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Net P&L</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -196,7 +196,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Trades</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -209,7 +209,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Win rate %</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -222,7 +222,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Profit factor</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -235,7 +235,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Missed trades</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -248,7 +248,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Expectancy</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -264,7 +264,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Rules followed</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -277,7 +277,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Average winner</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -290,7 +290,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Average loser</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -303,7 +303,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Largest profit</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -316,7 +316,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Largest loss</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -329,7 +329,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Winner R Multiple</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -345,7 +345,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Loser R Multiple</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -358,7 +358,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-2">
                     <span className="text-zinc-400 text-sm font-medium">Total R Multiple</span>
-                    <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -373,7 +373,7 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-2">
                     <h3 className="text-zinc-100 text-lg font-semibold">Daily net cumulative P&L</h3>
-                    <div className="w-4 h-4 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                    <div className="w-4 h-4 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                       <span className="text-zinc-400 text-xs">?</span>
                     </div>
                   </div>
@@ -384,36 +384,36 @@ export const PlaybookDetail: React.FC<PlaybookDetailProps> = ({ playbookId, onBa
                     <AreaChart data={playbookData.cumulativePL} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="playbookGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
+                          <stop offset="5%" stopColor="#00D68F" stopOpacity={0.4}/>
                           <stop offset="50%" stopColor="#71717A" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                          <stop offset="95%" stopColor="#00D68F" stopOpacity={0}/>
                         </linearGradient>
                         <linearGradient id="playbookStroke" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#10B981" />
+                          <stop offset="0%" stopColor="#00D68F" />
                           <stop offset="100%" stopColor="#71717A" />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#2C3148" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1E2F4A" />
                       <XAxis 
                         dataKey="date" 
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fill: '#8B94A7', fontSize: 12 }}
+                        tick={{ fill: '#7B91B4', fontSize: 12 }}
                       />
                       <YAxis 
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fill: '#8B94A7', fontSize: 12 }}
+                        tick={{ fill: '#7B91B4', fontSize: 12 }}
                         tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                       />
                       <RechartsTooltip
                         contentStyle={{
-                          background: 'linear-gradient(135deg, #1E2130 0%, #242838 100%)',
-                          border: '1px solid #3BF68A',
+                          background: 'linear-gradient(135deg, #111F35 0%, #172035 100%)',
+                          border: '1px solid #00D68F',
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
-                        labelStyle={{ color: '#E5E7EB' }}
+                        labelStyle={{ color: '#E0EAF8' }}
                         formatter={(value: number | undefined) => [formatCurrency(value ?? 0), 'P&L']}
                       />
                       <Area

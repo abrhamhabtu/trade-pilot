@@ -38,9 +38,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
   onImport
 }) => {
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center space-x-6">
-        <SegmentedControl options={TIME_PERIODS} value={selectedTimePeriod} onChange={onTimePeriodChange} />
+    <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
+        <div className="overflow-x-auto pb-1">
+          <SegmentedControl options={TIME_PERIODS} value={selectedTimePeriod} onChange={onTimePeriodChange} />
+        </div>
 
         <div className="text-sm text-zinc-400">
           Showing: <span className="text-zinc-100 font-medium">{TIME_PERIOD_LABELS[selectedTimePeriod]}</span>
@@ -50,12 +52,12 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
         </div>
       </div>
 
-      <div className="flex items-center space-x-3">
-        <AppButton onClick={onRefresh} disabled={isLoading} variant="secondary">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center xl:justify-end">
+        <AppButton onClick={onRefresh} disabled={isLoading} variant="secondary" className="w-full sm:w-auto">
           <RefreshCw className={clsx('h-4 w-4', isLoading && 'animate-spin')} />
           <span className="text-sm">{isLoading ? 'Refreshing...' : 'Refresh Data'}</span>
         </AppButton>
-        <AppButton onClick={onImport} variant="primary">
+        <AppButton onClick={onImport} variant="primary" className="w-full sm:w-auto">
           <Download className="h-4 w-4" />
           <span className="text-sm">Import Trades from TradingView</span>
         </AppButton>

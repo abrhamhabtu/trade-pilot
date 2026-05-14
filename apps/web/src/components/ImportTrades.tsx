@@ -32,7 +32,7 @@ export const ImportTrades: React.FC = () => {
   };
   
   return (
-    <div className="bg-[#181B24]/80 backdrop-blur-md rounded-xl p-6 border border-white/5 hover:border-emerald-500/30/20 transition-all duration-200">
+    <div className="bg-[#0D1628]/80 backdrop-blur-md rounded-xl p-6 border border-white/5 hover:border-emerald-500/30/20 transition-all duration-200">
       <div className="text-center">
         <div className="mb-4">
           <div className="mx-auto w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center">

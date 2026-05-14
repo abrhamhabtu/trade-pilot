@@ -170,7 +170,7 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-[#242838] transition-colors"
+            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-[#172035] transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -186,7 +186,7 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
                 type="text"
                 value={formData.symbol}
                 onChange={(e) => setFormData({ ...formData, symbol: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg bg-[#181B24] border ${errors.symbol ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30`}
+                className={`w-full px-4 py-2 rounded-lg bg-[#0D1628] border ${errors.symbol ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30`}
                 placeholder="AAPL"
               />
               {errors.symbol && <p className="text-rose-500 text-xs mt-1">{errors.symbol}</p>}
@@ -197,7 +197,7 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg bg-[#181B24] border ${errors.date ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 focus:outline-none focus:border-emerald-500/30`}
+                className={`w-full px-4 py-2 rounded-lg bg-[#0D1628] border ${errors.date ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 focus:outline-none focus:border-emerald-500/30`}
               />
               {errors.date && <p className="text-rose-500 text-xs mt-1">{errors.date}</p>}
             </div>
@@ -211,7 +211,7 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
                 type="text"
                 value={formData.time}
                 onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
+                className="w-full px-4 py-2 rounded-lg bg-[#0D1628] border border-white/5 text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30"
                 placeholder="10:00 AM"
               />
             </div>
@@ -221,14 +221,14 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, side: 'Long' })}
-                  className={`flex-1 py-2 rounded-lg font-medium transition-all ${formData.side === 'Long' ? 'bg-emerald-500 text-black' : 'bg-[#181B24] text-zinc-400 border border-white/5 hover:border-emerald-500/30'}`}
+                  className={`flex-1 py-2 rounded-lg font-medium transition-all ${formData.side === 'Long' ? 'bg-emerald-500 text-black' : 'bg-[#0D1628] text-zinc-400 border border-white/5 hover:border-emerald-500/30'}`}
                 >
                   Long
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, side: 'Short' })}
-                  className={`flex-1 py-2 rounded-lg font-medium transition-all ${formData.side === 'Short' ? 'bg-rose-500 text-white' : 'bg-[#181B24] text-zinc-400 border border-white/5 hover:border-rose-500/30'}`}
+                  className={`flex-1 py-2 rounded-lg font-medium transition-all ${formData.side === 'Short' ? 'bg-rose-500 text-white' : 'bg-[#0D1628] text-zinc-400 border border-white/5 hover:border-rose-500/30'}`}
                 >
                   Short
                 </button>
@@ -245,7 +245,7 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
                 step="0.01"
                 value={formData.entryPrice}
                 onChange={(e) => setFormData({ ...formData, entryPrice: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg bg-[#181B24] border ${errors.entryPrice ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30`}
+                className={`w-full px-4 py-2 rounded-lg bg-[#0D1628] border ${errors.entryPrice ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30`}
                 placeholder="150.00"
               />
               {errors.entryPrice && <p className="text-rose-500 text-xs mt-1">{errors.entryPrice}</p>}
@@ -257,7 +257,7 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
                 step="0.01"
                 value={formData.exitPrice}
                 onChange={(e) => setFormData({ ...formData, exitPrice: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg bg-[#181B24] border ${errors.exitPrice ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30`}
+                className={`w-full px-4 py-2 rounded-lg bg-[#0D1628] border ${errors.exitPrice ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30`}
                 placeholder="155.00"
               />
               {errors.exitPrice && <p className="text-rose-500 text-xs mt-1">{errors.exitPrice}</p>}
@@ -272,7 +272,7 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                className={`w-full px-4 py-2 rounded-lg bg-[#181B24] border ${errors.quantity ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30`}
+                className={`w-full px-4 py-2 rounded-lg bg-[#0D1628] border ${errors.quantity ? 'border-rose-500/30' : 'border-white/5'} text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30`}
                 placeholder="100"
               />
               {errors.quantity && <p className="text-rose-500 text-xs mt-1">{errors.quantity}</p>}
@@ -284,7 +284,7 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
                 step="0.01"
                 value={formData.commission}
                 onChange={(e) => setFormData({ ...formData, commission: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30"
+                className="w-full px-4 py-2 rounded-lg bg-[#0D1628] border border-white/5 text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30"
                 placeholder="0.00"
               />
             </div>
@@ -297,13 +297,13 @@ export const TradeFormModal: React.FC<TradeFormModalProps> = ({
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 rounded-lg bg-[#181B24] border border-white/5 text-zinc-100 placeholder-[#8B94A7] focus:outline-none focus:border-emerald-500/30 resize-none"
+              className="w-full px-4 py-2 rounded-lg bg-[#0D1628] border border-white/5 text-zinc-100 placeholder-[#7B91B4] focus:outline-none focus:border-emerald-500/30 resize-none"
               placeholder="Trade notes..."
             />
           </div>
 
           {/* Calculated P&L Preview */}
-          <div className="p-4 rounded-lg bg-[#181B24] border border-white/5">
+          <div className="p-4 rounded-lg bg-[#0D1628] border border-white/5">
             <div className="flex items-center justify-between">
               <span className="text-sm text-zinc-400">Estimated Net P&L</span>
               <span className={`text-lg font-bold ${netPL >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>

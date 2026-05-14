@@ -87,7 +87,7 @@ export const TradesTable: React.FC<TradesTableProps> = ({ trades }) => {
             <>
               <div className="flex-1 overflow-y-auto">
                 <table className="w-full">
-                  <thead className="sticky top-0" style={{ background: '#1E2130' }}>
+                  <thead className="sticky top-0" style={{ background: '#111F35' }}>
                     <tr className="border-b border-white/5">
                       <th className="text-left py-2 text-zinc-500 text-[10px] font-medium">
                         <button

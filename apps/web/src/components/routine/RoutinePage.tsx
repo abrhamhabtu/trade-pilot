@@ -33,9 +33,9 @@ import clsx from 'clsx';
 
 // Category colors and icons
 const RULE_CATEGORIES: Record<TradingRule['category'], { label: string; color: string; icon: React.ElementType }> = {
-  entry: { label: 'Entry', color: '#3BF68A', icon: LogIn },
-  exit: { label: 'Exit', color: '#A78BFA', icon: LogOut },
-  risk: { label: 'Risk', color: '#F45B69', icon: Shield },
+  entry: { label: 'Entry', color: '#00D68F', icon: LogIn },
+  exit: { label: 'Exit', color: '#4F9CF9', icon: LogOut },
+  risk: { label: 'Risk', color: '#FF4868', icon: Shield },
   mindset: { label: 'Mindset', color: '#60A5FA', icon: Brain },
   time: { label: 'Time', color: '#FBBF24', icon: Clock },
 };
@@ -179,7 +179,7 @@ export const RoutinePage: React.FC = () => {
       <div className={clsx(
         'flex items-center justify-between p-4 rounded-xl border mb-6',
         theme === 'dark' 
-          ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' 
+          ? 'bg-[#0D1628]/80 backdrop-blur-md border-white/5' 
           : 'bg-white border-gray-200'
       )}>
         <button
@@ -187,7 +187,7 @@ export const RoutinePage: React.FC = () => {
           className={clsx(
             'p-2 rounded-lg transition-colors',
             theme === 'dark'
-              ? 'hover:bg-[#242838] text-zinc-400 hover:text-zinc-100'
+              ? 'hover:bg-[#172035] text-zinc-400 hover:text-zinc-100'
               : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
           )}
         >
@@ -213,7 +213,7 @@ export const RoutinePage: React.FC = () => {
           className={clsx(
             'p-2 rounded-lg transition-colors',
             theme === 'dark'
-              ? 'hover:bg-[#242838] text-zinc-400 hover:text-zinc-100'
+              ? 'hover:bg-[#172035] text-zinc-400 hover:text-zinc-100'
               : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
           )}
         >
@@ -226,7 +226,7 @@ export const RoutinePage: React.FC = () => {
         <div className={clsx(
           'rounded-xl border p-6',
           theme === 'dark' 
-            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' 
+            ? 'bg-[#0D1628]/80 backdrop-blur-md border-white/5' 
             : 'bg-white border-gray-200'
         )}>
           <div className="flex items-center justify-between mb-4">
@@ -254,7 +254,7 @@ export const RoutinePage: React.FC = () => {
               className={clsx(
                 'p-2 rounded-lg transition-colors',
                 theme === 'dark'
-                  ? 'hover:bg-[#242838] text-zinc-400 hover:text-zinc-100'
+                  ? 'hover:bg-[#172035] text-zinc-400 hover:text-zinc-100'
                   : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
               )}
               title="Reset checklist"
@@ -266,7 +266,7 @@ export const RoutinePage: React.FC = () => {
           {/* Progress bar */}
           <div className={clsx(
             'h-2 rounded-full mb-4',
-            theme === 'dark' ? 'bg-[#242838]' : 'bg-gray-200'
+            theme === 'dark' ? 'bg-[#172035]' : 'bg-gray-200'
           )}>
             <div 
               className="h-full rounded-full bg-white text-zinc-950 hover:bg-zinc-200 transition-all duration-300"
@@ -286,7 +286,7 @@ export const RoutinePage: React.FC = () => {
                       ? 'bg-emerald-500/10 border-emerald-500/30'
                       : 'bg-green-50 border-green-200'
                     : theme === 'dark'
-                      ? 'bg-[#181B24] border-white/5 hover:border-emerald-500/30'
+                      ? 'bg-[#0D1628] border-white/5 hover:border-emerald-500/30'
                       : 'bg-gray-50 border-gray-200 hover:border-green-300'
                 )}
                 onClick={() => toggleChecklistItem(item.id)}
@@ -333,9 +333,9 @@ export const RoutinePage: React.FC = () => {
               onKeyDown={(e) => e.key === 'Enter' && handleAddChecklistItem()}
               placeholder="Add custom item..."
               className={clsx(
-                'flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50',
+                'flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#00D68F]/50',
                 theme === 'dark'
-                  ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
+                  ? 'bg-[#0D1628] border-white/5 text-zinc-100 placeholder-[#7B91B4]'
                   : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'
               )}
             />
@@ -352,11 +352,11 @@ export const RoutinePage: React.FC = () => {
         <div className={clsx(
           'rounded-xl border p-6',
           theme === 'dark' 
-            ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' 
+            ? 'bg-[#0D1628]/80 backdrop-blur-md border-white/5' 
             : 'bg-white border-gray-200'
         )}>
           <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 rounded-lg bg-[#242838]">
+            <div className="p-2 rounded-lg bg-[#172035]">
               <Target className="h-5 w-5 text-zinc-400" />
             </div>
             <h2 className={clsx(
@@ -378,7 +378,7 @@ export const RoutinePage: React.FC = () => {
             <div className="flex space-x-2">
               {[
                 { value: 'bullish', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500' },
-                { value: 'neutral', icon: Minus, color: 'text-zinc-400', bg: 'bg-[#8B94A7]' },
+                { value: 'neutral', icon: Minus, color: 'text-zinc-400', bg: 'bg-[#7B91B4]' },
                 { value: 'bearish', icon: TrendingDown, color: 'text-rose-500', bg: 'bg-rose-500' },
               ].map(({ value, icon: Icon, color, bg }) => (
                 <button
@@ -391,7 +391,7 @@ export const RoutinePage: React.FC = () => {
                     gamePlan.marketBias === value
                       ? `${bg}/20 border-current ${color}`
                       : theme === 'dark'
-                        ? 'bg-[#181B24] border-white/5 text-zinc-400 hover:border-emerald-500/30'
+                        ? 'bg-[#0D1628] border-white/5 text-zinc-400 hover:border-emerald-500/30'
                         : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
                   )}
                 >
@@ -418,7 +418,7 @@ export const RoutinePage: React.FC = () => {
                   {gamePlan.keyLevels.support.map((level, idx) => (
                     <div key={idx} className={clsx(
                       'flex items-center justify-between px-3 py-2 rounded-lg border',
-                      theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
+                      theme === 'dark' ? 'bg-[#0D1628] border-white/5' : 'bg-gray-50 border-gray-200'
                     )}>
                       <span className={clsx('text-sm', theme === 'dark' ? 'text-zinc-100' : 'text-gray-700')}>
                         {level}
@@ -439,9 +439,9 @@ export const RoutinePage: React.FC = () => {
                       onKeyDown={(e) => e.key === 'Enter' && handleAddSupport()}
                       placeholder="Add level..."
                       className={clsx(
-                        'flex-1 px-2 py-1 rounded border text-sm focus:outline-none focus:ring-1 focus:ring-[#3BF68A]/50',
+                        'flex-1 px-2 py-1 rounded border text-sm focus:outline-none focus:ring-1 focus:ring-[#00D68F]/50',
                         theme === 'dark'
-                          ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
+                          ? 'bg-[#0D1628] border-white/5 text-zinc-100 placeholder-[#7B91B4]'
                           : 'bg-gray-50 border-gray-300 text-gray-900'
                       )}
                     />
@@ -459,7 +459,7 @@ export const RoutinePage: React.FC = () => {
                   {gamePlan.keyLevels.resistance.map((level, idx) => (
                     <div key={idx} className={clsx(
                       'flex items-center justify-between px-3 py-2 rounded-lg border',
-                      theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
+                      theme === 'dark' ? 'bg-[#0D1628] border-white/5' : 'bg-gray-50 border-gray-200'
                     )}>
                       <span className={clsx('text-sm', theme === 'dark' ? 'text-zinc-100' : 'text-gray-700')}>
                         {level}
@@ -480,9 +480,9 @@ export const RoutinePage: React.FC = () => {
                       onKeyDown={(e) => e.key === 'Enter' && handleAddResistance()}
                       placeholder="Add level..."
                       className={clsx(
-                        'flex-1 px-2 py-1 rounded border text-sm focus:outline-none focus:ring-1 focus:ring-[#3BF68A]/50',
+                        'flex-1 px-2 py-1 rounded border text-sm focus:outline-none focus:ring-1 focus:ring-[#00D68F]/50',
                         theme === 'dark'
-                          ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
+                          ? 'bg-[#0D1628] border-white/5 text-zinc-100 placeholder-[#7B91B4]'
                           : 'bg-gray-50 border-gray-300 text-gray-900'
                       )}
                     />
@@ -511,7 +511,7 @@ export const RoutinePage: React.FC = () => {
                   className={clsx(
                     'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
                     theme === 'dark' 
-                      ? 'bg-[#242838]/80 text-zinc-400' 
+                      ? 'bg-[#172035]/80 text-zinc-400' 
                       : 'bg-purple-100 text-purple-700'
                   )}
                 >
@@ -533,9 +533,9 @@ export const RoutinePage: React.FC = () => {
                 onKeyDown={(e) => e.key === 'Enter' && handleAddWatchlist()}
                 placeholder="Add symbol (e.g., ES, NQ, MES)..."
                 className={clsx(
-                  'flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50',
+                  'flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#4F9CF9]/50',
                   theme === 'dark'
-                    ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
+                    ? 'bg-[#0D1628] border-white/5 text-zinc-100 placeholder-[#7B91B4]'
                     : 'bg-gray-50 border-gray-300 text-gray-900'
                 )}
               />
@@ -566,9 +566,9 @@ export const RoutinePage: React.FC = () => {
                   onChange={(e) => updateGamePlan(selectedDate, { maxLoss: e.target.value ? Number(e.target.value) : null })}
                   placeholder="$0"
                   className={clsx(
-                    'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#F45B69]/50',
+                    'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#FF4868]/50',
                     theme === 'dark'
-                      ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
+                      ? 'bg-[#0D1628] border-white/5 text-zinc-100 placeholder-[#7B91B4]'
                       : 'bg-gray-50 border-gray-300 text-gray-900'
                   )}
                 />
@@ -581,9 +581,9 @@ export const RoutinePage: React.FC = () => {
                   onChange={(e) => updateGamePlan(selectedDate, { maxProfit: e.target.value ? Number(e.target.value) : null })}
                   placeholder="$0"
                   className={clsx(
-                    'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50',
+                    'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#00D68F]/50',
                     theme === 'dark'
-                      ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
+                      ? 'bg-[#0D1628] border-white/5 text-zinc-100 placeholder-[#7B91B4]'
                       : 'bg-gray-50 border-gray-300 text-gray-900'
                   )}
                 />
@@ -596,9 +596,9 @@ export const RoutinePage: React.FC = () => {
                   onChange={(e) => updateGamePlan(selectedDate, { maxTrades: e.target.value ? Number(e.target.value) : null })}
                   placeholder="0"
                   className={clsx(
-                    'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#A78BFA]/50',
+                    'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#4F9CF9]/50',
                     theme === 'dark'
-                      ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
+                      ? 'bg-[#0D1628] border-white/5 text-zinc-100 placeholder-[#7B91B4]'
                       : 'bg-gray-50 border-gray-300 text-gray-900'
                   )}
                 />
@@ -620,9 +620,9 @@ export const RoutinePage: React.FC = () => {
               placeholder="Write your trading plan for the day..."
               rows={4}
               className={clsx(
-                'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#3BF68A]/50 resize-none',
+                'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#00D68F]/50 resize-none',
                 theme === 'dark'
-                  ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
+                  ? 'bg-[#0D1628] border-white/5 text-zinc-100 placeholder-[#7B91B4]'
                   : 'bg-gray-50 border-gray-300 text-gray-900'
               )}
             />
@@ -634,7 +634,7 @@ export const RoutinePage: React.FC = () => {
       <div className={clsx(
         'rounded-xl border p-6 mt-6',
         theme === 'dark' 
-          ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' 
+          ? 'bg-[#0D1628]/80 backdrop-blur-md border-white/5' 
           : 'bg-white border-gray-200'
       )}>
         <div className="flex items-center justify-between mb-6">
@@ -666,7 +666,7 @@ export const RoutinePage: React.FC = () => {
                   gamePlan.ruleCompliance?.length === 0
                     ? 'bg-emerald-500 text-black hover:bg-emerald-500/90'
                     : theme === 'dark'
-                      ? 'bg-[#242838] text-zinc-100 hover:bg-[#2A3441]'
+                      ? 'bg-[#172035] text-zinc-100 hover:bg-[#2A3441]'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 )}
                 title="Initialize all active rules for this day so you can track compliance"
@@ -679,7 +679,7 @@ export const RoutinePage: React.FC = () => {
               className={clsx(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                 theme === 'dark'
-                  ? 'bg-[#242838] text-zinc-100 hover:bg-[#2A3441]'
+                  ? 'bg-[#172035] text-zinc-100 hover:bg-[#2A3441]'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               )}
             >
@@ -720,7 +720,7 @@ export const RoutinePage: React.FC = () => {
         {showAddRuleForm && (
           <div className={clsx(
             'p-4 rounded-lg border mb-4',
-            theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
+            theme === 'dark' ? 'bg-[#0D1628] border-white/5' : 'bg-gray-50 border-gray-200'
           )}>
             <p className={clsx(
               'text-sm font-medium mb-3',
@@ -740,7 +740,7 @@ export const RoutinePage: React.FC = () => {
                         newRuleCategory === cat
                           ? 'ring-2 ring-offset-1'
                           : 'opacity-60 hover:opacity-100',
-                        theme === 'dark' ? 'ring-offset-[#181B24]' : 'ring-offset-gray-50'
+                        theme === 'dark' ? 'ring-offset-[#0D1628]' : 'ring-offset-gray-50'
                       )}
                       style={{ 
                         backgroundColor: `${color}20`,
@@ -762,9 +762,9 @@ export const RoutinePage: React.FC = () => {
                   onKeyDown={(e) => e.key === 'Enter' && handleAddRule()}
                   placeholder="e.g., Never chase a trade after missing entry..."
                   className={clsx(
-                    'flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#F45B69]/50',
+                    'flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#FF4868]/50',
                     theme === 'dark'
-                      ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5 text-zinc-100 placeholder-[#8B94A7]'
+                      ? 'bg-[#0D1628]/80 backdrop-blur-md border-white/5 text-zinc-100 placeholder-[#7B91B4]'
                       : 'bg-white border-gray-300 text-gray-900'
                   )}
                 />
@@ -782,7 +782,7 @@ export const RoutinePage: React.FC = () => {
         {tradingRules.length === 0 ? (
           <div className={clsx(
             'text-center py-8 rounded-lg border',
-            theme === 'dark' ? 'bg-[#181B24] border-white/5' : 'bg-gray-50 border-gray-200'
+            theme === 'dark' ? 'bg-[#0D1628] border-white/5' : 'bg-gray-50 border-gray-200'
           )}>
             <Shield className={clsx('h-12 w-12 mx-auto mb-3', theme === 'dark' ? 'text-zinc-400' : 'text-gray-400')} />
             <p className={clsx('text-sm mb-2', theme === 'dark' ? 'text-zinc-400' : 'text-gray-500')}>
@@ -823,7 +823,7 @@ export const RoutinePage: React.FC = () => {
                               'flex items-center justify-between p-3 rounded-lg border transition-all',
                               !rule.isActive && 'opacity-50',
                               theme === 'dark'
-                                ? 'bg-[#181B24] border-white/5'
+                                ? 'bg-[#0D1628] border-white/5'
                                 : 'bg-gray-50 border-gray-200'
                             )}
                           >
@@ -872,7 +872,7 @@ export const RoutinePage: React.FC = () => {
                                     compliance === true
                                       ? 'bg-emerald-500 text-black'
                                       : theme === 'dark'
-                                        ? 'bg-[#242838] text-zinc-400 hover:text-emerald-500'
+                                        ? 'bg-[#172035] text-zinc-400 hover:text-emerald-500'
                                         : 'bg-gray-200 text-gray-500 hover:text-green-600'
                                   )}
                                   title="Followed this rule"
@@ -886,7 +886,7 @@ export const RoutinePage: React.FC = () => {
                                     compliance === false
                                       ? 'bg-rose-500 text-white'
                                       : theme === 'dark'
-                                        ? 'bg-[#242838] text-zinc-400 hover:text-rose-500'
+                                        ? 'bg-[#172035] text-zinc-400 hover:text-rose-500'
                                         : 'bg-gray-200 text-gray-500 hover:text-red-600'
                                   )}
                                   title="Broke this rule"
@@ -917,7 +917,7 @@ export const RoutinePage: React.FC = () => {
       <div className={clsx(
         'rounded-xl border p-6 mt-6',
         theme === 'dark' 
-          ? 'bg-[#181B24]/80 backdrop-blur-md border-white/5' 
+          ? 'bg-[#0D1628]/80 backdrop-blur-md border-white/5' 
           : 'bg-white border-gray-200'
       )}>
         <div className="flex items-center space-x-3 mb-6">
@@ -957,7 +957,7 @@ export const RoutinePage: React.FC = () => {
                   gamePlan.followedPlan === true
                     ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-500'
                     : theme === 'dark'
-                      ? 'bg-[#181B24] border-white/5 text-zinc-400 hover:border-emerald-500/50'
+                      ? 'bg-[#0D1628] border-white/5 text-zinc-400 hover:border-emerald-500/50'
                       : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-green-300'
                 )}
               >
@@ -971,7 +971,7 @@ export const RoutinePage: React.FC = () => {
                   gamePlan.followedPlan === false
                     ? 'bg-rose-500/20 border-rose-500/30 text-rose-500'
                     : theme === 'dark'
-                      ? 'bg-[#181B24] border-white/5 text-zinc-400 hover:border-rose-500/50'
+                      ? 'bg-[#0D1628] border-white/5 text-zinc-400 hover:border-rose-500/50'
                       : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-red-300'
                 )}
               >
@@ -991,11 +991,11 @@ export const RoutinePage: React.FC = () => {
             </label>
             <div className="flex flex-wrap gap-2">
               {[
-                { value: 'calm', label: 'Calm', color: '#3BF68A' },
+                { value: 'calm', label: 'Calm', color: '#00D68F' },
                 { value: 'confident', label: 'Confident', color: '#60A5FA' },
-                { value: 'neutral', label: 'Neutral', color: '#8B94A7' },
+                { value: 'neutral', label: 'Neutral', color: '#7B91B4' },
                 { value: 'anxious', label: 'Anxious', color: '#FBBF24' },
-                { value: 'frustrated', label: 'Frustrated', color: '#F45B69' },
+                { value: 'frustrated', label: 'Frustrated', color: '#FF4868' },
               ].map(({ value, label, color }) => (
                 <button
                   key={value}
@@ -1007,7 +1007,7 @@ export const RoutinePage: React.FC = () => {
                     gamePlan.emotionalState === value
                       ? 'ring-2 ring-offset-1'
                       : 'opacity-60 hover:opacity-100',
-                    theme === 'dark' ? 'ring-offset-[#1E2130]' : 'ring-offset-white'
+                    theme === 'dark' ? 'ring-offset-[#111F35]' : 'ring-offset-white'
                   )}
                   style={{
                     backgroundColor: `${color}20`,
@@ -1037,7 +1037,7 @@ export const RoutinePage: React.FC = () => {
             className={clsx(
               'w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#60A5FA]/50 resize-none',
               theme === 'dark'
-                ? 'bg-[#181B24] border-white/5 text-zinc-100 placeholder-[#8B94A7]'
+                ? 'bg-[#0D1628] border-white/5 text-zinc-100 placeholder-[#7B91B4]'
                 : 'bg-gray-50 border-gray-300 text-gray-900'
             )}
           />
@@ -1047,7 +1047,7 @@ export const RoutinePage: React.FC = () => {
         {gamePlan.ruleCompliance && gamePlan.ruleCompliance.length > 0 && (
           <div className={clsx(
             'mt-6 p-4 rounded-lg',
-            theme === 'dark' ? 'bg-[#181B24]' : 'bg-gray-50'
+            theme === 'dark' ? 'bg-[#0D1628]' : 'bg-gray-50'
           )}>
             <p className={clsx(
               'text-sm font-medium mb-3',
@@ -1069,7 +1069,7 @@ export const RoutinePage: React.FC = () => {
                 </span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-[#8B94A7]" />
+                <div className="w-3 h-3 rounded-full bg-[#7B91B4]" />
                 <span className={clsx('text-sm', theme === 'dark' ? 'text-zinc-400' : 'text-gray-600')}>
                   Not rated: {activeRules.length - gamePlan.ruleCompliance.filter(c => c.followed !== null).length}
                 </span>

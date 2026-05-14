@@ -46,9 +46,9 @@ const TRADING_QUOTES = [
 
 // Daily target configuration
 const PACE_CONFIG = {
-  conservative: { label: 'Conservative', dailyTarget: 150, color: '#3BF68A', icon: Shield },
-  moderate: { label: 'Moderate', dailyTarget: 300, color: '#A78BFA', icon: Zap },
-  aggressive: { label: 'Aggressive', dailyTarget: 600, color: '#F45B69', icon: Flame }
+  conservative: { label: 'Conservative', dailyTarget: 150, color: '#00D68F', icon: Shield },
+  moderate: { label: 'Moderate', dailyTarget: 300, color: '#4F9CF9', icon: Zap },
+  aggressive: { label: 'Aggressive', dailyTarget: 600, color: '#FF4868', icon: Flame }
 };
 
 export const JourneyPage: React.FC = () => {
@@ -326,7 +326,7 @@ export const JourneyPage: React.FC = () => {
   if (!account) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
-        <div className="w-16 h-16 rounded-2xl bg-[#242838] flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-2xl bg-[#172035] flex items-center justify-center mb-4">
           <AlertCircle className="w-8 h-8 text-zinc-400" />
         </div>
         <h2 className="text-xl font-bold text-white mb-2">No Account Selected</h2>
@@ -356,7 +356,7 @@ export const JourneyPage: React.FC = () => {
     <div className="p-4 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
 
       {/* 1. HERO HEADER - REDESIGNED WITH INLINE CONTROLS */}
-      <div className="relative p-6 rounded-[2rem] overflow-hidden border border-white/5 bg-gradient-to-br from-[#1E2130] to-[#1E2130] shadow-xl">
+      <div className="relative p-6 rounded-[2rem] overflow-hidden border border-white/5 bg-gradient-to-br from-[#111F35] to-[#111F35] shadow-xl">
         <div className={clsx(
           "absolute -right-20 -top-20 w-64 h-64 blur-[100px] rounded-full opacity-10 transition-all duration-1000",
           isFunded ? "bg-emerald-500" : "bg-zinc-200"
@@ -379,7 +379,7 @@ export const JourneyPage: React.FC = () => {
                   cx="50" cy="50" r="42"
                   stroke="currentColor" strokeWidth="6"
                   fill="transparent"
-                  className="text-[#2C3148]"
+                  className="text-[#1E2F4A]"
                 />
                 {/* Outer Ring: Balance Progress */}
                 <circle
@@ -399,7 +399,7 @@ export const JourneyPage: React.FC = () => {
                   cx="50" cy="50" r="33"
                   stroke="currentColor" strokeWidth="5"
                   fill="transparent"
-                  className="text-[#2C3148]"
+                  className="text-[#1E2F4A]"
                 />
                 {/* Inner Ring: Consistency Progress */}
                 <circle
@@ -441,7 +441,7 @@ export const JourneyPage: React.FC = () => {
                 <div className="text-[9px] font-black text-[#6B7280] uppercase tracking-[0.2em] mb-1">Balance</div>
                 <div className="text-2xl font-black tabular-nums tracking-tight">${currentPnL.toLocaleString()}</div>
               </div>
-              <div className="w-px h-8 bg-[#242838]" />
+              <div className="w-px h-8 bg-[#172035]" />
               <div>
                 <div className="text-[9px] font-black text-[#6B7280] uppercase tracking-[0.2em] mb-1">Target</div>
                 <div className="relative group flex items-center">
@@ -456,7 +456,7 @@ export const JourneyPage: React.FC = () => {
                       setTarget(val);
                       updateAccount(account.id, { profitTarget: val });
                     }}
-                    className="w-32 bg-transparent text-2xl font-black text-emerald-500 tabular-nums focus:outline-none placeholder-[#3BF68A]/50"
+                    className="w-32 bg-transparent text-2xl font-black text-emerald-500 tabular-nums focus:outline-none placeholder-[#00D68F]/50"
                   />
                   {/* Invisible overlay to hint editability on hover */}
                   <div className="absolute inset-0 border-b-2 border-emerald-500/30/0 group-hover:border-emerald-500/30/20 transition-colors pointer-events-none" />
@@ -470,7 +470,7 @@ export const JourneyPage: React.FC = () => {
             {/* Account Type Toggle */}
             <div className="space-y-2">
               <label className="text-[8px] font-black text-[#4B5563] uppercase tracking-[0.2em] ml-1">Account Status</label>
-              <div className="flex bg-[#181B24] p-1.5 rounded-2xl border border-white/5">
+              <div className="flex bg-[#0D1628] p-1.5 rounded-2xl border border-white/5">
                 <button
                   onClick={() => {
                     setIsFunded(false);
@@ -503,7 +503,7 @@ export const JourneyPage: React.FC = () => {
             {/* Pacing Strategy */}
             <div className="space-y-2">
               <label className="text-[8px] font-black text-[#4B5563] uppercase tracking-[0.2em] ml-1">Trading Pace</label>
-              <div className="flex bg-[#181B24] p-1.5 rounded-2xl border border-white/5">
+              <div className="flex bg-[#0D1628] p-1.5 rounded-2xl border border-white/5">
                 {(['conservative', 'moderate', 'aggressive'] as const).map((p) => {
                   const Icon = PACE_CONFIG[p].icon;
                   return (
@@ -532,14 +532,14 @@ export const JourneyPage: React.FC = () => {
       {/* TAB NAVIGATION */}
       <div className={clsx(
         "flex p-1.5 rounded-2xl border",
-        theme === 'dark' ? "bg-[#181B24] border-white/5" : "bg-gray-100 border-gray-200"
+        theme === 'dark' ? "bg-[#0D1628] border-white/5" : "bg-gray-100 border-gray-200"
       )}>
         <button
           onClick={() => setActiveTab('overview')}
           className={clsx(
             "flex-1 py-3 rounded-xl text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2",
             activeTab === 'overview'
-              ? (theme === 'dark' ? "bg-[#242838] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
+              ? (theme === 'dark' ? "bg-[#172035] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
               : (theme === 'dark' ? "text-[#6B7280] hover:text-[#9CA3AF]" : "text-gray-500 hover:text-gray-700")
           )}
         >
@@ -551,7 +551,7 @@ export const JourneyPage: React.FC = () => {
           className={clsx(
             "flex-1 py-3 rounded-xl text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2",
             activeTab === 'consistency'
-              ? (theme === 'dark' ? "bg-[#242838] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
+              ? (theme === 'dark' ? "bg-[#172035] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
               : (theme === 'dark' ? "text-[#6B7280] hover:text-[#9CA3AF]" : "text-gray-500 hover:text-gray-700")
           )}
         >
@@ -567,7 +567,7 @@ export const JourneyPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
             {/* PROGRESSIVE ROADMAP CALENDAR */}
-            <div className="lg:col-span-8 space-y-6 bg-[#1E2130]/60 p-8 rounded-[2.5rem] border border-white/5/50 backdrop-blur-xl shadow-2xl">
+            <div className="lg:col-span-8 space-y-6 bg-[#111F35]/60 p-8 rounded-[2.5rem] border border-white/5/50 backdrop-blur-xl shadow-2xl">
               <div className="flex items-center justify-between px-2">
                 <div className="flex items-center space-x-6">
                   <div className="flex flex-col">
@@ -652,7 +652,7 @@ export const JourneyPage: React.FC = () => {
                           {day.date.getDate().toString().padStart(2, '0')}
                         </span>
                         {day.isToday && (
-                          <div className="w-1 h-1 rounded-full bg-zinc-200 shadow-[0_0_10px_#A78BFA]" />
+                          <div className="w-1 h-1 rounded-full bg-zinc-200 shadow-[0_0_10px_#4F9CF9]" />
                         )}
                       </div>
 
@@ -679,7 +679,7 @@ export const JourneyPage: React.FC = () => {
 
                               {day.isProjected && !day.isGoalDay && day.pnl !== 0 && (
                                 <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
-                                  <div className="h-full bg-[#242838]/80 w-full" />
+                                  <div className="h-full bg-[#172035]/80 w-full" />
                                 </div>
                               )}
                             </div>
@@ -701,7 +701,7 @@ export const JourneyPage: React.FC = () => {
             <div className="lg:col-span-4 space-y-6">
 
               {/* TRADING QUOTE WIDGET */}
-              <div className="p-6 rounded-[2.5rem] bg-[#181B24]/80 backdrop-blur-md border border-white/5 shadow-xl relative overflow-hidden group">
+              <div className="p-6 rounded-[2.5rem] bg-[#0D1628]/80 backdrop-blur-md border border-white/5 shadow-xl relative overflow-hidden group">
                 <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-zinc-200/5 rounded-full blur-xl" />
                 <div className="relative z-10 space-y-4">
                   <div className="flex items-center gap-2">
@@ -715,7 +715,7 @@ export const JourneyPage: React.FC = () => {
               </div>
 
               {/* FOCUS TASKS WIDGET */}
-              <div className="p-6 rounded-[2.5rem] bg-[#1E2130] border border-white/5 shadow-xl relative overflow-hidden group">
+              <div className="p-6 rounded-[2.5rem] bg-[#111F35] border border-white/5 shadow-xl relative overflow-hidden group">
                 <div className="absolute -left-4 -top-4 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl" />
                 <div className="relative z-10 space-y-4">
                   <div className="flex items-center gap-2">
@@ -740,7 +740,7 @@ export const JourneyPage: React.FC = () => {
               {/* PAYOUT READINESS - Dual Condition Qualification */}
               <div className={clsx(
                 "p-6 rounded-[2.5rem] border shadow-xl overflow-hidden relative transition-colors",
-                theme === 'dark' ? "bg-[#181B24]/80 backdrop-blur-md border-white/5" : "bg-[#F8F9FB] border-gray-100"
+                theme === 'dark' ? "bg-[#0D1628]/80 backdrop-blur-md border-white/5" : "bg-[#F8F9FB] border-gray-100"
               )}>
                 {/* Overall Status Header */}
                 <div className="flex items-center justify-between mb-4">
@@ -768,7 +768,7 @@ export const JourneyPage: React.FC = () => {
                 {lastPayoutDate && (
                   <div className={clsx(
                     "flex items-center gap-2 p-2 rounded-lg text-xs mb-4",
-                    theme === 'dark' ? "bg-[#242838] text-zinc-400" : "bg-purple-50 text-purple-600"
+                    theme === 'dark' ? "bg-[#172035] text-zinc-400" : "bg-purple-50 text-purple-600"
                   )}>
                     <RefreshCw className="w-3 h-3" />
                     <span>
@@ -818,7 +818,7 @@ export const JourneyPage: React.FC = () => {
                       </span>
                     </div>
                     {/* Progress bar */}
-                    <div className="h-1.5 w-full bg-[#242838] rounded-full overflow-hidden mt-1">
+                    <div className="h-1.5 w-full bg-[#172035] rounded-full overflow-hidden mt-1">
                       <div
                         className={clsx(
                           "h-full rounded-full transition-all duration-1000",
@@ -901,7 +901,7 @@ export const JourneyPage: React.FC = () => {
                     </div>
 
                     {/* Progress bar */}
-                    <div className="h-1.5 w-full bg-[#242838] rounded-full overflow-hidden mt-1">
+                    <div className="h-1.5 w-full bg-[#172035] rounded-full overflow-hidden mt-1">
                       <div
                         className={clsx(
                           "h-full rounded-full transition-all duration-1000",
@@ -920,7 +920,7 @@ export const JourneyPage: React.FC = () => {
                   </label>
                   <div className={clsx(
                     "flex p-1 rounded-xl border",
-                    theme === 'dark' ? "bg-[#181B24] border-white/5" : "bg-gray-50 border-gray-200"
+                    theme === 'dark' ? "bg-[#0D1628] border-white/5" : "bg-gray-50 border-gray-200"
                   )}>
                     {[15, 20, 30, 40, 50].map((rule) => (
                       <button
@@ -929,7 +929,7 @@ export const JourneyPage: React.FC = () => {
                         className={clsx(
                           "flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all",
                           consistencyRule === rule
-                            ? (theme === 'dark' ? "bg-[#242838] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm border border-gray-100")
+                            ? (theme === 'dark' ? "bg-[#172035] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm border border-gray-100")
                             : (theme === 'dark' ? "text-zinc-400 hover:text-zinc-100" : "text-gray-500 hover:text-gray-900")
                         )}
                       >
@@ -945,7 +945,7 @@ export const JourneyPage: React.FC = () => {
 
           {/* FOOTER METRICS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-8 rounded-[2.5rem] bg-[#181B24]/80 backdrop-blur-md border border-white/5 shadow-xl">
+            <div className="p-8 rounded-[2.5rem] bg-[#0D1628]/80 backdrop-blur-md border border-white/5 shadow-xl">
               <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em] mb-4">Pacing Analysis</div>
               <div className="space-y-4">
                 <div>
@@ -961,7 +961,7 @@ export const JourneyPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-8 rounded-[2.5rem] bg-[#181B24]/80 backdrop-blur-md border border-white/5 shadow-xl">
+            <div className="p-8 rounded-[2.5rem] bg-[#0D1628]/80 backdrop-blur-md border border-white/5 shadow-xl">
               <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em] mb-4">Gap to Payout</div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -979,7 +979,7 @@ export const JourneyPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-[#1E2130] to-[#242838] border border-white/5 shadow-xl flex items-center justify-between">
+            <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-[#111F35] to-[#172035] border border-white/5 shadow-xl flex items-center justify-between">
               <div className="space-y-4">
                 <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em]">Execution Insight</div>
                 <p className="text-xs text-zinc-400 leading-relaxed max-w-[300px] font-medium italic">

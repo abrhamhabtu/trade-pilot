@@ -52,7 +52,7 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
           data={radarData}
           score={Math.round(consistencyScore)}
         />
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 h-full">
           <PLChart data={cumulativePLData} type="cumulative" />
         </div>
       </div>
@@ -85,10 +85,10 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
 
       {/* Performance Analysis Section - Condensed 2-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="h-[350px]">
+        <div className="h-[400px]">
           <TimePerformanceChart data={timePerformanceData} />
         </div>
-        <div className="h-[350px]">
+        <div className="h-[400px]">
           <DurationPerformanceChart data={durationPerformanceData} />
         </div>
       </div>

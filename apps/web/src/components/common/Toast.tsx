@@ -40,7 +40,7 @@ export const Toast: React.FC<ToastProps> = ({ id, message, type, onClose }) => {
       icon: 'text-rose-500'
     },
     info: {
-      bg: 'bg-[#242838]/80',
+      bg: 'bg-[#172035]/80',
       border: 'border-zinc-500',
       icon: 'text-zinc-400'
     }

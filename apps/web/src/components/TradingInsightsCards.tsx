@@ -118,7 +118,7 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-zinc-400 text-sm font-medium">Most Active Day</span>
               <Tooltip content="The day of the week when you execute the most trades" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                   <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
@@ -148,7 +148,7 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-zinc-400 text-sm font-medium">Most Profitable Day</span>
               <Tooltip content="The day of the week with the highest total profits" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                   <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
@@ -176,7 +176,7 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-zinc-400 text-sm font-medium">Least Profitable Day</span>
               <Tooltip content="The day of the week with the lowest total profits or highest losses" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                   <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
@@ -207,7 +207,7 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-zinc-400 text-sm font-medium">Total Number of Trades</span>
               <Tooltip content="Total count of all executed trades in the selected period" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                   <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
@@ -232,7 +232,7 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-zinc-400 text-sm font-medium">Total Number of Lots Traded</span>
               <Tooltip content="Total volume of lots traded across all positions" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                   <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
@@ -257,7 +257,7 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-zinc-400 text-sm font-medium">Average Trade Duration</span>
               <Tooltip content="Average time you hold positions from entry to exit" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                   <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
@@ -284,7 +284,7 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-zinc-400 text-sm font-medium">Average Win Duration</span>
               <Tooltip content="Average duration of your winning trades" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                   <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
@@ -311,7 +311,7 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
             <div className="flex items-center space-x-2 mb-3">
               <span className="text-zinc-400 text-sm font-medium">Average Loss Duration</span>
               <Tooltip content="Average duration of your losing trades" position="top">
-                <div className="w-3 h-3 rounded-full bg-[#242838] flex items-center justify-center cursor-help">
+                <div className="w-3 h-3 rounded-full bg-[#172035] flex items-center justify-center cursor-help">
                   <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>

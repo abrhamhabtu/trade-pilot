@@ -54,8 +54,8 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
         cx={cx}
         cy={cy}
         r={3} // Reduced from 6 to 3 (50% smaller)
-        fill="#3BF68A"
-        stroke="#242838"
+        fill="#00D68F"
+        stroke="#172035"
         strokeWidth={1} // Reduced from 2 to 1
         style={{ 
           cursor: 'pointer',
@@ -82,7 +82,7 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
         }}
       >
         <div 
-          className="bg-[#242838] border border-emerald-500/30 rounded-lg shadow-xl backdrop-blur-sm"
+          className="bg-[#172035] border border-emerald-500/30 rounded-lg shadow-xl backdrop-blur-sm"
           style={{
             background: 'linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(55, 65, 81, 0.95) 100%)',
             boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6), 0 0 8px rgba(59, 246, 138, 0.2)',
@@ -104,7 +104,7 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
   };
 
   if (!hasMounted) {
-    return <div className="h-full min-h-[22rem] rounded-xl border border-white/5 bg-[#181B24]/40" />;
+    return <div className="h-full min-h-[22rem] rounded-xl border border-white/5 bg-[#0D1628]/40" />;
   }
 
   return (
@@ -125,43 +125,43 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
           <div className="flex items-center space-x-2">
             <h3 className="text-zinc-100 text-lg font-semibold">Trading score</h3>
             <Tooltip content={tooltipContent} position="top">
-              <div className="w-4 h-4 rounded-full bg-[#242838] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
+              <div className="w-4 h-4 rounded-full bg-[#172035] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
                 <span className="text-zinc-400 text-xs">?</span>
               </div>
             </Tooltip>
           </div>
         </div>
         
-        <div className="h-40 mb-4 relative">
+        <div className="h-56 mb-4 relative">
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart 
-              data={data} 
-              margin={{ top: 5, right: 5, bottom: 5, left: 5 }}
-              onMouseLeave={() => setHoveredPoint(null)} // Additional safety net
+            <RadarChart
+              data={data}
+              margin={{ top: 14, right: 22, bottom: 14, left: 22 }}
+              outerRadius="72%"
+              onMouseLeave={() => setHoveredPoint(null)}
             >
               <defs>
                 <linearGradient id="radarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
+                  <stop offset="0%" stopColor="#00D68F" stopOpacity={0.3} />
                   <stop offset="100%" stopColor="#71717A" stopOpacity={0.3} />
                 </linearGradient>
                 <linearGradient id="radarStroke" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#10B981" />
+                  <stop offset="0%" stopColor="#00D68F" />
                   <stop offset="100%" stopColor="#71717A" />
                 </linearGradient>
               </defs>
-              <PolarGrid 
-                gridType="polygon" 
-                stroke="#2C3148"
+              <PolarGrid
+                gridType="polygon"
+                stroke="#1E2F4A"
                 strokeWidth={1}
                 radialLines={false}
               />
-              <PolarAngleAxis 
-                dataKey="category" 
-                tick={{ fill: '#8B94A7', fontSize: 9 }}
-                className="text-xs"
+              <PolarAngleAxis
+                dataKey="category"
+                tick={{ fill: '#7B91B4', fontSize: 10 }}
               />
-              <PolarRadiusAxis 
-                domain={[0, 100]} 
+              <PolarRadiusAxis
+                domain={[0, 100]}
                 tick={false}
                 tickCount={5}
                 axisLine={false}
@@ -177,7 +177,7 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
               />
             </RadarChart>
           </ResponsiveContainer>
-          
+
           {/* Point-specific tooltip */}
           <PointTooltip />
         </div>
@@ -197,12 +197,12 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
               <span>75</span>
               <span>100</span>
             </div>
-            <div className="w-full h-2 bg-[#242838] rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-[#172035] rounded-full overflow-hidden">
               <div 
                 className="h-full rounded-full transition-all duration-1000"
                 style={{ 
                   width: `${score}%`,
-                  background: 'linear-gradient(to right, #3BF68A, #A78BFA)'
+                  background: 'linear-gradient(to right, #00D68F, #4F9CF9)'
                 }}
               />
             </div>
