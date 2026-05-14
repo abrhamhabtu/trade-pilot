@@ -459,26 +459,26 @@ function SetupRow({
                 </div>
 
                 {/* Price levels */}
-                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
-                    <div>
-                        <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Entry</span>
-                        <p className="text-sm font-mono font-semibold text-zinc-200">${setup.entry.toFixed(2)}</p>
+                <div className="mt-2 space-y-1">
+                    <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] text-zinc-600 uppercase tracking-wider flex-shrink-0">Entry</span>
+                        <span className="text-xs font-mono font-semibold text-zinc-200">${setup.entry.toFixed(2)}</span>
                     </div>
-                    <div>
-                        <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Stop</span>
-                        <p className="text-sm font-mono font-semibold text-rose-400">${setup.stop.toFixed(2)}</p>
+                    <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] text-zinc-600 uppercase tracking-wider flex-shrink-0">Stop</span>
+                        <span className="text-xs font-mono font-semibold text-rose-400">${setup.stop.toFixed(2)}</span>
                     </div>
                     {setup.targets.map((t, i) => (
-                        <div key={i}>
-                            <span className="text-[10px] text-zinc-600 uppercase tracking-wider">T{i + 1}</span>
-                            <p className="text-sm font-mono font-semibold text-emerald-400">${t.toFixed(2)}</p>
+                        <div key={i} className="flex items-center justify-between gap-1">
+                            <span className="text-[10px] text-zinc-600 uppercase tracking-wider flex-shrink-0">T{i + 1}</span>
+                            <span className="text-xs font-mono font-semibold text-emerald-400">${t.toFixed(2)}</span>
                         </div>
                     ))}
-                    <div>
-                        <span className="text-[10px] text-zinc-600 uppercase tracking-wider">R:R</span>
-                        <p className={clsx('text-sm font-bold', setup.rr >= 2 ? 'text-emerald-400' : setup.rr >= 1 ? 'text-amber-400' : 'text-rose-400')}>
+                    <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] text-zinc-600 uppercase tracking-wider flex-shrink-0">R:R</span>
+                        <span className={clsx('text-xs font-bold', setup.rr >= 2 ? 'text-emerald-400' : setup.rr >= 1 ? 'text-amber-400' : 'text-rose-400')}>
                             {setup.rr}:1
-                        </p>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -760,7 +760,7 @@ function SetupCardView({ card }: { card: SetupCard }) {
             {/* ── 3-column body ── */}
             <div className="grid grid-cols-3 divide-x divide-white/[0.05] min-h-[320px]">
                 {/* Bullish */}
-                <div className="px-4 py-4 flex flex-col">
+                <div className="px-4 py-4 flex flex-col min-w-0">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-1.5">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -790,7 +790,7 @@ function SetupCardView({ card }: { card: SetupCard }) {
                 </div>
 
                 {/* Bearish */}
-                <div className="px-4 py-4 flex flex-col">
+                <div className="px-4 py-4 flex flex-col min-w-0">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-1.5">
                             <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
@@ -820,7 +820,7 @@ function SetupCardView({ card }: { card: SetupCard }) {
                 </div>
 
                 {/* Key Levels */}
-                <div className="px-4 py-4">
+                <div className="px-4 py-4 min-w-0">
                     <KeyLevelsPanel card={card} />
                 </div>
             </div>
