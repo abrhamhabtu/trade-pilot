@@ -8,6 +8,7 @@ import {
   Target,
   Users,
   Crosshair,
+  Wallet,
 } from 'lucide-react';
 
 export const APP_ROUTES = {
@@ -20,6 +21,7 @@ export const APP_ROUTES = {
   trades: '/app/trades',
   playbooks: '/app/playbooks',
   journal: '/app/journal',
+  payout: '/app/payout',
 } as const;
 
 export type AppRouteKey = keyof typeof APP_ROUTES;
@@ -34,6 +36,7 @@ export const APP_NAVIGATION = [
   { name: 'Trades', icon: TrendingUp, href: APP_ROUTES.trades },
   { name: 'Playbooks', icon: Target, href: APP_ROUTES.playbooks },
   { name: 'Journal', icon: BookOpen, href: APP_ROUTES.journal },
+  { name: 'Payout', icon: Wallet, href: APP_ROUTES.payout },
 ] as const;
 
 export function isActiveRoute(pathname: string, href: string): boolean {
