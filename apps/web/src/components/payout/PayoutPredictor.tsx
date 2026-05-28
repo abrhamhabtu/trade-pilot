@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Wallet, ChevronDown, TrendingUp, Shield, Settings2, Calendar, Target, ArrowRight, Copy } from 'lucide-react';
+import { Wallet, ChevronDown, TrendingUp, Shield, Settings2, Calendar, Target, ArrowRight, Copy, Crosshair } from 'lucide-react';
 import clsx from 'clsx';
 import { useThemeStore } from '@/store/themeStore';
 import { useAccountStore, Account } from '@/store/accountStore';
@@ -68,8 +68,8 @@ const PROP_FIRM_PRESETS: PropFirmPreset[] = [
   { name: 'TopOne Futures - $50K Ignite', accountSize: 50000, profitTargetPercent: 5, consistencyPercent: 15, firstPayoutPercent: 2, splitPercent: 90, maxDrawdownPercent: 4, defaultAccountCost: 55 },
   { name: 'TopOne Futures - $100K Ignite', accountSize: 100000, profitTargetPercent: 5, consistencyPercent: 15, firstPayoutPercent: 2, splitPercent: 90, maxDrawdownPercent: 4, defaultAccountCost: 110 },
   { name: 'TopOne Futures - $150K Ignite', accountSize: 150000, profitTargetPercent: 5, consistencyPercent: 15, firstPayoutPercent: 2, splitPercent: 90, maxDrawdownPercent: 4, defaultAccountCost: 165 },
-  { name: 'Lucid Trading - $50K', accountSize: 50000, profitTargetPercent: 8, consistencyPercent: 20, firstPayoutPercent: 4, splitPercent: 85, maxDrawdownPercent: 8, defaultAccountCost: 110 },
-  { name: 'Lucid Trading - $100K', accountSize: 100000, profitTargetPercent: 8, consistencyPercent: 20, firstPayoutPercent: 4, splitPercent: 85, maxDrawdownPercent: 8, defaultAccountCost: 220 },
+  { name: 'Lucid Trading - $50K', accountSize: 50000, profitTargetPercent: 6, consistencyPercent: 50, firstPayoutPercent: 4, splitPercent: 90, maxDrawdownPercent: 4, defaultAccountCost: 110 },
+  { name: 'Lucid Trading - $100K', accountSize: 100000, profitTargetPercent: 6, consistencyPercent: 50, firstPayoutPercent: 2.5, splitPercent: 90, maxDrawdownPercent: 3, defaultAccountCost: 220 },
   { name: 'Topstep - $50K', accountSize: 50000, profitTargetPercent: 6, consistencyPercent: 20, firstPayoutPercent: 3, splitPercent: 90, maxDrawdownPercent: 5, defaultAccountCost: 165 },
   { name: 'Topstep - $100K', accountSize: 100000, profitTargetPercent: 6, consistencyPercent: 20, firstPayoutPercent: 3, splitPercent: 90, maxDrawdownPercent: 5, defaultAccountCost: 325 },
   { name: 'Apex - $50K', accountSize: 50000, profitTargetPercent: 6, consistencyPercent: 30, firstPayoutPercent: 3, splitPercent: 100, maxDrawdownPercent: 5, defaultAccountCost: 85 },
@@ -333,6 +333,66 @@ const getAccountCostForPreset = (preset: PropFirmPreset): number => {
 const clampCopyAccountCount = (value: number) =>
   Math.min(50, Math.max(1, Math.round(value) || 1));
 
+const MNQ_POINT_VALUE = 2;
+const MNQ_CONTRACT_OPTIONS = [2, 3, 5] as const;
+const MNQ_PLAN_KEY = 'tradepilot_payout_mnq_plan';
+const DAILY_AIM_KEY = 'tradepilot_payout_daily_aim';
+
+type MnqPlanId = 'survival' | 'steady' | 'push';
+
+const MNQ_PLANS: Record<
+  MnqPlanId,
+  {
+    label: string;
+    tagline: string;
+    contracts: number;
+    stopPts: number;
+    tradesPerDay: number;
+    dailyAim: number;
+  }
+> = {
+  survival: {
+    label: 'Survival',
+    tagline: '2 MNQ — small size, long runway',
+    contracts: 2,
+    stopPts: 25,
+    tradesPerDay: 2,
+    dailyAim: 200,
+  },
+  steady: {
+    label: 'Steady grind',
+    tagline: '3 MNQ — default sweet spot',
+    contracts: 3,
+    stopPts: 30,
+    tradesPerDay: 2,
+    dailyAim: 300,
+  },
+  push: {
+    label: 'High conviction',
+    tagline: '5 MNQ max — A+ setups only',
+    contracts: 5,
+    stopPts: 30,
+    tradesPerDay: 2,
+    dailyAim: 450,
+  },
+};
+
+const DAILY_AIM_PRESETS = [200, 250, 300, 350, 400, 500] as const;
+
+const computeMnqRiskPerTrade = (contracts: number, stopPts: number) =>
+  contracts * MNQ_POINT_VALUE * stopPts;
+
+const loadStoredString = (key: string, fallback: string) => {
+  if (typeof window === 'undefined') return fallback;
+  const raw = localStorage.getItem(key);
+  return raw ?? fallback;
+};
+
+const loadMnqPlan = (): MnqPlanId => {
+  const raw = loadStoredString(MNQ_PLAN_KEY, 'steady');
+  return raw in MNQ_PLANS ? (raw as MnqPlanId) : 'steady';
+};
+
 // ─── UI primitives ───────────────────────────────────────────────────────────
 
 const LabelWithTip: React.FC<{ label: string; tip?: string; className?: string }> = ({
@@ -467,17 +527,39 @@ export const PayoutPredictor: React.FC = () => {
   const [drawdownLimit, setDrawdownLimit] = useState<NumericValue>(() =>
     computeDrawdownFromPreset(PROP_FIRM_PRESETS[0].accountSize, PROP_FIRM_PRESETS[0])
   );
-  const [riskPerTrade, setRiskPerTrade] = useState<NumericValue>(250);
-  const [tradesPerDay, setTradesPerDay] = useState<NumericValue>(2);
+  const [riskPerTrade, setRiskPerTrade] = useState<NumericValue>(() =>
+    computeMnqRiskPerTrade(MNQ_PLANS.steady.contracts, MNQ_PLANS.steady.stopPts)
+  );
+  const [tradesPerDay, setTradesPerDay] = useState<NumericValue>(MNQ_PLANS.steady.tradesPerDay);
   const [winRatePercent, setWinRatePercent] = useState<NumericValue>(45);
   const [rewardToRisk, setRewardToRisk] = useState<NumericValue>(1.5);
+  const [mnqPlan, setMnqPlan] = useState<MnqPlanId>('steady');
+  const [mnqContracts, setMnqContracts] = useState(MNQ_PLANS.steady.contracts);
+  const [mnqStopPts, setMnqStopPts] = useState(MNQ_PLANS.steady.stopPts);
+  const [dailyProfitAim, setDailyProfitAim] = useState<NumericValue>(300);
+  const [mnqPrefsLoaded, setMnqPrefsLoaded] = useState(false);
 
   useEffect(() => {
     setCopyAccountCount(clampCopyAccountCount(loadStoredNumber(COPY_COUNT_KEY, 3)));
     setPullTarget(loadStoredNumber(PULL_TARGET_KEY, 2000));
     setAccountCost(getAccountCostForPreset(PROP_FIRM_PRESETS[0]));
+    const savedPlan = loadMnqPlan();
+    const plan = MNQ_PLANS[savedPlan];
+    setMnqPlan(savedPlan);
+    setMnqContracts(plan.contracts);
+    setMnqStopPts(plan.stopPts);
+    setTradesPerDay(plan.tradesPerDay);
+    setRiskPerTrade(computeMnqRiskPerTrade(plan.contracts, plan.stopPts));
+    setDailyProfitAim(loadStoredNumber(DAILY_AIM_KEY, plan.dailyAim));
+    setMnqPrefsLoaded(true);
     setCopyPrefsLoaded(true);
   }, []);
+
+  useEffect(() => {
+    if (!mnqPrefsLoaded) return;
+    localStorage.setItem(MNQ_PLAN_KEY, mnqPlan);
+    localStorage.setItem(DAILY_AIM_KEY, String(numericValue(dailyProfitAim, 300)));
+  }, [mnqPlan, dailyProfitAim, mnqPrefsLoaded]);
 
   useEffect(() => {
     if (!copyPrefsLoaded) return;
@@ -627,6 +709,140 @@ export const PayoutPredictor: React.FC = () => {
     dailyCap > 0 ? Math.ceil(gapRemaining / dailyCap) : 0;
   const idealDaysTotal =
     dailyCap > 0 ? Math.ceil(profitTarget / dailyCap) : 0;
+  const capChaseDaysToPass = idealDaysRemaining || idealDaysTotal;
+
+  const mnqPerPoint = mnqContracts * MNQ_POINT_VALUE;
+  const mnqRiskPerTrade = computeMnqRiskPerTrade(mnqContracts, mnqStopPts);
+  const mnqWinPerTrade = mnqRiskPerTrade * rewardToRiskValue;
+  const mnqNaturalWinDay = Math.min(mnqWinPerTrade * tradesPerDayValue, dailyCap);
+  const mnqLossDay = -mnqRiskPerTrade * tradesPerDayValue;
+  const activeMnqPlan = MNQ_PLANS[mnqPlan];
+  const dailyProfitAimValue = numericValue(dailyProfitAim, 300);
+  const dailyAimCapped =
+    dailyCap > 0 ? Math.min(dailyProfitAimValue, dailyCap) : dailyProfitAimValue;
+  const dailyAimFeasible = dailyAimCapped <= mnqNaturalWinDay;
+  const dailyAimForTimeline = dailyAimFeasible
+    ? dailyAimCapped
+    : Math.min(dailyAimCapped, mnqNaturalWinDay);
+  const aimDaysToPass =
+    dailyAimForTimeline > 0 ? Math.ceil(gapRemaining / dailyAimForTimeline) : 0;
+  const ptsForDailyAim =
+    mnqPerPoint > 0 && rewardToRiskValue > 0
+      ? Math.ceil(dailyProfitAimValue / (mnqPerPoint * rewardToRiskValue))
+      : 0;
+  const mnqBadDaysBeforeStress =
+    mnqLossDay < 0 ? Math.floor(drawdownLimitValue / Math.abs(mnqLossDay)) : 99;
+  const ptsForOneWinnerAtCap =
+    mnqPerPoint > 0 && rewardToRiskValue > 0
+      ? Math.ceil(dailyCap / (mnqPerPoint * rewardToRiskValue))
+      : 0;
+  const isCapChasing =
+    dailyCap > 0 &&
+    (mnqNaturalWinDay >= dailyCap * 0.7 || (ptsForOneWinnerAtCap > 0 && ptsForOneWinnerAtCap <= 75));
+
+  const mnqAdvice = useMemo(() => {
+    const lines: { tone: 'neutral' | 'warn' | 'good'; text: string }[] = [];
+
+    if (dailyCap > 0) {
+      lines.push({
+        tone: 'good',
+        text: `Your daily aim is ${formatCurrency(dailyProfitAimValue)} — the ${formatCurrency(dailyCap)} consistency cap is the ceiling, not the goal.`,
+      });
+    }
+
+    if (!dailyAimFeasible && dailyProfitAimValue > 0) {
+      lines.push({
+        tone: 'warn',
+        text: `${formatCurrency(dailyProfitAimValue)}/day is tight at ${mnqContracts} MNQ — max green day here is ${formatCurrency(mnqNaturalWinDay)}. Size up, add a 2nd trade, or trim aim to ${formatCurrency(mnqNaturalWinDay)}.`,
+      });
+    } else if (dailyAimFeasible && ptsForDailyAim > 0) {
+      lines.push({
+        tone: 'good',
+        text: `${formatCurrency(dailyProfitAimValue)}/day ≈ ${ptsForDailyAim} MNQ points at ${rewardToRiskValue.toFixed(1)}R — reachable without chasing the cap.`,
+      });
+    }
+
+    if (mnqContracts >= 5) {
+      lines.push({
+        tone: 'warn',
+        text: `5 MNQ is the ceiling. On choppy MNQ days, drop to 2–3 contracts — you don't need a hero session to pass.`,
+      });
+    } else if (mnqContracts <= 2) {
+      lines.push({
+        tone: 'good',
+        text: `${mnqContracts} MNQ keeps you boring on purpose. That's how you survive a ${formatCurrency(drawdownLimitValue)} trail.`,
+      });
+    }
+
+    if (isCapChasing && ptsForOneWinnerAtCap > 0) {
+      lines.push({
+        tone: 'warn',
+        text: `Hitting the full cap in one trade needs ~${ptsForOneWinnerAtCap} MNQ points at ${mnqContracts} contracts. One bad reclaim can wipe a week of grind.`,
+      });
+    }
+
+    if (mnqBadDaysBeforeStress < 5) {
+      lines.push({
+        tone: 'warn',
+        text: `At this size, ${Math.max(1, mnqBadDaysBeforeStress)} full loss day(s) from peak can breach drawdown. Size down before you need a comeback.`,
+      });
+    } else if (mnqBadDaysBeforeStress >= 8) {
+      lines.push({
+        tone: 'good',
+        text: `~${mnqBadDaysBeforeStress} max-loss days of buffer at current size — room to breathe while you grind.`,
+      });
+    }
+
+    if (aimDaysToPass > 0 && capChaseDaysToPass > 0 && aimDaysToPass > capChaseDaysToPass) {
+      lines.push({
+        tone: 'neutral',
+        text: `At ${formatCurrency(dailyAimForTimeline)}/day, pass in ~${aimDaysToPass} days — ${aimDaysToPass - capChaseDaysToPass} more than cap-chasing, but much safer.`,
+      });
+    }
+
+    return lines.slice(0, 4);
+  }, [
+    aimDaysToPass,
+    capChaseDaysToPass,
+    dailyAimFeasible,
+    dailyAimForTimeline,
+    dailyCap,
+    dailyProfitAimValue,
+    drawdownLimitValue,
+    isCapChasing,
+    mnqBadDaysBeforeStress,
+    mnqContracts,
+    mnqNaturalWinDay,
+    ptsForDailyAim,
+    ptsForOneWinnerAtCap,
+    rewardToRiskValue,
+  ]);
+
+  const applyMnqPlan = useCallback((planId: MnqPlanId) => {
+    const plan = MNQ_PLANS[planId];
+    setMnqPlan(planId);
+    setMnqContracts(plan.contracts);
+    setMnqStopPts(plan.stopPts);
+    setTradesPerDay(plan.tradesPerDay);
+    setDailyProfitAim(plan.dailyAim);
+    setRiskPerTrade(computeMnqRiskPerTrade(plan.contracts, plan.stopPts));
+  }, []);
+
+  const setMnqContractCount = useCallback(
+    (contracts: number) => {
+      setMnqContracts(contracts);
+      setRiskPerTrade(computeMnqRiskPerTrade(contracts, mnqStopPts));
+    },
+    [mnqStopPts]
+  );
+
+  const setMnqStop = useCallback(
+    (stopPts: number) => {
+      setMnqStopPts(stopPts);
+      setRiskPerTrade(computeMnqRiskPerTrade(mnqContracts, stopPts));
+    },
+    [mnqContracts]
+  );
   const projectedWinDays = projection.reachedTarget || !projection.usedExpectancyEstimate
     ? projection.winDays
     : Math.round(projection.totalDays * (winRatePercentValue / 100));
@@ -995,6 +1211,187 @@ export const PayoutPredictor: React.FC = () => {
                 sub="if every day hits cap"
               />
             </div>
+
+            {/* MNQ sizing — grind vs chase */}
+            {dailyCap > 0 && (
+              <div
+                className={clsx(
+                  'mt-5 rounded-xl border p-4 sm:p-5',
+                  theme === 'dark'
+                    ? 'border-tp-blue/20 bg-tp-blue/[0.04]'
+                    : 'border-blue-100 bg-blue-50/60'
+                )}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Crosshair className="h-4 w-4 text-tp-blue" />
+                      <h3 className={clsx('text-sm font-semibold', text)}>MNQ game plan</h3>
+                    </div>
+                    <p className={clsx('mt-1 text-xs leading-relaxed', muted)}>
+                      Size for survival first. The consistency cap is a ceiling — not something to hunt every session.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(Object.keys(MNQ_PLANS) as MnqPlanId[]).map((planId) => (
+                      <button
+                        key={planId}
+                        type="button"
+                        onClick={() => applyMnqPlan(planId)}
+                        className={clsx(
+                          'rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
+                          mnqPlan === planId
+                            ? 'border-tp-blue/40 bg-tp-blue/15 text-tp-blue'
+                            : theme === 'dark'
+                              ? 'border-white/[0.08] text-zinc-400 hover:text-zinc-200'
+                              : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        )}
+                      >
+                        {MNQ_PLANS[planId].label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className={clsx('text-xs font-medium uppercase tracking-wide', muted)}>
+                    Contracts
+                  </span>
+                  {MNQ_CONTRACT_OPTIONS.map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setMnqContractCount(n)}
+                      className={clsx(
+                        'rounded-md border px-2.5 py-1 text-xs font-bold transition-colors',
+                        mnqContracts === n
+                          ? 'border-tp-green/40 bg-tp-green/15 text-tp-green'
+                          : theme === 'dark'
+                            ? 'border-white/[0.08] text-zinc-400 hover:text-zinc-200'
+                            : 'border-gray-200 text-gray-600'
+                      )}
+                    >
+                      {n} MNQ
+                    </button>
+                  ))}
+                  <span className={clsx('mx-1 text-xs', muted)}>·</span>
+                  <span className={clsx('text-xs', muted)}>Stop</span>
+                  {[20, 25, 30, 35, 40].map((pts) => (
+                    <button
+                      key={pts}
+                      type="button"
+                      onClick={() => setMnqStop(pts)}
+                      className={clsx(
+                        'rounded-md border px-2 py-1 text-xs font-medium transition-colors',
+                        mnqStopPts === pts
+                          ? 'border-tp-green/40 bg-tp-green/10 text-tp-green'
+                          : theme === 'dark'
+                            ? 'border-white/[0.06] text-zinc-500 hover:text-zinc-300'
+                            : 'border-gray-100 text-gray-500'
+                      )}
+                    >
+                      {pts}pt
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <LabelWithTip
+                      label="Daily profit aim"
+                      tip="What you actually try to take home each green day.\n\nDefault $300 on steady grind — not the consistency ceiling."
+                      className={clsx('text-xs font-medium uppercase tracking-wide', muted)}
+                    />
+                    <input
+                      type="number"
+                      min={50}
+                      max={5000}
+                      step={25}
+                      value={dailyProfitAim}
+                      onChange={(e) => setDailyProfitAim(parseNumberInput(e.target.value))}
+                      className={clsx(
+                        'w-28 rounded-lg border px-3 py-1.5 text-right text-sm font-semibold',
+                        theme === 'dark'
+                          ? 'border-white/[0.08] bg-tp-base text-tp-green'
+                          : 'border-gray-200 bg-white text-green-700'
+                      )}
+                    />
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {DAILY_AIM_PRESETS.map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => setDailyProfitAim(amount)}
+                        className={clsx(
+                          'rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors',
+                          dailyProfitAimValue === amount
+                            ? 'border-tp-green/40 bg-tp-green/15 text-tp-green'
+                            : theme === 'dark'
+                              ? 'border-white/[0.08] text-zinc-400 hover:text-zinc-200'
+                              : 'border-gray-200 text-gray-600'
+                        )}
+                      >
+                        ${amount}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <p className={clsx('mt-3 text-sm', muted)}>
+                  {mnqContracts} MNQ × {mnqStopPts}pt stop ·{' '}
+                  <span className={clsx('font-medium', text)}>${mnqPerPoint}/pt</span>
+                  {' → '}
+                  <span className="font-medium text-tp-red">{formatCurrency(mnqRiskPerTrade)}</span>
+                  {' risk/trade · '}
+                  <span className="font-medium text-tp-green">+{formatCurrency(mnqWinPerTrade)}</span>
+                  {' at '}
+                  {rewardToRiskValue.toFixed(1)}R
+                </p>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                  <MiniStat
+                    label="Daily aim"
+                    tip="Your target profit per green day — you pick this.\n\nTimeline below uses this number, not the consistency cap."
+                    value={formatCurrency(dailyProfitAimValue)}
+                    sub={
+                      dailyAimFeasible
+                        ? `~${aimDaysToPass || '—'} days to pass`
+                        : `max here ${formatCurrency(mnqNaturalWinDay)}`
+                    }
+                  />
+                  <MiniStat
+                    label="Consistency cap"
+                    tip="Max best-day profit vs total profit at pass.\n\nDon't aim here every session."
+                    value={formatCurrency(dailyCap)}
+                    sub="ceiling, not goal"
+                  />
+                  <MiniStat
+                    label="Bad-day buffer"
+                    tip="Full loss days from peak before trailing drawdown fails at this MNQ size."
+                    value={`~${mnqBadDaysBeforeStress} days`}
+                    sub={formatCurrency(mnqLossDay) + ' loss day'}
+                  />
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {mnqAdvice.map((line, i) => (
+                    <p
+                      key={i}
+                      className={clsx(
+                        'rounded-lg px-3 py-2 text-xs leading-relaxed',
+                        line.tone === 'warn' && 'bg-tp-red/10 text-tp-red',
+                        line.tone === 'good' && 'bg-tp-green/10 text-tp-green',
+                        line.tone === 'neutral' &&
+                          (theme === 'dark' ? 'bg-white/[0.04] text-zinc-400' : 'bg-gray-100 text-gray-600')
+                      )}
+                    >
+                      {line.text}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -1196,7 +1593,7 @@ export const PayoutPredictor: React.FC = () => {
           />
           <Stat
             label="Daily cap"
-            tip="Max profit allowed in a single day under the consistency rule.\n\nOften = target × consistency %."
+            tip="Max profit in your best day vs total profit (consistency rule).\n\nAt pass: target × consistency %. Lucid uses cumulative profit, not a fixed daily limit."
             value={formatCurrency(dailyCap)}
             hint={`${consistencyPercentValue}% consistency rule`}
             accent="yellow"
@@ -1279,6 +1676,82 @@ export const PayoutPredictor: React.FC = () => {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+
+          <div
+            className={clsx(
+              'rounded-xl border p-4',
+              theme === 'dark' ? 'border-white/[0.06] bg-tp-base/40' : 'border-gray-100 bg-gray-50'
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <Crosshair className="h-4 w-4 text-tp-blue" />
+              <LabelWithTip
+                label="MNQ sizing"
+                tip="Micro Nasdaq: $2/point per contract.\n\n2–5 contracts keeps risk aligned with a $2K trail."
+                className={clsx('text-sm font-semibold', text)}
+              />
+            </div>
+            <p className={clsx('mt-1 text-xs', muted)}>{activeMnqPlan.tagline}</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {(Object.keys(MNQ_PLANS) as MnqPlanId[]).map((planId) => (
+                <button
+                  key={planId}
+                  type="button"
+                  onClick={() => applyMnqPlan(planId)}
+                  className={clsx(
+                    'rounded-md border px-2.5 py-1 text-xs font-semibold',
+                    mnqPlan === planId
+                      ? 'border-tp-blue/40 bg-tp-blue/15 text-tp-blue'
+                      : theme === 'dark'
+                        ? 'border-white/[0.08] text-zinc-500'
+                        : 'border-gray-200 text-gray-600'
+                  )}
+                >
+                  {MNQ_PLANS[planId].label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {MNQ_CONTRACT_OPTIONS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setMnqContractCount(n)}
+                  className={clsx(
+                    'rounded-md border px-2 py-1 text-xs font-bold',
+                    mnqContracts === n
+                      ? 'border-tp-green/40 bg-tp-green/15 text-tp-green'
+                      : theme === 'dark'
+                        ? 'border-white/[0.06] text-zinc-500'
+                        : 'border-gray-100 text-gray-500'
+                  )}
+                >
+                  {n}
+                </button>
+              ))}
+              <span className={clsx('self-center text-xs', muted)}>MNQ · {mnqStopPts}pt</span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className={clsx('text-xs', muted)}>Aim</span>
+              {DAILY_AIM_PRESETS.map((amount) => (
+                <button
+                  key={amount}
+                  type="button"
+                  onClick={() => setDailyProfitAim(amount)}
+                  className={clsx(
+                    'rounded-md border px-2 py-0.5 text-xs font-semibold',
+                    dailyProfitAimValue === amount
+                      ? 'border-tp-green/40 text-tp-green'
+                      : theme === 'dark'
+                        ? 'border-white/[0.06] text-zinc-500'
+                        : 'border-gray-100 text-gray-500'
+                  )}
+                >
+                  ${amount}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -1378,7 +1851,7 @@ export const PayoutPredictor: React.FC = () => {
 
           <Stat
             label="Daily cap"
-            tip="Max profit allowed in a single day under the consistency rule."
+            tip="Max profit in your best day vs total profit (consistency rule).\n\nPlanning estimate at pass: target × consistency %."
             value={formatCurrency(dailyCap)}
             hint="Max per day for consistency"
             accent="yellow"
