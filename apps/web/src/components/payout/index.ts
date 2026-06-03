@@ -1,1 +1,1 @@
-export { PayoutPredictor } from './PayoutPredictor';
+export { PayoutPredictor } from './PayoutPredictorNew';
