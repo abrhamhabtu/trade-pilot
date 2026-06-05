@@ -133,7 +133,11 @@ const TABS: { id: PayoutTab; label: string; icon: React.ComponentType<{ classNam
   { id: 'firm', label: 'Firm & Rules', icon: Building2 },
 ];
 
-export const PayoutPredictor: React.FC = () => {
+interface PayoutPredictorProps {
+  initialFirmId?: string;
+}
+
+export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId }) => {
   const { text, muted, card, dark } = useThemeClasses();
   const [tab, setTab] = useState<PayoutTab>('path');
   const { showAllAccounts, getSelectedAccount, initializeFromIDB } = useAccountStore();
@@ -153,7 +157,7 @@ export const PayoutPredictor: React.FC = () => {
   const [focusCount, setFocusCount] = useState(3);
   const [loaded, setLoaded] = useState(false);
 
-  // Load persisted config
+  // Load persisted config; URL ?firm= overrides saved firm on first load
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -170,8 +174,16 @@ export const PayoutPredictor: React.FC = () => {
     } catch {
       /* ignore */
     }
+
+    if (initialFirmId && PROP_FIRMS.some((f) => f.id === initialFirmId)) {
+      const firmFromUrl = getFirmById(initialFirmId);
+      setFirmId(firmFromUrl.id);
+      setTierId(firmFromUrl.tiers[0].id);
+      setOverrides({});
+    }
+
     setLoaded(true);
-  }, []);
+  }, [initialFirmId]);
 
   const firm = useMemo(() => getFirmById(firmId), [firmId]);
   const tier = useMemo(

@@ -14,6 +14,7 @@ interface AddAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (name: string, broker: string) => void;
+  defaultBroker?: string;
 }
 
 type BrokerOption = {
@@ -106,11 +107,18 @@ const renderBrokerBadge = (option?: BrokerOption) => {
   );
 };
 
-const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAdd }) => {
+const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAdd, defaultBroker }) => {
   const [name, setName] = useState('');
   const [broker, setBroker] = useState('');
   const [showBrokerDropdown, setShowBrokerDropdown] = useState(false);
   const { theme } = useThemeStore();
+
+  useEffect(() => {
+    if (isOpen && defaultBroker) {
+      const match = getBrokerOption(defaultBroker);
+      setBroker(match?.label ?? defaultBroker);
+    }
+  }, [isOpen, defaultBroker]);
 
   if (!isOpen) return null;
 
@@ -1851,9 +1859,10 @@ const AccountActionsMenu: React.FC<AccountActionsMenuProps> = ({ account, onEdit
 
 interface AccountsPageProps {
   onImportForAccount: (accountId: string) => void;
+  initialBroker?: string;
 }
 
-export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }) => {
+export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, initialBroker }) => {
   const { accounts, addAccount, updateAccount, deleteAccount, selectAccount, selectedAccountId, deleteImportHistoryEntry, clearAccountTrades, addBalanceAdjustment, deleteBalanceAdjustment } = useAccountStore();
   const { theme } = useThemeStore();
   const [showAddModal, setShowAddModal] = useState(false);
@@ -1872,6 +1881,12 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
   useEffect(() => {
     getStorageEstimate().then(setIdbStorage).catch(() => { });
   }, []);
+
+  useEffect(() => {
+    if (initialBroker) {
+      setShowAddModal(true);
+    }
+  }, [initialBroker]);
 
   const handleAddAccount = (name: string, broker: string) => {
     const id = addAccount({ name, broker, type: 'file_upload' });
@@ -2604,6 +2619,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount }
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddAccount}
+        defaultBroker={initialBroker}
       />
 
       {/* Edit Account Modal */}

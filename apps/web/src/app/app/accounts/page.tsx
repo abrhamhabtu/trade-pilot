@@ -1,11 +1,15 @@
 'use client';
 
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/app/AppShell';
 import { AccountsPage } from '@/components/accounts';
 import { useAppPageData } from '@/hooks/useAppPageData';
 
-export default function AccountsPageRoute() {
+function AccountsPageContent() {
   const data = useAppPageData();
+  const searchParams = useSearchParams();
+  const broker = searchParams.get('broker') ?? undefined;
 
   return (
     <AppShell
@@ -18,7 +22,15 @@ export default function AccountsPageRoute() {
       }}
       onImportComplete={data.handleImportComplete}
     >
-      <AccountsPage onImportForAccount={data.openImportForAccount} />
+      <AccountsPage onImportForAccount={data.openImportForAccount} initialBroker={broker} />
     </AppShell>
+  );
+}
+
+export default function AccountsPageRoute() {
+  return (
+    <Suspense>
+      <AccountsPageContent />
+    </Suspense>
   );
 }

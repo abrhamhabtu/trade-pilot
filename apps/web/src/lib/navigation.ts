@@ -10,6 +10,7 @@ import {
   Crosshair,
   Wallet,
   BrainCircuit,
+  Building2,
 } from 'lucide-react';
 
 export const APP_ROUTES = {
@@ -24,6 +25,7 @@ export const APP_ROUTES = {
   journal: '/app/journal',
   payout: '/app/payout',
   polymarket: '/app/polymarket',
+  propfirms: '/propfirms',
 } as const;
 
 export type AppRouteKey = keyof typeof APP_ROUTES;
@@ -39,6 +41,7 @@ export const APP_NAVIGATION = [
   { name: 'Playbooks', icon: Target, href: APP_ROUTES.playbooks },
   { name: 'Journal', icon: BookOpen, href: APP_ROUTES.journal },
   { name: 'Payout', icon: Wallet, href: APP_ROUTES.payout },
+  { name: 'Prop Firms', icon: Building2, href: APP_ROUTES.propfirms },
   { name: 'Polymarket', icon: BrainCircuit, href: APP_ROUTES.polymarket },
 ] as const;
 
