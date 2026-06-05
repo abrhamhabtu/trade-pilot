@@ -1,0 +1,61 @@
+import { BotConfig } from './types';
+
+export const DEFAULT_BOT_CONFIG: BotConfig = {
+  capital: {
+    totalUsd: 250,
+    maxPerTradePct: 0.02,
+    maxPerMarketPct: 0.10,
+    maxTotalExposurePct: 0.30,
+    minOrderUsd: 5,
+  },
+  risk: {
+    dailyMaxLossPct: 0.05,
+    monthlyMaxLossPct: 0.15,
+    maxDrawdownPct: 0.25,
+    totalMaxLossPct: 0.40,
+    enableDynamicSizing: true,
+    minPositionPct: 0.01,
+    maxPositionPct: 0.05,
+    lossSizingReduction: 0.20,
+    winSizingIncrease: 0.10,
+  },
+  strategies: {
+    smartMoney: {
+      enabled: true,
+      allocationPct: 0.60,
+      topN: 20,
+      minWinRate: 0.60,
+      minPnl: 500,
+      minTrades: 30,
+      minProfitFactor: 1.5,
+      minConsistencyScore: 0.7,
+      maxSingleTradeExposure: 0.3,
+      customWallets: [],
+    },
+    arbitrage: {
+      enabled: false,
+      allocationPct: 0.20,
+      profitThreshold: 0.01,
+      minTradeSize: 20,
+      maxTradeSize: 100,
+      autoExecute: true,
+    },
+    dipArb: {
+      enabled: false,
+      allocationPct: 0.10,
+      coins: ['BTC', 'ETH', 'SOL'],
+      shares: 10,
+      sumTarget: 0.92,
+      autoRotate: true,
+      minTradeValueUSD: 1.5,
+    },
+    directTrading: {
+      enabled: false,
+      allocationPct: 0.10,
+      stopLossPct: 0.15,
+      takeProfitPct: 0.25,
+      maxHoldDays: 7,
+    },
+  },
+  wallet: null,
+};

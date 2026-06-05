@@ -109,7 +109,7 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
 
   return (
     <div 
-      className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 h-full relative overflow-hidden group"
+      className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 h-full flex flex-col relative overflow-hidden group p-4 sm:p-5"
       
     >
       {/* Gradient border on hover */}
@@ -120,10 +120,10 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
         />
       </div>
       
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
+      <div className="relative z-10 flex flex-col flex-1 min-h-0">
+        <div className="flex shrink-0 items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
-            <h3 className="text-zinc-100 text-lg font-semibold">Trading score</h3>
+            <h3 className="text-zinc-100 text-sm font-semibold sm:text-base">Trading score</h3>
             <Tooltip content={tooltipContent} position="top">
               <div className="w-4 h-4 rounded-full bg-[#172035] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
                 <span className="text-zinc-400 text-xs">?</span>
@@ -132,7 +132,7 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
           </div>
         </div>
         
-        <div className="h-56 mb-4 relative">
+        <div className="relative mb-2 min-h-0 flex-1">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart
               data={data}
@@ -182,38 +182,24 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
           <PointTooltip />
         </div>
         
-        {/* Score Display - More compact */}
-        <div className="space-y-2">
-          <div>
-            <div className="text-zinc-400 text-xs mb-1">Your Trading Score</div>
+        {/* Score Display */}
+        <div className="shrink-0 space-y-1">
+          <div className="text-[10px] text-zinc-400 sm:text-xs">Your Trading Score</div>
+          <div className="flex items-center justify-between text-[10px] text-zinc-400 sm:text-xs">
+            <span>0</span>
+            <span>50</span>
+            <span>100</span>
           </div>
-          
-          {/* Score meter */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>0</span>
-              <span>25</span>
-              <span>50</span>
-              <span>75</span>
-              <span>100</span>
-            </div>
-            <div className="w-full h-2 bg-[#172035] rounded-full overflow-hidden">
-              <div 
-                className="h-full rounded-full transition-all duration-1000"
-                style={{ 
-                  width: `${score}%`,
-                  background: 'linear-gradient(to right, #00D68F, #4F9CF9)'
-                }}
-              />
-            </div>
-            <div className="text-center mt-1">
-              <div 
-                className="text-xl font-bold text-zinc-50"
-              >
-                {score.toFixed(1)}
-              </div>
-            </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#172035]">
+            <div
+              className="h-full rounded-full transition-all duration-1000"
+              style={{
+                width: `${score}%`,
+                background: 'linear-gradient(to right, #00D68F, #4F9CF9)',
+              }}
+            />
           </div>
+          <div className="text-center text-lg font-bold text-zinc-50 sm:text-xl">{score.toFixed(1)}</div>
         </div>
       </div>
     </div>

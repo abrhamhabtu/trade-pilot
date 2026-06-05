@@ -1137,6 +1137,19 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
       maximumFractionDigits: 0
     }).format(value);
   };
+
+  const formatCurrencyCompact = (value: number) => {
+    const abs = Math.abs(value);
+    const sign = value < 0 ? '-' : '';
+    if (abs >= 1000) {
+      const formatted = new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: abs >= 10000 ? 0 : 2,
+        minimumFractionDigits: 0
+      }).format(abs / 1000);
+      return `${sign}$${formatted}K`;
+    }
+    return formatCurrency(value);
+  };
   
   // Helper function to check if a date is a weekend
   const isWeekend = (day: number) => {
@@ -1320,7 +1333,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
   
   return (
     <div 
-      className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+      className="flex flex-col rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
       
     >
       {/* Gradient border on hover */}
@@ -1331,83 +1344,71 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
         />
       </div>
       
-      <div className="relative z-10">
+      <div className="relative z-10 flex flex-col">
         {/* Header */}
-        <div className="border-b border-white/5 p-4 sm:p-6">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+        <div className="border-b border-white/5 px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div className="flex items-center gap-2">
               <button
                 onClick={previousMonth}
-                className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-white/5 rounded-lg transition-all"
+                className="rounded-lg p-1.5 text-zinc-400 transition-all hover:bg-white/5 hover:text-zinc-100"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <h3 className="min-w-[10rem] text-lg font-semibold text-zinc-100 sm:text-xl">
+              <h3 className="text-base font-semibold text-zinc-100 sm:text-lg">
                 {monthNames[month]} {year}
               </h3>
               <button
                 onClick={nextMonth}
-                className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-white/5 rounded-lg transition-all"
+                className="rounded-lg p-1.5 text-zinc-400 transition-all hover:bg-white/5 hover:text-zinc-100"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
               <button
                 onClick={goToCurrentMonth}
                 className={clsx(
-                  'px-3 py-1 rounded-full text-sm font-medium border transition-all duration-200',
+                  'rounded-md border px-2.5 py-1 text-xs font-medium transition-all sm:text-sm',
                   hasDataForMonth
-                    ? 'bg-white/10 text-emerald-500 border-emerald-500/30'
-                    : 'bg-[#172035] text-zinc-400 border-white/5 hover:bg-white/5 hover:text-zinc-100 hover:border-emerald-500/30'
+                    ? 'border-white/10 bg-white/5 text-zinc-200'
+                    : 'border-white/5 bg-[#172035] text-zinc-400 hover:bg-white/5 hover:text-zinc-100'
                 )}
               >
                 {getCurrentMonthLabel()}
               </button>
             </div>
-            
-            <div className="flex flex-wrap items-center gap-4 sm:gap-8 xl:justify-end">
-              <div className="text-right">
-                <div className="text-sm text-zinc-400 mb-1">Monthly stats:</div>
-                <div className="text-2xl font-bold text-zinc-50">
-                  {formatCurrency(monthlyTotal)}
-                </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-zinc-400">
+                <span>Monthly stats:</span>
+                <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-sm font-semibold text-emerald-400">
+                  {formatCurrencyCompact(monthlyTotal)}
+                </span>
               </div>
-              <div className="text-right">
-                {/* Removed the duplicate "11 days" text that was above the highlighted badge */}
-                <div className="flex items-center space-x-2">
-                  {/* Updated trading days indicator with gradient theme - this is the only one now */}
-                  <div className="px-3 py-1 rounded-full bg-white/10 border border-emerald-500/30 flex items-center space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-white text-zinc-950 hover:bg-zinc-200"></div>
-                    <span className="text-emerald-500 text-sm font-medium">{tradingDays} days</span>
-                  </div>
-                </div>
-              </div>
+              <span className="text-sm font-medium text-violet-400">{tradingDays} days</span>
             </div>
           </div>
         </div>
         
-        <div className="p-4 sm:p-6">
-          <div className="overflow-x-auto pb-2">
-            <div className="min-w-[760px]">
-              {/* Week day headers */}
-              <div className="mb-4 grid grid-cols-[repeat(7,minmax(84px,1fr))_minmax(96px,1fr)] gap-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="px-3 py-2 text-center text-sm font-medium text-zinc-400">
-                    {day}
-                  </div>
-                ))}
-                <div className="px-3 py-2 text-center text-sm font-medium text-zinc-400">
-                  Weekly
-                </div>
+        <div className="px-4 py-4 sm:px-5 sm:py-5">
+          {/* Week day headers */}
+          <div className="mb-2 grid grid-cols-[repeat(7,minmax(0,1fr))_minmax(88px,0.75fr)] gap-2">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="text-center text-sm font-medium text-zinc-400">
+                {day}
               </div>
+            ))}
+            <div className="text-center text-sm font-medium text-zinc-400">Weekly</div>
+          </div>
 
-              {/* Calendar weeks */}
-              {weeklyData.map((week, weekIndex) => (
-                <div key={weekIndex} className="mb-2 grid grid-cols-[repeat(7,minmax(84px,1fr))_minmax(96px,1fr)] gap-2">
-                  {/* Days of the week */}
-                  {week.days.map((day, dayIndex) => {
-                    if (!day) {
-                      return <div key={`empty-${weekIndex}-${dayIndex}`} className="h-24 rounded-lg" />;
-                    }
+          {/* Calendar weeks — fixed-height cells like reference */}
+          <div className="flex flex-col gap-2">
+            {weeklyData.map((week, weekIndex) => (
+              <div key={weekIndex} className="grid grid-cols-[repeat(7,minmax(0,1fr))_minmax(88px,0.75fr)] gap-2">
+                {/* Days of the week */}
+                {week.days.map((day, dayIndex) => {
+                  if (!day) {
+                    return <div key={`empty-${weekIndex}-${dayIndex}`} className="h-20 rounded-lg sm:h-[5.25rem]" />;
+                  }
                     
                     const dayData = getDayData(day);
                     const today = new Date();
@@ -1425,7 +1426,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                       <div
                         key={`${weekIndex}-${day}`}
                         className={clsx(
-                          'relative h-24 rounded-lg border-2 p-3 transition-all duration-200 group',
+                          'relative flex h-20 flex-col rounded-lg border p-2 transition-all duration-200 group sm:h-[5.25rem] sm:p-2.5',
                           isToday 
                             ? 'border-blue-500 bg-blue-500/10' 
                             : isFuture
@@ -1477,38 +1478,31 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                         </div>
                         
                         <div className={clsx(
-                          'mb-1 text-sm font-medium',
-                          isFuture ? 'text-zinc-400/50' : isWeekendDay ? 'text-zinc-400' : 'text-zinc-100'
+                          'text-right text-xs font-medium',
+                          isFuture ? 'text-zinc-400/50' : isWeekendDay ? 'text-zinc-400' : 'text-zinc-300'
                         )}>
                           {day}
                         </div>
                         
-                        {isFuture ? (
-                          <div className="space-y-1">
-                            {/* Empty space for future dates */}
-                          </div>
-                        ) : isWeekendDay ? (
-                          <div className="space-y-1">
-                            <div className="text-xs leading-snug text-zinc-400">Market closed</div>
-                          </div>
+                        {isFuture ? null : isWeekendDay ? (
+                          <div className="mt-1 text-xs text-zinc-500">Market closed</div>
                         ) : dayData && dayData.trades > 0 ? (
-                          <div className="space-y-1">
-                            {/* Net P&L (includes adjustments like TopOne shows) */}
+                          <div className="mt-0.5 min-w-0">
                             <div className={clsx(
-                              'truncate text-xs font-bold',
-                              dayData.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                              'truncate text-sm font-bold leading-tight',
+                              dayData.pnl >= 0 ? 'text-zinc-100' : 'text-rose-400'
                             )}>
-                              {formatCurrency(dayData.pnl)}
+                              {formatCurrencyCompact(dayData.pnl)}
                             </div>
-                            <div className="text-xs leading-snug text-zinc-400">
+                            <div className="truncate text-[11px] leading-tight text-zinc-500">
                               {dayData.trades} trade{dayData.trades !== 1 ? 's' : ''}
                             </div>
-                            <div className="text-xs leading-snug text-zinc-400">
+                            <div className="truncate text-[11px] leading-tight text-zinc-500">
                               {winRate}% WR
                             </div>
                           </div>
                         ) : dayHasAdjustment && dayAdjustment ? (
-                          <div className="space-y-1">
+                          <div className="min-w-0 space-y-0.5">
                             <div className={clsx(
                               'truncate text-xs font-bold',
                               dayAdjustment.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'
@@ -1523,9 +1517,9 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                             </div>
                           </div>
                         ) : (
-                          <div className="space-y-1">
-                            <div className="text-xs leading-snug text-zinc-400">0 trades</div>
-                            <div className="text-xs leading-snug text-zinc-400">0% WR</div>
+                          <div className="space-y-0.5">
+                            <div className="text-xs leading-tight text-zinc-400">0 trades</div>
+                            <div className="text-xs leading-tight text-zinc-400">0% WR</div>
                           </div>
                         )}
                       </div>
@@ -1533,21 +1527,20 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                   })}
                   
                   {/* Weekly summary - Updated with gradient theme */}
-                  <div className="h-24 rounded-lg border border-emerald-500/30 bg-white/5 p-3">
-                    <div className="mb-1 text-xs text-zinc-400">Week {weekIndex + 1}</div>
+                  <div className="flex h-20 flex-col rounded-lg border border-white/10 bg-white/[0.03] p-2 sm:h-[5.25rem] sm:p-2.5">
+                    <div className="text-xs text-zinc-500">Week {weekIndex + 1}</div>
                     <div className={clsx(
-                      'mb-1 truncate text-sm font-bold',
-                      week.pnl >= 0 ? 'text-zinc-50' : 'text-rose-500'
+                      'mt-0.5 truncate text-sm font-bold leading-tight',
+                      week.pnl > 0 ? 'text-emerald-400' : week.pnl < 0 ? 'text-rose-400' : 'text-zinc-200'
                     )}>
-                      {formatCurrency(week.pnl)}
+                      {formatCurrencyCompact(week.pnl)}
                     </div>
-                    <div className="mb-1 text-xs text-zinc-400">
+                    <div className="mt-auto text-xs text-violet-400">
                       {week.tradingDays} days
                     </div>
                   </div>
                 </div>
               ))}
-            </div>
           </div>
         </div>
       </div>

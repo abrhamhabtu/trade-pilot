@@ -41,7 +41,7 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
   if (type === 'cumulative') {
     return (
       <div
-        className="h-full flex flex-col rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
+        className="h-full flex flex-col rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
       >
         {/* Gradient border on hover */}
         <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
@@ -52,9 +52,9 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
         </div>
         
         <div className="relative z-10 flex flex-col flex-1 min-h-0">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex shrink-0 items-center justify-between px-4 pt-3 pb-1 sm:px-5 sm:pt-4">
             <div className="flex items-center space-x-2">
-              <h3 className="text-zinc-100 text-lg font-semibold">Daily net cumulative P&L</h3>
+              <h3 className="text-zinc-100 text-sm font-semibold sm:text-base">Daily net cumulative P&L</h3>
               <Tooltip content={tooltipContent} position="top">
                 <div className="w-4 h-4 rounded-full bg-[#172035] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
                   <span className="text-zinc-400 text-xs">?</span>
@@ -62,9 +62,9 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
               </Tooltip>
             </div>
           </div>
-          <div className="flex-1 min-h-0">
+          <div className="w-full min-h-0 flex-1 px-2 pb-2 sm:px-3 sm:pb-3">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="plGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#00D68F" stopOpacity={0.4}/>
@@ -81,13 +81,16 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
                   dataKey="date" 
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#7B91B4', fontSize: 12 }}
+                  tick={{ fill: '#7B91B4', fontSize: 11 }}
                   tickFormatter={formatDate}
+                  interval="preserveStartEnd"
+                  minTickGap={32}
                 />
                 <YAxis 
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#7B91B4', fontSize: 12 }}
+                  width={44}
+                  tick={{ fill: '#7B91B4', fontSize: 11 }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                 />
                 <RechartsTooltip

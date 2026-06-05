@@ -1,24 +1,37 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { MetricCard } from '../MetricCard';
-import { TradingMetrics } from '../../store/tradingStore';
-import { DollarSign, TrendingUp, Target, BarChart2 } from 'lucide-react';
+import { Trade, TradingMetrics } from '../../store/tradingStore';
+import { LayoutGrid } from 'lucide-react';
 
 interface MetricsGridProps {
   metrics: TradingMetrics;
-  trades?: unknown[];
+  trades?: Trade[];
   accountBalance?: number;
 }
 
-export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, accountBalance }) => {
+export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, trades = [], accountBalance }) => {
   const displayBalance = accountBalance !== undefined ? accountBalance : metrics.netPL;
 
-  // Win Rate ring: green portion = winRate%, red = rest
-  const winRatePct = metrics.winRate;
+  const { wins, breakeven, losses } = useMemo(() => {
+    let w = 0;
+    let b = 0;
+    let l = 0;
+    for (const t of trades) {
+      if (t.netPL > 0) w++;
+      else if (t.netPL < 0) l++;
+      else b++;
+    }
+    return { wins: w, breakeven: b, losses: l };
+  }, [trades]);
 
-  // Profit Factor ring: cap at 3.0 = full circle
-  const pfPct = Math.min((metrics.profitFactor / 3) * 100, 100);
+  // Map profit factor to ring fill so green + red are always visible (like reference)
+  const pfRingPct =
+    metrics.profitFactor > 0
+      ? (metrics.profitFactor / (metrics.profitFactor + 1)) * 100
+      : 0;
+  const avgWinLossRatio = metrics.avgLoss > 0 ? metrics.avgWin / metrics.avgLoss : 0;
 
   return (
     <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -27,43 +40,32 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, ac
         value={displayBalance}
         format="currency"
         trend={displayBalance >= 0 ? 'up' : 'down'}
-        icon={DollarSign}
-        iconColor="text-tp-green"
-        tooltip="Account balance including all trades and adjustments (payouts, deposits)."
+        visual={{ type: 'icon-box', icon: LayoutGrid }}
       />
 
       <MetricCard
-        title="Trade Win %"
-        value={metrics.winRate}
-        format="percentage"
-        trend={metrics.winRate >= 50 ? 'up' : 'down'}
-        icon={Target}
-        iconColor="text-tp-green"
-        ringPct={winRatePct}
-        tooltip="Percentage of trades that closed in profit."
-      />
-
-      <MetricCard
-        title="Profit Factor"
+        title="Profit factor"
         value={metrics.profitFactor}
         format="number"
-        trend={metrics.profitFactor >= 1.5 ? 'up' : metrics.profitFactor >= 1.0 ? 'neutral' : 'down'}
-        icon={BarChart2}
-        iconColor="text-tp-green"
-        ringPct={pfPct}
-        tooltip="Gross profit ÷ gross loss. Above 1.0 = profitable. Above 2.0 = excellent."
+        trend="neutral"
+        visual={{ type: 'donut', pct: pfRingPct }}
       />
 
       <MetricCard
-        title="Trade Expectancy"
-        value={metrics.expectancy}
-        format="currency"
-        trend={metrics.expectancy >= 0 ? 'up' : 'down'}
-        icon={TrendingUp}
-        iconColor="text-tp-green"
-        tooltip="Average expected profit or loss per trade over time."
+        title="Trade win %"
+        value={metrics.winRate}
+        format="percentage"
+        trend="neutral"
+        visual={{ type: 'gauge', wins, breakeven, losses }}
       />
 
+      <MetricCard
+        title="Avg win/loss trade"
+        value={avgWinLossRatio}
+        format="number"
+        trend="neutral"
+        visual={{ type: 'winloss-bar', avgWin: metrics.avgWin, avgLoss: metrics.avgLoss }}
+      />
     </div>
   );
 });

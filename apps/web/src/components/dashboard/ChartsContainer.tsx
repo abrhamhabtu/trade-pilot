@@ -44,29 +44,24 @@ interface WidgetDef {
   scroll?: boolean;
 }
 
+const PINNED_WIDGET_IDS = ['calendar', 'trading-score', 'cumulative-pl'] as const;
+
+const DASHBOARD_ROW_PX = 164;
+
 const WIDGETS: WidgetDef[] = [
   { id: 'trading-score', title: 'Trading score', w: 4, rows: 2 },
   { id: 'cumulative-pl', title: 'Daily net cumulative P&L', w: 4, rows: 2 },
   { id: 'net-daily-pl', title: 'Net daily P&L', w: 4, rows: 2 },
   { id: 'progress-tracker', title: 'Progress tracker', w: 4, rows: 2 },
   { id: 'recent-trades', title: 'Recent trades', w: 4, rows: 2 },
-  { id: 'calendar', title: 'Calendar', w: 8, rows: 4, scroll: true },
+  { id: 'calendar', title: 'Calendar', w: 8, rows: 4 },
   { id: 'time-performance', title: 'Time performance', w: 6, rows: 2 },
   { id: 'duration-performance', title: 'Duration performance', w: 6, rows: 2 },
 ];
 
-// Default: calendar up top, with trading score + cumulative P&L stacked beside
-// it (both 1/3 squares) so the right column bottoms flush with the calendar.
-const DEFAULT_ORDER = [
-  'calendar',
-  'trading-score',
-  'cumulative-pl',
-  'net-daily-pl',
-  'progress-tracker',
-  'recent-trades',
-  'time-performance',
-  'duration-performance',
-];
+const CUSTOMIZABLE_WIDGETS = WIDGETS.filter((w) => !PINNED_WIDGET_IDS.includes(w.id as typeof PINNED_WIDGET_IDS[number]));
+
+const DEFAULT_ORDER = CUSTOMIZABLE_WIDGETS.map((w) => w.id);
 
 // Literal classes so Tailwind keeps them. Always full width on mobile.
 const COL_CLASS: Record<number, string> = {
@@ -76,14 +71,16 @@ const COL_CLASS: Record<number, string> = {
   12: 'col-span-12',
 };
 
-const STORAGE_KEY = 'tradepilot_dashboard_order_v1';
+const STORAGE_KEY = 'tradepilot_dashboard_order_v3';
 
 function sanitizeOrder(arr: unknown): string[] {
   if (!Array.isArray(arr)) return DEFAULT_ORDER;
-  const valid = arr.filter((id): id is string => typeof id === 'string' && WIDGETS.some((w) => w.id === id));
+  const valid = arr.filter(
+    (id): id is string => typeof id === 'string' && CUSTOMIZABLE_WIDGETS.some((w) => w.id === id)
+  );
   const seen = new Set<string>();
   const deduped = valid.filter((id) => (seen.has(id) ? false : (seen.add(id), true)));
-  const missing = WIDGETS.filter((w) => !deduped.includes(w.id)).map((w) => w.id);
+  const missing = CUSTOMIZABLE_WIDGETS.filter((w) => !deduped.includes(w.id)).map((w) => w.id);
   return [...deduped, ...missing];
 }
 
@@ -194,7 +191,18 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
         <p className="mb-3 text-xs text-zinc-500">Drag any panel to rearrange your dashboard. Your layout is saved automatically.</p>
       )}
 
-      <div className="grid grid-cols-12 gap-6" style={{ gridAutoRows: '168px', gridAutoFlow: 'dense' }}>
+      {/* Pinned hero — calendar sizes to content; sidebar stretches to match */}
+      <div className="mb-6 grid grid-cols-12 items-stretch gap-4 lg:gap-6">
+        <div className="col-span-12 min-w-0 lg:col-span-8">
+          {nodeById.calendar}
+        </div>
+        <div className="col-span-12 flex min-h-0 flex-col gap-4 lg:col-span-4 lg:gap-6">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-xl">{nodeById['trading-score']}</div>
+          <div className="min-h-0 flex-1 overflow-hidden rounded-xl">{nodeById['cumulative-pl']}</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-12 gap-4 lg:gap-6" style={{ gridAutoRows: `${DASHBOARD_ROW_PX}px`, gridAutoFlow: 'dense' }}>
         {order.map((id) => {
           const w = WIDGETS.find((x) => x.id === id);
           if (!w) return null;
