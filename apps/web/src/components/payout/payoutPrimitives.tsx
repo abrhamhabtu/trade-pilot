@@ -180,6 +180,16 @@ export const NumberInput: React.FC<{
   large?: boolean;
 }> = ({ label, value, onChange, min, max, step, prefix, suffix, large }) => {
   const { input, muted } = useThemeClasses();
+  // Internal draft so the field can be fully cleared and retyped. While the user
+  // is editing, an empty field stays empty (no forced 0); the last valid number
+  // is kept upstream. On blur, an empty/invalid field falls back to the min.
+  const [draft, setDraft] = React.useState<string>(value === '' ? '' : String(value));
+  const editing = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!editing.current) setDraft(value === '' || value === null || value === undefined ? '' : String(value));
+  }, [value]);
+
   return (
     <div>
       {label && (
@@ -189,11 +199,31 @@ export const NumberInput: React.FC<{
         {prefix && <span className={clsx('absolute left-3 top-1/2 -translate-y-1/2 text-sm', muted)}>{prefix}</span>}
         <input
           type="number"
+          inputMode="decimal"
           min={min}
           max={max}
           step={step}
-          value={value}
-          onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
+          value={draft}
+          onFocus={() => {
+            editing.current = true;
+          }}
+          onChange={(e) => {
+            const v = e.target.value;
+            setDraft(v);
+            if (v === '') return; // allow empty while typing — keep last valid value upstream
+            const n = Number(v);
+            if (!Number.isNaN(n)) onChange(n);
+          }}
+          onBlur={() => {
+            editing.current = false;
+            if (draft === '' || Number.isNaN(Number(draft))) {
+              const fallback = typeof min === 'number' ? min : 0;
+              setDraft(String(fallback));
+              onChange(fallback);
+            } else {
+              setDraft(String(Number(draft)));
+            }
+          }}
           className={clsx(
             'w-full rounded-xl border font-semibold',
             large ? 'px-4 py-2.5 text-lg' : 'px-3 py-2 text-sm',

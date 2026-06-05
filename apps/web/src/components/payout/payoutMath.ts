@@ -257,6 +257,12 @@ export interface MicroProjection {
   pointsForDailyAim: number;
   dailyAimFeasible: boolean;
   maxNaturalWinDay: number;
+  /** Whole winning trades it takes to reach the daily aim (you stop there). */
+  tradesToAim: number;
+  /** A single win already exceeds the aim — size is coarse for this aim. */
+  winDayOvershoots: boolean;
+  /** A single win exceeds the firm's consistency ceiling — would hurt your payout. */
+  winBreachesCeiling: boolean;
   // Realistic mixed win/loss path ──────────────────────────────
   path: MicroDay[];
   realisticDays: number;
@@ -302,15 +308,24 @@ export const projectMicroPlan = (params: {
   const ppp = dollarsPerPoint(symbol, contracts);
   const riskPerTrade = riskPerTradeFor(symbol, contracts, stopPts);
   const winPerTrade = riskPerTrade * rewardToRisk;
-  const naturalWinDay = winPerTrade * tradesPerDay;
-  const maxNaturalWinDay = dailyCap > 0 ? Math.min(naturalWinDay, dailyCap) : naturalWinDay;
-  const lossDayPnL = -riskPerTrade * tradesPerDay;
-  const aimCapped = dailyCap > 0 ? Math.min(dailyAim, dailyCap) : dailyAim;
-  const dailyAimFeasible = aimCapped <= maxNaturalWinDay;
-  // A green day takes home the daily aim (you walk away), not the theoretical max.
-  const winDay = dailyAimFeasible ? aimCapped : maxNaturalWinDay;
+
+  // You take trades until you hit your daily aim, then walk away. Trades are
+  // atomic, so a GREEN day is the whole-trade amount that first reaches the aim,
+  // and a RED day is that SAME number of trades all losing. Day reward:risk
+  // therefore equals your per-trade R:R — consistent. (The old model capped a
+  // green day at the aim while a red day took full risk, inverting the R:R.)
+  const tradesToAim = winPerTrade > 0 ? Math.max(1, Math.ceil(dailyAim / winPerTrade)) : 1;
+  const winDay = tradesToAim * winPerTrade;
+  const lossDayPnL = -(tradesToAim * riskPerTrade);
+  const maxNaturalWinDay = winDay;
+
+  const winDayOvershoots = winDay > dailyAim * 1.1;
+  const winBreachesCeiling = dailyCap > 0 && winPerTrade > dailyCap;
+  const sessionTradeBudget = Math.max(1, Math.ceil(tradesPerDay));
+  const dailyAimFeasible = tradesToAim <= sessionTradeBudget;
+
   const daysToGoal = winDay > 0 ? Math.ceil(gapToGoal / winDay) : 0;
-  const pointsForDailyAim = ppp > 0 && rewardToRisk > 0 ? Math.ceil(dailyAim / (ppp * rewardToRisk)) : 0;
+  const pointsForDailyAim = Math.ceil(stopPts * rewardToRisk * tradesToAim);
   const badDayBuffer = lossDayPnL < 0 ? Math.floor(drawdownLimit / Math.abs(lossDayPnL)) : 99;
 
   // ── Realistic mixed path: spread losses by win rate, honour trailing DD ──
@@ -355,6 +370,9 @@ export const projectMicroPlan = (params: {
     pointsForDailyAim,
     dailyAimFeasible,
     maxNaturalWinDay,
+    tradesToAim,
+    winDayOvershoots,
+    winBreachesCeiling,
     path,
     realisticDays: path.length,
     realisticWeeks: Math.ceil((path.length / TRADING_DAYS_PER_WEEK) * 10) / 10,

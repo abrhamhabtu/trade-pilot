@@ -13,6 +13,10 @@ interface AccountScalerProps {
   onCostChange: (v: number) => void;
   profitSplit: number;
   keep100Upto: number;
+  /** Whether the sticker cost recurs monthly or is a one-time fee. */
+  costCadence: 'monthly' | 'one-time';
+  /** Estimated months to pass/clear one account (for monthly all-in cost). */
+  monthsToPass: number;
   /** Highlighted account count (also editable). */
   focusCount: number;
   onFocusCountChange: (n: number) => void;
@@ -29,14 +33,21 @@ export const AccountScaler: React.FC<AccountScalerProps> = ({
   onCostChange,
   profitSplit,
   keep100Upto,
+  costCadence,
+  monthsToPass,
   focusCount,
   onFocusCountChange,
   projection,
 }) => {
   const { card, inset, text, muted, dark } = useThemeClasses();
 
+  // Monthly evals keep charging until you pass — the true cost per account is the
+  // sticker × the months it takes to clear. One-time/instant fees are paid once.
+  const months = costCadence === 'monthly' ? Math.max(1, monthsToPass) : 1;
+  const effectiveCost = costCadence === 'monthly' ? costPerAccount * months : costPerAccount;
+
   const counts = Array.from(new Set([...PRESET_COUNTS, focusCount])).sort((a, b) => a - b);
-  const rows = scaleAccounts({ counts, pullTarget, profitSplit, keep100Upto, costPerAccount });
+  const rows = scaleAccounts({ counts, pullTarget, profitSplit, keep100Upto, costPerAccount: effectiveCost });
   const focusRow = rows.find((r) => r.accounts === focusCount) ?? rows[0];
 
   const viable = projection.expectedDailyPnL > 0 && !projection.blownAccount;
@@ -65,7 +76,24 @@ export const AccountScaler: React.FC<AccountScalerProps> = ({
           </div>
         </div>
         <NumberInput label="Pull target (each)" prefix="$" value={pullTarget} min={500} step={100} onChange={(v) => onPullTargetChange(Number(v) || 0)} large />
-        <NumberInput label="Cost per account" prefix="$" value={costPerAccount} min={0} step={5} onChange={(v) => onCostChange(Number(v) || 0)} large />
+        <div>
+          <NumberInput
+            label={costCadence === 'monthly' ? 'Cost per account / mo' : 'Cost per account (one-time)'}
+            prefix="$"
+            value={costPerAccount}
+            min={0}
+            step={5}
+            onChange={(v) => onCostChange(Number(v) || 0)}
+            large
+          />
+          <p className={clsx('mt-1.5 text-[11px] leading-snug', muted)}>
+            {costCadence === 'monthly' ? (
+              <>Monthly eval — billed until you pass. ~{months} mo to clear → <span className="font-semibold text-tp-red">{formatCurrency(effectiveCost)}</span> all-in each.</>
+            ) : (
+              <>One-time fee — paid once per account.</>
+            )}
+          </p>
+        </div>
       </div>
 
       {!viable ? (
@@ -151,7 +179,10 @@ export const AccountScaler: React.FC<AccountScalerProps> = ({
 
           <p className={clsx('mt-4 text-xs leading-relaxed', muted)}>
             Assumes identical copy trades on fresh accounts, each hitting {formatCurrency(pullTarget)}. Profit split and any
-            100%-up-to threshold are applied per account. Costs are upfront eval/activation fees.
+            100%-up-to threshold are applied per account.{' '}
+            {costCadence === 'monthly'
+              ? `Monthly eval fees are counted for ~${months} month${months !== 1 ? 's' : ''} (your estimated time to pass) — the real drag on scaling many evals at once.`
+              : 'One-time activation fees, paid once per account.'}
           </p>
         </>
       )}

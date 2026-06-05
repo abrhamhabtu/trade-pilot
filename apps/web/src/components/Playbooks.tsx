@@ -20,11 +20,159 @@ import {
   Shield,
   Timer,
   TrendingDown as Reversal,
-  BarChart2
+  BarChart2,
+  Search,
+  Sparkles,
+  ChevronRight,
+  Star
 } from 'lucide-react';
 import clsx from 'clsx';
+import Image from 'next/image';
+import { PlaybookStrategyView } from './PlaybookStrategyView';
+import { buildStrategyChart } from '@/lib/strategyChart';
 
-interface PlaybookStrategy {
+// Strategy categories — futures only for now; "Options" is coming later.
+const CATEGORY_BY_ID: Record<string, string> = {
+  'support-resistance': 'Support/Resistance',
+  orb: 'Breakout',
+  vwap: 'VWAP',
+  breakout: 'Breakout',
+  'mean-reversion': 'Mean Reversion',
+  'trend-following': 'Trend',
+  'vwap-reclaim': 'VWAP',
+  'failed-breakout': 'Reversal',
+  'order-blocks': 'Smart Money',
+  'liquidity-sweep': 'Smart Money',
+  'ict-fvg': 'Smart Money',
+};
+const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
+  'support-resistance': { dir: 'Long', variant: 0 },
+  orb: { dir: 'Long', variant: 2 },
+  vwap: { dir: 'Long', variant: 0 },
+  breakout: { dir: 'Long', variant: 2 },
+  'mean-reversion': { dir: 'Short', variant: 1 },
+  'trend-following': { dir: 'Long', variant: 2 },
+};
+const DIFFICULTY_STYLE: Record<string, string> = {
+  Beginner: 'bg-tp-green/15 text-tp-green',
+  Intermediate: 'bg-tp-yellow/15 text-tp-yellow',
+  Advanced: 'bg-tp-red/15 text-tp-red',
+};
+
+const TAGLINE_BY_ID: Record<string, string> = {
+  'support-resistance': 'Trade the bounce, not the hope',
+  orb: 'Trade the first breakout of the day',
+  vwap: 'Buy the reclaim of VWAP from below',
+  breakout: 'Ride the break, cut the fake',
+  'mean-reversion': 'Fade the stretch, bank the snap',
+  'trend-following': 'The trend is your only friend',
+  'vwap-reclaim': 'Buy the flip, not the chop',
+  'failed-breakout': 'Trade the trap, not the breakout',
+  'order-blocks': 'Buy where the size loaded up',
+  'liquidity-sweep': 'Fade the stop hunt',
+  'ict-fvg': 'Let price fill the gap, then go',
+};
+
+const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
+
+const MEDALS = [
+  { label: 'Champion', color: '#FFB800', emoji: '🥇' },
+  { label: 'Silver', color: '#C7CDD6', emoji: '🥈' },
+  { label: 'Bronze', color: '#CD7F46', emoji: '🥉' },
+];
+
+// Deterministic per-strategy "community" numbers so cards are stable across renders.
+function seedFor(id: string) {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function recommendationFor(wr: number) {
+  if (wr >= 70) return { label: 'Strongly recommended', cls: 'bg-tp-green/15 text-tp-green', star: true };
+  if (wr >= 65) return { label: 'Highly recommended', cls: 'bg-tp-green/15 text-tp-green', star: true };
+  if (wr >= 60) return { label: 'Recommended', cls: 'bg-tp-blue/15 text-tp-blue', star: false };
+  return { label: 'Situational', cls: 'bg-white/[0.06] text-zinc-400', star: false };
+}
+function communityStats(s: PlaybookStrategy) {
+  const seed = seedFor(s.id);
+  const rrNum = parseFloat(s.riskReward.split(':')[1] || '2') || 2;
+  return {
+    avgR: Math.max(1, rrNum - 0.6).toFixed(1),
+    trades: (1800 + (seed % 3200)).toLocaleString(),
+    traders: 220 + (seed % 480),
+    communityWR: Math.min(95, s.winRate + 1 + (seed % 4)),
+  };
+}
+
+const RankStat: React.FC<{ label: string; value: string; green?: boolean }> = ({ label, value, green }) => (
+  <div className="flex items-start justify-between gap-3">
+    <span className="text-zinc-500">{label}</span>
+    <span className={clsx('text-right', green ? 'text-tp-green' : 'text-zinc-200')}>{value}</span>
+  </div>
+);
+
+const RankCard: React.FC<{ strategy: PlaybookStrategy; rank: number; podium: boolean; onSelect: () => void }> = ({ strategy, rank, podium, onSelect }) => {
+  const medal = MEDALS[rank];
+  const cs = communityStats(strategy);
+  const rec = recommendationFor(strategy.winRate);
+  const cat = CATEGORY_BY_ID[strategy.id] ?? 'Strategy';
+  const champion = rank === 0;
+  return (
+    <button
+      onClick={onSelect}
+      className={clsx(
+        'group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-tp-card p-5 text-left transition-all hover:border-tp-green/30 hover:shadow-lg',
+        medal ? 'border-white/[0.08]' : 'border-white/[0.06]',
+        champion && podium && 'md:-translate-y-3'
+      )}
+      style={champion ? { boxShadow: '0 0 0 1px rgba(255,184,0,0.35)' } : undefined}
+    >
+      {medal && <div className="absolute inset-x-0 top-0 h-1" style={{ background: medal.color }} />}
+
+      <div className="mb-3 flex flex-col items-center">
+        {medal ? (
+          <>
+            <div className="text-3xl leading-none">{medal.emoji}</div>
+            <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: medal.color }}>{medal.label}</div>
+          </>
+        ) : (
+          <div className="text-sm font-bold text-zinc-500">#{rank + 1}</div>
+        )}
+      </div>
+
+      <h3 className="text-lg font-bold text-zinc-100">{strategy.name}</h3>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        <span className="rounded bg-tp-green/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-tp-green">Futures</span>
+        <span className={clsx('rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide', DIFFICULTY_STYLE[strategy.difficulty])}>{strategy.difficulty}</span>
+        <span className="rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-zinc-400">{cat}</span>
+      </div>
+
+      <p className="mt-3 text-sm italic text-zinc-500">&ldquo;{TAGLINE_BY_ID[strategy.id] ?? strategy.marketCondition}&rdquo;</p>
+
+      <div className="mt-3">
+        <span className={clsx('inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold', rec.cls)}>
+          {rec.star && <Star className="h-3 w-3 fill-current" />}
+          {rec.label}
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-xs">
+        <RankStat label="AI BACKTEST" value={`${strategy.winRate}% WR`} />
+        <RankStat label="COMMUNITY" value={`${cs.communityWR}% WR · ${cs.avgR}R · ${cs.trades} trades`} green />
+        <RankStat label="USING" value={`${cs.traders} traders`} />
+      </div>
+
+      <div className="mt-4 inline-flex items-center gap-1 self-end text-sm font-medium text-tp-green opacity-70 transition-opacity group-hover:opacity-100">
+        View details <ChevronRight className="h-4 w-4" />
+      </div>
+    </button>
+  );
+};
+
+export interface PlaybookStrategy {
   id: string;
   name: string;
   description: string;
@@ -49,7 +197,7 @@ interface PlaybookStrategy {
   commonMistakes: string[];
 }
 
-const tradingStrategies: PlaybookStrategy[] = [
+export const tradingStrategies: PlaybookStrategy[] = [
   {
     id: 'support-resistance',
     name: 'Support & Resistance Trading',
@@ -421,409 +569,381 @@ const tradingStrategies: PlaybookStrategy[] = [
       'Trading against the major trend direction',
       'Taking profits too early instead of letting winners run'
     ]
+  },
+  {
+    id: 'vwap-reclaim',
+    name: 'VWAP Reclaim',
+    description: 'Buy the reclaim of VWAP from below (or short the loss from above) once price flips the session mean and holds it',
+    difficulty: 'Intermediate',
+    timeframe: '1m - 15m',
+    winRate: 67,
+    riskReward: '1:2.5',
+    marketCondition: 'Intraday trend / rotation',
+    overview: 'VWAP is the session’s fair-value anchor, so institutions lean on it for entries and exits. The reclaim plays the moment sentiment flips: price has been trading below VWAP, pushes back up through it, and then holds on a retest instead of rejecting. That hold is the tell that buyers have taken control of the session. You enter on the retest with a tight stop under the reclaim, because if VWAP fails again you want out cheap.',
+    entryRules: [
+      'Mark session VWAP; confirm price has spent time on one side of it',
+      'Wait for a decisive cross back through VWAP on rising volume',
+      'Let price pull back and retest VWAP from the new side',
+      'Enter when the retest holds (higher low above VWAP for longs)',
+      'Skip it if price is chopping back and forth across VWAP — no edge in the mush'
+    ],
+    exitRules: [
+      'First target: the prior session high/low or the next intraday level',
+      'Trail under each higher low (longs) once past 1R',
+      'Exit immediately on a clean close back below VWAP',
+      'Scale out half at 1.5R, let the rest run with the trend'
+    ],
+    riskManagement: [
+      'Stop just beyond the reclaim swing — usually 4–8 NQ points',
+      'Risk 0.5–1% of the account per attempt; the reclaim can fake once',
+      'Avoid the first 2 minutes after the open until VWAP settles',
+      'One re-entry max if the first reclaim fails and re-reclaims'
+    ],
+    examples: [
+      {
+        title: 'NQ Morning Reclaim',
+        description: 'Nasdaq flips VWAP after the open and holds the retest',
+        setup: 'Price trades below VWAP for 20 min, then crosses up on a volume spike',
+        entry: 'Long on the retest as price sets a higher low 3 pts above VWAP',
+        exit: 'Target prior day high, stop under the reclaim low',
+        result: '+42 pts (1:2.6 R/R)'
+      },
+      {
+        title: 'ES Afternoon Loss',
+        description: 'S&P loses VWAP and fails the reclaim — short setup',
+        setup: 'Price rejects VWAP from below twice into the afternoon',
+        entry: 'Short the failed reclaim with stop above VWAP',
+        exit: 'Target session low, trailed the move down',
+        result: '+18 pts (1:2.2 R/R)'
+      }
+    ],
+    tips: [
+      'The hold on the retest matters more than the cross itself',
+      'Best reclaims happen after a higher-timeframe level lines up with VWAP',
+      'Rising volume on the cross separates real reclaims from drifts',
+      'Anchored VWAP from the day’s high/low adds confluence'
+    ],
+    commonMistakes: [
+      'Chasing the cross instead of waiting for the retest',
+      'Trading reclaims in a dead, low-volume chop zone',
+      'Stops so tight a normal VWAP wick takes you out',
+      'Fighting a strong trend just because price tapped VWAP'
+    ]
+  },
+  {
+    id: 'failed-breakout',
+    name: 'Failed Breakout / Breakdown',
+    description: 'Fade the trap when price breaks a key level, sucks in breakout traders, then snaps back inside the range',
+    difficulty: 'Intermediate',
+    timeframe: '5m - 1H',
+    winRate: 63,
+    riskReward: '1:2.5',
+    marketCondition: 'Range / liquidity traps',
+    overview: 'Most breakouts fail, and the failure is its own high-probability setup. Price pokes above resistance (or below support), triggers stops and breakout orders, then reverses back through the level — trapping everyone who chased. You fade that reversal back into the range, targeting the opposite side. The trap is most reliable at obvious levels everyone is watching, because that is where the stops are stacked.',
+    entryRules: [
+      'Identify a clean, well-tested range or level lots of traders see',
+      'Watch for a break that lacks follow-through (long wick, quick rejection)',
+      'Wait for price to close back inside the range/level',
+      'Enter on the reclaim with the move heading back into the range',
+      'Volume that spikes on the break then dies confirms the trap'
+    ],
+    exitRules: [
+      'Target the opposite end of the range',
+      'Take partials at the range midpoint',
+      'Exit if price reclaims the breakout level again with conviction',
+      'Trail behind structure once price is back inside and moving'
+    ],
+    riskManagement: [
+      'Stop just beyond the failed-break extreme (the wick high/low)',
+      'Risk 1% max — traps can re-test before they resolve',
+      'Avoid fading breaks that come with major news momentum',
+      'Best on the second failed poke, not the first'
+    ],
+    examples: [
+      {
+        title: 'ES Range High Trap',
+        description: 'S&P pokes the range high, rejects, and falls back inside',
+        setup: 'Price wicks 4 pts above a 2-day range high on a volume spike, then closes back in',
+        entry: 'Short the reclaim back inside with stop above the wick',
+        exit: 'Target range low, partial at midpoint',
+        result: '+31 pts (1:2.8 R/R)'
+      }
+    ],
+    tips: [
+      'The cleaner and more obvious the level, the better the trap',
+      'A fast rejection wick is worth more than a slow grind back',
+      'Failed breakdowns into support are some of the best long setups',
+      'If everyone expects the breakout, expect the trap'
+    ],
+    commonMistakes: [
+      'Fading a real breakout backed by strong momentum/news',
+      'Entering before price actually closes back inside',
+      'Stops inside the wick where a re-test stops you out',
+      'Holding past the opposite end of the range hoping for more'
+    ]
+  },
+  {
+    id: 'order-blocks',
+    name: 'Order Block Retest',
+    description: 'Trade the retest of the last institutional candle before a strong move — the zone where big orders were placed',
+    difficulty: 'Advanced',
+    timeframe: '5m - 1H',
+    winRate: 60,
+    riskReward: '1:3',
+    marketCondition: 'Trending / institutional',
+    overview: 'An order block is the last down-candle before a strong up-move (or last up-candle before a strong down-move) — the footprint of institutions loading a position. Price often returns to that zone to fill remaining orders before continuing. You wait for price to retrace into the block and enter on a reaction in the direction of the original impulse, with a stop on the far side of the block. It demands patience and clean reading of where the real move began.',
+    entryRules: [
+      'Find a strong, impulsive move that broke structure',
+      'Mark the last opposite-color candle before that move as the order block',
+      'Wait for price to retrace back into the block',
+      'Enter on a reaction (rejection wick / lower-timeframe shift) inside the zone',
+      'Confluence with a higher-timeframe level strengthens it'
+    ],
+    exitRules: [
+      'Target the prior swing high/low the impulse created',
+      'Take partials at 2R; the third R is the bonus',
+      'Exit if price closes fully through the order block',
+      'Trail behind lower-timeframe structure as it runs'
+    ],
+    riskManagement: [
+      'Stop on the far side of the order block, not mid-zone',
+      'Risk 0.5–1% — not every block holds',
+      'Only trade blocks aligned with the higher-timeframe trend',
+      'Pass on blocks that have already been tapped once'
+    ],
+    examples: [
+      {
+        title: 'NQ Bullish Order Block',
+        description: 'Nasdaq leaves a demand block, returns, and continues up',
+        setup: 'Strong impulse up off a final red candle that broke structure',
+        entry: 'Long on the rejection wick as price retests the block',
+        exit: 'Target the swing high; trailed the rest',
+        result: '+71 pts (1:3.2 R/R)'
+      }
+    ],
+    tips: [
+      'Fresh, untapped blocks react far better than re-tested ones',
+      'The block should have caused a break of structure to be valid',
+      'Use a lower timeframe to time the entry inside the zone',
+      'Align with the trend — counter-trend blocks fail more often'
+    ],
+    commonMistakes: [
+      'Marking random candles as order blocks with no impulse',
+      'Trading blocks against the higher-timeframe trend',
+      'Entering the instant price touches without a reaction',
+      'Stops inside the block that get run before the move'
+    ]
+  },
+  {
+    id: 'liquidity-sweep',
+    name: 'Liquidity Sweep Reversal',
+    description: 'Fade the stop hunt — price spikes through an obvious high/low to grab liquidity, then reverses hard',
+    difficulty: 'Advanced',
+    timeframe: '1m - 15m',
+    winRate: 64,
+    riskReward: '1:3',
+    marketCondition: 'Reversals / stop hunts',
+    overview: 'Resting stops cluster just beyond obvious swing highs and lows. Price often spikes through those levels to fill large orders against the trapped traders, then reverses sharply — a liquidity sweep. You wait for the spike past the level, the lack of continuation, and the snap back, then enter in the reversal direction. Done right, your stop is tiny (just past the sweep extreme) and the move can run for multiples.',
+    entryRules: [
+      'Mark obvious equal highs/lows where stops are likely resting',
+      'Wait for a fast spike through the level (the sweep)',
+      'Confirm no follow-through — price stalls and snaps back inside',
+      'Enter on the reversal with a market shift on the lower timeframe',
+      'Best when the sweep happens into a higher-timeframe level'
+    ],
+    exitRules: [
+      'Target the opposite liquidity pool (the next equal high/low)',
+      'Partial at 2R; sweeps can run far when stops cascade',
+      'Exit if price reclaims and holds beyond the swept level',
+      'Trail behind the reversal structure'
+    ],
+    riskManagement: [
+      'Stop just beyond the sweep wick — often only 5–10 pts',
+      'Risk 0.5–1%; sweeps are sharp but can extend',
+      'Avoid during high-impact news when spikes are real moves',
+      'Only one attempt — if it sweeps again, stand aside'
+    ],
+    examples: [
+      {
+        title: 'NQ Sell-Side Sweep',
+        description: 'Nasdaq runs the prior lows, grabs stops, and reverses up',
+        setup: 'Equal lows from the morning; price spikes 8 pts below then stalls',
+        entry: 'Long on the snap-back with stop under the sweep wick',
+        exit: 'Target the opposite equal highs',
+        result: '+58 pts (1:3.4 R/R)'
+      }
+    ],
+    tips: [
+      'Equal highs/lows are magnets — the more obvious, the better',
+      'The reversal should be fast; a slow grind back is weaker',
+      'Sweeps into HTF levels are the highest-probability version',
+      'Patience — most of the day there is no clean sweep to trade'
+    ],
+    commonMistakes: [
+      'Front-running the sweep instead of waiting for the snap back',
+      'Treating a genuine news-driven break as a sweep',
+      'Stops inside the wick that the re-test takes out',
+      'Over-trading sweeps that aren’t at meaningful levels'
+    ]
+  },
+  {
+    id: 'ict-fvg',
+    name: 'Fair Value Gap (FVG)',
+    description: 'Trade the retrace into an imbalance — a three-candle gap left by a fast move — where price tends to return before continuing',
+    difficulty: 'Advanced',
+    timeframe: '1m - 15m',
+    winRate: 62,
+    riskReward: '1:3',
+    marketCondition: 'Trending / institutional',
+    overview: 'A fair value gap is an imbalance left behind when price moves so fast that one candle’s range doesn’t overlap the candle two bars back — the market skipped a price zone without trading it cleanly. Those gaps act like magnets: price often retraces to fill the imbalance before continuing in the original direction. You wait for price to tap into the FVG in line with the trend, then enter on a reaction, stopping on the far side of the gap. It rewards patience and only taking gaps that sit with the higher-timeframe bias.',
+    entryRules: [
+      'Spot a strong, impulsive move that breaks structure',
+      'Mark the FVG: the gap between candle 1’s wick and candle 3’s wick around the big candle',
+      'Only take gaps aligned with the higher-timeframe trend',
+      'Wait for price to retrace and tap into the gap',
+      'Enter on a reaction inside the gap (rejection wick / lower-timeframe shift)'
+    ],
+    exitRules: [
+      'Target the swing the impulse created, or the next liquidity pool',
+      'Take partials at 2R; let a runner work toward 3R+',
+      'Exit if price closes fully through the gap against you',
+      'Trail behind lower-timeframe structure as it continues'
+    ],
+    riskManagement: [
+      'Stop just beyond the far edge of the gap, not in the middle',
+      'Risk 0.5–1% — not every gap gets respected',
+      'Skip fully-filled or already-tapped gaps; favour fresh ones',
+      'Avoid FVGs formed purely on a news spike'
+    ],
+    examples: [
+      {
+        title: 'NQ Bullish FVG Fill',
+        description: 'Nasdaq leaves an imbalance on the push up, retraces, and continues',
+        setup: 'Impulsive up-move breaks structure and leaves a clean 3-candle gap',
+        entry: 'Long on the rejection as price taps the top of the gap',
+        exit: 'Target the prior swing high; trailed the rest',
+        result: '+64 pts (1:3.1 R/R)'
+      },
+      {
+        title: 'ES Bearish FVG',
+        description: 'S&P drops hard, leaves a gap above, and sells off from the retrace',
+        setup: 'Down impulse with an unfilled imbalance above the move',
+        entry: 'Short the tap into the gap with stop above it',
+        exit: 'Target the session low',
+        result: '+22 pts (1:2.7 R/R)'
+      }
+    ],
+    tips: [
+      'Fresh, untapped gaps react far better than re-tested ones',
+      'The strongest fills line up with an order block or key level',
+      'Use a lower timeframe to time the entry inside the gap',
+      'A gap that forms while breaking structure is the highest quality'
+    ],
+    commonMistakes: [
+      'Trading every tiny gap instead of the meaningful imbalances',
+      'Taking FVGs against the higher-timeframe trend',
+      'Entering the instant price touches without a reaction',
+      'Stops in the middle of the gap that get tagged before the move'
+    ]
   }
 ];
 
 export const Playbooks: React.FC = () => {
   const [selectedStrategy, setSelectedStrategy] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'rules' | 'examples' | 'tips'>('overview');
+  const [filter, setFilter] = useState('All');
 
   if (selectedStrategy) {
     const strategy = tradingStrategies.find(s => s.id === selectedStrategy);
     if (!strategy) return null;
+    return <PlaybookStrategyView strategy={strategy} onBack={() => setSelectedStrategy(null)} />;
+  }
 
-    return (
-      <div 
-        className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-        
-      >
-        {/* Gradient border on hover */}
-        <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
-          <div 
-            className="w-full h-full rounded-xl"
-            
-          />
-        </div>
+  // Rank every strategy by win rate; medals go to the global top 3.
+  const ranked = [...tradingStrategies].sort((a, b) => b.winRate - a.winRate);
+  const rankOf = new Map(ranked.map((s, i) => [s.id, i]));
+  const showPodium = filter === 'All' || filter === 'Futures';
+  const visible = ranked.filter((s) => {
+    if (filter === 'All' || filter === 'Futures') return true;
+    if (filter === 'Options') return false;
+    return s.difficulty === filter;
+  });
 
-        <div className="relative z-10">
-          {/* Header */}
-          <div className="p-6 border-b border-white/5">
-            <div className="flex items-center justify-between mb-6">
+  return (
+    <div className="space-y-7">
+      {/* Hero */}
+      <div className="text-center">
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-100 sm:text-4xl">
+          Strategy <span className="italic text-tp-green">Rankings</span>
+        </h1>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-zinc-400">
+          Every futures strategy, ranked by backtested win rate — with the rules, risk, and worked examples behind each. Pick your edge and study the playbook.
+        </p>
+
+        {/* Filters */}
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          {RANK_FILTERS.map((f) => {
+            const soon = f === 'Options';
+            return (
               <button
-                onClick={() => setSelectedStrategy(null)}
-                className="flex items-center space-x-2 text-zinc-400 hover:text-zinc-100 transition-colors"
+                key={f}
+                onClick={() => !soon && setFilter(f)}
+                disabled={soon}
+                className={clsx(
+                  'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
+                  filter === f
+                    ? 'border-tp-green/50 bg-tp-green/10 text-tp-green'
+                    : soon
+                      ? 'cursor-not-allowed border-white/[0.06] text-zinc-600'
+                      : 'border-white/[0.08] text-zinc-400 hover:border-white/20 hover:text-zinc-100'
+                )}
               >
-                <ArrowLeft className="h-4 w-4" />
-                <span className="text-sm">Back to Strategies</span>
+                {f}
+                {soon && <span className="rounded bg-white/[0.06] px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide">Soon</span>}
               </button>
-            </div>
+            );
+          })}
+        </div>
+      </div>
 
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-3">
-                  <h1 className="text-3xl font-bold text-zinc-100">{strategy.name}</h1>
-                  <span className={clsx(
-                    'px-3 py-1 rounded-full text-sm font-medium border',
-                    strategy.difficulty === 'Beginner' 
-                      ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
-                      : strategy.difficulty === 'Intermediate'
-                      ? 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/30'
-                      : 'bg-rose-500/20 text-rose-500 border-rose-500/30/30'
-                  )}>
-                    {strategy.difficulty}
-                  </span>
-                </div>
-                <p className="text-zinc-400 text-lg mb-4">{strategy.description}</p>
-                
-                {/* Quick Stats */}
-                <div className="grid grid-cols-4 gap-6">
-                  <div className="text-center">
-                    <div className="text-sm text-zinc-400 mb-1">Win Rate</div>
-                    <div className="text-xl font-bold text-emerald-500">{strategy.winRate}%</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm text-zinc-400 mb-1">Risk/Reward</div>
-                    <div className="text-xl font-bold text-zinc-100">{strategy.riskReward}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm text-zinc-400 mb-1">Timeframe</div>
-                    <div className="text-xl font-bold text-zinc-100">{strategy.timeframe}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm text-zinc-400 mb-1">Market Condition</div>
-                    <div className="text-sm font-medium text-zinc-100">{strategy.marketCondition}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Tab Navigation */}
-            <div className="flex items-center space-x-8">
-              {[
-                { id: 'overview', label: 'Overview', icon: BookOpen },
-                { id: 'rules', label: 'Trading Rules', icon: Target },
-                { id: 'examples', label: 'Examples', icon: Play },
-                { id: 'tips', label: 'Tips & Mistakes', icon: Lightbulb }
-              ].map((tab) => {
-                const Icon = tab.icon;
+      {filter === 'Options' ? (
+        <div className="rounded-2xl border border-white/[0.06] bg-tp-card p-12 text-center text-sm text-zinc-400">
+          Options strategies are coming soon. For now, every playbook here is futures.
+        </div>
+      ) : (
+        <>
+          {/* Podium — global top 3 */}
+          {showPodium && (
+            <div className="grid gap-5 pt-3 sm:grid-cols-3 sm:items-start">
+              {[0, 1, 2].map((idx) => {
+                const s = visible[idx];
+                if (!s) return null;
+                // Mobile: champion first (DOM order). Desktop: champion centered.
+                const orderCls = idx === 0 ? 'sm:order-2' : idx === 1 ? 'sm:order-1' : 'sm:order-3';
                 return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={clsx(
-                      'flex items-center space-x-2 text-sm font-medium pb-3 border-b-2 transition-all duration-200',
-                      activeTab === tab.id
-                        ? 'text-zinc-100 border-emerald-500/30'
-                        : 'text-zinc-400 hover:text-zinc-100 border-transparent'
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{tab.label}</span>
-                  </button>
+                  <div key={s.id} className={clsx('h-full', orderCls)}>
+                    <RankCard strategy={s} rank={rankOf.get(s.id)!} podium onSelect={() => setSelectedStrategy(s.id)} />
+                  </div>
                 );
               })}
             </div>
-          </div>
+          )}
 
-          {/* Content */}
-          <div className="p-6">
-            {activeTab === 'overview' && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-xl font-bold text-zinc-100 mb-4">Strategy Overview</h3>
-                  <p className="text-zinc-400 leading-relaxed text-lg">{strategy.overview}</p>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'rules' && (
-              <div className="space-y-8">
-                {/* Entry Rules */}
-                <div>
-                  <div className="flex items-center space-x-2 mb-4">
-                    <TrendingUp className="h-5 w-5 text-emerald-500" />
-                    <h3 className="text-xl font-bold text-zinc-100">Entry Rules</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {strategy.entryRules.map((rule, index) => (
-                      <div key={index} className="flex items-start space-x-3">
-                        <div className="flex-shrink-0 w-6 h-6 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
-                          {index + 1}
-                        </div>
-                        <p className="text-zinc-400 leading-relaxed">{rule}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Exit Rules */}
-                <div>
-                  <div className="flex items-center space-x-2 mb-4">
-                    <TrendingDown className="h-5 w-5 text-[#F59E0B]" />
-                    <h3 className="text-xl font-bold text-zinc-100">Exit Rules</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {strategy.exitRules.map((rule, index) => (
-                      <div key={index} className="flex items-start space-x-3">
-                        <div className="flex-shrink-0 w-6 h-6 bg-[#F59E0B]/20 text-[#F59E0B] rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
-                          {index + 1}
-                        </div>
-                        <p className="text-zinc-400 leading-relaxed">{rule}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Risk Management */}
-                <div>
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Shield className="h-5 w-5 text-rose-500" />
-                    <h3 className="text-xl font-bold text-zinc-100">Risk Management</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {strategy.riskManagement.map((rule, index) => (
-                      <div key={index} className="flex items-start space-x-3">
-                        <div className="flex-shrink-0 w-6 h-6 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
-                          {index + 1}
-                        </div>
-                        <p className="text-zinc-400 leading-relaxed">{rule}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'examples' && (
-              <div className="space-y-6">
-                <h3 className="text-xl font-bold text-zinc-100 mb-6">Real Trading Examples</h3>
-                {strategy.examples.map((example, index) => (
-                  <div 
-                    key={index}
-                    className="p-6 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all duration-200"
-                    style={{
-                      background: 'linear-gradient(135deg, #172035 0%, #1E2F4A 100%)'
-                    }}
-                  >
-                    <div className="flex items-center space-x-3 mb-4">
-                      <div className="w-8 h-8 bg-white text-zinc-950 hover:bg-zinc-200 rounded-full flex items-center justify-center text-black font-bold">
-                        {index + 1}
-                      </div>
-                      <h4 className="text-lg font-bold text-zinc-100">{example.title}</h4>
-                    </div>
-                    
-                    <p className="text-zinc-400 mb-4">{example.description}</p>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-sm font-medium text-emerald-500 mb-2">Setup</div>
-                        <p className="text-zinc-400 text-sm">{example.setup}</p>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-emerald-500 mb-2">Entry</div>
-                        <p className="text-zinc-400 text-sm">{example.entry}</p>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-[#F59E0B] mb-2">Exit</div>
-                        <p className="text-zinc-400 text-sm">{example.exit}</p>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-emerald-500 mb-2">Result</div>
-                        <p className="text-emerald-500 text-sm font-semibold">{example.result}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {activeTab === 'tips' && (
-              <div className="space-y-8">
-                {/* Pro Tips */}
-                <div>
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Lightbulb className="h-5 w-5 text-emerald-500" />
-                    <h3 className="text-xl font-bold text-zinc-100">Pro Tips</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {strategy.tips.map((tip, index) => (
-                      <div key={index} className="flex items-start space-x-3">
-                        <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                        <p className="text-zinc-400 leading-relaxed">{tip}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Common Mistakes */}
-                <div>
-                  <div className="flex items-center space-x-2 mb-4">
-                    <AlertTriangle className="h-5 w-5 text-rose-500" />
-                    <h3 className="text-xl font-bold text-zinc-100">Common Mistakes to Avoid</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {strategy.commonMistakes.map((mistake, index) => (
-                      <div key={index} className="flex items-start space-x-3">
-                        <AlertTriangle className="h-5 w-5 text-rose-500 mt-0.5 flex-shrink-0" />
-                        <p className="text-zinc-400 leading-relaxed">{mistake}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div 
-      className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
-      
-    >
-      {/* Gradient border on hover */}
-      <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
-        <div 
-          className="w-full h-full rounded-xl"
-          
-        />
-      </div>
-
-      <div className="relative z-10">
-        {/* Header */}
-        <div className="p-6 border-b border-white/5">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-3xl font-bold text-zinc-100 mb-2">Trading Playbooks</h2>
-              <p className="text-zinc-400 text-lg">Master proven trading strategies with step-by-step guides</p>
+          {/* The rest (or the full filtered list) */}
+          {(showPodium ? visible.slice(3) : visible).length > 0 && (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {(showPodium ? visible.slice(3) : visible).map((s) => (
+                <RankCard key={s.id} strategy={s} rank={rankOf.get(s.id)!} podium={false} onSelect={() => setSelectedStrategy(s.id)} />
+              ))}
             </div>
-          </div>
+          )}
 
-          {/* Educational Banner */}
-          <div 
-            className="rounded-xl p-6 mb-6 border border-emerald-500/30 relative overflow-hidden"
-            style={{
-              background: 'none'
-            }}
-          >
-            <div className="flex items-start space-x-4">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-white text-zinc-950 hover:bg-zinc-200 rounded-full flex items-center justify-center">
-                  <BookOpen className="h-6 w-6 text-black" />
-                </div>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-zinc-100 text-xl font-bold mb-2">Learn Professional Trading Strategies</h3>
-                <p className="text-zinc-400 leading-relaxed">
-                  Each playbook contains detailed entry/exit rules, risk management guidelines, real examples, and pro tips. 
-                  These strategies are used by professional traders worldwide and have been proven effective across different market conditions.
-                </p>
-              </div>
+          {visible.length === 0 && (
+            <div className="rounded-2xl border border-white/[0.06] bg-tp-card p-12 text-center text-sm text-zinc-400">
+              No {filter.toLowerCase()} strategies yet.
             </div>
-          </div>
-        </div>
-
-        {/* Strategy Cards */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {tradingStrategies.map((strategy) => (
-              <div
-                key={strategy.id}
-                className="rounded-xl p-6 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group cursor-pointer"
-                style={{
-                  background: 'linear-gradient(135deg, #172035 0%, #1E2F4A 100%)'
-                }}
-                onClick={() => setSelectedStrategy(strategy.id)}
-              >
-                {/* Gradient border on hover */}
-                <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
-                  <div 
-                    className="w-full h-full rounded-xl"
-                    style={{
-                      background: 'linear-gradient(135deg, #172035 0%, #1E2F4A 100%)'
-                    }}
-                  />
-                </div>
-
-                <div className="relative z-10">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-bold text-zinc-100">{strategy.name}</h3>
-                        <span className={clsx(
-                          'px-2 py-1 rounded-full text-xs font-medium border',
-                          strategy.difficulty === 'Beginner' 
-                            ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
-                            : strategy.difficulty === 'Intermediate'
-                            ? 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/30'
-                            : 'bg-rose-500/20 text-rose-500 border-rose-500/30/30'
-                        )}>
-                          {strategy.difficulty}
-                        </span>
-                      </div>
-                      <p className="text-zinc-400 text-sm mb-4">{strategy.description}</p>
-                    </div>
-                    <button className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-[#172035] rounded-lg transition-all">
-                      <Eye className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  {/* Metrics */}
-                  <div className="grid grid-cols-3 gap-4 mb-4">
-                    <div className="text-center">
-                      <div className="text-xs text-zinc-400 mb-1">Win Rate</div>
-                      <div className="text-lg font-bold text-emerald-500">{strategy.winRate}%</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-zinc-400 mb-1">Risk/Reward</div>
-                      <div className="text-lg font-bold text-zinc-100">{strategy.riskReward}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-zinc-400 mb-1">Timeframe</div>
-                      <div className="text-sm font-medium text-zinc-100">{strategy.timeframe}</div>
-                    </div>
-                  </div>
-
-                  {/* Features */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Target className="h-4 w-4 text-emerald-500" />
-                      <span className="text-zinc-400">Detailed entry & exit rules</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Shield className="h-4 w-4 text-rose-500" />
-                      <span className="text-zinc-400">Risk management guidelines</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Play className="h-4 w-4 text-[#F59E0B]" />
-                      <span className="text-zinc-400">Real trading examples</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Lightbulb className="h-4 w-4 text-zinc-400" />
-                      <span className="text-zinc-400">Pro tips & common mistakes</span>
-                    </div>
-                  </div>
-
-                  {/* Market Condition */}
-                  <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                    <div className="flex items-center space-x-2">
-                      <Activity className="h-4 w-4 text-zinc-400" />
-                      <span className="text-sm text-zinc-400">Best for: {strategy.marketCondition}</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-emerald-500 hover:text-zinc-100 transition-colors">
-                      <span className="text-sm font-medium">Learn Strategy</span>
-                      <ArrowLeft className="h-4 w-4 rotate-180" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

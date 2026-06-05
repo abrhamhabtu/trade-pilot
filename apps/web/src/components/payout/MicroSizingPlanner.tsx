@@ -23,9 +23,13 @@ interface MicroSizingPlannerProps {
   dailyCap: number;
   drawdownLimit: number;
   gapToGoal: number;
+  /** Funding model of the selected program — drives risk posture guidance. */
+  payoutModel: 'eval' | 'instant';
+  /** Program label e.g. "S2F Sim PRO" for the posture copy. */
+  programLabel: string;
 }
 
-const CONTRACT_OPTIONS = [2, 3, 5];
+const CONTRACT_OPTIONS = [2, 3, 4, 5];
 const STOP_OPTIONS = [20, 25, 30, 35, 40];
 const AIM_PRESETS = [200, 250, 300, 350, 400, 500];
 
@@ -38,8 +42,23 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
   dailyCap,
   drawdownLimit,
   gapToGoal,
+  payoutModel,
+  programLabel,
 }) => {
-  const { card, inset, text, muted } = useThemeClasses();
+  const { card, inset, text, muted, dark } = useThemeClasses();
+
+  const posture =
+    payoutModel === 'instant'
+      ? {
+          tone: 'warn' as const,
+          label: 'Funded from day one',
+          text: `${programLabel} is funded capital — your payout engine, not a lottery ticket. Size for survival: protect the ${formatCurrency(drawdownLimit)} trail first and let the payouts come. One blown account here is real money out the door.`,
+        }
+      : {
+          tone: 'good' as const,
+          label: 'Evaluation — resets are cheap',
+          text: `${programLabel} is an evaluation. A reset costs a fee, not your funded account, so you can push size a little to pass fast. But bank the discipline now — the habits you build clearing this eval are exactly what keep the funded account alive.`,
+        };
 
   const proj = useMemo(
     () =>
@@ -60,35 +79,47 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
 
   const advice = useMemo(() => {
     const lines: { tone: 'neutral' | 'warn' | 'good'; text: string }[] = [];
-    if (dailyCap > 0) {
-      lines.push({
-        tone: 'good',
-        text: `Aim for ${formatCurrency(plan.dailyAim)}/day — the ${formatCurrency(dailyCap)} consistency cap is the ceiling, not the goal.`,
-      });
-    }
-    if (!proj.dailyAimFeasible && plan.dailyAim > 0) {
+
+    // Day-level symmetry — the core of why the math now holds together.
+    lines.push({
+      tone: 'good',
+      text: `Green day ${formatCurrency(proj.winDayPnL)} vs red day ${formatCurrency(proj.lossDayPnL)} — a clean ${rewardToRisk.toFixed(1)}:1, same as your trade edge. That symmetry is what actually compounds to a payout.`,
+    });
+
+    if (proj.winBreachesCeiling && dailyCap > 0) {
       lines.push({
         tone: 'warn',
-        text: `${formatCurrency(plan.dailyAim)}/day is tight at ${plan.contracts} ${plan.symbol} — max green day here is ${formatCurrency(proj.maxNaturalWinDay)}. Size up, add a trade, or trim your aim.`,
+        text: `One ${plan.contracts} ${plan.symbol} win is ${formatCurrency(proj.winPerTrade)} — above your ${formatCurrency(dailyCap)} consistency ceiling. Drop contracts so a single green trade stays legal.`,
       });
-    } else if (proj.dailyAimFeasible && proj.pointsForDailyAim > 0) {
+    } else if (proj.winDayOvershoots) {
+      lines.push({
+        tone: 'neutral',
+        text: `At ${plan.contracts} ${plan.symbol}, one win is ${formatCurrency(proj.winPerTrade)} — already past your ${formatCurrency(plan.dailyAim)} aim. Your aim is really one good trade; size down to 2 for finer control.`,
+      });
+    } else if (!proj.dailyAimFeasible) {
+      lines.push({
+        tone: 'warn',
+        text: `Hitting ${formatCurrency(plan.dailyAim)} needs ${proj.tradesToAim} wins at this size — more than your ~${tradesPerDay}/day. Size up or trim the aim.`,
+      });
+    } else {
       lines.push({
         tone: 'good',
-        text: `${formatCurrency(plan.dailyAim)}/day ≈ ${proj.pointsForDailyAim} ${plan.symbol} points at ${rewardToRisk.toFixed(1)}R — reachable without chasing.`,
+        text: `${formatCurrency(plan.dailyAim)}/day ≈ ${proj.tradesToAim} winning trade${proj.tradesToAim > 1 ? 's' : ''} (~${proj.pointsForDailyAim} ${plan.symbol} pts) at ${rewardToRisk.toFixed(1)}R — reachable without chasing.`,
       });
     }
+
+    if (proj.badDayBuffer < 3) {
+      lines.push({ tone: 'warn', text: `Only ~${Math.max(1, proj.badDayBuffer)} red day(s) from peak before the ${formatCurrency(drawdownLimit)} trail breaches. Size down before you need a comeback.` });
+    } else {
+      lines.push({ tone: 'good', text: `~${proj.badDayBuffer} red days of buffer against the ${formatCurrency(drawdownLimit)} trail — room to breathe while you grind.` });
+    }
+
     if (plan.contracts >= 5) {
-      lines.push({ tone: 'warn', text: `5 ${plan.symbol} is your ceiling. On choppy days drop to 2–3 — you don't need a hero session to pass.` });
-    } else {
-      lines.push({ tone: 'good', text: `${plan.contracts} ${plan.symbol} keeps you boring on purpose. That discipline is how you survive a ${formatCurrency(drawdownLimit)} trail.` });
+      lines.push({ tone: 'warn', text: `5 ${plan.symbol} is heavy. On choppy days drop to 2–3 — you don't need a hero session to pass.` });
     }
-    if (proj.badDayBuffer < 5) {
-      lines.push({ tone: 'warn', text: `Only ~${Math.max(1, proj.badDayBuffer)} full loss day(s) from peak before drawdown breaches. Size down before you need a comeback.` });
-    } else {
-      lines.push({ tone: 'good', text: `~${proj.badDayBuffer} max-loss days of buffer — room to breathe while you grind.` });
-    }
+
     return lines.slice(0, 4);
-  }, [dailyCap, drawdownLimit, plan, proj, rewardToRisk]);
+  }, [dailyCap, drawdownLimit, plan, proj, rewardToRisk, tradesPerDay]);
 
   return (
     <div className={clsx(card, 'p-6 sm:p-8')}>
@@ -97,6 +128,21 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
         title="Micro sizing plan"
         subtitle="Trade small, stay alive. Pick your size and daily aim — see the slow-but-safe path to your goal, even if it takes weeks."
       />
+
+      {/* Program-aware risk posture */}
+      <div
+        className={clsx(
+          'mb-5 rounded-xl border p-3.5',
+          posture.tone === 'warn'
+            ? dark ? 'border-tp-yellow/25 bg-tp-yellow/[0.07]' : 'border-yellow-200 bg-yellow-50'
+            : dark ? 'border-tp-green/25 bg-tp-green/[0.06]' : 'border-green-200 bg-green-50'
+        )}
+      >
+        <div className={clsx('text-[10px] font-bold uppercase tracking-wider', posture.tone === 'warn' ? 'text-tp-yellow' : 'text-tp-green')}>
+          {posture.label}
+        </div>
+        <p className={clsx('mt-1 text-xs leading-relaxed', dark ? 'text-zinc-300' : 'text-gray-600')}>{posture.text}</p>
+      </div>
 
       {/* Symbol + contracts + stop */}
       <div className="space-y-4">
@@ -113,11 +159,22 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
         <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
           <div>
             <label className={clsx('mb-2 block text-xs font-medium uppercase tracking-wide', muted)}>Contracts</label>
-            <PillToggle
-              options={CONTRACT_OPTIONS.map((n) => ({ value: n, label: `${n} ${plan.symbol}` }))}
-              value={plan.contracts}
-              onChange={(v) => onChange({ contracts: Number(v) })}
-            />
+            <div className="flex items-center gap-2">
+              <PillToggle
+                options={CONTRACT_OPTIONS.map((n) => ({ value: n, label: `${n} ${plan.symbol}` }))}
+                value={plan.contracts}
+                onChange={(v) => onChange({ contracts: Number(v) })}
+              />
+              <div className="w-20">
+                <NumberInput
+                  value={plan.contracts}
+                  min={1}
+                  max={50}
+                  step={1}
+                  onChange={(v) => onChange({ contracts: Math.max(1, Number(v) || 1) })}
+                />
+              </div>
+            </div>
           </div>
           <div>
             <label className={clsx('mb-2 block text-xs font-medium uppercase tracking-wide', muted)}>Stop (points)</label>
@@ -184,9 +241,9 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
 
       {/* Stats */}
       <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <MiniStat label="Daily aim" value={formatCurrency(plan.dailyAim)} sub={proj.dailyAimFeasible ? 'reachable' : 'too high here'} accent={proj.dailyAimFeasible ? 'green' : 'yellow'} />
-        <MiniStat label="Loss day" value={formatCurrency(proj.lossDayPnL)} sub={`${plan.contracts} ${plan.symbol} × ${plan.stopPts}pt`} accent="red" />
-        <MiniStat label="Ceiling" value={dailyCap > 0 ? formatCurrency(dailyCap) : '—'} sub="don't chase" accent="yellow" />
+        <MiniStat label="Green day" value={formatCurrency(proj.winDayPnL)} sub={`${proj.tradesToAim} win${proj.tradesToAim > 1 ? 's' : ''} → walk`} accent="green" />
+        <MiniStat label="Red day" value={formatCurrency(proj.lossDayPnL)} sub={`${proj.tradesToAim} trade${proj.tradesToAim > 1 ? 's' : ''} all stop`} accent="red" />
+        <MiniStat label="Ceiling" value={dailyCap > 0 ? formatCurrency(dailyCap) : '—'} sub="consistency cap" accent="yellow" />
         <MiniStat label="Bad-day buffer" value={`~${proj.badDayBuffer}d`} sub="losses from peak to fail" accent="red" />
       </div>
 

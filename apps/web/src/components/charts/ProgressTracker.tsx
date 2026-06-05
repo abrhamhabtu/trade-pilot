@@ -572,9 +572,9 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
         )}
 
         {/* Main Content - Side by Side Layout */}
-        <div className="flex-1 px-3 pb-2 flex overflow-hidden">
+        <div className="flex-1 px-3 pb-2 flex justify-center overflow-hidden">
           {/* Left Side - Heatmap */}
-          <div className="flex-1 flex flex-col justify-center min-h-0 overflow-x-auto custom-scrollbar pr-2">
+          <div className="flex flex-col justify-center min-h-0 min-w-0 overflow-x-auto custom-scrollbar pr-2">
             <div className="min-w-max pb-1">
               {/* Month labels */}
               <div className="flex mb-1.5 relative" style={{ marginLeft: '20px', height: '14px' }}>

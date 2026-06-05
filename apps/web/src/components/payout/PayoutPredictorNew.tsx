@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Wallet, TrendingUp } from 'lucide-react';
+import { Wallet, TrendingUp, Route, Calculator, Layers, Building2, ShieldCheck, ShieldAlert, Swords } from 'lucide-react';
 import clsx from 'clsx';
 import { useAccountStore, Account } from '@/store/accountStore';
 import { Trade } from '@/store/tradingStore';
@@ -20,6 +20,8 @@ import { FirmConfigPanel, FirmConfigValues } from './FirmConfigPanel';
 import { EdgeTracker, EdgeData } from './EdgeTracker';
 import { AccountScaler } from './AccountScaler';
 import { MicroSizingPlanner, MicroPlanState } from './MicroSizingPlanner';
+import { EvalVsFunded } from './EvalVsFunded';
+import { MotivationStrip } from './MotivationStrip';
 import { useThemeClasses, SectionHeader, SliderField } from './payoutPrimitives';
 
 const STORAGE_KEY = 'tradepilot_payout_config_v2';
@@ -61,48 +63,50 @@ const StrategyPanel: React.FC<{
   onChange: (patch: Partial<StrategyState>) => void;
   fromTrades: number;
 }> = ({ strategy, onChange, fromTrades }) => {
-  const { card } = useThemeClasses();
+  const { card, text, muted } = useThemeClasses();
   return (
-    <div className={clsx(card, 'space-y-5 p-6 sm:p-8')}>
-      <SectionHeader
-        icon={<TrendingUp className="h-4 w-4 text-tp-green" />}
-        title="Your trading assumptions"
-        subtitle={
-          fromTrades > 0
-            ? `Auto-filled from your last ${fromTrades} trades. Adjust to model different scenarios.`
-            : 'Set your edge. These drive every projection below.'
-        }
-      />
-      <SliderField
-        label="Win rate"
-        tip="Percentage of trading days you expect to be green."
-        value={strategy.winRatePercent}
-        min={20}
-        max={80}
-        step={1}
-        format={(v) => `${v}%`}
-        onChange={(v) => onChange({ winRatePercent: v })}
-      />
-      <SliderField
-        label="Reward : Risk"
-        tip="Average winner size vs average loser. 2R means wins are 2× your risk."
-        value={strategy.rewardToRisk}
-        min={0.5}
-        max={4}
-        step={0.1}
-        format={(v) => `${v.toFixed(1)}R`}
-        onChange={(v) => onChange({ rewardToRisk: v })}
-      />
-      <SliderField
-        label="Trades per day"
-        tip="How many trades you take per session. Multiplies daily win/loss amounts."
-        value={strategy.tradesPerDay}
-        min={1}
-        max={10}
-        step={0.5}
-        format={(v) => `${v}`}
-        onChange={(v) => onChange({ tradesPerDay: v })}
-      />
+    <div className={clsx(card, 'p-5')}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-tp-green" />
+          <h2 className={clsx('text-sm font-semibold', text)}>Your assumptions</h2>
+        </div>
+        <p className={clsx('text-xs', muted)}>
+          {fromTrades > 0 ? `Auto-filled from your last ${fromTrades} trades · tune to model scenarios` : 'Tune these to drive every projection above'}
+        </p>
+      </div>
+      <div className="grid gap-x-8 gap-y-5 sm:grid-cols-3">
+        <SliderField
+          label="Win rate"
+          tip="Percentage of trading days you expect to be green."
+          value={strategy.winRatePercent}
+          min={20}
+          max={80}
+          step={1}
+          format={(v) => `${v}%`}
+          onChange={(v) => onChange({ winRatePercent: v })}
+        />
+        <SliderField
+          label="Reward : Risk"
+          tip="Average winner size vs average loser. 2R means wins are 2× your risk."
+          value={strategy.rewardToRisk}
+          min={0.5}
+          max={4}
+          step={0.1}
+          format={(v) => `${v.toFixed(1)}R`}
+          onChange={(v) => onChange({ rewardToRisk: v })}
+        />
+        <SliderField
+          label="Trades per day"
+          tip="How many trades you take per session. Multiplies daily win/loss amounts."
+          value={strategy.tradesPerDay}
+          min={1}
+          max={10}
+          step={0.5}
+          format={(v) => `${v}`}
+          onChange={(v) => onChange({ tradesPerDay: v })}
+        />
+      </div>
     </div>
   );
 };
@@ -119,8 +123,19 @@ const tradesAfterPayout = (account: Account): Trade[] => {
   return account.trades.filter((t) => (t.date ? t.date.split('T')[0] : '') > last);
 };
 
+type PayoutTab = 'path' | 'sizing' | 'eval' | 'scale' | 'firm';
+
+const TABS: { id: PayoutTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'path', label: 'Path to Payout', icon: Route },
+  { id: 'sizing', label: 'Micro Sizing', icon: Calculator },
+  { id: 'eval', label: 'Eval vs Funded', icon: Swords },
+  { id: 'scale', label: 'Scale Accounts', icon: Layers },
+  { id: 'firm', label: 'Firm & Rules', icon: Building2 },
+];
+
 export const PayoutPredictor: React.FC = () => {
-  const { text, muted } = useThemeClasses();
+  const { text, muted, card, dark } = useThemeClasses();
+  const [tab, setTab] = useState<PayoutTab>('path');
   const { showAllAccounts, getSelectedAccount, initializeFromIDB } = useAccountStore();
   const selectedAccount = getSelectedAccount();
   const hasLinkedAccount = Boolean(selectedAccount && !showAllAccounts);
@@ -268,13 +283,16 @@ export const PayoutPredictor: React.FC = () => {
   const gap = Math.max(0, edge.effectiveTarget - edge.currentProfit);
   const idealDays = dailyCap > 0 ? Math.ceil(gap / dailyCap) || Math.ceil(values.profitTarget / dailyCap) : 0;
 
+  // ~21 trading days per month — used to turn a monthly eval fee into an all-in cost.
+  const monthsToPass = Math.max(1, Math.ceil((projection.totalDays || idealDays || 21) / 21));
+
   const linkedTradeCount = useMemo(
     () => (hasLinkedAccount && selectedAccount ? tradesAfterPayout(selectedAccount).length : 0),
     [hasLinkedAccount, selectedAccount]
   );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-5">
       {/* Header */}
       <div>
         <h1 className={clsx('flex items-center gap-2 text-2xl font-bold', text)}>
@@ -284,54 +302,169 @@ export const PayoutPredictor: React.FC = () => {
         <p className={clsx('mt-1 text-sm', muted)}>
           Track your edge against the prop firms, scale accounts, and size micros for a safe path to payout.
         </p>
-        {hasLinkedAccount && selectedAccount && (
-          <span className="mt-2 inline-block rounded-full bg-tp-green/10 px-3 py-1 text-xs font-medium text-tp-green">
-            {selectedAccount.name}
-          </span>
-        )}
       </div>
 
-      <FirmConfigPanel
-        firm={firm}
-        tier={tier}
-        values={values}
-        onFirmChange={handleFirmChange}
-        onTierChange={handleTierChange}
-        onValueChange={(patch) => setOverrides((o) => ({ ...o, ...patch }))}
-      />
+      <MotivationStrip />
 
-      <StrategyPanel
-        strategy={strategy}
-        onChange={(patch) => setStrategy((s) => ({ ...s, ...patch }))}
-        fromTrades={linkedTradeCount}
-      />
+      {/* Persistent context strip — switch firm/account from any tab; everything below re-syncs instantly */}
+      <div className={clsx(card, 'space-y-3 p-4')}>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-tp-green/10">
+            <Building2 className="h-4 w-4 text-tp-green" />
+          </span>
 
-      <EdgeTracker edge={edge} projection={projection} winRatePercent={strategy.winRatePercent} idealDays={idealDays} />
+          {/* Firm quick-switch */}
+          <select
+            value={firm.id}
+            onChange={(e) => handleFirmChange(e.target.value)}
+            aria-label="Prop firm"
+            className={clsx(
+              'max-w-[16rem] rounded-lg border px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-tp-green/40',
+              dark ? 'border-white/[0.08] bg-tp-base text-zinc-100' : 'border-gray-200 bg-gray-50 text-gray-900'
+            )}
+          >
+            {PROP_FIRMS.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name} · {f.program}
+              </option>
+            ))}
+          </select>
 
-      <MicroSizingPlanner
-        plan={micro}
-        onChange={(patch) => setMicro((m) => ({ ...m, ...patch }))}
-        rewardToRisk={strategy.rewardToRisk}
-        tradesPerDay={strategy.tradesPerDay}
-        winRatePercent={strategy.winRatePercent}
-        dailyCap={dailyCap}
-        drawdownLimit={values.drawdown}
-        gapToGoal={gap > 0 ? gap : values.profitTarget}
-      />
+          {/* Tier quick-switch */}
+          <div className="flex flex-wrap gap-1.5">
+            {firm.tiers.map((tr) => (
+              <button
+                key={tr.id}
+                type="button"
+                onClick={() => handleTierChange(tr.id)}
+                className={clsx(
+                  'rounded-md border px-2 py-1 text-xs font-bold transition-colors',
+                  tr.id === tier.id
+                    ? 'border-tp-green/40 bg-tp-green/15 text-tp-green'
+                    : dark
+                      ? 'border-white/[0.08] text-zinc-400 hover:text-zinc-200'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                )}
+              >
+                {tr.label}
+              </button>
+            ))}
+          </div>
 
-      <AccountScaler
-        pullTarget={pullTarget}
-        onPullTargetChange={setPullTarget}
-        costPerAccount={values.cost}
-        onCostChange={(v) => setOverrides((o) => ({ ...o, cost: v }))}
-        profitSplit={values.profitSplit}
-        keep100Upto={values.keep100Upto}
-        focusCount={focusCount}
-        onFocusCountChange={setFocusCount}
-        projection={projection}
-      />
+          {firm.verified ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-tp-green/10 px-2 py-0.5 text-[10px] font-semibold text-tp-green">
+              <ShieldCheck className="h-3 w-3" /> Verified
+            </span>
+          ) : (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-tp-yellow/10 px-2 py-0.5 text-[10px] font-semibold text-tp-yellow">
+              <ShieldAlert className="h-3 w-3" /> Unverified
+            </span>
+          )}
+          {hasLinkedAccount && selectedAccount && (
+            <span className="inline-flex shrink-0 items-center rounded-full bg-tp-blue/10 px-2 py-0.5 text-[10px] font-medium text-tp-blue">
+              {selectedAccount.name}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2 border-t border-white/[0.06] pt-3 sm:grid-cols-4">
+          <CtxStat label="Target" value={`$${values.profitTarget.toLocaleString()}`} dark={dark} muted={muted} text={text} />
+          <CtxStat label="Drawdown" value={`$${values.drawdown.toLocaleString()}`} dark={dark} muted={muted} text={text} />
+          <CtxStat label="Consistency" value={`${values.consistencyPercent}%`} dark={dark} muted={muted} text={text} />
+          <CtxStat label={firm.costCadence === 'monthly' ? 'Cost / mo' : 'Cost (1×)'} value={`$${values.cost.toLocaleString()}`} dark={dark} muted={muted} text={text} />
+        </div>
+      </div>
+
+      {/* Tab nav */}
+      <div className={clsx('flex flex-wrap gap-1 rounded-xl border p-1', dark ? 'border-white/[0.06] bg-tp-card' : 'border-gray-200 bg-white')}>
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={clsx(
+                'inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                active
+                  ? 'bg-tp-green/15 text-tp-green'
+                  : dark
+                    ? 'text-zinc-400 hover:text-zinc-100'
+                    : 'text-gray-500 hover:text-gray-900'
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab content */}
+      {tab === 'path' && (
+        <div className="space-y-5">
+          <EdgeTracker edge={edge} projection={projection} winRatePercent={strategy.winRatePercent} idealDays={idealDays} />
+          <StrategyPanel
+            strategy={strategy}
+            onChange={(patch) => setStrategy((s) => ({ ...s, ...patch }))}
+            fromTrades={linkedTradeCount}
+          />
+        </div>
+      )}
+
+      {tab === 'sizing' && (
+        <MicroSizingPlanner
+          plan={micro}
+          onChange={(patch) => setMicro((m) => ({ ...m, ...patch }))}
+          rewardToRisk={strategy.rewardToRisk}
+          tradesPerDay={strategy.tradesPerDay}
+          winRatePercent={strategy.winRatePercent}
+          dailyCap={dailyCap}
+          drawdownLimit={values.drawdown}
+          gapToGoal={gap > 0 ? gap : values.profitTarget}
+          payoutModel={firm.payoutModel}
+          programLabel={firm.program}
+        />
+      )}
+
+      {tab === 'eval' && <EvalVsFunded />}
+
+      {tab === 'scale' && (
+        <AccountScaler
+          pullTarget={pullTarget}
+          onPullTargetChange={setPullTarget}
+          costPerAccount={values.cost}
+          onCostChange={(v) => setOverrides((o) => ({ ...o, cost: v }))}
+          profitSplit={values.profitSplit}
+          keep100Upto={values.keep100Upto}
+          costCadence={firm.costCadence}
+          monthsToPass={monthsToPass}
+          focusCount={focusCount}
+          onFocusCountChange={setFocusCount}
+          projection={projection}
+        />
+      )}
+
+      {tab === 'firm' && (
+        <FirmConfigPanel
+          firm={firm}
+          tier={tier}
+          values={values}
+          onFirmChange={handleFirmChange}
+          onTierChange={handleTierChange}
+          onValueChange={(patch) => setOverrides((o) => ({ ...o, ...patch }))}
+        />
+      )}
     </div>
   );
 };
+
+const CtxStat: React.FC<{ label: string; value: string; dark: boolean; muted: string; text: string }> = ({ label, value, muted, text }) => (
+  <div>
+    <div className={clsx('text-[10px] font-medium uppercase tracking-wide', muted)}>{label}</div>
+    <div className={clsx('mt-0.5 text-sm font-bold', text)}>{value}</div>
+  </div>
+);
 
 export default PayoutPredictor;
