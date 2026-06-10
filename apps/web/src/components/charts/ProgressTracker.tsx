@@ -116,12 +116,12 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
   }, [heatmapData]);
 
   const getColorForScore = (score: number, hasData: boolean): string => {
-    if (!hasData) return '#303655'; // Calm blue-slate for empty cells — visible on navy bg
-    if (score >= 80) return '#22C55E';
+    if (!hasData) return '#3C382E'; // Calm blue-slate for empty cells — visible on navy bg
+    if (score >= 80) return '#30B886';
     if (score >= 60) return '#4ADE80';
     if (score >= 40) return '#FACC15';
     if (score >= 20) return '#F97316';
-    return '#EF4444';
+    return '#E5564F';
   };
 
   const getMonthLabel = (date: Date): string => {
@@ -356,7 +356,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
           <div className="flex items-center space-x-2">
             <h3 className="text-white text-sm font-bold tracking-tight">Progress Tracker</h3>
             <Tooltip content={tooltipContent} position="top">
-              <div className="w-4 h-4 rounded-full bg-[#364060] flex items-center justify-center cursor-help hover:bg-[#1E2F4A] transition-colors">
+              <div className="w-4 h-4 rounded-full bg-[#464236] flex items-center justify-center cursor-help hover:bg-[#3A362C] transition-colors">
                 <span className="text-[#9CA3AF] text-[10px] font-bold">?</span>
               </div>
             </Tooltip>
@@ -376,7 +376,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                 'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center space-x-1',
                 showQuickLog
                   ? 'bg-white text-zinc-950 shadow-lg shadow-white/10'
-                  : 'bg-[#172035] text-zinc-400 hover:bg-[#172035]/80 border border-zinc-700'
+                  : 'bg-[#262420] text-zinc-400 hover:bg-[#262420]/80 border border-zinc-700'
               )}
             >
               <Zap className="w-3 h-3" />
@@ -385,7 +385,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
             {onViewMore && (
               <button
                 onClick={onViewMore}
-                className="w-7 h-7 rounded-lg bg-slate-200/50 dark:bg-[#364060]/50 hover:bg-[#364060] flex items-center justify-center text-[#9CA3AF] hover:text-white transition-all"
+                className="w-7 h-7 rounded-lg bg-slate-200/50 dark:bg-[#464236]/50 hover:bg-[#464236] flex items-center justify-center text-[#9CA3AF] hover:text-white transition-all"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
               </button>
@@ -403,11 +403,11 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
             />
 
             {/* Modal */}
-            <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[480px] max-w-[90vw] rounded-2xl overflow-hidden border border-white/10 bg-[#111F35] shadow-2xl shadow-black/80">
+            <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[480px] max-w-[90vw] rounded-2xl overflow-hidden border border-white/10 bg-[#201F1B] shadow-2xl shadow-black/80">
               {/* Success Overlay */}
               {showSuccess && (
-                <div className="absolute inset-0 bg-[#22C55E]/10 backdrop-blur-sm flex items-center justify-center z-20 rounded-2xl">
-                  <div className="flex items-center space-x-3 text-[#22C55E] bg-[#22C55E]/20 px-6 py-3 rounded-full">
+                <div className="absolute inset-0 bg-[#30B886]/10 backdrop-blur-sm flex items-center justify-center z-20 rounded-2xl">
+                  <div className="flex items-center space-x-3 text-[#30B886] bg-[#30B886]/20 px-6 py-3 rounded-full">
                     <Check className="w-6 h-6" />
                     <span className="text-lg font-semibold">Saved!</span>
                   </div>
@@ -415,10 +415,10 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
               )}
 
               {/* Header */}
-              <div className="px-6 py-4 bg-[#111F35]/50 border-b border-white/10/50">
+              <div className="px-6 py-4 bg-[#201F1B]/50 border-b border-white/10/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#172035]/80 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[#262420]/80 flex items-center justify-center">
                       <Calendar className="w-5 h-5 text-zinc-400" />
                     </div>
                     <div>
@@ -428,7 +428,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                   </div>
                   <button
                     onClick={() => setShowQuickLog(false)}
-                    className="w-10 h-10 rounded-xl bg-slate-200/50 dark:bg-[#364060]/50 hover:bg-[#EF4444]/20 flex items-center justify-center text-[#9CA3AF] hover:text-[#EF4444] transition-all"
+                    className="w-10 h-10 rounded-xl bg-slate-200/50 dark:bg-[#464236]/50 hover:bg-[#E5564F]/20 flex items-center justify-center text-[#9CA3AF] hover:text-[#E5564F] transition-all"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -436,10 +436,10 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
 
                 {/* Date Navigator */}
                 <div className="mt-4 flex items-center justify-center">
-                  <div className="flex items-center space-x-2 bg-[#172035] rounded-xl p-1">
+                  <div className="flex items-center space-x-2 bg-[#262420] rounded-xl p-1">
                     <button
                       onClick={() => navigateDay('prev')}
-                      className="w-10 h-10 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-white hover:bg-[#364060] transition-all"
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-white hover:bg-[#464236] transition-all"
                     >
                       <ChevronLeft className="w-5 h-5" />
                     </button>
@@ -452,8 +452,8 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                       className={clsx(
                         'w-10 h-10 rounded-lg flex items-center justify-center transition-all',
                         canGoNext
-                          ? 'text-[#9CA3AF] hover:text-white hover:bg-[#364060]'
-                          : 'text-[#364060] cursor-not-allowed'
+                          ? 'text-[#9CA3AF] hover:text-white hover:bg-[#464236]'
+                          : 'text-[#464236] cursor-not-allowed'
                       )}
                     >
                       <ChevronRight className="w-5 h-5" />
@@ -475,11 +475,11 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                         'flex items-center justify-between p-4 rounded-xl transition-all',
                         isPending
                           ? 'bg-white/5 border-2 border-slate-300 dark:border-white/20'
-                          : 'bg-[#172035]/70 hover:bg-[#172035] border-2 border-transparent'
+                          : 'bg-[#262420]/70 hover:bg-[#262420] border-2 border-transparent'
                       )}
                     >
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        <span className="w-6 h-6 rounded-full bg-[#364060] flex items-center justify-center text-xs font-bold text-[#9CA3AF]">
+                        <span className="w-6 h-6 rounded-full bg-[#464236] flex items-center justify-center text-xs font-bold text-[#9CA3AF]">
                           {index + 1}
                         </span>
                         <span className="text-sm text-zinc-100 font-medium">{rule.text}</span>
@@ -493,8 +493,8 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                           className={clsx(
                             'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
                             status === true
-                              ? 'bg-[#22C55E] text-white shadow-lg shadow-[#22C55E]/40 scale-105'
-                              : 'bg-[#364060] text-[#9CA3AF] hover:text-[#22C55E] hover:bg-[#22C55E]/20 hover:scale-105'
+                              ? 'bg-[#30B886] text-white shadow-lg shadow-[#30B886]/40 scale-105'
+                              : 'bg-[#464236] text-[#9CA3AF] hover:text-[#30B886] hover:bg-[#30B886]/20 hover:scale-105'
                           )}
                         >
                           <Check className="w-6 h-6" />
@@ -507,8 +507,8 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                           className={clsx(
                             'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
                             status === false
-                              ? 'bg-[#EF4444] text-white shadow-lg shadow-[#EF4444]/40 scale-105'
-                              : 'bg-[#364060] text-[#9CA3AF] hover:text-[#EF4444] hover:bg-[#EF4444]/20 hover:scale-105'
+                              ? 'bg-[#E5564F] text-white shadow-lg shadow-[#E5564F]/40 scale-105'
+                              : 'bg-[#464236] text-[#9CA3AF] hover:text-[#E5564F] hover:bg-[#E5564F]/20 hover:scale-105'
                           )}
                         >
                           <X className="w-6 h-6" />
@@ -520,12 +520,12 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 bg-[#0D1628]/80 backdrop-blur-md border-t border-white/10/50">
+              <div className="px-6 py-4 bg-[#1B1A17]/80 backdrop-blur-md border-t border-white/10/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     {/* Progress bar */}
                     <div className="flex items-center space-x-3">
-                      <div className="w-32 h-2 bg-[#364060] rounded-full overflow-hidden">
+                      <div className="w-32 h-2 bg-[#464236] rounded-full overflow-hidden">
                         <div
                           className="h-full bg-white rounded-full transition-all duration-300"
                           style={{ width: `${(rulesAnswered / activeRules.length) * 100}%` }}
@@ -547,10 +547,10 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                     className={clsx(
                       'px-8 py-3 rounded-xl text-base font-bold transition-all flex items-center space-x-2 min-w-[180px] justify-center',
                       hasPendingChanges && !isSaving
-                        ? 'bg-[#22C55E] text-white hover:bg-[#16A34A] shadow-lg shadow-[#22C55E]/40 hover:scale-105 active:scale-95'
+                        ? 'bg-[#30B886] text-white hover:bg-[#279973] shadow-lg shadow-[#30B886]/40 hover:scale-105 active:scale-95'
                         : isSaving
-                          ? 'bg-[#22C55E]/70 text-white cursor-wait'
-                          : 'bg-[#364060] text-[#6B7280] cursor-not-allowed'
+                          ? 'bg-[#30B886]/70 text-white cursor-wait'
+                          : 'bg-[#464236] text-[#6B7280] cursor-not-allowed'
                     )}
                   >
                     {isSaving ? (
@@ -650,8 +650,8 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                           }
 
                           const getBackgroundColor = () => {
-                            if (isFuture) return '#252A3E';      // dimmed future
-                            if (isWeekend && !day.hasData) return '#232645'; // distinct weekend
+                            if (isFuture) return '#242219';      // dimmed future
+                            if (isWeekend && !day.hasData) return '#2B2922'; // distinct weekend
                             return getColorForScore(day.score, day.hasData);
                           };
 
@@ -665,21 +665,21 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                               {/* Hover Tooltip */}
                               {isHovered && !isFuture && (
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
-                                  <div className="bg-[#172035] border border-white/10 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap">
+                                  <div className="bg-[#262420] border border-white/10 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap">
                                     <div className="text-[10px] font-bold text-white">
                                       {day.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                     </div>
                                     <div className={clsx(
                                       'text-[9px] font-medium',
                                       day.hasData
-                                        ? day.score >= 80 ? 'text-[#22C55E]' : day.score >= 40 ? 'text-[#FACC15]' : 'text-[#EF4444]'
+                                        ? day.score >= 80 ? 'text-[#30B886]' : day.score >= 40 ? 'text-[#FACC15]' : 'text-[#E5564F]'
                                         : 'text-[#6B7280]'
                                     )}>
                                       {day.hasData ? `${day.score}% compliance` : 'Click to log'}
                                     </div>
                                   </div>
                                   {/* Arrow */}
-                                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-[#172035] border-r border-b border-white/10 rotate-45" />
+                                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-[#262420] border-r border-b border-white/10 rotate-45" />
                                 </div>
                               )}
 
@@ -694,7 +694,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                                 }}
                                 className={clsx(
                                   'rounded-md transition-all duration-200 cursor-pointer',
-                                  isToday && 'ring-2 ring-[#4F9CF9] ring-offset-1 ring-offset-[#111F35]',
+                                  isToday && 'ring-2 ring-[#6E9BD1] ring-offset-1 ring-offset-[#201F1B]',
                                   isLogDateCell && 'ring-2 ring-white scale-105 z-10',
                                   !isFuture && !isLogDateCell && 'hover:scale-110 hover:brightness-125',
                                   isFuture && 'opacity-20 cursor-not-allowed',
@@ -720,20 +720,20 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
             <div className="mt-2 flex items-center justify-between">
               <div className="flex items-center space-x-0.5">
                 <span className="text-[#6B7280] text-[8px] font-medium mr-0.5">0%</span>
-                {['#252A36', '#EF4444', '#F97316', '#FACC15', '#4ADE80', '#22C55E'].map((color, idx) => (
+                {['#242219', '#E5564F', '#F97316', '#FACC15', '#4ADE80', '#30B886'].map((color, idx) => (
                   <div key={idx} className="w-3 h-3 rounded-sm" style={{ backgroundColor: color }} />
                 ))}
                 <span className="text-[#6B7280] text-[8px] font-medium ml-0.5">100%</span>
               </div>
               <div className="flex items-center space-x-1 ml-2">
-                <div className="w-3 h-3 rounded-sm bg-[#232645] border border-dashed border-[#303655]" />
+                <div className="w-3 h-3 rounded-sm bg-[#2B2922] border border-dashed border-[#3C382E]" />
                 <span className="text-[#6B7280] text-[8px] font-medium">Weekend</span>
               </div>
             </div>
           </div>
 
           {/* Right Side - Today's Score Circle & Stats */}
-          <div className="w-[100px] flex-shrink-0 flex flex-col items-center justify-center pl-2 border-l border-white/10 bg-[#111F35]/40 rounded-r-xl">
+          <div className="w-[100px] flex-shrink-0 flex flex-col items-center justify-center pl-2 border-l border-white/10 bg-[#201F1B]/40 rounded-r-xl">
             {/* Score Circle */}
             <div className="relative mb-1">
               <svg width="70" height="70" viewBox="0 0 90 90">
@@ -744,7 +744,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                   r="38"
                   fill="none"
                   stroke="currentColor"
-                  className="stroke-slate-200 dark:stroke-[#364060]"
+                  className="stroke-slate-200 dark:stroke-[#464236]"
                   strokeWidth="8"
                 />
                 {/* Progress circle */}
@@ -753,7 +753,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
                   cy="45"
                   r="38"
                   fill="none"
-                  stroke={todayData?.hasData ? getColorForScore(todayData.score, true) : '#364060'}
+                  stroke={todayData?.hasData ? getColorForScore(todayData.score, true) : '#464236'}
                   strokeWidth="8"
                   strokeLinecap="round"
                   strokeDasharray={`${(todayData?.hasData ? todayData.score : 0) * 2.39} 239`}
@@ -782,7 +782,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
               <div className="flex flex-col items-center">
                 <div className={clsx(
                   'w-7 h-7 rounded-lg flex items-center justify-center mb-0.5',
-                  stats.currentStreak > 0 ? 'bg-[#F97316]/20' : 'bg-slate-200/50 dark:bg-[#364060]/50'
+                  stats.currentStreak > 0 ? 'bg-[#F97316]/20' : 'bg-slate-200/50 dark:bg-[#464236]/50'
                 )}>
                   <Flame className={clsx('w-3.5 h-3.5', stats.currentStreak > 0 ? 'text-[#F97316]' : 'text-[#6B7280]')} />
                 </div>
@@ -799,7 +799,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
               <div className="flex flex-col items-center">
                 <div className={clsx(
                   'w-7 h-7 rounded-lg flex items-center justify-center mb-0.5',
-                  stats.maxStreak > 0 ? 'bg-[#FACC15]/20' : 'bg-slate-200/50 dark:bg-[#364060]/50'
+                  stats.maxStreak > 0 ? 'bg-[#FACC15]/20' : 'bg-slate-200/50 dark:bg-[#464236]/50'
                 )}>
                   <Trophy className={clsx('w-3.5 h-3.5', stats.maxStreak > 0 ? 'text-[#FACC15]' : 'text-[#6B7280]')} />
                 </div>
@@ -815,7 +815,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) 
 
             {/* Full Routine Button */}
             <button
-              className="mt-3 w-full px-1 py-1.5 bg-[#172035] hover:bg-[#1E2F4A] border border-white/5 rounded-lg text-zinc-300 text-[10px] font-semibold transition-all shadow hover:shadow-lg flex items-center justify-center group"
+              className="mt-3 w-full px-1 py-1.5 bg-[#262420] hover:bg-[#3A362C] border border-white/5 rounded-lg text-zinc-300 text-[10px] font-semibold transition-all shadow hover:shadow-lg flex items-center justify-center group"
               onClick={onViewMore}
             >
               <span>Full Routine</span>

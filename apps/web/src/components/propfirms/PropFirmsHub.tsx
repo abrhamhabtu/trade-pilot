@@ -28,7 +28,7 @@ export function PropFirmsHub() {
 
   return (
     <PropFirmsShell>
-      <section className="border-b border-white/[0.06] bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(0,214,143,0.12)_0%,transparent_55%)]">
+      <section className="border-b border-white/[0.06] bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(48, 184, 134,0.12)_0%,transparent_55%)]">
         <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
           <div className="inline-flex items-center gap-2 rounded-full border border-tp-green/20 bg-tp-green/10 px-4 py-1 text-sm text-tp-green">
             <Target className="h-3.5 w-3.5" />
@@ -44,7 +44,7 @@ export function PropFirmsHub() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/app/payout"
-              className="inline-flex items-center gap-2 rounded-xl bg-tp-green px-5 py-3 text-sm font-semibold text-[#0D1628] transition hover:bg-tp-green/90"
+              className="inline-flex items-center gap-2 rounded-xl bg-tp-green px-5 py-3 text-sm font-semibold text-[#1B1A17] transition hover:bg-tp-green/90"
             >
               Open Payout Planner
               <ArrowRight className="h-4 w-4" />
@@ -96,7 +96,7 @@ export function PropFirmsHub() {
         )}
       </section>
 
-      <section className="border-t border-white/[0.06] bg-[#0A1220]">
+      <section className="border-t border-white/[0.06] bg-[#161512]">
         <div className="mx-auto max-w-6xl px-6 py-14 text-center">
           <h2 className="text-2xl font-semibold text-white">One journal. Every prop firm.</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-white/50">
@@ -105,7 +105,7 @@ export function PropFirmsHub() {
           </p>
           <Link
             href="/app/dashboard"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[#0D1628] transition hover:bg-white/90"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[#1B1A17] transition hover:bg-white/90"
           >
             Start with TradePilot
             <ArrowRight className="h-4 w-4" />

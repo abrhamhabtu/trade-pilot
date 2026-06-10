@@ -74,7 +74,7 @@ export const BarChartComponent: React.FC<BarChartComponentProps> = ({ data, titl
           <div className="flex items-center space-x-2">
             <h3 className="text-zinc-100 text-base font-semibold">{title}</h3>
             <Tooltip content={tooltipContent} position="top">
-              <div className="w-5 h-5 rounded-full bg-[#172035] flex items-center justify-center cursor-help hover:bg-emerald-500/20 transition-colors">
+              <div className="w-5 h-5 rounded-full bg-[#262420] flex items-center justify-center cursor-help hover:bg-emerald-500/20 transition-colors">
                 <span className="text-zinc-400 text-xs">?</span>
               </div>
             </Tooltip>
@@ -138,9 +138,9 @@ export const BarChartComponent: React.FC<BarChartComponentProps> = ({ data, titl
                     {/* Tooltip on hover */}
                     {isHovered && (
                       <div
-                        className="absolute z-50 px-3 py-2 rounded-lg shadow-xl pointer-events-none whitespace-nowrap bg-[#172035] border"
+                        className="absolute z-50 px-3 py-2 rounded-lg shadow-xl pointer-events-none whitespace-nowrap bg-[#262420] border"
                         style={{
-                          borderColor: isPositive ? '#00D68F' : '#FF4868',
+                          borderColor: isPositive ? '#30B886' : '#E5564F',
                           bottom: hasNegative ? (isPositive ? '60%' : 'auto') : `${barHeight + 12}%`,
                           top: hasNegative && !isPositive ? '60%' : 'auto',
                           left: '50%',
@@ -175,7 +175,7 @@ export const BarChartComponent: React.FC<BarChartComponentProps> = ({ data, titl
                           minWidth: '12px',
                           height: `${barHeight}%`,
                           minHeight: '4px',
-                          backgroundColor: isPositive ? '#00D68F' : '#FF4868',
+                          backgroundColor: isPositive ? '#30B886' : '#E5564F',
                           borderRadius: '4px',
                           transform: isHovered ? 'scaleX(1.1) scaleY(1.02)' : 'scaleX(1) scaleY(1)'
                         }}

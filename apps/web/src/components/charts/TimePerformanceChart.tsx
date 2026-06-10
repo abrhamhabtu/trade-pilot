@@ -93,10 +93,10 @@ export const TimePerformanceChart: React.FC<TimePerformanceChartProps> = ({ data
       return (
         <div 
           style={{
-            background: 'linear-gradient(135deg, #1E2F4A 0%, #364060 100%)',
-            border: '2px solid #00D68F',
+            background: 'linear-gradient(135deg, #3A362C 0%, #464236 100%)',
+            border: '2px solid #30B886',
             borderRadius: '12px',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 246, 138, 0.3)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(48, 184, 134, 0.3)',
             padding: '12px 16px',
             backdropFilter: 'blur(10px)',
             minWidth: '140px'
@@ -112,7 +112,7 @@ export const TimePerformanceChart: React.FC<TimePerformanceChartProps> = ({ data
             Time: {formatTooltipTime(data.originalTime)}
           </div>
           <div style={{ 
-            color: data.originalPnl >= 0 ? '#00D68F' : '#FF4868', 
+            color: data.originalPnl >= 0 ? '#30B886' : '#E5564F', 
             fontWeight: 'bold',
             fontSize: '16px',
             textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)'
@@ -126,7 +126,7 @@ export const TimePerformanceChart: React.FC<TimePerformanceChartProps> = ({ data
   };
 
   if (!hasMounted) {
-    return <div className="h-[22rem] rounded-xl border border-white/5 bg-[#0D1628]/40" />;
+    return <div className="h-[22rem] rounded-xl border border-white/5 bg-[#1B1A17]/40" />;
   }
 
   return (
@@ -148,7 +148,7 @@ export const TimePerformanceChart: React.FC<TimePerformanceChartProps> = ({ data
           <div className="flex items-center space-x-2">
             <h3 className="text-zinc-100 text-lg font-semibold">Trade time performance</h3>
             <Tooltip content={tooltipContent} position="top">
-              <div className="w-4 h-4 rounded-full bg-[#172035] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
+              <div className="w-4 h-4 rounded-full bg-[#262420] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
                 <span className="text-zinc-400 text-xs">?</span>
               </div>
             </Tooltip>
@@ -162,30 +162,30 @@ export const TimePerformanceChart: React.FC<TimePerformanceChartProps> = ({ data
               data={processedData}
               margin={{ top: 8, right: 18, left: 0, bottom: 50 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E2F4A" opacity={0.3} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#3A362C" opacity={0.3} />
               <XAxis
                 type="number"
                 dataKey="displayTime"
                 domain={[minTime - timePadding, maxTime + timePadding]}
-                axisLine={{ stroke: '#364060', strokeWidth: 1 }}
-                tickLine={{ stroke: '#364060', strokeWidth: 1 }}
-                tick={{ fill: '#7B91B4', fontSize: 12 }}
+                axisLine={{ stroke: '#464236', strokeWidth: 1 }}
+                tickLine={{ stroke: '#464236', strokeWidth: 1 }}
+                tick={{ fill: '#A8A294', fontSize: 12 }}
                 tickFormatter={formatTime}
                 ticks={[6, 8, 10, 12, 14, 16, 18]}
                 label={{
                   value: 'Trading Hours',
                   position: 'insideBottom',
                   offset: -28,
-                  style: { textAnchor: 'middle', fill: '#7B91B4', fontSize: '12px', fontWeight: '500' }
+                  style: { textAnchor: 'middle', fill: '#A8A294', fontSize: '12px', fontWeight: '500' }
                 }}
               />
               <YAxis
                 type="number"
                 dataKey="displayPnl"
                 domain={[minPnL - pnlPadding, maxPnL + pnlPadding]}
-                axisLine={{ stroke: '#364060', strokeWidth: 1 }}
-                tickLine={{ stroke: '#364060', strokeWidth: 1 }}
-                tick={{ fill: '#7B91B4', fontSize: 12 }}
+                axisLine={{ stroke: '#464236', strokeWidth: 1 }}
+                tickLine={{ stroke: '#464236', strokeWidth: 1 }}
+                tick={{ fill: '#A8A294', fontSize: 12 }}
                 width={74}
                 tickFormatter={(value) => `$${Math.round(value)}`}
                 label={{
@@ -193,24 +193,24 @@ export const TimePerformanceChart: React.FC<TimePerformanceChartProps> = ({ data
                   angle: -90,
                   position: 'insideLeft',
                   offset: -50,
-                  style: { textAnchor: 'middle', fill: '#7B91B4', fontSize: '11px', fontWeight: '500' }
+                  style: { textAnchor: 'middle', fill: '#A8A294', fontSize: '11px', fontWeight: '500' }
                 }}
               />
               <RechartsTooltip
                 content={<CustomTooltip />}
-                cursor={{ strokeDasharray: '3 3', stroke: '#00D68F', strokeWidth: 1 }}
+                cursor={{ strokeDasharray: '3 3', stroke: '#30B886', strokeWidth: 1 }}
               />
               <Scatter
                 name="Trades"
                 dataKey="displayPnl"
                 r={8}
                 strokeWidth={1.5}
-                stroke="#0D1628"
+                stroke="#1B1A17"
               >
                 {processedData.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
-                    fill={entry.outcome === 'win' ? '#00D68F' : '#FF4868'}
+                    fill={entry.outcome === 'win' ? '#30B886' : '#E5564F'}
                     style={{ 
                       cursor: 'pointer',
                       filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'

@@ -210,8 +210,8 @@ export const EvalVsFunded: React.FC = () => {
       <div className={clsx(inset, 'mt-5 p-4')}>
         <span className={clsx('text-xs font-semibold uppercase tracking-wide', muted)}>Cost per funded account</span>
         <div className="mt-3 space-y-3">
-          <CompareBar label="Eval grind" value={m.evalCostPerFunded === Infinity ? fundedFee : m.evalCostPerFunded} max={maxCPF} color="#00D68F" best={m.evalCheaper} muted={muted} text={text} />
-          <CompareBar label="Straight to funded" value={fundedFee} max={maxCPF} color="#4F9CF9" best={!m.evalCheaper} muted={muted} text={text} />
+          <CompareBar label="Eval grind" value={m.evalCostPerFunded === Infinity ? fundedFee : m.evalCostPerFunded} max={maxCPF} color="#30B886" best={m.evalCheaper} muted={muted} text={text} />
+          <CompareBar label="Straight to funded" value={fundedFee} max={maxCPF} color="#6E9BD1" best={!m.evalCheaper} muted={muted} text={text} />
         </div>
       </div>
 

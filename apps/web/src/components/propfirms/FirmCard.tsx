@@ -39,7 +39,7 @@ export function FirmCard({ brand }: FirmCardProps) {
     return (
       <div
         className={clsx(
-          'rounded-2xl border border-white/[0.06] bg-[#111F35]/60 p-5 opacity-60',
+          'rounded-2xl border border-white/[0.06] bg-[#201F1B]/60 p-5 opacity-60',
           'cursor-not-allowed'
         )}
       >
@@ -52,7 +52,7 @@ export function FirmCard({ brand }: FirmCardProps) {
     <Link
       href={`/propfirms/${brand.slug}`}
       className={clsx(
-        'group block rounded-2xl border border-white/[0.08] bg-[#111F35] p-5 transition',
+        'group block rounded-2xl border border-white/[0.08] bg-[#201F1B] p-5 transition',
         'hover:border-tp-green/25 hover:bg-[#152540] hover:shadow-lg hover:shadow-tp-green/5'
       )}
     >

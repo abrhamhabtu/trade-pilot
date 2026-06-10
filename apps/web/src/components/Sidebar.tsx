@@ -19,7 +19,7 @@ export const Sidebar: React.FC = () => {
         sidebarCollapsed ? 'w-20' : 'w-64'
       )}
       style={{
-        background: 'linear-gradient(180deg, #13223A 0%, #111F35 100%)',
+        background: 'linear-gradient(180deg, #24221C 0%, #201F1B 100%)',
         backdropFilter: 'blur(12px)',
       }}
     >
@@ -33,13 +33,13 @@ export const Sidebar: React.FC = () => {
         <div className="flex items-center space-x-2.5">
           <div
             className={clsx(
-              'flex items-center justify-center rounded-lg border border-tp-green/20 bg-tp-green/10',
+              'flex items-center justify-center rounded-lg border border-tp-accent/25 bg-tp-accent/10',
               sidebarCollapsed ? 'h-8 w-8' : 'h-7 w-7'
             )}
           >
-            <Activity className={clsx('text-tp-green', sidebarCollapsed ? 'h-5 w-5' : 'h-4 w-4')} />
+            <Activity className={clsx('text-tp-accent', sidebarCollapsed ? 'h-5 w-5' : 'h-4 w-4')} />
           </div>
-          <span className={clsx('text-base font-semibold tracking-tight text-white', sidebarCollapsed && 'hidden')}>
+          <span className={clsx('font-display text-lg font-semibold tracking-tight text-white', sidebarCollapsed && 'hidden')}>
             TradePilot
           </span>
         </div>
@@ -78,7 +78,7 @@ export const Sidebar: React.FC = () => {
           <input
             type="text"
             placeholder="Search"
-            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.04] py-2 pl-9 pr-4 text-sm text-white/70 placeholder-white/20 transition-all focus:border-tp-blue/40 focus:bg-white/[0.06] focus:outline-none"
+            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.04] py-2 pl-9 pr-4 text-sm text-white/70 placeholder-white/20 transition-all focus:border-tp-accent/40 focus:bg-white/[0.06] focus:outline-none"
           />
         </div>
       </div>
@@ -106,13 +106,13 @@ export const Sidebar: React.FC = () => {
                   : 'text-white/35 hover:text-white/75 hover:bg-white/[0.04]'
               )}
               style={isActive ? {
-                background: 'linear-gradient(135deg, rgba(0,214,143,0.12) 0%, rgba(79,156,249,0.08) 100%)',
-                boxShadow: '0 0 0 1.5px rgba(0,214,143,0.16)',
+                background: 'linear-gradient(135deg, rgba(217,119,87,0.16) 0%, rgba(217,119,87,0.05) 100%)',
+                boxShadow: '0 0 0 1px rgba(217,119,87,0.30)',
               } : {}}
             >
               <Icon className={clsx(
                 sidebarCollapsed ? 'mx-auto h-6 w-6' : 'mr-3 h-4 w-4',
-                isActive ? 'text-tp-green' : ''
+                isActive ? 'text-tp-accent' : ''
               )} />
               <span className={clsx('truncate', sidebarCollapsed && 'hidden')}>{item.name}</span>
 
@@ -155,7 +155,7 @@ export const Sidebar: React.FC = () => {
         </div>
         {sidebarCollapsed && (
           <div className="flex justify-center">
-            <div className="h-1.5 w-1.5 rounded-full bg-tp-green/40" />
+            <div className="h-1.5 w-1.5 rounded-full bg-tp-accent/50" />
           </div>
         )}
       </div>

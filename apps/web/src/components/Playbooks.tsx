@@ -76,7 +76,7 @@ const TAGLINE_BY_ID: Record<string, string> = {
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
 
 const MEDALS = [
-  { label: 'Champion', color: '#FFB800', emoji: '🥇' },
+  { label: 'Champion', color: '#D9A03F', emoji: '🥇' },
   { label: 'Silver', color: '#C7CDD6', emoji: '🥈' },
   { label: 'Bronze', color: '#CD7F46', emoji: '🥉' },
 ];
@@ -128,7 +128,7 @@ const RankCard: React.FC<{ strategy: PlaybookStrategy; rank: number; podium: boo
         medal ? 'border-white/[0.08]' : 'border-white/[0.06]',
         champion && podium && 'md:-translate-y-3'
       )}
-      style={champion ? { boxShadow: '0 0 0 1px rgba(255,184,0,0.35)' } : undefined}
+      style={champion ? { boxShadow: '0 0 0 1px rgba(217, 160, 63,0.35)' } : undefined}
     >
       {medal && <div className="absolute inset-x-0 top-0 h-1" style={{ background: medal.color }} />}
 

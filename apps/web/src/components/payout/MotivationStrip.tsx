@@ -41,8 +41,8 @@ export const MotivationStrip: React.FC = () => {
       )}
       style={{
         background: dark
-          ? 'linear-gradient(135deg, rgba(0,214,143,0.10) 0%, rgba(79,156,249,0.06) 60%, rgba(23,32,53,0.3) 100%)'
-          : 'linear-gradient(135deg, rgba(0,214,143,0.08) 0%, rgba(79,156,249,0.05) 100%)',
+          ? 'linear-gradient(135deg, rgba(48, 184, 134,0.10) 0%, rgba(110, 155, 209,0.06) 60%, rgba(38,36,32,0.3) 100%)'
+          : 'linear-gradient(135deg, rgba(48, 184, 134,0.08) 0%, rgba(110, 155, 209,0.05) 100%)',
       }}
     >
       <div className="flex items-start gap-3">

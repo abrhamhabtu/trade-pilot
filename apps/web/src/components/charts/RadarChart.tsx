@@ -54,8 +54,8 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
         cx={cx}
         cy={cy}
         r={3} // Reduced from 6 to 3 (50% smaller)
-        fill="#00D68F"
-        stroke="#172035"
+        fill="#30B886"
+        stroke="#262420"
         strokeWidth={1} // Reduced from 2 to 1
         style={{ 
           cursor: 'pointer',
@@ -82,10 +82,10 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
         }}
       >
         <div 
-          className="bg-[#172035] border border-emerald-500/30 rounded-lg shadow-xl backdrop-blur-sm"
+          className="bg-[#262420] border border-emerald-500/30 rounded-lg shadow-xl backdrop-blur-sm"
           style={{
             background: 'linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(55, 65, 81, 0.95) 100%)',
-            boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6), 0 0 8px rgba(59, 246, 138, 0.2)',
+            boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6), 0 0 8px rgba(48, 184, 134, 0.2)',
             padding: '6px 10px',
             minWidth: '84px'
           }}
@@ -104,7 +104,7 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
   };
 
   if (!hasMounted) {
-    return <div className="h-full min-h-[22rem] rounded-xl border border-white/5 bg-[#0D1628]/40" />;
+    return <div className="h-full min-h-[22rem] rounded-xl border border-white/5 bg-[#1B1A17]/40" />;
   }
 
   return (
@@ -125,7 +125,7 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
           <div className="flex items-center space-x-2">
             <h3 className="text-zinc-100 text-sm font-semibold sm:text-base">Trading score</h3>
             <Tooltip content={tooltipContent} position="top">
-              <div className="w-4 h-4 rounded-full bg-[#172035] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
+              <div className="w-4 h-4 rounded-full bg-[#262420] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
                 <span className="text-zinc-400 text-xs">?</span>
               </div>
             </Tooltip>
@@ -142,23 +142,23 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
             >
               <defs>
                 <linearGradient id="radarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#00D68F" stopOpacity={0.3} />
+                  <stop offset="0%" stopColor="#30B886" stopOpacity={0.3} />
                   <stop offset="100%" stopColor="#71717A" stopOpacity={0.3} />
                 </linearGradient>
                 <linearGradient id="radarStroke" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#00D68F" />
+                  <stop offset="0%" stopColor="#30B886" />
                   <stop offset="100%" stopColor="#71717A" />
                 </linearGradient>
               </defs>
               <PolarGrid
                 gridType="polygon"
-                stroke="#1E2F4A"
+                stroke="#3A362C"
                 strokeWidth={1}
                 radialLines={false}
               />
               <PolarAngleAxis
                 dataKey="category"
-                tick={{ fill: '#7B91B4', fontSize: 10 }}
+                tick={{ fill: '#A8A294', fontSize: 10 }}
               />
               <PolarRadiusAxis
                 domain={[0, 100]}
@@ -190,12 +190,12 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
             <span>50</span>
             <span>100</span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#172035]">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#262420]">
             <div
               className="h-full rounded-full transition-all duration-1000"
               style={{
                 width: `${score}%`,
-                background: 'linear-gradient(to right, #00D68F, #4F9CF9)',
+                background: 'linear-gradient(to right, #30B886, #6E9BD1)',
               }}
             />
           </div>

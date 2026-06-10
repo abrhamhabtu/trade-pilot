@@ -3,8 +3,8 @@ import { Activity, ArrowRight } from 'lucide-react';
 
 export function PropFirmsShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen text-[#E0EAF8]">
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0D1628]/90 backdrop-blur-md">
+    <div className="min-h-screen text-[#EDEAE3]">
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#1B1A17]/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
           <Link href="/app/dashboard" className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-tp-green/20 bg-tp-green/10">
@@ -22,7 +22,7 @@ export function PropFirmsShell({ children }: { children: React.ReactNode }) {
             </Link>
             <Link
               href="/app/dashboard"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-tp-green px-4 py-2 text-sm font-medium text-[#0D1628] transition hover:bg-tp-green/90"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-tp-green px-4 py-2 text-sm font-medium text-[#1B1A17] transition hover:bg-tp-green/90"
             >
               Open App
               <ArrowRight className="h-3.5 w-3.5" />
@@ -31,7 +31,7 @@ export function PropFirmsShell({ children }: { children: React.ReactNode }) {
 
           <Link
             href="/app/dashboard"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-tp-green px-3 py-2 text-sm font-medium text-[#0D1628] sm:hidden"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-tp-green px-3 py-2 text-sm font-medium text-[#1B1A17] sm:hidden"
           >
             Open App
           </Link>
@@ -40,7 +40,7 @@ export function PropFirmsShell({ children }: { children: React.ReactNode }) {
 
       <main>{children}</main>
 
-      <footer className="mt-20 border-t border-white/[0.06] bg-[#0A1220]">
+      <footer className="mt-20 border-t border-white/[0.06] bg-[#161512]">
         <div className="mx-auto max-w-6xl px-6 py-10">
           <p className="text-center text-xs leading-relaxed text-white/35">
             Rules shown are for planning purposes and may change. Always verify on each firm&apos;s official site

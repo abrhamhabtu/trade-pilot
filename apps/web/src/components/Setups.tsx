@@ -104,7 +104,7 @@ function CreateCardModal({ onClose }: { onClose: () => void }) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-[#1A1F2E] shadow-2xl">
+            <div className="relative w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-[#24221E] shadow-2xl">
                 <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/5">
                     <div>
                         <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
@@ -171,7 +171,7 @@ function CreateCardModal({ onClose }: { onClose: () => void }) {
                         Cancel
                     </button>
                     <button onClick={submit} disabled={!form.symbol.trim()}
-                        className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-sm hover:bg-emerald-400 transition-all disabled:opacity-40">
+                        className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-[#1B1A17] font-semibold text-sm hover:bg-emerald-400 transition-all disabled:opacity-40">
                         Create Card
                     </button>
                 </div>
@@ -237,8 +237,8 @@ function AddSetupModal({ cardId, onClose }: { cardId: string; onClose: () => voi
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-lg mx-4 rounded-2xl border border-white/10 bg-[#1A1F2E] shadow-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/5 sticky top-0 bg-[#1A1F2E] z-10">
+            <div className="relative w-full max-w-lg mx-4 rounded-2xl border border-white/10 bg-[#24221E] shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/5 sticky top-0 bg-[#24221E] z-10">
                     <h2 className="text-base font-bold text-zinc-100">Add Trade Setup</h2>
                     <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 p-1 rounded-lg hover:bg-white/5">
                         <X className="h-5 w-5" />
@@ -326,13 +326,13 @@ function AddSetupModal({ cardId, onClose }: { cardId: string; onClose: () => voi
                     </div>
                 </div>
 
-                <div className="px-6 pb-5 flex gap-3 sticky bottom-0 bg-[#1A1F2E] pt-2 border-t border-white/5">
+                <div className="px-6 pb-5 flex gap-3 sticky bottom-0 bg-[#24221E] pt-2 border-t border-white/5">
                     <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/10 text-zinc-400 text-sm transition-all">Cancel</button>
                     <button onClick={submit} disabled={!form.name.trim() || !entry || !stop || !t1}
                         className={clsx(
                             'flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40',
                             form.direction === 'bullish'
-                                ? 'bg-emerald-500 text-[#0D1628] hover:bg-emerald-400'
+                                ? 'bg-emerald-500 text-[#1B1A17] hover:bg-emerald-400'
                                 : 'bg-rose-500 text-white hover:bg-rose-400'
                         )}>
                         Add {form.direction === 'bullish' ? 'Bullish' : 'Bearish'} Setup
@@ -364,7 +364,7 @@ function AddLevelModal({ cardId, onClose }: { cardId: string; onClose: () => voi
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-sm mx-4 rounded-2xl border border-white/10 bg-[#1A1F2E] shadow-2xl">
+            <div className="relative w-full max-w-sm mx-4 rounded-2xl border border-white/10 bg-[#24221E] shadow-2xl">
                 <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/5">
                     <h2 className="text-base font-bold text-zinc-100">Add Key Level</h2>
                     <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 p-1"><X className="h-5 w-5" /></button>
@@ -498,7 +498,7 @@ function SetupRow({
                                             'w-4 h-4 rounded border flex-shrink-0 mt-0.5 flex items-center justify-center transition-all',
                                             c.checked ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 group-hover:border-white/40'
                                         )}>
-                                            {c.checked && <Check className="h-2.5 w-2.5 text-[#0D1628]" />}
+                                            {c.checked && <Check className="h-2.5 w-2.5 text-[#1B1A17]" />}
                                         </div>
                                         <span className={clsx('text-xs leading-relaxed transition-colors',
                                             c.checked ? 'text-zinc-500 line-through' : 'text-zinc-300'
@@ -677,7 +677,7 @@ function SetupCardView({ card }: { card: SetupCard }) {
             <div className="relative px-5 py-4 overflow-hidden"
                 style={{ background: 'linear-gradient(135deg, #0F1A2E 0%, #121B2F 50%, #0A1520 100%)' }}>
                 <div className="absolute inset-0 opacity-30"
-                    style={{ background: 'radial-gradient(ellipse at top left, rgba(59,246,138,0.08) 0%, transparent 60%)' }} />
+                    style={{ background: 'radial-gradient(ellipse at top left, rgba(48, 184, 134,0.08) 0%, transparent 60%)' }} />
 
                 <div className="relative flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -720,7 +720,7 @@ function SetupCardView({ card }: { card: SetupCard }) {
                             {menuOpen && (
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                                    <div className="absolute right-0 top-full mt-1 w-40 rounded-xl border border-white/10 bg-[#1A1F2E] shadow-xl z-50 py-1">
+                                    <div className="absolute right-0 top-full mt-1 w-40 rounded-xl border border-white/10 bg-[#24221E] shadow-xl z-50 py-1">
                                         <button onClick={() => { setShowAddSetup(true); setMenuOpen(false); }}
                                             className="w-full px-4 py-2 text-left text-sm text-zinc-300 hover:bg-white/5 flex items-center gap-2">
                                             <Plus className="h-3.5 w-3.5" /> Add Setup
@@ -854,7 +854,7 @@ function DateSidebar({
                     <span className="text-sm font-semibold text-zinc-200">Setups</span>
                 </div>
                 <button onClick={onNew}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-xs hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-emerald-500 text-[#1B1A17] font-semibold text-xs hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
                     <Plus className="h-3.5 w-3.5" /> New Setup Card
                 </button>
             </div>
@@ -945,7 +945,7 @@ function EmptyState({ onNew, date }: { onNew: () => void; date: string }) {
                         : "No setup cards were logged for this date. Select another date or create a new one."}
                 </p>
                 <button onClick={onNew}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-sm hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-[#1B1A17] font-semibold text-sm hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
                     <Plus className="h-4 w-4" /> New Setup Card
                 </button>
                 <div className="mt-6 flex flex-col gap-1.5 text-left">
@@ -1164,7 +1164,7 @@ export const Setups: React.FC = () => {
                         Auto-generation coming soon
                     </div>
                     <button onClick={() => setShowCreate(true)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500 text-[#0D1628] font-semibold text-xs hover:bg-emerald-400 transition-all shadow-md shadow-emerald-500/20">
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500 text-[#1B1A17] font-semibold text-xs hover:bg-emerald-400 transition-all shadow-md shadow-emerald-500/20">
                         <Plus className="h-3.5 w-3.5" /> New Card
                     </button>
                 </div>

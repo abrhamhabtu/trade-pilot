@@ -53,7 +53,7 @@ export const TradeSummaryTable: React.FC<TradeSummaryTableProps> = ({ data }) =>
               {data.slice(0, 8).map((row, index) => (
                 <tr
                   key={index}
-                  className="border-b border-white/5/50 hover:bg-gradient-to-r hover:from-[#00D68F]/5 hover:to-[#4F9CF9]/5 transition-all duration-200"
+                  className="border-b border-white/5/50 hover:bg-gradient-to-r hover:from-[#30B886]/5 hover:to-[#6E9BD1]/5 transition-all duration-200"
                 >
                   <td className="py-3 px-2 text-zinc-100 text-sm font-medium">
                     {row.duration}

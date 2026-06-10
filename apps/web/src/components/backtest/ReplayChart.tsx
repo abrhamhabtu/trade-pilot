@@ -35,7 +35,7 @@ export function ReplayChart({
 
   if (candles.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center rounded-2xl border border-white/5 bg-[#101522] text-sm text-zinc-500">
+      <div className="flex h-full items-center justify-center rounded-2xl border border-white/5 bg-[#1E1D19] text-sm text-zinc-500">
         No replay candles loaded
       </div>
     );
@@ -49,9 +49,9 @@ export function ReplayChart({
   const candleWidth = Math.max(5, step - 3);
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-xl border border-white/5 bg-[#0B1120] shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+    <div className="relative h-full w-full overflow-hidden rounded-xl border border-white/5 bg-[#181713] shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
       <svg viewBox={`0 0 ${width} ${height}`} className="block h-full w-full">
-        <rect x={0} y={0} width={width} height={height} fill="#0B1120" rx={28} />
+        <rect x={0} y={0} width={width} height={height} fill="#181713" rx={28} />
         {Array.from({ length: 6 }).map((_, index) => {
           const y = paddingTop + (priceAreaHeight / 5) * index;
           return (
@@ -75,7 +75,7 @@ export function ReplayChart({
               x2={x}
               y1={paddingTop}
               y2={volumeAreaTop + volumeAreaHeight}
-              stroke="#111827"
+              stroke="#1F1E1A"
               strokeDasharray="2 8"
             />
           );
@@ -129,7 +129,7 @@ export function ReplayChart({
               x2={width - paddingX}
               y1={priceY(openPosition.entryPrice, min, max, priceAreaHeight) + paddingTop}
               y2={priceY(openPosition.entryPrice, min, max, priceAreaHeight) + paddingTop}
-              stroke={openPosition.side === 'Long' ? '#60A5FA' : '#F59E0B'}
+              stroke={openPosition.side === 'Long' ? '#6E9BD1' : '#F59E0B'}
               strokeDasharray="8 8"
               strokeWidth={2}
             />
@@ -180,8 +180,8 @@ export function ReplayChart({
                 cx={x}
                 cy={y}
                 r={active ? 9 : 6}
-                fill={execution.type === 'entry' ? '#60A5FA' : '#F59E0B'}
-                stroke={active ? '#FFFFFF' : '#0F1422'}
+                fill={execution.type === 'entry' ? '#6E9BD1' : '#F59E0B'}
+                stroke={active ? '#FFFFFF' : '#1C1B17'}
                 strokeWidth={active ? 3 : 2}
               />
               <text

@@ -3,7 +3,6 @@
 import React, { useMemo } from 'react';
 import { MetricCard } from '../MetricCard';
 import { Trade, TradingMetrics } from '../../store/tradingStore';
-import { LayoutGrid } from 'lucide-react';
 
 interface MetricsGridProps {
   metrics: TradingMetrics;
@@ -33,6 +32,17 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
       : 0;
   const avgWinLossRatio = metrics.avgLoss > 0 ? metrics.avgWin / metrics.avgLoss : 0;
 
+  // Cumulative P&L series for the Net P&L mini equity sparkline.
+  const equitySeries = useMemo(() => {
+    const sorted = [...trades].sort((a, b) => {
+      const d = (a.date || '').localeCompare(b.date || '');
+      return d !== 0 ? d : (a.time || '').localeCompare(b.time || '');
+    });
+    let cum = 0;
+    const series = [0, ...sorted.map((t) => (cum += t.netPL))];
+    return series.length >= 2 ? series : [];
+  }, [trades]);
+
   return (
     <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <MetricCard
@@ -40,7 +50,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
         value={displayBalance}
         format="currency"
         trend={displayBalance >= 0 ? 'up' : 'down'}
-        visual={{ type: 'icon-box', icon: LayoutGrid }}
+        visual={{ type: 'sparkline', data: equitySeries, positive: displayBalance >= 0 }}
       />
 
       <MetricCard

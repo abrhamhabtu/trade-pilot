@@ -2,54 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── TradePilot Design Tokens ────────────────────────────────────────────────
+/* ─── TradePilot Design Tokens — "Anthropic warm" edition ─────────────────────
    Single source of truth. Tailwind config maps to these same hex values.
+   Warm charcoal surfaces, terracotta brand accent, editorial serif display.
    Update tailwind.config.js tp.* tokens to change the app-wide palette.
    ──────────────────────────────────────────────────────────────────────────── */
 :root {
   /* Surfaces */
-  --surface-base:    #0D1628;
-  --surface-panel:   #111F35;
-  --surface-card:    #172035;
-  --surface-raised:  #1C2A42;
-  --surface-border:  #1E2F4A;
+  --surface-base:    #1B1A17;
+  --surface-panel:   #201F1B;
+  --surface-card:    #262420;
+  --surface-raised:  #2E2B25;
+  --surface-border:  #3A362C;
 
-  /* Text */
-  --text-primary:    #E0EAF8;
-  --text-secondary:  #7B91B4;
-  --text-muted:      #4A5E7A;
+  /* Text — warm off-whites */
+  --text-primary:    #EDEAE3;
+  --text-secondary:  #A8A294;
+  --text-muted:      #6E6A5E;
 
   /* Accents */
-  --accent-green:    #00D68F;
-  --accent-red:      #FF4868;
-  --accent-blue:     #4F9CF9;
-  --accent-yellow:   #FFB800;
+  --accent:          #D97757;
+  --accent-green:    #30B886;
+  --accent-red:      #E5564F;
+  --accent-blue:     #6E9BD1;
+  --accent-yellow:   #D9A03F;
 }
 
 [data-theme="light"] {
-  --surface-base:    #F0F4FC;
-  --surface-panel:   #FFFFFF;
-  --surface-card:    #F8FAFF;
+  /* Claude ivory light theme */
+  --surface-base:    #F0EEE6;
+  --surface-panel:   #FAF9F5;
+  --surface-card:    #FFFFFF;
   --surface-raised:  #FFFFFF;
-  --surface-border:  #DDE4F0;
-  --text-primary:    #1A2A42;
-  --text-secondary:  #5A6A84;
-  --text-muted:      #8A9AB4;
-  --accent-green:    #00B876;
-  --accent-red:      #E53551;
-  --accent-blue:     #2D7EE8;
-  --accent-yellow:   #D49600;
+  --surface-border:  #E3DFD3;
+  --text-primary:    #1F1E1B;
+  --text-secondary:  #6E6A5E;
+  --text-muted:      #A8A294;
+  --accent:          #C96442;
+  --accent-green:    #1F9E70;
+  --accent-red:      #D13438;
+  --accent-blue:     #4A7CB8;
+  --accent-yellow:   #B07F23;
 }
 
 /* ─── Ambient Glow ────────────────────────────────────────────────────────────
-   The radial glow is the anti-mirror trick. It adds depth to the dark bg so
-   you see screen content rather than your own reflection. Tradesea-inspired.
+   Warm hearth glow at the top of the page — depth without coldness.
+   Terracotta-tinted so the whole app feels lit by the brand.
    ──────────────────────────────────────────────────────────────────────────── */
 body {
   background:
-    radial-gradient(ellipse 140% 65% at 50% -5%, rgba(20, 60, 140, 0.22) 0%, transparent 65%),
+    radial-gradient(ellipse 130% 60% at 50% -8%, rgba(217, 119, 87, 0.10) 0%, transparent 62%),
+    radial-gradient(ellipse 90% 45% at 85% -5%, rgba(217, 160, 63, 0.05) 0%, transparent 55%),
     var(--surface-base);
   min-height: 100vh;
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Editorial type — serif display for page titles ─────────────────────────
+   The Claude wordmark feel: calm serif headlines over a clean sans body.    */
+h1, .font-display {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+}
+
+::selection {
+  background: rgba(217, 119, 87, 0.35);
+  color: #fff;
 }
 
 /* ─── Theme utility classes ───────────────────────────────────────────────── */
@@ -63,8 +83,8 @@ body {
 /* ─── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(79, 156, 249, 0.2); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(79, 156, 249, 0.4); }
+::-webkit-scrollbar-thumb { background: rgba(217, 119, 87, 0.25); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(217, 119, 87, 0.45); }
 
 /* ─── Transitions ─────────────────────────────────────────────────────────── */
 * {

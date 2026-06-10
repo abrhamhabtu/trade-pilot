@@ -134,13 +134,13 @@ export const Tooltip: React.FC<TooltipProps> = ({
               ...tooltipStyle,
               background: 'rgba(31, 41, 55, 0.95)',
               backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(59, 246, 138, 0.3)',
+              border: '1px solid rgba(48, 184, 134, 0.3)',
               borderRadius: '12px',
               boxShadow: `
                 0 20px 25px -5px rgba(0, 0, 0, 0.8),
                 0 10px 10px -5px rgba(0, 0, 0, 0.6),
-                0 0 0 1px rgba(59, 246, 138, 0.1),
-                0 0 20px rgba(59, 246, 138, 0.15)
+                0 0 0 1px rgba(48, 184, 134, 0.1),
+                0 0 20px rgba(48, 184, 134, 0.15)
               `,
               padding: '12px 16px',
             }}

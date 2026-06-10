@@ -1,14 +1,42 @@
 'use client';
 
 import React from 'react';
-import type { LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { HelpTooltip, SurfaceCard } from '@/components/ui';
 
-const GREEN = '#00FF9D';
-const RED = '#FF3356';
-const BLUE = '#4F9CF9';
-const TRACK = 'rgba(255,255,255,0.08)';
+// Match the app palette instead of harsh neon.
+const GREEN = '#30B886';
+const RED = '#E5564F';
+const BLUE = '#6E9BD1';
+const TRACK = 'rgba(255,255,255,0.07)';
+
+function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
+  const w = 90;
+  const h = 44;
+  const pad = 3;
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const stepX = (w - pad * 2) / (data.length - 1);
+  const pts = data.map((v, i) => [pad + i * stepX, h - pad - ((v - min) / range) * (h - pad * 2)] as const);
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+  const area = `${line} L ${pts[pts.length - 1][0].toFixed(1)} ${h} L ${pts[0][0].toFixed(1)} ${h} Z`;
+  const color = positive ? GREEN : RED;
+  const gid = `spark-${positive ? 'g' : 'r'}`;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0">
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function DonutIndicator({ pct, size = 64 }: { pct: number; size?: number }) {
   const strokeW = 6;
@@ -87,9 +115,9 @@ function WinRateGauge({
   ];
 
   const legend = [
-    { n: wins, bg: 'bg-emerald-400' },
-    { n: breakeven, bg: 'bg-blue-500' },
-    { n: losses, bg: 'bg-rose-500' },
+    { n: wins, color: GREEN },
+    { n: breakeven, color: BLUE },
+    { n: losses, color: RED },
   ];
 
   let offset = 0;
@@ -125,13 +153,11 @@ function WinRateGauge({
         })}
       </svg>
       <div className="mt-1.5 flex items-center gap-1">
-        {legend.map(({ n, bg }, i) => (
+        {legend.map(({ n, color }, i) => (
           <div
             key={i}
-            className={clsx(
-              'flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white',
-              bg
-            )}
+            className="flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+            style={{ backgroundColor: color }}
           >
             {n}
           </div>
@@ -157,20 +183,20 @@ function WinLossBar({ avgWin, avgLoss }: { avgWin: number; avgLoss: number }) {
 
   return (
     <div className="w-[84px] shrink-0">
-      <div className="flex h-2.5 overflow-hidden rounded-sm">
-        <div className="bg-emerald-400" style={{ width: `${winPct}%` }} />
-        <div className="bg-rose-500" style={{ width: `${100 - winPct}%` }} />
+      <div className="flex h-2.5 overflow-hidden rounded-full">
+        <div style={{ width: `${winPct}%`, backgroundColor: GREEN }} />
+        <div style={{ width: `${100 - winPct}%`, backgroundColor: RED }} />
       </div>
       <div className="mt-1.5 flex justify-between text-[11px] font-semibold leading-none">
-        <span className="text-emerald-400">{fmt(win)}</span>
-        <span className="text-rose-400">-{fmt(loss)}</span>
+        <span className="text-tp-green">{fmt(win)}</span>
+        <span className="text-tp-red">-{fmt(loss)}</span>
       </div>
     </div>
   );
 }
 
 export type MetricVisual =
-  | { type: 'icon-box'; icon: LucideIcon }
+  | { type: 'sparkline'; data: number[]; positive: boolean }
   | { type: 'donut'; pct: number }
   | { type: 'gauge'; wins: number; breakeven: number; losses: number }
   | { type: 'winloss-bar'; avgWin: number; avgLoss: number };
@@ -212,8 +238,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   };
 
   const valueColor = () => {
-    if (trend === 'up') return 'text-emerald-400';
-    if (trend === 'down') return 'text-rose-400';
+    if (trend === 'up') return 'text-tp-green';
+    if (trend === 'down') return 'text-tp-red';
     return 'text-zinc-50';
   };
 
@@ -228,24 +254,20 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     <SurfaceCard
       padding="sm"
       hoverable
-      className="!border-white/[0.06] !bg-[#0c1424]/90 !p-4"
+      className="!p-5"
     >
-      <div className="mb-2 flex items-center gap-1.5">
+      <div className="mb-2.5 flex items-center gap-1.5">
         <span className="text-[13px] font-medium text-zinc-400">{title}</span>
         <HelpTooltip content={tooltipMap[title] ?? tooltip ?? ''} />
       </div>
 
-      <div className="flex h-[76px] items-center justify-between gap-3">
-        <div className={clsx('text-[1.65rem] font-bold tabular-nums leading-none tracking-tight', valueColor())}>
+      <div className="flex h-[60px] items-center justify-between gap-3">
+        <div className={clsx('text-[1.75rem] font-bold tabular-nums leading-none tracking-tight', valueColor())}>
           {formatValue(value)}
         </div>
 
         <div className="flex h-full shrink-0 items-center">
-          {visual?.type === 'icon-box' && (
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-500/20">
-              <visual.icon className="h-5 w-5 text-indigo-300" />
-            </div>
-          )}
+          {visual?.type === 'sparkline' && <Sparkline data={visual.data} positive={visual.positive} />}
           {visual?.type === 'donut' && <DonutIndicator pct={visual.pct / 100} />}
           {visual?.type === 'gauge' && (
             <WinRateGauge wins={visual.wins} breakeven={visual.breakeven} losses={visual.losses} />

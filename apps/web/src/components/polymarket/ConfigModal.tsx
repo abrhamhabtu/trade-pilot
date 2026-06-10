@@ -30,7 +30,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ onClose }) => {
         className={clsx(
           'relative w-full max-w-2xl rounded-2xl border shadow-2xl',
           isDark
-            ? 'border-white/[0.06] bg-[#0D1628]'
+            ? 'border-white/[0.06] bg-[#1B1A17]'
             : 'border-slate-200 bg-white'
         )}
       >

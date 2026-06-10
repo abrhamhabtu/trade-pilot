@@ -23,9 +23,9 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
       )}
       style={{
         background: theme === 'dark'
-          ? 'radial-gradient(ellipse 140% 65% at 50% -5%, rgba(20,60,140,0.22) 0%, transparent 65%), #0D1628'
+          ? 'radial-gradient(ellipse 140% 65% at 50% -5%, rgba(20,60,140,0.22) 0%, transparent 65%), #1B1A17'
           : 'radial-gradient(ellipse 140% 65% at 50% -5%, rgba(100,160,255,0.08) 0%, transparent 65%), #F0F4FC',
-        color: theme === 'dark' ? '#E0EAF8' : '#1A2A42',
+        color: theme === 'dark' ? '#EDEAE3' : '#1A2A42',
       }}
     >
       <Sidebar />

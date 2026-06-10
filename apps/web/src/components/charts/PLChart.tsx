@@ -35,7 +35,7 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
   const tooltipContent = `Shows cumulative profit and loss over time.\n\nTracks how your account balance has grown or declined with each trading day.\n\nHelps visualize overall trading trajectory.`;
 
   if (!hasMounted) {
-    return <div className="h-full min-h-[16rem] rounded-xl border border-white/5 bg-[#0D1628]/40" />;
+    return <div className="h-full min-h-[16rem] rounded-xl border border-white/5 bg-[#1B1A17]/40" />;
   }
 
   if (type === 'cumulative') {
@@ -56,7 +56,7 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
             <div className="flex items-center space-x-2">
               <h3 className="text-zinc-100 text-sm font-semibold sm:text-base">Daily net cumulative P&L</h3>
               <Tooltip content={tooltipContent} position="top">
-                <div className="w-4 h-4 rounded-full bg-[#172035] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
+                <div className="w-4 h-4 rounded-full bg-[#262420] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
                   <span className="text-zinc-400 text-xs">?</span>
                 </div>
               </Tooltip>
@@ -67,21 +67,21 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
               <AreaChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="plGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00D68F" stopOpacity={0.4}/>
+                    <stop offset="5%" stopColor="#30B886" stopOpacity={0.4}/>
                     <stop offset="50%" stopColor="#71717A" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#00D68F" stopOpacity={0}/>
+                    <stop offset="95%" stopColor="#30B886" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="plStroke" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#00D68F" />
+                    <stop offset="0%" stopColor="#30B886" />
                     <stop offset="100%" stopColor="#71717A" />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E2F4A" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#3A362C" />
                 <XAxis 
                   dataKey="date" 
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#7B91B4', fontSize: 11 }}
+                  tick={{ fill: '#A8A294', fontSize: 11 }}
                   tickFormatter={formatDate}
                   interval="preserveStartEnd"
                   minTickGap={32}
@@ -90,15 +90,15 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
                   axisLine={false}
                   tickLine={false}
                   width={44}
-                  tick={{ fill: '#7B91B4', fontSize: 11 }}
+                  tick={{ fill: '#A8A294', fontSize: 11 }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                 />
                 <RechartsTooltip
                   contentStyle={{
-                    background: 'linear-gradient(135deg, #1E2F4A 0%, #364060 100%)',
-                    border: '2px solid #00D68F',
+                    background: 'linear-gradient(135deg, #3A362C 0%, #464236 100%)',
+                    border: '2px solid #30B886',
                     borderRadius: '12px',
-                    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 246, 138, 0.3)',
+                    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(48, 184, 134, 0.3)',
                     padding: '12px 16px',
                     backdropFilter: 'blur(10px)'
                   }}
@@ -125,7 +125,7 @@ export const PLChart: React.FC<PLChartProps> = ({ data, type }) => {
                       {formatDate(label)}
                     </span>
                   )}
-                  cursor={{ stroke: '#00D68F', strokeWidth: 2, strokeDasharray: '5 5' }}
+                  cursor={{ stroke: '#30B886', strokeWidth: 2, strokeDasharray: '5 5' }}
                 />
                 <Area
                   type="monotone"

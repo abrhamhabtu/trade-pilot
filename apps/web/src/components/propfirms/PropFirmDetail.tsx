@@ -37,7 +37,7 @@ export function PropFirmDetail({ brand }: PropFirmDetailProps) {
     <PropFirmsShell>
       <article>
         {/* Hero */}
-        <section className="border-b border-white/[0.06] bg-[radial-gradient(ellipse_100%_70%_at_50%_-10%,rgba(79,156,249,0.12)_0%,transparent_55%)]">
+        <section className="border-b border-white/[0.06] bg-[radial-gradient(ellipse_100%_70%_at_50%_-10%,rgba(110, 155, 209,0.12)_0%,transparent_55%)]">
           <div className="mx-auto max-w-4xl px-6 py-12 sm:py-16">
             <nav className="mb-6 flex items-center gap-2 text-xs text-white/35">
               <Link href="/propfirms" className="hover:text-white/60">
@@ -77,7 +77,7 @@ export function PropFirmDetail({ brand }: PropFirmDetailProps) {
               {primary && (
                 <Link
                   href={buildPayoutUrl(primary.id)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-tp-green px-5 py-3 text-sm font-semibold text-[#0D1628] transition hover:bg-tp-green/90"
+                  className="inline-flex items-center gap-2 rounded-xl bg-tp-green px-5 py-3 text-sm font-semibold text-[#1B1A17] transition hover:bg-tp-green/90"
                 >
                   <Wallet className="h-4 w-4" />
                   Plan payout
@@ -106,7 +106,7 @@ export function PropFirmDetail({ brand }: PropFirmDetailProps) {
 
         {/* Programs */}
         {programs.length > 1 && (
-          <section className="border-y border-white/[0.06] bg-[#0A1220]">
+          <section className="border-y border-white/[0.06] bg-[#161512]">
             <div className="mx-auto max-w-4xl px-6 py-12">
               <h2 className="text-xl font-semibold text-white">Programs</h2>
               <p className="mt-2 text-sm text-white/45">
@@ -132,7 +132,7 @@ export function PropFirmDetail({ brand }: PropFirmDetailProps) {
               {brand.mistakes.map((mistake) => (
                 <li
                   key={mistake}
-                  className="flex gap-3 rounded-xl border border-white/[0.06] bg-[#111F35] px-4 py-3 text-sm leading-relaxed text-white/55"
+                  className="flex gap-3 rounded-xl border border-white/[0.06] bg-[#201F1B] px-4 py-3 text-sm leading-relaxed text-white/55"
                 >
                   <span className="mt-0.5 text-tp-yellow">•</span>
                   {mistake}
@@ -143,7 +143,7 @@ export function PropFirmDetail({ brand }: PropFirmDetailProps) {
         )}
 
         {/* How TradePilot helps */}
-        <section className="border-y border-white/[0.06] bg-[radial-gradient(ellipse_80%_50%_at_50%_50%,rgba(0,214,143,0.06)_0%,transparent_70%)]">
+        <section className="border-y border-white/[0.06] bg-[radial-gradient(ellipse_80%_50%_at_50%_50%,rgba(48, 184, 134,0.06)_0%,transparent_70%)]">
           <div className="mx-auto max-w-4xl px-6 py-12">
             <h2 className="text-xl font-semibold text-white">How TradePilot helps</h2>
             <p className="mt-4 text-sm leading-relaxed text-white/55">{brand.howTradePilotHelps}</p>
@@ -163,7 +163,7 @@ export function PropFirmDetail({ brand }: PropFirmDetailProps) {
               {brand.faq.map((item) => (
                 <details
                   key={item.question}
-                  className="group rounded-xl border border-white/[0.06] bg-[#111F35] open:border-tp-green/20"
+                  className="group rounded-xl border border-white/[0.06] bg-[#201F1B] open:border-tp-green/20"
                 >
                   <summary className="cursor-pointer list-none px-5 py-4 text-sm font-medium text-white [&::-webkit-details-marker]:hidden">
                     {item.question}
@@ -179,7 +179,7 @@ export function PropFirmDetail({ brand }: PropFirmDetailProps) {
 
         {/* Related */}
         {related.length > 0 && (
-          <section className="border-t border-white/[0.06] bg-[#0A1220]">
+          <section className="border-t border-white/[0.06] bg-[#161512]">
             <div className="mx-auto max-w-6xl px-6 py-12">
               <h2 className="text-lg font-semibold text-white">Also see</h2>
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -205,7 +205,7 @@ export function PropFirmDetail({ brand }: PropFirmDetailProps) {
               {primary && (
                 <Link
                   href={buildPayoutUrl(primary.id)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-tp-green px-6 py-3 text-sm font-semibold text-[#0D1628] transition hover:bg-tp-green/90"
+                  className="inline-flex items-center gap-2 rounded-xl bg-tp-green px-6 py-3 text-sm font-semibold text-[#1B1A17] transition hover:bg-tp-green/90"
                 >
                   Plan payout
                   <ArrowRight className="h-4 w-4" />
@@ -262,7 +262,7 @@ function RulesAtAGlance({ firm, className }: { firm: PropFirm; className?: strin
             {rows.map((row, i) => (
               <tr
                 key={row.label}
-                className={clsx(i % 2 === 0 ? 'bg-[#111F35]' : 'bg-[#0D1628]')}
+                className={clsx(i % 2 === 0 ? 'bg-[#201F1B]' : 'bg-[#1B1A17]')}
               >
                 <td className="px-4 py-3 font-medium text-white/45">{row.label}</td>
                 <td className="px-4 py-3 text-right text-white/80">{row.value}</td>
@@ -290,7 +290,7 @@ function ProgramCard({ program }: { program: PropFirm }) {
   const tier = program.tiers[0];
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[#111F35] p-5">
+    <div className="rounded-xl border border-white/[0.08] bg-[#201F1B] p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold text-white">{program.program}</h3>
@@ -343,7 +343,7 @@ function FeatureTile({ title, desc, href }: { title: string; desc: string; href:
   return (
     <Link
       href={href}
-      className="rounded-xl border border-white/[0.06] bg-[#111F35] p-4 transition hover:border-tp-green/20"
+      className="rounded-xl border border-white/[0.06] bg-[#201F1B] p-4 transition hover:border-tp-green/20"
     >
       <p className="text-sm font-semibold text-white">{title}</p>
       <p className="mt-1 text-xs leading-relaxed text-white/40">{desc}</p>

@@ -45,7 +45,7 @@ export const PlaybookStrategyView: React.FC<{ strategy: PlaybookStrategy; onBack
       {/* Hero */}
       <div
         className="relative overflow-hidden rounded-2xl border border-white/[0.06] p-6 sm:p-8"
-        style={{ background: 'linear-gradient(135deg, rgba(0,214,143,0.10) 0%, rgba(79,156,249,0.06) 55%, rgba(23,32,53,0.5) 100%)' }}
+        style={{ background: 'linear-gradient(135deg, rgba(48, 184, 134,0.10) 0%, rgba(110, 155, 209,0.06) 55%, rgba(23,32,53,0.5) 100%)' }}
       >
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">

@@ -50,9 +50,9 @@ export function buildStrategyChart(opts: StrategyChartOpts): string {
   const slot = innerW / n;
   const cw = slot * 0.58;
 
-  const green = '#00D68F';
-  const red = '#FF4868';
-  const blue = '#4F9CF9';
+  const green = '#30B886';
+  const red = '#E5564F';
+  const blue = '#6E9BD1';
   const grid = 'rgba(255,255,255,0.05)';
   const textc = '#64748b';
 
@@ -95,8 +95,8 @@ export function buildStrategyChart(opts: StrategyChartOpts): string {
     <line x1="${padL}" y1="${stopY}" x2="${padL + innerW}" y2="${stopY}" stroke="${red}" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
     <text x="${padL + 4}" y="${stopY + (direction === 'Long' ? 12 : -4)}" fill="${red}" font-size="10" font-weight="600" font-family="ui-sans-serif,system-ui">STOP</text>
     <line x1="${entryX}" y1="${entryY}" x2="${exitX}" y2="${exitY}" stroke="${green}" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.85"/>
-    <circle cx="${entryX}" cy="${entryY}" r="5.5" fill="#0D1628" stroke="${green}" stroke-width="2.2"/>
-    <circle cx="${exitX}" cy="${exitY}" r="5.5" fill="#0D1628" stroke="${green}" stroke-width="2.2"/>
+    <circle cx="${entryX}" cy="${entryY}" r="5.5" fill="#1B1A17" stroke="${green}" stroke-width="2.2"/>
+    <circle cx="${exitX}" cy="${exitY}" r="5.5" fill="#1B1A17" stroke="${green}" stroke-width="2.2"/>
     <text x="${entryX}" y="${padT + innerH + 20}" fill="${green}" font-size="10" font-weight="600" font-family="ui-sans-serif,system-ui" text-anchor="middle">ENTRY</text>
     <text x="${exitX}" y="${padT + innerH + 20}" fill="${green}" font-size="10" font-weight="600" font-family="ui-sans-serif,system-ui" text-anchor="middle">TARGET</text>
   `;
@@ -104,10 +104,10 @@ export function buildStrategyChart(opts: StrategyChartOpts): string {
   const header = `
     <text x="${padL}" y="22" fill="#e2e8f0" font-size="15" font-weight="700" font-family="ui-sans-serif,system-ui">${symbol}</text>
     <text x="${padL + 56}" y="22" fill="${textc}" font-size="12" font-family="ui-sans-serif,system-ui">${subtitle}</text>
-    <rect x="${W - padR - 78}" y="9" width="72" height="18" rx="9" fill="${direction === 'Long' ? 'rgba(0,214,143,0.15)' : 'rgba(255,72,104,0.15)'}"/>
+    <rect x="${W - padR - 78}" y="9" width="72" height="18" rx="9" fill="${direction === 'Long' ? 'rgba(48, 184, 134,0.15)' : 'rgba(229, 86, 79,0.15)'}"/>
     <text x="${W - padR - 42}" y="22" fill="${direction === 'Long' ? green : red}" font-size="10" font-weight="700" font-family="ui-sans-serif,system-ui" text-anchor="middle">${direction.toUpperCase()}</text>
   `;
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#0D1628"/>${gridLines}${bars}${annotations}${header}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#1B1A17"/>${gridLines}${bars}${annotations}${header}</svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }

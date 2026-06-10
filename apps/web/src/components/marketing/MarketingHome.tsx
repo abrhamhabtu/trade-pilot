@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export function MarketingHome() {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#1f2937_0%,#111827_45%,#030712_100%)] text-white">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#1f2937_0%,#1F1E1A_45%,#030712_100%)] text-white">
       <section className="mx-auto max-w-6xl px-6 py-24">
         <div className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-1 text-sm text-emerald-300">
           Open-source trading journal with a hosted upgrade path

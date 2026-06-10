@@ -29,16 +29,16 @@ export function SurfaceCard({
   glow?: 'green' | 'red' | 'blue' | 'none';
 }) {
   const glowStyles: Record<string, string> = {
-    green: 'shadow-[0_0_24px_rgba(0,214,143,0.07)] border-tp-green/10',
-    red:   'shadow-[0_0_24px_rgba(255,72,104,0.07)] border-tp-red/10',
-    blue:  'shadow-[0_0_24px_rgba(79,156,249,0.07)] border-tp-blue/10',
+    green: 'shadow-[0_0_24px_rgba(48, 184, 134,0.07)] border-tp-green/10',
+    red:   'shadow-[0_0_24px_rgba(229, 86, 79,0.07)] border-tp-red/10',
+    blue:  'shadow-[0_0_24px_rgba(110, 155, 209,0.07)] border-tp-blue/10',
     none:  '',
   };
 
   return (
     <div
       className={clsx(
-        'relative overflow-hidden rounded-xl border border-white/[0.07] transition-all duration-200',
+        'relative overflow-hidden rounded-2xl border border-white/[0.06] transition-all duration-200',
         'bg-gradient-to-br from-tp-card/90 to-tp-panel/70 backdrop-blur-sm',
         padding === 'sm' && 'p-4',
         padding === 'md' && 'p-6',

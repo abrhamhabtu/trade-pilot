@@ -205,8 +205,8 @@ const RangeTrack: React.FC<{ best: number; realistic: number; dark: boolean; mut
           style={{ left: `${bestPct}%`, width: `${Math.max(2, realPct - bestPct)}%` }}
         />
         {/* markers */}
-        <Marker pct={bestPct} color="#00D68F" />
-        <Marker pct={realPct} color="#4F9CF9" />
+        <Marker pct={bestPct} color="#30B886" />
+        <Marker pct={realPct} color="#6E9BD1" />
       </div>
       <div className="mt-2 flex items-center justify-between text-[11px]">
         <span className="inline-flex items-center gap-1.5">
@@ -246,7 +246,7 @@ const RadialGauge: React.FC<{ score: number; rule: number; isLinked: boolean; ok
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const frac = isLinked && rule > 0 ? Math.min(1, score / rule) : 0;
-  const color = ok ? '#00D68F' : '#FFB800';
+  const color = ok ? '#30B886' : '#D9A03F';
 
   return (
     <div className="relative my-2" style={{ width: size, height: size }}>
