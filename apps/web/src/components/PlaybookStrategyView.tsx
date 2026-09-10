@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { StrategyWorkspace } from './playbooks/StrategyWorkspace';
 import React from 'react';
 import {
   ArrowLeft,
@@ -45,7 +46,7 @@ export const PlaybookStrategyView: React.FC<{ strategy: PlaybookStrategy; onBack
       {/* Hero */}
       <div
         className="relative overflow-hidden rounded-2xl border border-white/[0.06] p-6 sm:p-8"
-        style={{ background: 'linear-gradient(135deg, rgba(0,214,143,0.10) 0%, rgba(79,156,249,0.06) 55%, rgba(23,32,53,0.5) 100%)' }}
+        style={{ background: 'linear-gradient(115deg, #142c2b 0%, #121e2a 65%)' }}
       >
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
@@ -62,13 +63,14 @@ export const PlaybookStrategyView: React.FC<{ strategy: PlaybookStrategy; onBack
 
           {/* Headline stat */}
           <div className="shrink-0 rounded-2xl border border-tp-green/20 bg-tp-green/[0.06] px-6 py-4 text-center">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Historical win rate</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Illustrative win rate</div>
             <div className="mt-1 text-5xl font-bold text-tp-green">{strategy.winRate}%</div>
             <div className="mt-1 text-xs text-zinc-400">avg {strategy.riskReward} risk:reward</div>
           </div>
         </div>
       </div>
 
+      <StrategyWorkspace key={strategy.id} strategyId={strategy.id} strategyName={strategy.name} guide={<div className="space-y-6 pt-6">
       {/* Stat strip */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard icon={<TrendingUp className="h-4 w-4 text-tp-green" />} label="Win rate" value={`${strategy.winRate}%`} />
@@ -177,6 +179,7 @@ export const PlaybookStrategyView: React.FC<{ strategy: PlaybookStrategy; onBack
       <p className="text-center text-xs text-zinc-500">
         Educational playbook · win rate and R:R are illustrative. Backtest on your own data before trading live.
       </p>
+      </div>} />
     </div>
   );
 };

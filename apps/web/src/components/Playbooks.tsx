@@ -39,6 +39,7 @@ const CATEGORY_BY_ID: Record<string, string> = {
   breakout: 'Breakout',
   'mean-reversion': 'Mean Reversion',
   'trend-following': 'Trend',
+  'vwap-pullback': 'VWAP',
   'vwap-reclaim': 'VWAP',
   'failed-breakout': 'Reversal',
   'order-blocks': 'Smart Money',
@@ -49,6 +50,7 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'support-resistance': { dir: 'Long', variant: 0 },
   orb: { dir: 'Long', variant: 2 },
   vwap: { dir: 'Long', variant: 0 },
+  'vwap-pullback': { dir: 'Long', variant: 0 },
   breakout: { dir: 'Long', variant: 2 },
   'mean-reversion': { dir: 'Short', variant: 1 },
   'trend-following': { dir: 'Long', variant: 2 },
@@ -66,6 +68,7 @@ const TAGLINE_BY_ID: Record<string, string> = {
   breakout: 'Ride the break, cut the fake',
   'mean-reversion': 'Fade the stretch, bank the snap',
   'trend-following': 'The trend is your only friend',
+  'vwap-pullback': 'Pullback, do not chase',
   'vwap-reclaim': 'Buy the flip, not the chop',
   'failed-breakout': 'Trade the trap, not the breakout',
   'order-blocks': 'Buy where the size loaded up',
@@ -367,6 +370,14 @@ export const tradingStrategies: PlaybookStrategy[] = [
         entry: 'Short at $185.40 after shooting star at VWAP',
         exit: 'Target $182.00 (lower VWAP band), stop at $186.25',
         result: '+$3.40 profit (1:2.8 R/R)'
+      },
+      {
+        title: 'NY VWAP Pullback Long (Evan Dyer)',
+        description: 'NQ futures pullback to NY VWAP in uptrend - clean bounce, right-side trade (itsevandyer reel Jun 2026)',
+        setup: 'NQ in uptrend above NY VWAP, price pulls back to VWAP line on 3min chart, candle closes with rejection wick',
+        entry: 'Long at VWAP bounce on 3min candle close above VWAP, right-side of VWAP only',
+        exit: 'Target prior session high / range structure ahead, stop below the pullback low or below VWAP',
+        result: 'Textbook clean - $1,200+ on funded account (1:2.5 R/R estimated)'
       }
     ],
     tips: [
@@ -374,14 +385,21 @@ export const tradingStrategies: PlaybookStrategy[] = [
       'Look for confluence with other technical levels for best setups',
       'Volume spikes at VWAP often indicate institutional activity',
       'VWAP bands (standard deviations) provide additional targets',
-      'Works best on liquid stocks and major forex pairs'
+      'Works best on liquid stocks and major forex pairs',
+      'Right-side only: long above VWAP, short below VWAP - never fight the session mean',
+      'NY VWAP (New York session) is often cleaner than the default session VWAP on futures',
+      '3min timeframe gives clean entries without the noise of 1min',
+      'The simplest setups that are easy to repeat win long-term - don\'t overcomplicate VWAP'
     ],
     commonMistakes: [
       'Trading VWAP during low volume periods',
       'Ignoring the overall trend direction',
       'Not waiting for proper rejection signals',
       'Using VWAP on illiquid instruments',
-      'Placing stops too close to VWAP line'
+      'Placing stops too close to VWAP line',
+      'Chasing VWAP after it already bounced - wait for the pullback',
+      'Trading both sides of VWAP without conviction (must pick a direction)',
+      'Overcomplicating with too many indicators - VWAP + structure + volume is enough'
     ]
   },
   {
@@ -631,6 +649,73 @@ export const tradingStrategies: PlaybookStrategy[] = [
     ]
   },
   {
+    id: 'vwap-pullback',
+    name: 'VWAP Pullback in Trend (Evan Dyer)',
+    description: 'Let price pull back to NY VWAP in an established intraday trend and enter on the bounce - one setup, one trade, repeat.',
+    difficulty: 'Intermediate',
+    timeframe: '1m - 5m',
+    winRate: 74,
+    riskReward: '1:2.5',
+    marketCondition: 'Trending intraday (NQ, ES, YM)',
+    overview: 'Evan Dyer (@itsevandyer) teaches that the cleanest trades come from letting the market come to you. Price establishes a clear intraday trend, pulls back to the New York VWAP line, and bounces off it with volume. You enter with the trend and a tight stop under the VWAP touch. No chasing, no forcing - if price does not come to VWAP, you sit on your hands. The June 2026 reel that inspired this playbook shows $2.74K profit across 8 trading days with an extremely high win rate, tagged "Pullback to VWAP." The philosophy: simple trading is easy to repeat.',
+    entryRules: [
+      'Confirm the intraday trend direction on a 5-min chart (higher highs / higher lows for long)',
+      'Mark NY VWAP as your key level - wait for price to pull all the way back to it',
+      'Do NOT enter while price is still falling toward VWAP - let it tap and bounce',
+      'Enter on the bounce candle once price clearly rejects VWAP and reverses in trend direction',
+      'Rising volume on the bounce separates real entries from head-fakes',
+      'If price slices through VWAP with momentum, skip - the trend is gone'
+    ],
+    exitRules: [
+      'First target: the most recent swing high/low before the pullback',
+      'Trail stop to breakeven once price puts 1R of distance',
+      'Scale out half at 1.5R, let the rest run to 2R+',
+      'Exit immediately if price comes back to VWAP and closes through it',
+      'In strong trends, hold for the prior day high/low as the outer target'
+    ],
+    riskManagement: [
+      'Stop 4-8 NQ points (or equivalent) below the VWAP touch wick',
+      'Risk 0.5-1% of account per trade - this is a one-trade-a-day setup',
+      'Do not trade this in choppy, range-bound conditions',
+      'Skip the first 5 minutes after the open until VWAP settles',
+      'One attempt per session - if it fails, the trend is breaking down'
+    ],
+    examples: [
+      {
+        title: 'MNQ Pullback to VWAP (June 2026)',
+        description: 'Nasdaq micros in an intraday uptrend, pullback to NY VWAP, bounce entry',
+        setup: 'MNQ trending higher with higher lows through the morning. Price pulls back 15 pts to NY VWAP around 19,450 and stalls with a doji.',
+        entry: 'Long on the next 1-min candle as price bounces off VWAP with a volume spike',
+        exit: 'Target the session high at 19,520 (+70 pts). Trail under each higher low after 1R.',
+        result: '+70 pts (1:2.5 R/R) - textbook pullback to VWAP'
+      },
+      {
+        title: 'YM VWAP Alignment (Evan Dyer Setup)',
+        description: 'Dow futures aligned with VWAP for a trend continuation entry',
+        setup: 'YM in a clear downtrend, price rallies back to NY VWAP resistance at 34,120. Overnight VWAP and PD VWAP also line up at the same zone.',
+        entry: 'Short on the rejection candle as price bounces off the VWAP cluster',
+        exit: 'Target the session low at 33,880. Stop above the VWAP wick at 34,150.',
+        result: '+240 pts (1:3.0 R/R) - VWAP alignment with multiple anchors'
+      }
+    ],
+    tips: [
+      'NY VWAP is the most important anchor for intraday - it represents where institutions were trading at the open',
+      'Confluence with Overnight VWAP or PD VWAP at the same level is a high-probability signal',
+      'The best setups happen in the first 2 hours after NY open when volume is highest',
+      'Do not force it - if price does not come to VWAP, that is a valid non-trade',
+      'Simple trading is easy to repeat: one setup, one trade, one result. Over and over.',
+      'Track your pullback setups in a daily journal - this strategy compounds with screen time'
+    ],
+    commonMistakes: [
+      'Chasing price instead of waiting for the pullback to VWAP',
+      'Entering while price is still falling to VWAP (catching a falling knife)',
+      'Trading this in a choppy, range-bound market where VWAP has no polarity',
+      'Taking a second attempt after VWAP failed - the trend is breaking down, stand aside',
+      'Using too wide a stop that makes the R/R unfavorable (< 1:2)',
+      'Ignoring the higher-timeframe context (daily trend, news events)'
+    ]
+  },
+  {
     id: 'failed-breakout',
     name: 'Failed Breakout / Breakdown',
     description: 'Fade the trap when price breaks a key level, sucks in breakout traders, then snaps back inside the range',
@@ -873,10 +958,10 @@ export const Playbooks: React.FC = () => {
       {/* Hero */}
       <div className="text-center">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-100 sm:text-4xl">
-          Strategy <span className="italic text-tp-green">Rankings</span>
+          Your trading <span className="italic text-tp-green">playbooks</span>
         </h1>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-zinc-400">
-          Every futures strategy, ranked by backtested win rate — with the rules, risk, and worked examples behind each. Pick your edge and study the playbook.
+          A home for every setup. Study the rules, evolve your Pine Script, collect chart examples, and build your own video library.
         </p>
 
         {/* Filters */}
