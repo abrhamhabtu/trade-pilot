@@ -8,9 +8,22 @@ import { ToastContainer } from '@/components/common/Toast';
 import { useThemeStore } from '@/store/themeStore';
 import { useToastStore } from '@/store/toastStore';
 import { useUIStore } from '@/store/uiStore';
+import { useAccountStore } from '@/store/accountStore';
+import { useDailyNotesStore } from '@/store/dailyNotesStore';
 import { dismissBackupReminder, shouldShowBackupReminder } from '@/hooks/useLocalStorage';
 import clsx from 'clsx';
 import { useCompactSidebar } from '@/hooks/useCompactSidebar';
+
+// Loaded once per browser session; client-side navigation keeps the stores in memory.
+let booted = false;
+function bootStores() {
+  if (booted) return;
+  booted = true;
+  void useAccountStore.getState().initializeFromIDB();
+  void useDailyNotesStore.getState().hydrate();
+  // Sample accounts keep "trading" through the day: pick up newly closed demo trades.
+  setInterval(() => useAccountStore.getState().refreshDemo(), 5 * 60_000);
+}
 
 interface AppShellProps {
   children: ReactNode;
@@ -40,6 +53,11 @@ export function AppShell({
     if (shouldShowBackupReminder()) {
       setShowBackupReminder(true);
     }
+  }, []);
+
+  // Every app page loads saved accounts and notes, not just the ones built on useAppPageData.
+  useEffect(() => {
+    bootStores();
   }, []);
 
   return (

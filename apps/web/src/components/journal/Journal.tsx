@@ -128,7 +128,11 @@ export const Journal: React.FC = () => {
       if (!note.content.trim() && note.images.length === 0) return;
       
       // Strip HTML tags for preview
-      const plainContent = note.content.replace(/<[^>]*>/g, '').trim();
+      const plainContent = note.content
+        .replace(/<\/(p|div|li|h[1-6])>|<br\s*\/?>/gi, ' ')
+        .replace(/<[^>]*>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
       
       combined.push({
         id: `daily-${note.accountId || 'global'}-${note.date}`,
@@ -257,7 +261,9 @@ export const Journal: React.FC = () => {
   });
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    // Plain YYYY-MM-DD dates are calendar days: read them at local noon so they don't slip a day.
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? new Date(`${dateStr}T12:00:00`) : new Date(dateStr);
+    return d.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',
       day: 'numeric',

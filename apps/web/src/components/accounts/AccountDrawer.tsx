@@ -38,7 +38,7 @@ export function AccountDrawer({ account, tab, setTab, current, onMakeCurrent, on
               <StatusBadge status={account.status || 'active'} />
             </div>
             <p className="mt-0.5 text-sm text-zinc-500">
-              {account.broker} · {account.type === 'demo' ? 'Sample data' : stageLabel(account)}
+              {account.broker} · {account.type === 'demo' ? `Sample · ${stageLabel(account)}` : stageLabel(account)}
             </p>
           </div>
           <button onClick={onClose} className="-mr-1.5 rounded-lg p-1.5 text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-100" aria-label="Close">

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
-import { AlertTriangle, ArrowRight, Check, HardDrive, Layers, Plus, PlugZap, Search, ShieldCheck, Upload, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, FlaskConical, HardDrive, Layers, Plus, PlugZap, Search, ShieldCheck, Upload, Wallet } from 'lucide-react';
 import { useAccountStore, type Account, type AccountStatus } from '@/store/accountStore';
 import { toast } from '@/store/toastStore';
 import { snapshotFresh } from '@/lib/sessionRisk';
@@ -13,7 +13,7 @@ import { AddAccountModal, DeleteAccountModal } from './AccountModals';
 import { ConnectionsPanel } from './ConnectionsPanel';
 import { AccountHealthBoard } from './AccountHealthBoard';
 import { DataPanel } from './DataPanel';
-import { STATUS_META, btn, signedUsd } from './accountUi';
+import { STATUS_META, STATUS_ORDER, btn, signedUsd } from './accountUi';
 
 type PageTab = 'accounts' | 'connections' | 'health' | 'data';
 type Filter = AccountStatus | 'all';
@@ -26,7 +26,7 @@ interface AccountsPageProps {
 export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, initialBroker }) => {
   const { accounts, addAccount, updateAccount, deleteAccount, selectAccount, selectedAccountId } = useAccountStore();
   const [tab, setTab] = useState<PageTab>('accounts');
-  const [filter, setFilter] = useState<Filter>('active');
+  const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
   const [drawer, setDrawer] = useState<{ id: string; tab: DrawerTab } | null>(null);
@@ -71,7 +71,9 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
   const visible = accounts
     .filter((a) => filter === 'all' || (a.status || 'active') === filter)
     .filter((a) => !q || a.name.toLowerCase().includes(q) || a.broker.toLowerCase().includes(q))
-    .sort((a, b) => Number(b.id === selectedAccountId) - Number(a.id === selectedAccountId) || Number(a.type === 'demo') - Number(b.type === 'demo'));
+    .sort((a, b) => Number(b.id === selectedAccountId) - Number(a.id === selectedAccountId) || STATUS_ORDER.indexOf(a.status || 'active') - STATUS_ORDER.indexOf(b.status || 'active'));
+  const visibleMine = visible.filter((a) => a.type !== 'demo');
+  const visibleSamples = visible.filter((a) => a.type === 'demo');
 
   const importFor = (id: string) => {
     setDrawer(null);
@@ -85,6 +87,20 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
     updateAccount(a.id, { status });
     toast.success(`${a.name} marked ${STATUS_META[status].label.toLowerCase()}`);
   };
+
+  const samples = accounts.length - real.length;
+  const card = (a: Account) => (
+    <AccountCard
+      key={a.id}
+      account={a}
+      current={a.id === selectedAccountId}
+      onMakeCurrent={() => makeCurrent(a)}
+      onOpen={(t) => setDrawer({ id: a.id, tab: t })}
+      onImport={() => importFor(a.id)}
+      onStatus={(st) => changeStatus(a, st)}
+      onDelete={() => setDeleting(a)}
+    />
+  );
 
   const tabs: { id: PageTab; label: string; icon: React.ElementType; badge?: React.ReactNode }[] = [
     { id: 'accounts', label: 'Accounts', icon: Layers, badge: accounts.length },
@@ -126,7 +142,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
       {/* Overview */}
       <section className="overflow-hidden rounded-2xl border border-white/[0.06] bg-tp-card">
         <div className="grid grid-cols-2 divide-white/[0.06] lg:grid-cols-4 lg:divide-x [&>*:nth-child(-n+2)]:border-b [&>*:nth-child(-n+2)]:border-white/[0.06] lg:[&>*:nth-child(-n+2)]:border-b-0 [&>*:nth-child(odd)]:border-r [&>*:nth-child(odd)]:border-white/[0.06] lg:[&>*:nth-child(odd)]:border-r-0">
-          <OverviewStat label="Combined net P&L" value={signedUsd(summary.net)} tone={summary.net < 0 ? 'text-tp-red' : 'text-zinc-50'} sub={sample ? 'Sample account' : `across ${pool.length} account${pool.length === 1 ? '' : 's'}`} />
+          <OverviewStat label="Combined net P&L" value={signedUsd(summary.net)} tone={summary.net < 0 ? 'text-tp-red' : 'text-zinc-50'} sub={`across ${pool.length} ${sample ? 'sample ' : ''}account${pool.length === 1 ? '' : 's'}`} />
           <OverviewStat label="Active now" value={String(summary.active)} sub={summary.funded ? `${summary.funded} funded` : sample ? 'Add yours to start' : 'none funded yet'} />
           <OverviewStat label="Taken home" value={signedUsd(summary.paidOut)} tone={summary.paidOut ? 'text-tp-yellow' : 'text-zinc-50'} sub="recorded payouts" />
           <button onClick={() => setTab('health')} className="group p-5 text-left transition-colors hover:bg-white/[0.02]">
@@ -202,32 +218,43 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {visible.map((a) => (
-              <AccountCard
-                key={a.id}
-                account={a}
-                current={a.id === selectedAccountId}
-                onMakeCurrent={() => makeCurrent(a)}
-                onOpen={(t) => setDrawer({ id: a.id, tab: t })}
-                onImport={() => importFor(a.id)}
-                onStatus={(s) => changeStatus(a, s)}
-                onDelete={() => setDeleting(a)}
-              />
-            ))}
-            <button
-              onClick={() => setAdding(true)}
-              className="group flex min-h-[248px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/[0.1] p-6 text-center transition-colors hover:border-tp-green/40 hover:bg-tp-green/[0.03]"
-            >
-              <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/[0.05] text-zinc-400 ring-1 ring-inset ring-white/10 transition-colors group-hover:bg-tp-green/10 group-hover:text-tp-green">
-                <Plus className="h-5 w-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-medium text-zinc-200">Add an account</span>
-                <span className="mt-0.5 block text-xs text-zinc-500">Evaluation, funded or personal</span>
-              </span>
-            </button>
+          {/* Your accounts */}
+          <div>
+            {samples > 0 && <SectionLabel title="Your accounts" note={real.length ? `${real.length} account${real.length === 1 ? '' : 's'}` : 'Nothing added yet'} />}
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {visibleMine.map(card)}
+              <button
+                onClick={() => setAdding(true)}
+                className={clsx(
+                  'group flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/[0.1] p-6 text-center transition-colors hover:border-tp-green/40 hover:bg-tp-green/[0.03]',
+                  visibleMine.length ? 'min-h-[248px]' : 'min-h-[140px]',
+                )}
+              >
+                <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/[0.05] text-zinc-400 ring-1 ring-inset ring-white/10 transition-colors group-hover:bg-tp-green/10 group-hover:text-tp-green">
+                  <Plus className="h-5 w-5" />
+                </span>
+                <span>
+                  <span className="block text-sm font-medium text-zinc-200">Add {real.length ? 'an' : 'your first'} account</span>
+                  <span className="mt-0.5 block text-xs text-zinc-500">Evaluation, funded or personal</span>
+                </span>
+              </button>
+            </div>
           </div>
+
+          {/* Sample accounts, kept apart from the trader's own */}
+          {visibleSamples.length > 0 && (
+            <div>
+              <SectionLabel
+                title={
+                  <span className="inline-flex items-center gap-1.5 text-tp-blue">
+                    <FlaskConical className="h-3.5 w-3.5" /> Sample accounts
+                  </span>
+                }
+                note="Demo data that keeps trading through today · never counted in your totals"
+              />
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{visibleSamples.map(card)}</div>
+            </div>
+          )}
 
           {visible.length === 0 && (
             <p className="text-center text-sm text-zinc-500">
@@ -290,6 +317,15 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
     </div>
   );
 };
+
+function SectionLabel({ title, note }: { title: React.ReactNode; note: string }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">{title}</h2>
+      <span className="text-xs text-zinc-600">{note}</span>
+    </div>
+  );
+}
 
 function OverviewStat({ label, value, sub, tone = 'text-zinc-50' }: { label: string; value: string; sub: string; tone?: string }) {
   return (

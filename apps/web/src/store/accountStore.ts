@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { Trade } from './tradingStore';
 import { persistence } from '@/lib/persistence';
 import type { RiskSnapshot } from '@/lib/sessionRisk';
+import { buildDemoAccounts, nowCutoff, refreshDemoAccounts } from '@/lib/demo/demoData';
 
 // Import history entry
 export interface ImportHistoryEntry {
@@ -87,6 +88,8 @@ interface AccountState {
   getAccountAdjustments: (accountId: string) => BalanceAdjustment[];
   initializeFromStorage: () => void;
   initializeFromIDB: () => Promise<void>;
+  /** Bring the sample accounts up to the current moment (new demo trades appear as the day goes on). */
+  refreshDemo: () => void;
   saveToStorage: () => void;
 }
 
@@ -103,96 +106,21 @@ function persistAccounts(accounts: Account[], selectedId?: string | null): void 
   if (selectedId !== undefined) persistence.saveSelectedAccountId(selectedId);
 }
 
-// Generate demo account with sample trades
-const generateDemoAccount = (): Account => {
-  // A full month of realistic demo trades — varied symbols, a few red days, and
-  // a steady climb so the calendar fills in and the equity curve looks alive.
-  const BASE_PRICE: Record<string, number> = { MES: 5980, MNQ: 21250, MGC: 2410, MYM: 41250 };
-  const POINT_VAL: Record<string, number> = { MES: 5, MNQ: 2, MGC: 10, MYM: 0.5 };
-  const round2 = (n: number) => Math.round(n * 100) / 100;
-  let seq = 0;
-  const mk = (
-    date: string,
-    time: string,
-    symbol: string,
-    side: 'Long' | 'Short',
-    netPL: number,
-    duration: number,
-    strategy: string
-  ): Trade => {
-    const pv = POINT_VAL[symbol] ?? 5;
-    const qty = 2;
-    const pts = netPL / (pv * qty);
-    const entry = BASE_PRICE[symbol] ?? 5000;
-    const exit = side === 'Long' ? entry + pts : entry - pts;
-    seq += 1;
-    return {
-      id: `demo-${seq}`,
-      date,
-      symbol,
-      entryPrice: round2(entry),
-      exitPrice: round2(exit),
-      quantity: qty,
-      netPL: round2(netPL),
-      duration,
-      outcome: netPL >= 0 ? 'win' : 'loss',
-      time,
-      side,
-      commission: 4.5,
-      rMultiple: round2(netPL / 250),
-      strategy,
-    };
-  };
-
-  const demoTrades: Trade[] = [
-    mk('2026-05-04', '09:42 AM', 'MNQ', 'Long', 1050, 52, 'Opening Range Breakout'),
-    mk('2026-05-05', '10:18 AM', 'MES', 'Long', 600, 40, 'VWAP Reclaim'),
-    mk('2026-05-06', '11:05 AM', 'MNQ', 'Short', -400, 28, 'Failed Breakout'),
-    mk('2026-05-06', '01:30 PM', 'MES', 'Long', -238, 19, 'Mean Reversion'),
-    mk('2026-05-07', '09:51 AM', 'MGC', 'Long', 780, 61, 'Trend Following'),
-    mk('2026-05-07', '02:05 PM', 'MNQ', 'Short', -224, 24, 'Liquidity Sweep'),
-    mk('2026-05-08', '10:02 AM', 'MNQ', 'Long', 1090, 73, 'Order Block Retest'),
-    mk('2026-05-11', '09:48 AM', 'MES', 'Long', -500, 31, 'Momentum Breakout'),
-    mk('2026-05-11', '12:14 PM', 'MNQ', 'Long', -288, 17, 'Opening Range Breakout'),
-    mk('2026-05-12', '11:20 AM', 'MES', 'Long', 875, 55, 'VWAP Reclaim'),
-    mk('2026-05-13', '10:35 AM', 'MGC', 'Long', 608, 44, 'Support & Resistance'),
-    mk('2026-05-14', '09:40 AM', 'MNQ', 'Long', 700, 48, 'Fair Value Gap'),
-    mk('2026-05-14', '11:12 AM', 'MES', 'Long', 660, 39, 'Trend Following'),
-    mk('2026-05-14', '02:22 PM', 'MNQ', 'Short', -180, 16, 'Failed Breakout'),
-    mk('2026-05-15', '10:09 AM', 'MES', 'Long', 413, 33, 'VWAP Reclaim'),
-    mk('2026-05-15', '01:48 PM', 'MNQ', 'Long', -300, 21, 'Momentum Breakout'),
-    mk('2026-05-18', '10:55 AM', 'MYM', 'Long', 488, 50, 'Trend Following'),
-    mk('2026-05-20', '09:46 AM', 'MNQ', 'Long', 525, 37, 'Order Block Retest'),
-    mk('2026-05-20', '01:05 PM', 'MES', 'Short', -300, 23, 'Liquidity Sweep'),
-    mk('2026-05-21', '11:33 AM', 'MNQ', 'Long', 300, 29, 'Opening Range Breakout'),
-    mk('2026-05-22', '12:40 PM', 'MES', 'Long', -37.5, 14, 'Mean Reversion'),
-    mk('2026-05-26', '09:55 AM', 'MGC', 'Long', 560, 46, 'Fair Value Gap'),
-    mk('2026-05-26', '11:48 AM', 'MNQ', 'Long', 300, 27, 'VWAP Reclaim'),
-    mk('2026-05-27', '10:21 AM', 'MNQ', 'Long', 740, 58, 'Trend Following'),
-  ];
-
-  const balance = round2(demoTrades.reduce((sum, t) => sum + t.netPL, 0));
-
-  return {
-    id: 'demo-account',
-    name: 'Demo Account',
-    broker: 'Generic Template',
-    balance: balance,
-    lastUpdate: null,
-    type: 'demo',
-    status: 'active',
-    trades: demoTrades,
-    createdAt: new Date().toISOString(),
-    importHistory: []
-  };
+/**
+ * Accounts that "All accounts" combines: the trader's own once they have any, otherwise the samples.
+ * Keeps demo trades out of real totals.
+ */
+export const accountsInScope = (accounts: Account[]) => {
+  const real = accounts.filter((a) => a.type !== 'demo');
+  return real.length ? real : accounts;
 };
 
 // ─── Stable initial state for SSR and first client render ────
 // Always start from the same placeholder state and hydrate from persistence
 // in initializeFromIDB() after mount. This prevents SSR/client mismatches.
 const createInitialAccountsState = (): { accounts: Account[]; selectedId: string | null } => {
-  const demoAccount = generateDemoAccount();
-  return { accounts: [demoAccount], selectedId: demoAccount.id };
+  const demoAccounts = buildDemoAccounts();
+  return { accounts: demoAccounts, selectedId: demoAccounts[0]?.id ?? null };
 };
 
 const initialData = createInitialAccountsState();
@@ -267,7 +195,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     const { accounts, selectedAccountId, showAllAccounts } = get();
 
     if (showAllAccounts) {
-      return accounts.flatMap((a) => a.trades);
+      return accountsInScope(accounts).flatMap((a) => a.trades);
     }
 
     const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
@@ -502,35 +430,37 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   },
 
   initializeFromIDB: async () => {
+    // Bring the samples up to now straight away; don't make them wait on storage.
+    set((state) => ({ accounts: refreshDemoAccounts(state.accounts) }));
     try {
       // loadAccountsFromIDB already handles IDB → localStorage fallback internally
       const rawAccounts = await persistence.loadAccounts();
+      const saved = Array.isArray(rawAccounts)
+        ? (rawAccounts as Account[]).map(account => ({
+            ...account,
+            importHistory: account.importHistory || [],
+            status: account.status || 'active',
+            trades: account.trades || [],
+          }))
+        : [];
 
-      // Nothing in IDB or localStorage — keep current state (demo account placeholder)
-      if (!rawAccounts || !Array.isArray(rawAccounts) || rawAccounts.length === 0) {
-        return;
-      }
-
-      const accounts = (rawAccounts as Account[]).map(account => ({
-        ...account,
-        importHistory: account.importHistory || [],
-        status: account.status || 'active',
-        trades: account.trades || [],
-      }));
-
-      // Keep untouched demo placeholders fresh, but restore deliberate Pilot edits.
-      const hasRealAccounts = accounts.some(a => a.type !== 'demo');
-      const hasPilotEdits = accounts.some(a => a.pilotSettings || a.trades.some(t => t.pilotReview));
-      if (!hasRealAccounts && !hasPilotEdits) return;
-
+      // Sample accounts are regenerated up to right now; the user's own accounts, Pilot reviews
+      // and edits on the samples carry over. With nothing worth keeping, start from fresh samples.
+      const hasRealAccounts = saved.some(a => a.type !== 'demo');
+      const hasPilotEdits = saved.some(a => a.pilotSettings || a.trades.some(t => t.pilotReview));
+      const accounts = hasRealAccounts || hasPilotEdits ? refreshDemoAccounts(saved) : buildDemoAccounts(nowCutoff());
       const selectedId = persistence.loadSelectedAccountId();
       set({
         accounts,
-        selectedAccountId: selectedId || accounts[0]?.id || null,
+        selectedAccountId: selectedId && accounts.some(a => a.id === selectedId) ? selectedId : accounts[0]?.id || null,
       });
     } catch (e) {
       console.error('Failed to initialize from IDB:', e);
     }
+  },
+
+  refreshDemo: () => {
+    set((state) => ({ accounts: refreshDemoAccounts(state.accounts) }));
   },
 
   saveToStorage: () => {

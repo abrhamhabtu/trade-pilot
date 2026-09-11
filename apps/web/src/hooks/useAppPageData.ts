@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useAccountStore } from '@/store/accountStore';
+import { accountsInScope, useAccountStore } from '@/store/accountStore';
 import { Trade, useTradingStore } from '@/store/tradingStore';
 import { useDailyNotesStore } from '@/store/dailyNotesStore';
 import { useChartData } from '@/hooks/useChartData';
@@ -31,9 +31,10 @@ export function useAppPageData() {
     hydrate();
   }, [hydrate, initializeFromIDB]);
 
+
   const allAccountTrades = useMemo(() => {
     if (showAllAccounts) {
-      return accounts.flatMap((account) => account.trades);
+      return accountsInScope(accounts).flatMap((account) => account.trades);
     }
 
     return accounts.find((account) => account.id === selectedAccountId)?.trades || [];
@@ -51,7 +52,7 @@ export function useAppPageData() {
 
   const selectedAccountBalance = useMemo(() => {
     if (showAllAccounts) {
-      return accounts.reduce((sum, account) => sum + account.balance, 0);
+      return accountsInScope(accounts).reduce((sum, account) => sum + account.balance, 0);
     }
 
     return accounts.find((account) => account.id === selectedAccountId)?.balance ?? 0;

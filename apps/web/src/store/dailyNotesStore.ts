@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persistence } from '@/lib/persistence';
+import { demoDailyNotes } from '@/lib/demo/demoJournal';
 
 export interface NoteImage {
   id: string;
@@ -57,8 +58,9 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
   hydrate: async () => {
     if (get()._hydrated) return;
     try {
-      const stored = await persistence.loadNotes();
-      set({ notes: stored as Record<string, DailyNote>, _hydrated: true });
+      const stored = (await persistence.loadNotes()) as Record<string, DailyNote>;
+      // Sample-account notes fill in underneath; anything the user wrote wins.
+      set({ notes: { ...demoDailyNotes(), ...(stored || {}) }, _hydrated: true });
     } catch (e) {
       console.error('Failed to hydrate notes from IDB:', e);
       set({ _hydrated: true });

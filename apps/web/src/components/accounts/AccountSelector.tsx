@@ -1,309 +1,149 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Check, Layers } from 'lucide-react';
-import { useAccountStore } from '../../store/accountStore';
-import { useThemeStore } from '../../store/themeStore';
+import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import clsx from 'clsx';
+import { ArrowRight, Check, ChevronDown, FlaskConical, Layers, Plus } from 'lucide-react';
+import { accountsInScope, useAccountStore, type Account } from '../../store/accountStore';
+import { BrokerBadge, STATUS_META, STATUS_ORDER, signedUsd } from './accountUi';
+
+const byStatus = (a: Account, b: Account) => STATUS_ORDER.indexOf(a.status || 'active') - STATUS_ORDER.indexOf(b.status || 'active');
 
 export const AccountSelector: React.FC = () => {
   const { accounts, selectedAccountId, selectAccount, showAllAccounts, setShowAllAccounts } = useAccountStore();
-  const { theme } = useThemeStore();
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-  const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
-  
-  const activeAccounts = accounts.filter(a => (a.status || 'active') === 'active');
-  const inactiveAccounts = accounts.filter(a => (a.status || 'active') !== 'active');
+  const selected = accounts.find((a) => a.id === selectedAccountId);
+  const mine = accounts.filter((a) => a.type !== 'demo').sort(byStatus);
+  const samples = accounts.filter((a) => a.type === 'demo').sort(byStatus);
+  const scope = accountsInScope(accounts);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+    if (!open) return;
+    const onDown = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
     };
+  }, [open]);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const getBrokerIcon = (broker: string) => {
-    if (broker.toLowerCase().includes('topstep')) return '📈';
-    if (broker.toLowerCase().includes('apex')) return '🏔️';
-    if (broker.toLowerCase().includes('ftmo')) return '💎';
-    if (broker.toLowerCase().includes('funded')) return '💰';
-    if (broker.toLowerCase().includes('projectx')) return '🚀';
-    if (broker.toLowerCase().includes('template') || broker.toLowerCase().includes('generic')) return '📋';
-    return '📊';
-  };
-
-  const handleSelectAccount = (id: string) => {
+  const choose = (id: string) => {
     selectAccount(id);
     setShowAllAccounts(false);
-    setIsOpen(false);
+    setOpen(false);
   };
 
-  const handleShowAll = () => {
-    setShowAllAccounts(true);
-    setIsOpen(false);
+  const row = (a: Account) => {
+    const on = !showAllAccounts && selectedAccountId === a.id;
+    const status = STATUS_META[a.status || 'active'];
+    const retired = a.status === 'inactive' || a.status === 'blown';
+    return (
+      <button
+        key={a.id}
+        role="option"
+        aria-selected={on}
+        onClick={() => choose(a.id)}
+        className={clsx('flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors', on ? 'bg-white/[0.07]' : 'hover:bg-white/[0.04]')}
+      >
+        <span className={clsx(retired && 'opacity-60 grayscale-[40%]')}>
+          <BrokerBadge broker={a.broker} size="sm" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={clsx('block truncate text-sm font-medium', retired ? 'text-zinc-300' : 'text-zinc-100')}>{a.name}</span>
+          <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-zinc-500">
+            <span className={clsx('h-1.5 w-1.5 rounded-full', status.dot)} />
+            {status.label}
+            {a.isFunded !== undefined && <> · {a.isFunded ? 'Funded' : 'Evaluation'}</>}
+          </span>
+        </span>
+        <span className={clsx('shrink-0 text-xs font-semibold tabular-nums', a.balance < 0 ? 'text-tp-red' : retired ? 'text-zinc-400' : 'text-zinc-200')}>{signedUsd(a.balance)}</span>
+        <Check className={clsx('h-4 w-4 shrink-0 text-tp-green', !on && 'invisible')} />
+      </button>
+    );
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={ref}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         className={clsx(
-          'flex items-center space-x-3 px-4 py-2 rounded-lg border transition-all',
-          theme === 'dark'
-            ? 'bg-[#0D1628]/80 backdrop-blur-md border-white/5 hover:border-emerald-500/50'
-            : 'bg-white border-gray-200 hover:border-purple-300',
-          isOpen && (theme === 'dark' ? 'border-emerald-500/50' : 'border-purple-300')
+          'flex items-center gap-2.5 rounded-xl border bg-tp-card/80 py-1.5 pl-1.5 pr-3 backdrop-blur-md transition-colors',
+          open ? 'border-white/20' : 'border-white/[0.07] hover:border-white/[0.14]',
         )}
       >
         {showAllAccounts ? (
-          <>
-            <div className={clsx(
-              'w-8 h-8 rounded-lg flex items-center justify-center',
-              theme === 'dark' ? 'bg-emerald-500/10' : 'bg-purple-100'
-            )}>
-              <Layers className={clsx(
-                'h-4 w-4',
-                theme === 'dark' ? 'text-emerald-500' : 'text-purple-600'
-              )} />
-            </div>
-            <span className={clsx(
-              'font-medium',
-              theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
-            )}>
-              All Accounts
-            </span>
-          </>
-        ) : selectedAccount ? (
-          <>
-            <div className={clsx(
-              'w-8 h-8 rounded-lg flex items-center justify-center text-lg',
-              theme === 'dark' ? 'bg-[#172035]' : 'bg-gray-100'
-            )}>
-              {getBrokerIcon(selectedAccount.broker)}
-            </div>
-            <span className={clsx(
-              'font-medium',
-              theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
-            )}>
-              {selectedAccount.name}
-            </span>
-          </>
-        ) : (
-          <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'}>
-            Select Account
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-tp-green/10 text-tp-green">
+            <Layers className="h-4 w-4" />
           </span>
-        )}
-        <ChevronDown className={clsx(
-          'h-4 w-4 transition-transform',
-          isOpen && 'rotate-180',
-          theme === 'dark' ? 'text-zinc-400' : 'text-gray-400'
-        )} />
+        ) : selected ? (
+          <BrokerBadge broker={selected.broker} size="sm" />
+        ) : null}
+        <span className="max-w-[180px] truncate text-sm font-medium text-zinc-100">
+          {showAllAccounts ? (mine.length ? 'All your accounts' : 'All sample accounts') : selected?.name ?? 'Select account'}
+        </span>
+        {!showAllAccounts && selected?.type === 'demo' && <span className="rounded-md bg-tp-blue/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-tp-blue">Demo</span>}
+        <ChevronDown className={clsx('h-4 w-4 text-zinc-500 transition-transform', open && 'rotate-180')} />
       </button>
 
-      {isOpen && (
-        <div className={clsx(
-          'absolute right-0 mt-2 w-64 rounded-xl border shadow-2xl z-50 overflow-hidden',
-          theme === 'dark'
-            ? 'bg-[#0D1628]/80 backdrop-blur-md border-white/5'
-            : 'bg-white border-gray-200'
-        )}>
-          {/* All Accounts Option */}
-          {accounts.length > 1 && (
-            <>
-              <button
-                onClick={handleShowAll}
-                className={clsx(
-                  'w-full px-4 py-3 flex items-center justify-between transition-colors',
-                  theme === 'dark'
-                    ? 'hover:bg-[#172035]'
-                    : 'hover:bg-gray-50',
-                  showAllAccounts && (
-                    theme === 'dark' 
-                      ? 'bg-emerald-500/10' 
-                      : 'bg-purple-50'
-                  )
-                )}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className={clsx(
-                    'w-8 h-8 rounded-lg flex items-center justify-center',
-                    theme === 'dark' ? 'bg-emerald-500/10' : 'bg-purple-100'
-                  )}>
-                    <Layers className={clsx(
-                      'h-4 w-4',
-                      theme === 'dark' ? 'text-emerald-500' : 'text-purple-600'
-                    )} />
-                  </div>
-                  <div className="text-left">
-                    <p className={clsx(
-                      'font-medium text-sm',
-                      theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
-                    )}>
-                      All Accounts
-                    </p>
-                    <p className={clsx(
-                      'text-xs',
-                      theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
-                    )}>
-                      View combined data
-                    </p>
-                  </div>
-                </div>
-                {showAllAccounts && (
-                  <Check className="h-4 w-4 text-emerald-500" />
-                )}
-              </button>
-              <div className={clsx(
-                'border-t mx-2',
-                theme === 'dark' ? 'border-white/5' : 'border-gray-100'
-              )} />
-            </>
+      {open && (
+        <div role="listbox" aria-label="Accounts" className="absolute right-0 z-50 mt-2 w-[340px] overflow-hidden rounded-2xl border border-white/[0.08] bg-tp-raised/95 p-1.5 shadow-2xl shadow-black/60 backdrop-blur-xl">
+          {scope.length > 1 && (
+            <button
+              onClick={() => {
+                setShowAllAccounts(true);
+                setOpen(false);
+              }}
+              className={clsx('mb-1 flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors', showAllAccounts ? 'bg-white/[0.07]' : 'hover:bg-white/[0.04]')}
+            >
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-tp-green/10 text-tp-green">
+                <Layers className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-zinc-100">{mine.length ? 'All your accounts' : 'All sample accounts'}</span>
+                <span className="text-[11px] text-zinc-500">{scope.length} accounts combined{mine.length ? ' · samples excluded' : ''}</span>
+              </span>
+              <Check className={clsx('h-4 w-4 shrink-0 text-tp-green', !showAllAccounts && 'invisible')} />
+            </button>
           )}
 
-          {/* Active Accounts */}
-          <div className="py-1">
-            <div className={clsx(
-              'px-4 py-1 text-xs font-semibold uppercase tracking-wider',
-              theme === 'dark' ? 'text-zinc-400' : 'text-gray-400'
-            )}>
-              Active Accounts
-            </div>
-            {activeAccounts.map((account) => (
-              <button
-                key={account.id}
-                onClick={() => handleSelectAccount(account.id)}
-                className={clsx(
-                  'w-full px-4 py-3 flex items-center justify-between transition-colors',
-                  theme === 'dark'
-                    ? 'hover:bg-[#172035]'
-                    : 'hover:bg-gray-50',
-                  !showAllAccounts && selectedAccountId === account.id && (
-                    theme === 'dark' 
-                      ? 'bg-emerald-500/10' 
-                      : 'bg-purple-50'
-                  )
-                )}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className={clsx(
-                    'w-8 h-8 rounded-lg flex items-center justify-center text-lg',
-                    theme === 'dark' ? 'bg-[#172035]' : 'bg-gray-100'
-                  )}>
-                    {getBrokerIcon(account.broker)}
-                  </div>
-                  <div className="text-left">
-                    <p className={clsx(
-                      'font-medium text-sm',
-                      theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
-                    )}>
-                      {account.name}
-                    </p>
-                    <p className={clsx(
-                      'text-xs',
-                      theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
-                    )}>
-                      {account.broker}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className={clsx(
-                    'text-sm font-medium',
-                    account.balance >= 0 ? 'text-emerald-500' : 'text-rose-500'
-                  )}>
-                    ${Math.abs(account.balance).toLocaleString()}
-                  </span>
-                  {!showAllAccounts && selectedAccountId === account.id && (
-                    <Check className="h-4 w-4 text-emerald-500" />
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
+          {/* The trader's own accounts */}
+          <div className="px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Your accounts</div>
+          {mine.length ? (
+            mine.map(row)
+          ) : (
+            <Link
+              href="/app/accounts"
+              onClick={() => setOpen(false)}
+              className="group flex items-center gap-3 rounded-xl border border-dashed border-white/[0.1] px-2.5 py-2.5 transition-colors hover:border-tp-green/40 hover:bg-tp-green/[0.04]"
+            >
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-white/[0.05] text-zinc-400 group-hover:text-tp-green">
+                <Plus className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-zinc-200">Add your first account</span>
+                <span className="text-[11px] text-zinc-500">Import a CSV or connect a platform</span>
+              </span>
+              <ArrowRight className="h-4 w-4 text-zinc-500 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          )}
 
-          {/* Inactive Accounts */}
-          {inactiveAccounts.length > 0 && (
-            <>
-              <div className={clsx(
-                'border-t mx-2',
-                theme === 'dark' ? 'border-white/5' : 'border-gray-100'
-              )} />
-              <div className="py-1">
-                <div className={clsx(
-                  'px-4 py-1 text-xs font-semibold uppercase tracking-wider',
-                  theme === 'dark' ? 'text-zinc-400' : 'text-gray-400'
-                )}>
-                  Paid Out / Blown
-                </div>
-                {inactiveAccounts.map((account) => (
-                  <button
-                    key={account.id}
-                    onClick={() => handleSelectAccount(account.id)}
-                    className={clsx(
-                      'w-full px-4 py-3 flex items-center justify-between transition-colors opacity-70 hover:opacity-100',
-                      theme === 'dark'
-                        ? 'hover:bg-[#172035]'
-                        : 'hover:bg-gray-50',
-                      !showAllAccounts && selectedAccountId === account.id && (
-                        theme === 'dark' 
-                          ? 'bg-emerald-500/10' 
-                          : 'bg-purple-50'
-                      )
-                    )}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className={clsx(
-                        'w-8 h-8 rounded-lg flex items-center justify-center text-lg grayscale',
-                        theme === 'dark' ? 'bg-[#172035]' : 'bg-gray-100'
-                      )}>
-                        {getBrokerIcon(account.broker)}
-                      </div>
-                      <div className="text-left">
-                        <div className="flex items-center space-x-2">
-                          <p className={clsx(
-                            'font-medium text-sm',
-                            theme === 'dark' ? 'text-zinc-100' : 'text-gray-900'
-                          )}>
-                            {account.name}
-                          </p>
-                          <span className={clsx(
-                            'text-[10px] px-1.5 py-0.5 rounded-full uppercase font-bold tracking-wider flex items-center gap-1',
-                            account.status === 'blown' 
-                              ? 'bg-red-500/20 text-red-500' 
-                              : 'bg-yellow-500/20 text-yellow-500'
-                          )}>
-                            {account.status === 'inactive' ? 'PAID OUT' : account.status}
-                            {account.status === 'inactive' && '🏆'}
-                          </span>
-                        </div>
-                        <p className={clsx(
-                          'text-xs',
-                          theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
-                        )}>
-                          {account.broker}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className={clsx(
-                        'text-sm font-medium text-gray-500'
-                      )}>
-                        ${Math.abs(account.balance).toLocaleString()}
-                      </span>
-                      {!showAllAccounts && selectedAccountId === account.id && (
-                        <Check className="h-4 w-4 text-emerald-500" />
-                      )}
-                    </div>
-                  </button>
-                ))}
+          {/* Sample accounts, kept in their own section */}
+          {samples.length > 0 && (
+            <div className="mt-2 rounded-xl bg-black/20 p-1 ring-1 ring-inset ring-white/[0.04]">
+              <div className="flex items-center justify-between px-2 pb-1 pt-1.5">
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-tp-blue">
+                  <FlaskConical className="h-3.5 w-3.5" /> Sample accounts
+                </span>
+                <span className="text-[10px] text-zinc-600">Demo data · not in your totals</span>
               </div>
-            </>
+              {samples.map(row)}
+            </div>
           )}
         </div>
       )}

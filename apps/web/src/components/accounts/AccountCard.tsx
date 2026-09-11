@@ -40,7 +40,7 @@ export function AccountCard({ account, current, onMakeCurrent, onOpen, onImport,
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-semibold text-zinc-50">{account.name}</h3>
           <p className="mt-0.5 truncate text-xs text-zinc-500">
-            {account.broker} · {demo ? 'Sample data' : stageLabel(account)}
+            {account.broker} · {demo ? `Sample · ${stageLabel(account)}` : stageLabel(account)}
           </p>
         </div>
         <div className="pointer-events-auto flex items-center gap-1">
