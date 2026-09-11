@@ -81,7 +81,13 @@ export function CoachCard({ trades }: { trades: Trade[] }) {
       }}
       className="relative mb-6 overflow-hidden rounded-2xl border border-white/[0.07] bg-tp-card"
     >
-      <style>{'@keyframes coachIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes coachBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}'}</style>
+      <style>
+        {'@keyframes coachIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes coachBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}@keyframes coachWord{from{opacity:0;filter:blur(3px)}to{opacity:1;filter:none}}@keyframes coachScan{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}@media (prefers-reduced-motion:reduce){.coach-motion{animation:none!important}}'}
+      </style>
+      {/* AI scan line along the top edge */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px overflow-hidden">
+        <div className="coach-motion h-full w-1/4 bg-gradient-to-r from-transparent via-tp-green/80 to-transparent [animation:coachScan_4.5s_ease-in-out_infinite]" />
+      </div>
       {/* Category glow */}
       <div key={`glow-${insight.id}`} className={clsx('pointer-events-none absolute -left-24 -top-24 h-64 w-64 rounded-full bg-gradient-to-br to-transparent blur-3xl transition-colors', cat.glow)} />
 
@@ -136,7 +142,14 @@ export function CoachCard({ trades }: { trades: Trade[] }) {
             {insight.tone === 'good' && <span className="text-[11px] font-medium text-tp-green">Keep doing this</span>}
           </div>
           <h3 className="mt-1.5 text-lg font-semibold leading-snug tracking-tight text-zinc-50">{insight.title}</h3>
-          <p className="mt-1 text-sm leading-relaxed text-zinc-400">{insight.detail}</p>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-400" aria-label={insight.detail}>
+            {/* Words stream in like a live AI reply */}
+            {insight.detail.split(' ').map((word, i) => (
+              <span key={i} aria-hidden className="coach-motion inline-block whitespace-pre opacity-0 [animation:coachWord_.35s_ease-out_forwards]" style={{ animationDelay: `${120 + i * 28}ms` }}>
+                {word}{' '}
+              </span>
+            ))}
+          </p>
           <div className="mt-3 inline-flex max-w-full items-start gap-2 rounded-xl bg-white/[0.04] px-3 py-2 text-sm text-zinc-200 ring-1 ring-inset ring-white/[0.06]">
             <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-tp-green" />
             <span>
