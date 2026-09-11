@@ -17,6 +17,8 @@ export interface DailyNote {
   images: NoteImage[];
   lastUpdated: string;
   tags?: string[];
+  /** Self-assessed day grade, e.g. "A". */
+  grade?: string;
 }
 
 interface DailyNotesState {
@@ -31,6 +33,7 @@ interface DailyNotesState {
   removeImage: (date: string, imageId: string, accountId?: string) => void;
   updateImageCaption: (date: string, imageId: string, caption: string, accountId?: string) => void;
   deleteNote: (date: string, accountId?: string) => void;
+  setNoteMeta: (date: string, meta: { tags?: string[]; grade?: string }, accountId?: string) => void;
   hasNote: (date: string, accountId?: string) => boolean;
   getAllNotesForDate: (date: string) => DailyNote[];
 }
@@ -77,7 +80,8 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
         content,
         images: existingNote?.images || [],
         lastUpdated: new Date().toISOString(),
-        tags: existingNote?.tags || []
+        tags: existingNote?.tags || [],
+        grade: existingNote?.grade,
       };
       const newNotes = { ...state.notes, [key]: newNote };
       persistNotes(newNotes);
@@ -160,6 +164,26 @@ export const useDailyNotesStore = create<DailyNotesState>((set, get) => ({
       const { [key]: _, ...rest } = state.notes;
       persistNotes(rest);
       return { notes: rest };
+    });
+  },
+
+  setNoteMeta: (date, meta, accountId) => {
+    set((state) => {
+      const key = makeKey(date, accountId);
+      const existing = state.notes[key];
+      const newNote: DailyNote = {
+        date,
+        accountId,
+        content: existing?.content || '',
+        images: existing?.images || [],
+        tags: existing?.tags || [],
+        grade: existing?.grade,
+        ...meta,
+        lastUpdated: new Date().toISOString(),
+      };
+      const newNotes = { ...state.notes, [key]: newNote };
+      persistNotes(newNotes);
+      return { notes: newNotes };
     });
   },
 
