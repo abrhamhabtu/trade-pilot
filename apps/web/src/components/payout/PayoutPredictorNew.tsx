@@ -22,6 +22,8 @@ import { AccountScaler } from './AccountScaler';
 import { MicroSizingPlanner, MicroPlanState } from './MicroSizingPlanner';
 import { EvalVsFunded } from './EvalVsFunded';
 import { MotivationStrip } from './MotivationStrip';
+import { DisciplinePlanner, DisciplineSettings } from './DisciplinePlanner';
+import { WithdrawalReview } from './WithdrawalReview';
 import { useThemeClasses, SectionHeader, SliderField } from './payoutPrimitives';
 
 const STORAGE_KEY = 'tradepilot_payout_config_v2';
@@ -40,6 +42,8 @@ interface PersistedConfig {
   micro: MicroPlanState;
   pullTarget: number;
   focusCount: number;
+  discipline?: DisciplineSettings;
+  instrumentPlans?: Record<string, MicroPlanState>;
 }
 
 const DEFAULT_STRATEGY: StrategyState = { winRatePercent: 45, rewardToRisk: 1.5, tradesPerDay: 2 };
@@ -62,7 +66,8 @@ const StrategyPanel: React.FC<{
   strategy: StrategyState;
   onChange: (patch: Partial<StrategyState>) => void;
   fromTrades: number;
-}> = ({ strategy, onChange, fromTrades }) => {
+  onUseHistory: () => void;
+}> = ({ strategy, onChange, fromTrades, onUseHistory }) => {
   const { card, text, muted } = useThemeClasses();
   return (
     <div className={clsx(card, 'p-5')}>
@@ -72,16 +77,16 @@ const StrategyPanel: React.FC<{
           <h2 className={clsx('text-sm font-semibold', text)}>Your assumptions</h2>
         </div>
         <p className={clsx('text-xs', muted)}>
-          {fromTrades > 0 ? `Auto-filled from your last ${fromTrades} trades · tune to model scenarios` : 'Tune these to drive every projection above'}
+          {fromTrades > 0 ? <button onClick={onUseHistory} className="underline underline-offset-4">Use my {fromTrades} recorded trades</button> : 'Tune these to drive every projection above'}
         </p>
       </div>
       <div className="grid gap-x-8 gap-y-5 sm:grid-cols-3">
         <SliderField
           label="Win rate"
-          tip="Percentage of trading days you expect to be green."
+          tip="Percentage of individual trades you expect to win."
           value={strategy.winRatePercent}
-          min={20}
-          max={80}
+          min={0}
+          max={100}
           step={1}
           format={(v) => `${v}%`}
           onChange={(v) => onChange({ winRatePercent: v })}
@@ -123,14 +128,18 @@ const tradesAfterPayout = (account: Account): Trade[] => {
   return account.trades.filter((t) => (t.date ? t.date.split('T')[0] : '') > last);
 };
 
-type PayoutTab = 'path' | 'sizing' | 'eval' | 'scale' | 'firm';
+type PayoutTab = 'path' | 'stress' | 'withdraw' | 'sizing' | 'eval' | 'scale' | 'firm';
 
 const TABS: { id: PayoutTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'path', label: 'Path to Payout', icon: Route },
-  { id: 'sizing', label: 'Micro Sizing', icon: Calculator },
-  { id: 'eval', label: 'Eval vs Funded', icon: Swords },
-  { id: 'scale', label: 'Scale Accounts', icon: Layers },
-  { id: 'firm', label: 'Firm & Rules', icon: Building2 },
+  { id: 'path', label: 'Build your plan', icon: Route },
+  { id: 'stress', label: 'Pressure test', icon: ShieldAlert },
+  { id: 'withdraw', label: 'Review a payout', icon: Wallet },
+];
+const ADVANCED_TABS: typeof TABS = [
+  { id: 'sizing', label: 'Position size', icon: Calculator },
+  { id: 'eval', label: 'Compare stages', icon: Swords },
+  { id: 'scale', label: 'Account scaling', icon: Layers },
+  { id: 'firm', label: 'Rules & costs', icon: Building2 },
 ];
 
 interface PayoutPredictorProps {
@@ -156,6 +165,16 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
   const [pullTarget, setPullTarget] = useState(2000);
   const [focusCount, setFocusCount] = useState(3);
   const [loaded, setLoaded] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const [discipline, setDiscipline] = useState<DisciplineSettings>({goal:3000,cushion:2000,fees:2,slippageTicks:1});
+  const [instrumentPlans, setInstrumentPlans] = useState<Record<string,MicroPlanState>>({});
+  const updateMicro = (patch: Partial<MicroPlanState>) => {
+    if (patch.symbol && patch.symbol !== micro.symbol) {
+      setInstrumentPlans(p => ({...p,[micro.symbol]:micro}));
+      const stops: Record<string,number> = {MNQ:30,MES:10,MGC:5,MYM:100,MBT:500,M2K:10};
+      setMicro(instrumentPlans[patch.symbol] ?? {...DEFAULT_MICRO,symbol:patch.symbol,contracts:1,stopPts:stops[patch.symbol] ?? 30});
+    } else setMicro(m => ({...m,...patch,contracts:Math.max(1,Math.floor(patch.contracts ?? m.contracts))}));
+  };
 
   // Load persisted config; URL ?firm= overrides saved firm on first load
   useEffect(() => {
@@ -170,6 +189,8 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
         if (c.micro) setMicro({ ...DEFAULT_MICRO, ...c.micro });
         if (typeof c.pullTarget === 'number') setPullTarget(c.pullTarget);
         if (typeof c.focusCount === 'number') setFocusCount(c.focusCount);
+        if (c.discipline) setDiscipline(d => ({...d,...c.discipline}));
+        if (c.instrumentPlans) setInstrumentPlans(c.instrumentPlans);
       }
     } catch {
       /* ignore */
@@ -194,13 +215,14 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
   // Persist config
   useEffect(() => {
     if (!loaded) return;
-    const payload: PersistedConfig = { firmId, tierId, overrides, strategy, micro, pullTarget, focusCount };
+    const payload: PersistedConfig = { firmId, tierId, overrides, strategy, micro, pullTarget, focusCount, discipline, instrumentPlans };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      setSaveError(false);
     } catch {
-      /* ignore */
+      setSaveError(true);
     }
-  }, [loaded, firmId, tierId, overrides, strategy, micro, pullTarget, focusCount]);
+  }, [loaded, firmId, tierId, overrides, strategy, micro, pullTarget, focusCount, discipline, instrumentPlans]);
 
   // Effective firm config = seeded values + user overrides
   const values: FirmConfigValues = useMemo(
@@ -220,8 +242,8 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
     setOverrides({});
   }, []);
 
-  // Auto-fill strategy from linked account stats once
-  useEffect(() => {
+  // Import stats deliberately; background sync must not overwrite scenario edits.
+  const useHistory = () => {
     if (!hasLinkedAccount || !selectedAccount) return;
     const trades = tradesAfterPayout(selectedAccount);
     if (trades.length === 0) return;
@@ -229,11 +251,11 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
     const days = new Set(trades.map((t) => (t.date ? t.date.split('T')[0] : 'unknown')));
     const tpd = days.size > 0 ? Math.max(1, Math.round((trades.length / days.size) * 10) / 10) : 0;
     setStrategy((s) => ({
-      winRatePercent: m.winRate > 0 ? Math.round(m.winRate) : s.winRatePercent,
+      winRatePercent: Math.round(m.winRate),
       rewardToRisk: m.avgRiskReward > 0 ? Math.round(m.avgRiskReward * 10) / 10 : s.rewardToRisk,
       tradesPerDay: tpd > 0 ? tpd : s.tradesPerDay,
     }));
-  }, [hasLinkedAccount, selectedAccount]);
+  };
 
   // ─── Derived ───────────────────────────────────────────────────────────────
   const dailyCap = consistencyDailyCeiling(values.profitTarget, values.consistencyPercent);
@@ -293,7 +315,7 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
   );
 
   const gap = Math.max(0, edge.effectiveTarget - edge.currentProfit);
-  const idealDays = dailyCap > 0 ? Math.ceil(gap / dailyCap) || Math.ceil(values.profitTarget / dailyCap) : 0;
+  const idealDays = dailyCap > 0 ? Math.ceil(gap / dailyCap) : 0;
 
   // ~21 trading days per month — used to turn a monthly eval fee into an all-in cost.
   const monthsToPass = Math.max(1, Math.ceil((projection.totalDays || idealDays || 21) / 21));
@@ -304,22 +326,23 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
   );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="mx-auto max-w-6xl space-y-6">
       {/* Header */}
-      <div>
-        <h1 className={clsx('flex items-center gap-2 text-2xl font-bold', text)}>
-          <Wallet className="h-6 w-6 text-tp-green" />
-          Payout Planner
+      <div className="py-3 sm:py-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4"><p className="font-mono text-[10px] uppercase tracking-[0.25em] text-emerald-500">Payout planner / built for the long game</p><p className={clsx('text-[10px]', saveError?'text-amber-500':muted)} role="status">{saveError?'Unable to save · keep this page open':loaded?'Plan saved on this device':'Loading saved plan…'}</p></div>
+        <h1 className={clsx('text-4xl sm:text-5xl lg:text-6xl tracking-[-0.045em] font-semibold leading-[1.06]', text)}>
+          Small size.<br/><span className={muted}>Room to keep going.</span>
         </h1>
-        <p className={clsx('mt-1 text-sm', muted)}>
-          Track your edge against the prop firms, scale accounts, and size micros for a safe path to payout.
+        <p className={clsx('mt-4 text-sm max-w-xl leading-relaxed', muted)}>
+          See what patience buys: less risk on the next trade, more room through a rough stretch, and a goal you don’t have to chase today.
         </p>
       </div>
 
-      <MotivationStrip />
-
       {/* Persistent context strip — switch firm/account from any tab; everything below re-syncs instantly */}
-      <div className={clsx(card, 'space-y-3 p-4')}>
+      <details className={clsx('border rounded-lg p-4', dark ? 'border-white/10 bg-white/[0.02]' : 'border-gray-200 bg-white')}>
+        <summary className={clsx('cursor-pointer text-xs font-medium',text)}>Program assumptions · {firm.name} · {tier.label} <span className={muted}>— edit preset, split & rules</span></summary>
+        <div className="space-y-3 mt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2"><h2 className={clsx('text-sm font-semibold', text)}>Scenario settings</h2><p className={clsx('text-xs', muted)}>Saved presets are assumptions—not your account’s verified rules.</p></div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-tp-green/10">
             <Building2 className="h-4 w-4 text-tp-green" />
@@ -331,7 +354,7 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
             onChange={(e) => handleFirmChange(e.target.value)}
             aria-label="Prop firm"
             className={clsx(
-              'max-w-[16rem] rounded-lg border px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-tp-green/40',
+              'w-full max-w-full sm:w-auto sm:max-w-[16rem] rounded-lg border px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-tp-green/40',
               dark ? 'border-white/[0.08] bg-tp-base text-zinc-100' : 'border-gray-200 bg-gray-50 text-gray-900'
             )}
           >
@@ -365,11 +388,11 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
 
           {firm.verified ? (
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-tp-green/10 px-2 py-0.5 text-[10px] font-semibold text-tp-green">
-              <ShieldCheck className="h-3 w-3" /> Verified
+              <ShieldCheck className="h-3 w-3" /> Saved preset · confirm current rules
             </span>
           ) : (
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-tp-yellow/10 px-2 py-0.5 text-[10px] font-semibold text-tp-yellow">
-              <ShieldAlert className="h-3 w-3" /> Unverified
+              <ShieldAlert className="h-3 w-3" /> Custom assumptions
             </span>
           )}
           {hasLinkedAccount && selectedAccount && (
@@ -380,15 +403,16 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
         </div>
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 border-t border-white/[0.06] pt-3 sm:grid-cols-4">
-          <CtxStat label="Target" value={`$${values.profitTarget.toLocaleString()}`} dark={dark} muted={muted} text={text} />
-          <CtxStat label="Drawdown" value={`$${values.drawdown.toLocaleString()}`} dark={dark} muted={muted} text={text} />
+          <CtxStat label="Configured target" value={`$${values.profitTarget.toLocaleString()}`} dark={dark} muted={muted} text={text} />
+          <CtxStat label="Configured drawdown" value={`$${values.drawdown.toLocaleString()}`} dark={dark} muted={muted} text={text} />
           <CtxStat label="Consistency" value={`${values.consistencyPercent}%`} dark={dark} muted={muted} text={text} />
           <CtxStat label={firm.costCadence === 'monthly' ? 'Cost / mo' : 'Cost (1×)'} value={`$${values.cost.toLocaleString()}`} dark={dark} muted={muted} text={text} />
         </div>
-      </div>
+        </div>
+      </details>
 
       {/* Tab nav */}
-      <div className={clsx('flex flex-wrap gap-1 rounded-xl border p-1', dark ? 'border-white/[0.06] bg-tp-card' : 'border-gray-200 bg-white')}>
+      <div className="flex flex-wrap gap-2 border-b border-zinc-500/20 pb-3">
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = tab === t.id;
@@ -396,9 +420,11 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
             <button
               key={t.id}
               type="button"
+              aria-label={t.label}
+              aria-pressed={active}
               onClick={() => setTab(t.id)}
               className={clsx(
-                'inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'inline-flex flex-auto items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-3 text-xs sm:text-sm font-medium transition-colors',
                 active
                   ? 'bg-tp-green/15 text-tp-green'
                   : dark
@@ -407,28 +433,40 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
               )}
             >
               <Icon className="h-4 w-4" />
-              <span className="hidden sm:inline">{t.label}</span>
+              <span>{t.label}</span>
             </button>
           );
         })}
+        <select aria-label="More payout tools" value={ADVANCED_TABS.some(t=>t.id===tab)?tab:''} onChange={e=>setTab((e.target.value || 'path') as PayoutTab)} className={clsx('rounded-lg border border-zinc-500/20 text-xs px-3 py-2 max-w-full',dark?'bg-[#101c2b] text-zinc-300':'bg-white text-gray-700')}><option value="">More tools</option>{ADVANCED_TABS.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select>
       </div>
+
+      {(tab === 'path' || tab === 'stress') && <DisciplinePlanner view={tab==='path'?'plan':'stress'} micro={micro} onMicro={updateMicro} accounts={focusCount} onAccounts={setFocusCount} settings={discipline} onSettings={patch=>setDiscipline(d=>({...d,...patch}))} strategy={strategy} onStrategy={patch=>setStrategy(s=>({...s,...patch}))} split={values.profitSplit} onView={setTab} />}
+      {tab === 'withdraw' && <WithdrawalReview key={`withdrawal-${hasLinkedAccount ? selectedAccount?.id : 'none'}`} account={hasLinkedAccount ? selectedAccount : null} />}
 
       {/* Tab content */}
       {tab === 'path' && (
         <div className="space-y-5">
-          <EdgeTracker edge={edge} projection={projection} winRatePercent={strategy.winRatePercent} idealDays={idealDays} />
+          <details className={clsx(card, 'p-4 sm:p-5')}>
+          <summary className={clsx('cursor-pointer font-semibold text-sm py-2', text)}>Explore the detailed projection & strategy assumptions</summary>
+          <p className={clsx('text-xs my-3', muted)}>Legacy before-fees projection using the same instrument and strategy, but the program’s configured drawdown. It excludes the cost and cushion overrides in the main comparison.</p>
+          <div className="space-y-5 mt-4">
           <StrategyPanel
             strategy={strategy}
             onChange={(patch) => setStrategy((s) => ({ ...s, ...patch }))}
             fromTrades={linkedTradeCount}
+            onUseHistory={useHistory}
           />
+          <EdgeTracker edge={edge} projection={projection} winRatePercent={strategy.winRatePercent} idealDays={idealDays} />
+          </div>
+          </details>
+          <MotivationStrip />
         </div>
       )}
 
       {tab === 'sizing' && (
         <MicroSizingPlanner
           plan={micro}
-          onChange={(patch) => setMicro((m) => ({ ...m, ...patch }))}
+          onChange={updateMicro}
           rewardToRisk={strategy.rewardToRisk}
           tradesPerDay={strategy.tradesPerDay}
           winRatePercent={strategy.winRatePercent}

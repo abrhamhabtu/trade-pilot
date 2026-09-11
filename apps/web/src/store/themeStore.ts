@@ -11,15 +11,8 @@ interface ThemeState {
   setTheme: (theme: Theme) => void;
 }
 
-const getInitialTheme = (): Theme => {
-  const stored = persistence.loadTheme();
-  const theme = stored === 'light' ? 'light' : 'dark';
-  persistence.saveTheme(theme);
-  return theme;
-};
-
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  theme: getInitialTheme(),
+  theme: 'dark',
 
   toggleTheme: () => {
     const newTheme = get().theme === 'dark' ? 'light' : 'dark';
@@ -38,8 +31,3 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     }
   }
 }));
-
-// Initialize theme on load
-if (typeof window !== 'undefined') {
-  document.documentElement.setAttribute('data-theme', 'dark');
-}

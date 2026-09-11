@@ -7,10 +7,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { APP_NAVIGATION, isActiveRoute } from '@/lib/navigation';
 import { useUIStore } from '@/store/uiStore';
+import { useCompactSidebar } from '@/hooks/useCompactSidebar';
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
-  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const { toggleSidebar } = useUIStore();
+  const sidebarCollapsed = useCompactSidebar();
 
   return (
     <div

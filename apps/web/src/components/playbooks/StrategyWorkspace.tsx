@@ -38,7 +38,17 @@ import { VideoLibrary } from "./VideoLibrary";
 type Props = {
   strategyId: string;
   strategyName: string;
-  guide: React.ReactNode;
+  guide:
+    | React.ReactNode
+    | ((props: {
+        screenshots: Evidence[];
+        selectedImage: string;
+        selectImage: (id: string) => void;
+        addImage: () => void;
+        openImage: (image: Evidence) => void;
+        ready: boolean;
+      }) => React.ReactNode);
+  seed?: Partial<Library>;
 };
 type Editor = {
   kind: "code" | "image" | "video";
@@ -54,27 +64,28 @@ function download(content: string, name: string, type = "text/plain") {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export function StrategyWorkspace({ strategyId, strategyName, guide }: Props) {
+export function StrategyWorkspace({
+  strategyId,
+  strategyName,
+  guide,
+  seed,
+}: Props) {
   const [library, setLibrary] = useState<Library>(emptyLibrary);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [tab, setTab] = useState("workspace");
+  const [tab, setTab] = useState("guide");
   const [editor, setEditor] = useState<Editor>(null);
   const [selected, setSelected] = useState("");
   const [lightbox, setLightbox] = useState<Evidence | null>(null);
   const [undo, setUndo] = useState<Library | null>(null);
   const lock = useRef(false);
+  const seedRef = useRef(seed);
+  seedRef.current = seed;
   useEffect(() => {
     function pasteImage(event: ClipboardEvent) {
-      if (
-        !ready ||
-        busy ||
-        editor ||
-        tab !== "workspace" ||
-        document.querySelector("dialog[open]")
-      )
+      if (!ready || busy || editor || document.querySelector("dialog[open]"))
         return;
       const target = event.target as HTMLElement;
       if (target.closest("input, textarea, [contenteditable=true]")) return;
@@ -93,11 +104,36 @@ export function StrategyWorkspace({ strategyId, strategyName, guide }: Props) {
   useEffect(() => {
     let active = true;
     readLibrary(strategyId)
-      .then((data) => {
-        if (active) {
+      .then(async (data) => {
+        if (!active) return;
+        const starter = seedRef.current;
+        const empty =
+          data.revisions.length === 0 &&
+          data.videos.length === 0 &&
+          data.screenshots.length === 0 &&
+          !data.preferred;
+        if (
+          empty &&
+          starter &&
+          (starter.videos?.length ||
+            starter.revisions?.length ||
+            starter.screenshots?.length)
+        ) {
+          const next: Library = {
+            ...emptyLibrary(),
+            ...starter,
+            revisions: starter.revisions ?? [],
+            screenshots: starter.screenshots ?? [],
+            videos: starter.videos ?? [],
+            preferred: starter.preferred ?? null,
+          };
+          await writeLibrary(strategyId, next);
+          if (!active) return;
+          setLibrary(next);
+        } else {
           setLibrary(data);
-          setReady(true);
         }
+        setReady(true);
       })
       .catch(() => {
         if (active)
@@ -147,16 +183,16 @@ export function StrategyWorkspace({ strategyId, strategyName, guide }: Props) {
       <div className="pw-navigation">
         <div className="pw-tabs" aria-label="Playbook views">
           <button
-            aria-pressed={tab === "workspace"}
-            onClick={() => setTab("workspace")}
-          >
-            My workspace <span>{total}</span>
-          </button>
-          <button
             aria-pressed={tab === "guide"}
             onClick={() => setTab("guide")}
           >
             Strategy guide
+          </button>
+          <button
+            aria-pressed={tab === "workspace"}
+            onClick={() => setTab("workspace")}
+          >
+            Workspace <span>{total}</span>
           </button>
         </div>
         <div className="pw-save">
@@ -198,7 +234,23 @@ export function StrategyWorkspace({ strategyId, strategyName, guide }: Props) {
         </div>
       )}
       {tab === "guide" ? (
-        guide
+        typeof guide === "function" ? (
+          guide({
+            screenshots: library.screenshots,
+            selectedImage: library.guideImageId || "",
+            selectImage: (id) => {
+              void save(
+                { ...library, guideImageId: id },
+                id ? "Guide example updated" : "Illustrated guide selected",
+              );
+            },
+            addImage: () => setEditor({ kind: "image" }),
+            openImage: setLightbox,
+            ready: ready && !busy,
+          })
+        ) : (
+          guide
+        )
       ) : (
         <>
           <div className="pw-intro">
@@ -290,6 +342,22 @@ export function StrategyWorkspace({ strategyId, strategyName, guide }: Props) {
                       <h3>{s.title}</h3>
                       <p>{s.notes}</p>
                       <div className="pw-card-actions">
+                        <button
+                          disabled={!ready || busy}
+                          aria-label={`Use ${s.title} in strategy guide`}
+                          onClick={async () => {
+                            if (
+                              await save(
+                                { ...library, guideImageId: s.id },
+                                "Guide example updated",
+                              )
+                            )
+                              setTab("guide");
+                          }}
+                        >
+                          <Images size={14} />
+                          Use in guide
+                        </button>
                         <button
                           aria-label={`Edit ${s.title}`}
                           onClick={() => setEditor({ kind: "image", id: s.id })}
@@ -552,7 +620,16 @@ export function StrategyWorkspace({ strategyId, strategyName, guide }: Props) {
           busy={busy}
           onClose={() => setEditor(null)}
           onSave={async (next) => {
-            if (await save(next)) setEditor(null);
+            const updated =
+              tab === "guide" && editor.kind === "image"
+                ? {
+                    ...next,
+                    guideImageId:
+                      editor.id ||
+                      next.screenshots[next.screenshots.length - 1]?.id,
+                  }
+                : next;
+            if (await save(updated)) setEditor(null);
             else
               throw new Error(
                 "Could not save. Free up browser storage and try again.",
@@ -1018,7 +1095,8 @@ function LibraryEditor({
               </label>
               <p className="pw-footnote">
                 Instagram · TikTok · YouTube · Vimeo · MP4 / WebM. Use a public
-                video link, not embed code. For TikTok, use the full @creator/video link.
+                video link, not embed code. For TikTok, use the full
+                @creator/video link.
               </p>
               {videoSource(url) && (
                 <p className="pw-detected">

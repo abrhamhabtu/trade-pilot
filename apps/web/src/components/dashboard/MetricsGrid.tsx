@@ -3,13 +3,20 @@
 import React, { useMemo } from 'react';
 import { MetricCard } from '../MetricCard';
 import { Trade, TradingMetrics } from '../../store/tradingStore';
-import { LayoutGrid } from 'lucide-react';
 
 interface MetricsGridProps {
   metrics: TradingMetrics;
   trades?: Trade[];
   accountBalance?: number;
 }
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
 
 export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, trades = [], accountBalance }) => {
   const displayBalance = accountBalance !== undefined ? accountBalance : metrics.netPL;
@@ -26,6 +33,24 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
     return { wins: w, breakeven: b, losses: l };
   }, [trades]);
 
+  const equitySparkline = useMemo(() => {
+    const recentTrades = [...trades]
+      .sort((a, b) => {
+        const aTime = new Date(`${a.date} ${a.time ?? ''}`).getTime();
+        const bTime = new Date(`${b.date} ${b.time ?? ''}`).getTime();
+        return aTime - bTime;
+      })
+      .slice(-12);
+
+    let running = displayBalance - recentTrades.reduce((sum, trade) => sum + trade.netPL, 0);
+    const points = [running];
+    for (const trade of recentTrades) {
+      running += trade.netPL;
+      points.push(running);
+    }
+    return points;
+  }, [displayBalance, trades]);
+
   // Map profit factor to ring fill so green + red are always visible (like reference)
   const pfRingPct =
     metrics.profitFactor > 0
@@ -34,13 +59,18 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
   const avgWinLossRatio = metrics.avgLoss > 0 ? metrics.avgWin / metrics.avgLoss : 0;
 
   return (
-    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <MetricCard
         title="Net P&L"
         value={displayBalance}
         format="currency"
         trend={displayBalance >= 0 ? 'up' : 'down'}
-        visual={{ type: 'icon-box', icon: LayoutGrid }}
+        context={`${trades.length} trades tracked`}
+        visual={{
+          type: 'sparkline',
+          points: equitySparkline,
+          positive: displayBalance >= 0,
+        }}
       />
 
       <MetricCard
@@ -48,6 +78,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
         value={metrics.profitFactor}
         format="number"
         trend="neutral"
+        context="gross profit / gross loss"
         visual={{ type: 'donut', pct: pfRingPct }}
       />
 
@@ -56,6 +87,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
         value={metrics.winRate}
         format="percentage"
         trend="neutral"
+        context="wins / breakeven / losses"
         visual={{ type: 'gauge', wins, breakeven, losses }}
       />
 
@@ -64,6 +96,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
         value={avgWinLossRatio}
         format="number"
         trend="neutral"
+        context={`${formatCurrency(metrics.avgWin)} avg win`}
         visual={{ type: 'winloss-bar', avgWin: metrics.avgWin, avgLoss: metrics.avgLoss }}
       />
     </div>

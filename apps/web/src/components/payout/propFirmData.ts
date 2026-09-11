@@ -343,6 +343,7 @@ export const MICRO_POINT_VALUE: Record<string, number> = {
   MGC: 10, // Micro Gold, $10/pt
   M2K: 5, // Micro Russell, $5/pt
   MYM: 0.5, // Micro Dow, $0.50/pt
+  MBT: 0.1, // CME Micro Bitcoin: 0.1 BTC; $0.10 per $1 price move
 };
 
 export type MicroSymbol = keyof typeof MICRO_POINT_VALUE;

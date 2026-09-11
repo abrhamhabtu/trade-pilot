@@ -23,7 +23,7 @@ export function useThemeClasses() {
     card: clsx('rounded-2xl border', dark ? 'bg-tp-card border-white/[0.06]' : 'bg-white border-gray-200'),
     inset: clsx('rounded-xl border', dark ? 'border-white/[0.06] bg-tp-base/50' : 'border-gray-100 bg-gray-50'),
     text: dark ? 'text-zinc-100' : 'text-gray-900',
-    muted: dark ? 'text-zinc-500' : 'text-gray-500',
+    muted: dark ? 'text-zinc-400' : 'text-gray-600',
     input: clsx(dark ? 'border-white/[0.08] bg-tp-base text-zinc-100' : 'border-gray-200 bg-gray-50 text-gray-900'),
   };
 }

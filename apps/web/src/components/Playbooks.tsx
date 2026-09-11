@@ -45,6 +45,7 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'order-blocks': 'Smart Money',
   'liquidity-sweep': 'Smart Money',
   'ict-fvg': 'Smart Money',
+  'failed-auction': 'Auction',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -74,6 +75,7 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'order-blocks': 'Buy where the size loaded up',
   'liquidity-sweep': 'Fade the stop hunt',
   'ict-fvg': 'Let price fill the gap, then go',
+  'failed-auction': 'Fade the failed extreme, magnet back to POC',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
@@ -198,6 +200,17 @@ export interface PlaybookStrategy {
   }[];
   tips: string[];
   commonMistakes: string[];
+  seed?: {
+    videos?: { id: string; title: string; url: string; notes: string }[];
+    revisions?: {
+      id: string;
+      title: string;
+      code: string;
+      notes: string;
+      status: 'Draft' | 'Testing' | 'Ready';
+      createdAt: string;
+    }[];
+  };
 }
 
 export const tradingStrategies: PlaybookStrategy[] = [
@@ -930,7 +943,99 @@ export const tradingStrategies: PlaybookStrategy[] = [
       'Entering the instant price touches without a reaction',
       'Stops in the middle of the gap that get tagged before the move'
     ]
-  }
+  },
+  {
+    id: 'failed-auction',
+    name: 'Failed Auction (Chanelle)',
+    description:
+      'Fade value-area extremes with a fixed-range volume profile: when the auction fails at VAL or VAH, invert the FVG and take a 1.5R base hit back toward point of control.',
+    difficulty: 'Intermediate',
+    timeframe: '1m - 5m',
+    winRate: 73,
+    riskReward: '1:1.5',
+    marketCondition: 'Any session — Globex, Asia, London, New York',
+    overview:
+      'Chanelle the Trader’s Failed Auction model is the system behind her $59,890 NZD prop payouts in a month — including while she was not glued to the charts. It is auction theory, not a VWAP fade. Drag TradingView’s Fixed Range Volume Profile across the session you are trading. Three lines matter: value area high (expensive), value area low (cheap), and the gold point of control (fair value). You do not trade POC. You wait for price to push to an extreme, stall in a U-shape “failed auction,” then enter when a candle body closes through / inverts an imbalance (ICT traders call this an FVG). Target a static 1.5R base hit — on a $50k eval, $1,000 risk and 1.5R is halfway to the $3,000 pass. Sometimes you let it run to POC. Static stops, static targets, mechanical rules, 20+ setups a day so missing one is not FOMO.',
+    entryRules: [
+      'Draw Fixed Range Volume Profile across the session (Globex open, Asia, London, or NY)',
+      'Ignore POC / fair value — that is where two-way trade and chop live',
+      'Wait for price to reach VAH (expensive) or VAL (cheap), or beyond',
+      'Look for a failed auction: U-shape stall, big wicks, selling/buying pressure exhausting',
+      'Watch for a catalyst / engulfing candle, then a displacement candle',
+      'Entry trigger: a candle body closes through an FVG / imbalance (inversion). Wick through is not enough.',
+      'Longs only off VAL failed auctions. Shorts only off VAH failed auctions.',
+    ],
+    exitRules: [
+      'Default take profit is a static 1.5R base hit — speed is the point on evals',
+      'Optional magnet: point of control if you want more than 1.5R and POC is still a clean target',
+      'Do not sit for a home run. Get the base hit, next setup is coming.',
+      'Flatten by session close — this is day trading, not a swing (prop overnight rules)',
+    ],
+    riskManagement: [
+      'Static stop in points — do not hang the stop on structure. Same size every trade so the backtest matches live.',
+      'Static take profit for the same reason. Prop firms have a number to hit, not a vibe.',
+      'On a 50k eval, 1.5R at $1,000 risk (half the $2k drawdown) is $1,500 — halfway to the $3,000 target',
+      'If the checklist is not there, there is no trade. No discretion until you are already consistent.',
+      'Missed a setup? There are many per session. Do not revenge the one you skipped.',
+    ],
+    examples: [
+      {
+        title: 'NQ long off VAL failed auction',
+        description: 'Price dumps through value area low, sellers exhaust, displacement candle inverts the FVG.',
+        setup: 'FRVP on Globex. Price trades POC (no trade), then sells into VAL. U-shape stall and big wicks at the cheap extreme.',
+        entry: 'Long when a strong bullish candle body closes above the imbalance / FVG',
+        exit: 'Static 1.5R. Trade also ran toward POC (~2.4R in the video example).',
+        result: 'Base hit 1.5R — video walkthrough around 20:18',
+      },
+      {
+        title: 'VAH short, expensive extreme',
+        description: 'Auction fails at value area high. Short back toward fair value.',
+        setup: 'Price tagged VAH / above. Failed auction stall. Imbalance inverted to the downside.',
+        entry: 'Short on the body close through the FVG, not the first wick',
+        exit: '1.5R static, or POC if it is still the magnet',
+        result: 'Same model, opposite extreme — take only what presents',
+      },
+    ],
+    tips: [
+      'FRVP lines move as volume comes in. Recheck VAH / VAL / POC — they will drift through the session.',
+      'Works Globex, Asia, London, and NY. Pick the session that fits your life.',
+      'You do not need every setup. Chanelle does not sit the charts all day.',
+      'Mechanical first. Discretion later. That is why it is good for tilt / revenge trading.',
+      'The source clip starts the worked example at 20:18.',
+    ],
+    commonMistakes: [
+      'Trading off point of control because “it looks like support” — that is fair value chop',
+      'Entering on a wick through the FVG instead of a body close / inversion',
+      'Chasing the first push to VAL/VAH before the auction has actually failed',
+      'Using a structure stop that you would never have used in the backtest',
+      'Holding for POC every time and turning a 1.5R winner into a scratch',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'failed-auction-source',
+          title: 'this SIMPLE strategy made me $59,890 in prop payouts last month',
+          url: 'https://www.youtube.com/watch?v=5Fd5ivtIEG0&t=1218s',
+          notes:
+            'Chanelle the Trader — Failed Auction. Worked example starts at 20:18. Paste your Pine in the Draft version below.',
+        },
+      ],
+      revisions: [
+        {
+          id: 'failed-auction-pine-draft',
+          title: 'Paste your Pine here',
+          code: `//@version=5
+indicator("Failed Auction", overlay=true)
+
+// Paste your TradingView Pine Script below this line.
+`,
+          notes: 'Empty on purpose — drop your indicator/strategy code here when you are ready.',
+          status: 'Draft',
+          createdAt: '2026-09-10T00:00:00.000Z',
+        },
+      ],
+    },
+  },
 ];
 
 export const Playbooks: React.FC = () => {

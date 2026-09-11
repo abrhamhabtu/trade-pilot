@@ -7,7 +7,7 @@ import { RadarChartComponent } from '../charts/RadarChart';
 import { PLChart } from '../charts/PLChart';
 import { BarChartComponent } from '../charts/BarChart';
 import { ProgressTracker } from '../charts/ProgressTracker';
-import { TradesTable } from '../TradesTable';
+import { DayPerformancePanel } from './DayPerformancePanel';
 import { TimePerformanceChart } from '../charts/TimePerformanceChart';
 import { DurationPerformanceChart } from '../charts/DurationPerformanceChart';
 import { Calendar } from '../Calendar';
@@ -53,7 +53,7 @@ const WIDGETS: WidgetDef[] = [
   { id: 'cumulative-pl', title: 'Daily net cumulative P&L', w: 4, rows: 2 },
   { id: 'net-daily-pl', title: 'Net daily P&L', w: 4, rows: 2 },
   { id: 'progress-tracker', title: 'Progress tracker', w: 4, rows: 2 },
-  { id: 'recent-trades', title: 'Recent trades', w: 4, rows: 2 },
+  { id: 'recent-trades', title: 'Best / worst days', w: 4, rows: 2 },
   { id: 'calendar', title: 'Calendar', w: 8, rows: 4 },
   { id: 'time-performance', title: 'Time performance', w: 6, rows: 2 },
   { id: 'duration-performance', title: 'Duration performance', w: 6, rows: 2 },
@@ -123,7 +123,12 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
     'cumulative-pl': <PLChart data={cumulativePLData} type="cumulative" />,
     'net-daily-pl': <BarChartComponent data={dailyPLData} title="Net daily P&L" />,
     'progress-tracker': <ProgressTracker onViewMore={onNavigateToRoutine} />,
-    'recent-trades': <TradesTable trades={trades.slice(0, 6)} />,
+    'recent-trades': (
+      <DayPerformancePanel
+        dailyPLData={dailyPLData}
+        calendarData={calendarData}
+      />
+    ),
     calendar: <Calendar data={calendarData} trades={trades} accountId={accountId} />,
     'time-performance': <TimePerformanceChart data={timePerformanceData} />,
     'duration-performance': <DurationPerformanceChart data={durationPerformanceData} />,

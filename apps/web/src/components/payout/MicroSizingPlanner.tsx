@@ -6,6 +6,7 @@ import { Crosshair } from 'lucide-react';
 import { useThemeClasses, SectionHeader, MiniStat, PillToggle, NumberInput, AdviceLine } from './payoutPrimitives';
 import { projectMicroPlan, formatCurrency, MicroDay, TRADING_DAYS_PER_WEEK } from './payoutMath';
 import { MICRO_POINT_VALUE } from './propFirmData';
+import { SESSION_INSTRUMENTS } from '@/lib/sessionRisk';
 
 export interface MicroPlanState {
   symbol: string;
@@ -29,7 +30,7 @@ interface MicroSizingPlannerProps {
   programLabel: string;
 }
 
-const CONTRACT_OPTIONS = [2, 3, 4, 5];
+const CONTRACT_OPTIONS = [1, 2, 3, 4];
 const STOP_OPTIONS = [20, 25, 30, 35, 40];
 const AIM_PRESETS = [200, 250, 300, 350, 400, 500];
 
@@ -56,8 +57,8 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
         }
       : {
           tone: 'good' as const,
-          label: 'Evaluation — resets are cheap',
-          text: `${programLabel} is an evaluation. A reset costs a fee, not your funded account, so you can push size a little to pass fast. But bank the discipline now — the habits you build clearing this eval are exactly what keep the funded account alive.`,
+          label: 'Evaluation — practice the funded habits',
+          text: `${programLabel} is an evaluation. Resets still cost money and time. Use a repeatable size you can carry into a funded account; passing faster is not a reason to exceed your risk plan.`,
         };
 
   const proj = useMemo(
@@ -83,23 +84,23 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
     // Day-level symmetry — the core of why the math now holds together.
     lines.push({
       tone: 'good',
-      text: `Green day ${formatCurrency(proj.winDayPnL)} vs red day ${formatCurrency(proj.lossDayPnL)} — a clean ${rewardToRisk.toFixed(1)}:1, same as your trade edge. That symmetry is what actually compounds to a payout.`,
+      text: `Modeled green day ${formatCurrency(proj.winDayPnL)} vs red day ${formatCurrency(proj.lossDayPnL)} at ${rewardToRisk.toFixed(1)}:1 before costs. An assumed ratio does not establish a trading edge.`,
     });
 
     if (proj.winBreachesCeiling && dailyCap > 0) {
       lines.push({
         tone: 'warn',
-        text: `One ${plan.contracts} ${plan.symbol} win is ${formatCurrency(proj.winPerTrade)} — above your ${formatCurrency(dailyCap)} consistency ceiling. Drop contracts so a single green trade stays legal.`,
+        text: `One ${plan.contracts} ${plan.symbol} win is ${formatCurrency(proj.winPerTrade)} — above the configured ${formatCurrency(dailyCap)} consistency planning threshold. Review how your firm calculates eligibility before relying on this model.`,
       });
     } else if (proj.winDayOvershoots) {
       lines.push({
         tone: 'neutral',
-        text: `At ${plan.contracts} ${plan.symbol}, one win is ${formatCurrency(proj.winPerTrade)} — already past your ${formatCurrency(plan.dailyAim)} aim. Your aim is really one good trade; size down to 2 for finer control.`,
+        text: `At ${plan.contracts} ${plan.symbol}, one modeled win is ${formatCurrency(proj.winPerTrade)} — above the ${formatCurrency(plan.dailyAim)} aim. Consider smaller size; the aim is not a required daily quota.`,
       });
     } else if (!proj.dailyAimFeasible) {
       lines.push({
         tone: 'warn',
-        text: `Hitting ${formatCurrency(plan.dailyAim)} needs ${proj.tradesToAim} wins at this size — more than your ~${tradesPerDay}/day. Size up or trim the aim.`,
+        text: `Hitting ${formatCurrency(plan.dailyAim)} needs ${proj.tradesToAim} wins at this size — more than your ~${tradesPerDay}/day. Lower the aim or allow more time; do not increase size just to hit a quota.`,
       });
     } else {
       lines.push({
@@ -126,7 +127,7 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
       <SectionHeader
         icon={<Crosshair className="h-4 w-4 text-tp-blue" />}
         title="Micro sizing plan"
-        subtitle="Trade small, stay alive. Pick your size and daily aim — see the slow-but-safe path to your goal, even if it takes weeks."
+        subtitle="Advanced before-fees illustration. Choose a repeatable size; no position size guarantees account survival."
       />
 
       {/* Program-aware risk posture */}
@@ -134,7 +135,7 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
         className={clsx(
           'mb-5 rounded-xl border p-3.5',
           posture.tone === 'warn'
-            ? dark ? 'border-tp-yellow/25 bg-tp-yellow/[0.07]' : 'border-yellow-200 bg-yellow-50'
+          ? dark ? 'border-tp-yellow/25 bg-tp-yellow/[0.07]' : 'border-yellow-200 bg-yellow-50'
             : dark ? 'border-tp-green/25 bg-tp-green/[0.06]' : 'border-green-200 bg-green-50'
         )}
       >
@@ -149,7 +150,7 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
         <div>
           <label className={clsx('mb-2 block text-xs font-medium uppercase tracking-wide', muted)}>Instrument</label>
           <PillToggle
-            options={Object.keys(MICRO_POINT_VALUE).map((s) => ({ value: s, label: `${s} ($${MICRO_POINT_VALUE[s]}/pt)` }))}
+            options={Object.keys(MICRO_POINT_VALUE).map((s) => ({ value: s, label: `${s === 'MBT' ? 'MBT · Bitcoin' : s} ($${MICRO_POINT_VALUE[s]}/pt)` }))}
             value={plan.symbol}
             onChange={(v) => onChange({ symbol: String(v) })}
             accent="blue"
@@ -183,6 +184,7 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
               value={plan.stopPts}
               onChange={(v) => onChange({ stopPts: Number(v) })}
             />
+            <div className="mt-3 max-w-48"><NumberInput label="Custom stop (points)" value={plan.stopPts} min={SESSION_INSTRUMENTS[plan.symbol as keyof typeof SESSION_INSTRUMENTS]?.tick ?? 0.1} step={SESSION_INSTRUMENTS[plan.symbol as keyof typeof SESSION_INSTRUMENTS]?.tick ?? 0.1} onChange={v => onChange({stopPts:Math.max(SESSION_INSTRUMENTS[plan.symbol as keyof typeof SESSION_INSTRUMENTS]?.tick ?? 0.1,Number(v))})}/></div>
           </div>
         </div>
 
@@ -211,7 +213,7 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
       {/* Realistic vs best case */}
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <div className={clsx(inset, 'p-4')}>
-          <p className={clsx('text-xs font-medium uppercase tracking-wide', muted)}>Realistic — with red days</p>
+          <p className={clsx('text-xs font-medium uppercase tracking-wide', muted)}>Illustrative sequence — with red days</p>
           <p className={clsx('mt-1 text-3xl font-bold tracking-tight', proj.blown ? 'text-tp-red' : text)}>
             {proj.blown ? 'Blown' : `~${proj.realisticDays || '—'}`}
             {!proj.blown && <span className="ml-2 text-base font-semibold text-zinc-500">days</span>}
@@ -229,7 +231,7 @@ export const MicroSizingPlanner: React.FC<MicroSizingPlannerProps> = ({
             <span className="ml-2 text-base font-semibold text-zinc-500">days</span>
           </p>
           <p className={clsx('mt-1 text-sm', muted)}>
-            Hitting {formatCurrency(plan.dailyAim)} every session · ~{proj.calendarWeeks} weeks. Rarely happens — plan for the left.
+            Hitting {formatCurrency(plan.dailyAim)} every session · ~{proj.calendarWeeks} weeks. Not a forecast; either sequence can differ from actual outcomes.
           </p>
         </div>
       </div>

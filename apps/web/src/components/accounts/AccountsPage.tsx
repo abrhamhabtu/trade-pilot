@@ -9,6 +9,8 @@ import { toast } from '../../store/toastStore';
 import { exportAllData, importBackupData, exportTradesToCSV, setLastBackupTime } from '../../hooks/useLocalStorage';
 import { getStorageEstimate } from '../../utils/indexedDB';
 import clsx from 'clsx';
+import { ConnectionsPanel } from './ConnectionsPanel';
+import { AccountHealthBoard } from './AccountHealthBoard';
 
 interface AddAccountModalProps {
   isOpen: boolean;
@@ -2113,10 +2115,22 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
             'text-sm mt-1',
             theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
           )}>
-            Manage your prop firm and trading accounts
+            Keep each account healthy. Track your progress, connections and money taken home.
           </p>
         </div>
       </div>
+
+      <p className="text-xs text-zinc-500 mb-3">Your accounts · sample data excluded from these totals</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          ['Active accounts', accounts.filter(a => a.status === 'active' && a.type !== 'demo').length.toString()],
+          ['Funded accounts', accounts.filter(a => a.isFunded && a.status === 'active' && a.type !== 'demo').length.toString()],
+          ['Recorded payouts', accounts.filter(a => a.type !== 'demo').reduce((sum, a) => sum + (a.balanceAdjustments ?? []).filter(v => v.type === 'payout').reduce((n, v) => n + Math.abs(v.amount), 0), 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })],
+          ['Linked to a platform', accounts.filter(a => a.syncSource).length.toString()],
+        ].map(([label, value]) => <div key={label} className={clsx('border rounded-xl p-4', theme === 'dark' ? 'border-white/10 bg-[#111F35]' : 'border-gray-200 bg-white')}><p className="text-xs text-zinc-500">{label}</p><p className="text-2xl font-semibold tabular-nums mt-2">{value}</p></div>)}
+      </div>
+      <ConnectionsPanel />
+      <AccountHealthBoard />
 
       {/* Control Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">

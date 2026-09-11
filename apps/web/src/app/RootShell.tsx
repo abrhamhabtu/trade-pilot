@@ -1,11 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import clsx from 'clsx';
 import { Sidebar } from '@/components/Sidebar';
 import { useThemeStore } from '@/store/themeStore';
 import { useUIStore } from '@/store/uiStore';
 import dynamic from 'next/dynamic';
+import { PilotAutomation } from '@/components/pilot/PilotAutomation';
+import { AutoSync } from '@/components/accounts/AutoSync';
+import { useCompactSidebar } from '@/hooks/useCompactSidebar';
+import { persistence } from '@/lib/persistence';
 
 const Agentation = process.env.NODE_ENV !== 'production'
   ? dynamic(() => import('agentation').then(m => ({ default: m.Agentation })), { ssr: false })
@@ -13,7 +17,10 @@ const Agentation = process.env.NODE_ENV !== 'production'
 
 export default function RootShell({ children }: { children: React.ReactNode }) {
   const { theme } = useThemeStore();
-  const { sidebarCollapsed } = useUIStore();
+  const sidebarCollapsed = useCompactSidebar();
+  useEffect(() => {
+    useThemeStore.getState().setTheme(persistence.loadTheme() === 'light' ? 'light' : 'dark');
+  }, []);
 
   return (
     <div
@@ -29,6 +36,8 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
       }}
     >
       <Sidebar />
+      <AutoSync />
+      <PilotAutomation />
       <main className={clsx('h-full overflow-auto transition-all duration-300', sidebarCollapsed ? 'ml-20' : 'ml-64')}>
         {children}
       </main>

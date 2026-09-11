@@ -6,7 +6,11 @@ const code = ts.transpileModule(readFileSync(new URL('../src/lib/playbookLibrary
 const { videoSource, moveItem, emptyLibrary } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
 test('video embeds accept supported providers and discard tracking parameters', () => {
   assert.equal(videoSource('https://www.instagram.com/reel/ABC_123/?igsh=tracking').src, 'https://www.instagram.com/p/ABC_123/embed/');
-  assert.equal(videoSource('https://youtu.be/abcdefghijk?t=3').src, 'https://www.youtube-nocookie.com/embed/abcdefghijk');
+  assert.equal(videoSource('https://youtu.be/abcdefghijk?t=3').src, 'https://www.youtube-nocookie.com/embed/abcdefghijk?start=3');
+  assert.equal(
+    videoSource('https://www.youtube.com/watch?v=5Fd5ivtIEG0&t=1218s').src,
+    'https://www.youtube-nocookie.com/embed/5Fd5ivtIEG0?start=1218',
+  );
   assert.equal(videoSource('https://www.youtube.com/shorts/abcdefghijk').provider, 'YouTube');
   assert.equal(videoSource('https://vimeo.com/123456').src, 'https://player.vimeo.com/video/123456');
   assert.equal(videoSource('https://example.com/clip.mp4?token=x').native, true);

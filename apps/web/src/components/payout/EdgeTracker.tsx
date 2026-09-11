@@ -45,8 +45,8 @@ export const EdgeTracker: React.FC<EdgeTrackerProps> = ({ edge, projection, winR
     <div className={clsx(card, 'p-6 sm:p-8')}>
       <SectionHeader
         icon={<Gauge className="h-4 w-4 text-tp-green" />}
-        title="Your edge vs the firm"
-        subtitle="Are you on track to pass and clear the consistency rule? This is where you stay ahead of the firm's traps."
+        title="Progress against your plan"
+        subtitle="A simplified path using your saved rules. Actual eligibility also depends on your firm's current requirements. This path excludes fees and uses a fixed win/loss sequence."
       />
 
       {status === 'negative' && (
@@ -66,9 +66,9 @@ export const EdgeTracker: React.FC<EdgeTrackerProps> = ({ edge, projection, winR
           <div className={clsx('rounded-2xl border p-5 sm:p-6', dark ? 'border-white/[0.06] bg-tp-base/40' : 'border-gray-100 bg-gray-50')}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className={clsx('text-xs font-medium uppercase tracking-wide', muted)}>Estimated time to payout</p>
+                <p className={clsx('text-xs font-medium uppercase tracking-wide', muted)}>{gap === 0 ? 'Configured profit goal reached' : 'Illustrative sessions to profit goal'}</p>
                 <p className={clsx('mt-1 flex items-baseline gap-2 text-5xl font-bold tracking-tight', text)}>
-                  ~{projection.totalDays}
+                  {gap === 0 ? 0 : `~${projection.totalDays}`}
                   <span className="text-xl font-semibold text-zinc-500">trading days</span>
                 </p>
                 <p className={clsx('mt-1.5 text-sm', muted)}>
@@ -150,7 +150,7 @@ export const EdgeTracker: React.FC<EdgeTrackerProps> = ({ edge, projection, winR
             />
             <MiniStat
               label="Avg per day"
-              tip="Expected net P&L per trading day at your current edge."
+              tip="Expected P&L before fees at your current assumptions."
               value={formatCurrency(projection.expectedDailyPnL)}
               sub="at your edge"
               accent="green"
@@ -163,8 +163,8 @@ export const EdgeTracker: React.FC<EdgeTrackerProps> = ({ edge, projection, winR
               accent="blue"
             />
             <MiniStat
-              label="Drawdown buffer"
-              tip="Trailing room below your peak before the account fails."
+              label="Configured drawdown"
+              tip="Saved drawdown allowance, not a live reading of remaining room."
               value={formatCurrency(edge.drawdownLimit)}
               sub={`${projection.lossStreakToFail} loss days to fail`}
               accent="red"
@@ -216,7 +216,7 @@ const RangeTrack: React.FC<{ best: number; realistic: number; dark: boolean; mut
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className={clsx('font-semibold', text)}>{realistic}d</span>
-          <span className={muted}>Realistic</span>
+          <span className={muted}>Modeled</span>
           <span className="h-2 w-2 rounded-full bg-tp-blue" />
         </span>
       </div>

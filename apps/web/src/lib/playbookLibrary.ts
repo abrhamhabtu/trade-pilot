@@ -21,6 +21,7 @@ export type VideoReference = {
   notes: string;
 };
 export type Library = {
+  guideImageId?: string;
   revisions: Revision[];
   screenshots: Evidence[];
   videos: VideoReference[];
@@ -68,12 +69,14 @@ export function videoSource(
           ? u.pathname.slice(1)
           : u.searchParams.get("v") ||
             u.pathname.match(/^\/(?:shorts|embed)\/([\w-]+)/)?.[1];
-      return id && /^[\w-]{11}$/.test(id)
-        ? {
-            provider: "YouTube",
-            src: `https://www.youtube-nocookie.com/embed/${id}`,
-          }
-        : null;
+      if (!id || !/^[\w-]{11}$/.test(id)) return null;
+      const start = youtubeStartSeconds(u);
+      return {
+        provider: "YouTube",
+        src: start
+          ? `https://www.youtube-nocookie.com/embed/${id}?start=${start}`
+          : `https://www.youtube-nocookie.com/embed/${id}`,
+      };
     }
     if (host === "vimeo.com" && /^\/\d+\/?$/.test(u.pathname))
       return {
@@ -86,6 +89,23 @@ export function videoSource(
   } catch {
     return null;
   }
+}
+
+function youtubeStartSeconds(u: URL): number | null {
+  const raw =
+    u.searchParams.get("start") ||
+    u.searchParams.get("t") ||
+    u.hash.match(/[?&]?t=([^&]+)/)?.[1] ||
+    null;
+  if (!raw) return null;
+  if (/^\d+$/.test(raw)) return Number(raw) || null;
+  const match = raw.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);
+  if (!match) return null;
+  const hours = Number(match[1] || 0);
+  const minutes = Number(match[2] || 0);
+  const seconds = Number(match[3] || 0);
+  const total = hours * 3600 + minutes * 60 + seconds;
+  return total > 0 ? total : null;
 }
 export function moveItem<T extends { id: string }>(
   items: T[],

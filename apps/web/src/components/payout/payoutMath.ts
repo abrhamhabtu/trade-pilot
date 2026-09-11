@@ -71,7 +71,7 @@ export const dailyExpectancy = (params: {
   dailyCap: number;
 }): DailyExpectancy => {
   const { riskPerTrade, rewardToRisk, tradesPerDay, winRatePercent, dailyCap } = params;
-  const winRate = Math.min(Math.max(winRatePercent, 1), 99) / 100;
+  const winRate = Math.min(Math.max(winRatePercent, 0), 100) / 100;
   const rawWinDay = riskPerTrade * rewardToRisk * tradesPerDay;
   const winDayPnL = dailyCap > 0 ? Math.min(rawWinDay, dailyCap) : rawWinDay;
   const lossDayPnL = -riskPerTrade * tradesPerDay;
@@ -131,7 +131,7 @@ export const simulatePath = (params: {
     maxDays = 180,
   } = params;
 
-  const winRate = Math.min(Math.max(winRatePercent, 1), 99) / 100;
+  const winRate = Math.min(Math.max(winRatePercent, 0), 100) / 100;
   const { winDayPnL, lossDayPnL, expectedDailyPnL } = dailyExpectancy({
     riskPerTrade,
     rewardToRisk,
@@ -145,7 +145,7 @@ export const simulatePath = (params: {
   let cumulative = startProfit;
   let highWaterMark = startProfit;
   let highestDay = highestDaySoFar;
-  let effectiveTarget = initialTarget;
+  let effectiveTarget = Math.max(initialTarget, profitNeededForConsistency(highestDaySoFar, consistencyPercent));
   const days: SimulatedDay[] = [];
 
   const finish = (
@@ -166,6 +166,8 @@ export const simulatePath = (params: {
     usedExpectancyEstimate,
   });
 
+  if (cumulative >= effectiveTarget) return finish(0, true, false, false);
+
   for (let day = 1; day <= maxDays; day++) {
     const isWin = Math.floor(day * winRate) > Math.floor((day - 1) * winRate);
     const pnl = isWin ? winDayPnL : lossDayPnL;
@@ -174,13 +176,13 @@ export const simulatePath = (params: {
     if (cumulative > highWaterMark) highWaterMark = cumulative;
     if (isWin && pnl > highestDay) {
       highestDay = pnl;
-      effectiveTarget = Math.max(initialTarget, highestDay / (consistencyPercent / 100));
+      effectiveTarget = Math.max(initialTarget, profitNeededForConsistency(highestDay, consistencyPercent));
     }
 
     const cushionLeft = cumulative - (highWaterMark - drawdownLimit);
     days.push({ day, result: isWin ? 'win' : 'loss', pnl, cumulative, cushionLeft, highWaterMark });
 
-    if (cushionLeft < 0) return finish(day, false, true, false);
+    if (cushionLeft <= 0) return finish(day, false, true, false);
     if (cumulative >= effectiveTarget) return finish(day, true, false, false);
   }
 

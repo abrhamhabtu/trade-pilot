@@ -8,18 +8,18 @@ import { useThemeClasses } from './payoutPrimitives';
 // Trader wisdom, framed around the one truth the prop firms bank on: that you'll
 // break your own rules before the math ever fails you. Rotate for a fresh nudge.
 const EDGE_LINES: { quote: string; tag: string }[] = [
-  { quote: 'The firm makes money when you over-trade. Your whole edge is the patience to stop while you are green.', tag: 'Patience' },
-  { quote: "The consistency rule isn't there to stop you — it's the firm admitting that boring, even traders beat them.", tag: 'Consistency' },
-  { quote: 'One oversized win can void a payout. Small, repeatable days are unkillable. Pace to the plan.', tag: 'Discipline' },
-  { quote: "You don't have to be right often. At 1.5R, a 45% win rate still prints over time. Let the math work.", tag: 'Expectancy' },
-  { quote: 'Survive the drawdown today and the payout is just arithmetic after that. Protect the account first.', tag: 'Survival' },
-  { quote: "Most blown accounts aren't bad trades — they're good traders breaking their own rules. Be mechanical.", tag: 'Process' },
-  { quote: 'Scaling accounts beats sizing up. Same risk per trade, multiplied payouts. Copy the plan, not the size.', tag: 'Scale' },
-  { quote: 'Withdraw early and often. A paid trader trades calmer than a hopeful one. Take the money off the table.', tag: 'Payouts' },
-  { quote: 'The house wants you emotional. Stay mechanical and you become the house.', tag: 'Mindset' },
-  { quote: 'Trade the plan, take the payout, reload. Boring is the entire strategy — and boring is what wins.', tag: 'Repeat' },
-  { quote: "Your best day shouldn't be your whole month. Spread the green, clear the rule, keep the payout.", tag: 'Consistency' },
-  { quote: 'Beating a prop firm is not a hot streak — it is showing up, sized small, every single session.', tag: 'Endurance' },
+  { quote: 'No setup is a complete reason to sit out. Your income goal does not need to become today’s trading quota.', tag: 'Patience' },
+  { quote: 'An unusually large winning day can raise the profit needed under a consistency rule. Check the rule before increasing size.', tag: 'Consistency' },
+  { quote: 'Choose the stop from the setup, then size the position to fit your risk budget. A wider stop calls for fewer contracts.', tag: 'Discipline' },
+  { quote: 'A small positive edge can disappear after fees and slippage. Judge the plan using net results.', tag: 'Expectancy' },
+  { quote: 'Protect enough room for the next qualified setup. A slower path can be easier to follow through a losing streak.', tag: 'Survival' },
+  { quote: 'A planned loss is part of trading. Increasing size to win it back changes the plan when emotions are highest.', tag: 'Process' },
+  { quote: 'Copied accounts multiply the same loss. Review total exposure before adding another account.', tag: 'Scale' },
+  { quote: 'Before requesting a payout, check the cushion that will remain after the withdrawal.', tag: 'Payouts' },
+  { quote: 'Score the session on whether you followed your rules. A green result does not make an oversized trade a good decision.', tag: 'Mindset' },
+  { quote: 'Decide your stop time and loss limit before the session. Make stopping a decision you have already made.', tag: 'Repeat' },
+  { quote: 'You do not need to manufacture a green day. Wait for the setup that fits your plan.', tag: 'Consistency' },
+  { quote: 'The next trade is optional. Keeping the account available for tomorrow has value too.', tag: 'Endurance' },
 ];
 
 const initialIndex = () => {

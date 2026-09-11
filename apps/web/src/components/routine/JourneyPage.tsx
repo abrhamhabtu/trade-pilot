@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useAccountStore } from '../../store/accountStore';
 import { useThemeStore } from '../../store/themeStore';
 import { ConsistencyGuardian } from './ConsistencyGuardian';
+import { JourneyGuide } from './JourneyGuide';
 import {
   Trophy,
   TrendingUp,
@@ -66,13 +67,6 @@ export const JourneyPage: React.FC = () => {
   useEffect(() => {
     setQuote(TRADING_QUOTES[Math.floor(Math.random() * TRADING_QUOTES.length)]);
   }, []);
-
-  // Update store when local funded state changes
-  useEffect(() => {
-    if (account && isFunded !== account.isFunded) {
-      updateAccount(account.id, { isFunded });
-    }
-  }, [isFunded, account, updateAccount]);
 
   // Update target, isFunded, and pace when account changes
   useEffect(() => {
@@ -171,7 +165,7 @@ export const JourneyPage: React.FC = () => {
       : 0;
 
     // Qualified if current consistency % is at or below the rule threshold
-    const isQualified = currentConsistencyPercent <= consistencyRule;
+    const isQualified = currentTotalProfit > 0 && currentConsistencyPercent <= consistencyRule;
 
     // Count trading days since payout
     const tradingDaysSincePayout = Object.keys(dailyPnLAfterPayout).length;
@@ -198,8 +192,8 @@ export const JourneyPage: React.FC = () => {
   const currentPnL = calculatedTotalPnL;
   const isGoalHit = currentPnL >= target;
 
-  // If goal is hit, project a stretch goal
-  const projectionTarget = isGoalHit ? currentPnL + (target > 0 ? target : 2000) : target;
+  // Reaching a goal must not silently move the finish line.
+  const projectionTarget = target;
 
   // Generate calendar data based on currentMonth
   const calendarData = useMemo(() => {
@@ -273,7 +267,7 @@ export const JourneyPage: React.FC = () => {
           daysAdded++;
         }
       }
-      calculatedGoalDate = checkDate;
+      calculatedGoalDate = daysAdded >= tradingDaysNeeded ? checkDate : null;
     }
 
     for (let i = 0; i < 42; i++) {
@@ -291,7 +285,7 @@ export const JourneyPage: React.FC = () => {
       // Handle P&L and Projections
       if (isPast || isToday) {
         pnl = actualDailyPnL[dateStr] || 0;
-      } else if (!isWeekend) {
+      } else if (!isWeekend && !bothConditionsMet && target > 0 && (!calculatedGoalDate || currentDate <= calculatedGoalDate)) {
         pnl = dailyTarget;
         isProjected = true;
       }
@@ -336,9 +330,9 @@ export const JourneyPage: React.FC = () => {
 
   // === DUAL-CONDITION PAYOUT QUALIFICATION ===
   // Condition 1: Balance Target — account balance must reach the payout target level
-  const balanceProgress = Math.min(100, Math.max(0, (currentPnL / target) * 100));
+  const balanceProgress = target > 0 ? Math.min(100, Math.max(0, (currentPnL / target) * 100)) : 0;
   const remainingPnL = Math.max(0, target - currentPnL);
-  const balanceTargetMet = currentPnL >= target;
+  const balanceTargetMet = target > 0 && currentPnL >= target;
 
   // Condition 2: Consistency / Minimum Profit — total profit must reach minimum required
   const consistencyProgress = consistencyMetrics.minimumRequiredProfit > 0
@@ -354,6 +348,7 @@ export const JourneyPage: React.FC = () => {
 
   return (
     <div className="p-4 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <JourneyGuide account={account} target={target} consistencyGap={consistencyGap} consistencyMet={consistencyMet} />
 
       {/* 1. HERO HEADER - REDESIGNED WITH INLINE CONTROLS */}
       <div className="relative p-6 rounded-[2rem] overflow-hidden border border-white/5 bg-gradient-to-br from-[#111F35] to-[#111F35] shadow-xl">
@@ -418,8 +413,8 @@ export const JourneyPage: React.FC = () => {
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                 {isPayoutReady ? (
                   <>
-                    <span className="text-lg font-black text-emerald-500 tracking-tighter">Ready</span>
-                    <span className="text-[8px] font-bold text-emerald-500/60 uppercase tracking-widest mt-0.5">Payout</span>
+                    <span className="text-lg font-black text-emerald-500 tracking-tighter">Goals met</span>
+                    <span className="text-[8px] font-bold text-emerald-500/60 uppercase tracking-widest mt-0.5">Review rules</span>
                   </>
                 ) : (
                   <>
@@ -478,7 +473,7 @@ export const JourneyPage: React.FC = () => {
                   }}
                   className={clsx(
                     "flex-1 py-3 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2",
-                    !isFunded ? "bg-zinc-200 text-white shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
+                    !isFunded ? "bg-zinc-200 text-zinc-950 shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
                   )}
                 >
                   <Mountain className="w-3.5 h-3.5" />
@@ -607,10 +602,10 @@ export const JourneyPage: React.FC = () => {
                   <div className="flex flex-col items-end">
                     <div className="flex items-center space-x-2 text-emerald-500">
                       <Trophy className="w-4 h-4" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Target Reach</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">{isPayoutReady ? 'Configured goals' : 'Illustrative goal date'}</span>
                     </div>
                     <div className="text-xl font-bold text-white tracking-tighter">
-                      {calendarData.goalReachedDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {isPayoutReady ? 'Reached' : calendarData.goalReachedDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </div>
                   </div>
                 )}
@@ -754,13 +749,13 @@ export const JourneyPage: React.FC = () => {
                     <span className={clsx(
                       "text-sm font-bold",
                       theme === 'dark' ? "text-zinc-100" : "text-gray-900"
-                    )}>Payout Readiness</span>
+                    )}>Configured Goal Checks</span>
                   </div>
                   <div className={clsx(
                     "px-3 py-1 rounded-full text-xs font-bold text-white",
                     isPayoutReady ? "bg-emerald-500" : "bg-rose-500"
                   )}>
-                    {isPayoutReady ? "Ready" : "Not Ready"}
+                    {isPayoutReady ? "Goals met" : "In progress"}
                   </div>
                 </div>
 
@@ -983,7 +978,7 @@ export const JourneyPage: React.FC = () => {
               <div className="space-y-4">
                 <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em]">Execution Insight</div>
                 <p className="text-xs text-zinc-400 leading-relaxed max-w-[300px] font-medium italic">
-                  "The {pace} approach is about precision over volume. Every single trade should move you closer to the {target.toLocaleString()} target with maximum discipline."
+                  "This calendar assumes the selected daily pace on every projected weekday. Real sessions include losses, flat days and days off. Follow the setup and your loss limit, not a date on the calendar."
                 </p>
               </div>
               <div className="w-16 h-16 rounded-[1.5rem] bg-white/5 flex items-center justify-center border border-white/10">

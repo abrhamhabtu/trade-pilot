@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { Trade } from './tradingStore';
 import { persistence } from '@/lib/persistence';
+import type { RiskSnapshot } from '@/lib/sessionRisk';
 
 // Import history entry
 export interface ImportHistoryEntry {
@@ -52,6 +53,9 @@ export interface Account {
   // Consistency Guardian fields
   originalProfitTarget?: number;
   accountTier?: 'instant' | 'elite';
+  pilotSettings?: import("@/lib/pilot/workspace").PilotSettings;
+  riskSnapshot?: RiskSnapshot;
+  syncSource?: { provider: 'projectx' | 'tradovate-demo' | 'tradovate-live'; remoteId: number; start: string; automatic: boolean; lastSynced?: string };
 }
 
 interface AccountState {
@@ -510,9 +514,10 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         trades: account.trades || [],
       }));
 
-      // Only overwrite store if IDB/localStorage has real (non-demo) accounts
+      // Keep untouched demo placeholders fresh, but restore deliberate Pilot edits.
       const hasRealAccounts = accounts.some(a => a.type !== 'demo');
-      if (!hasRealAccounts) return;
+      const hasPilotEdits = accounts.some(a => a.pilotSettings || a.trades.some(t => t.pilotReview));
+      if (!hasRealAccounts && !hasPilotEdits) return;
 
       const selectedId = persistence.loadSelectedAccountId();
       set({

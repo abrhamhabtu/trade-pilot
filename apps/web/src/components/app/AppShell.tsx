@@ -10,6 +10,7 @@ import { useToastStore } from '@/store/toastStore';
 import { useUIStore } from '@/store/uiStore';
 import { dismissBackupReminder, shouldShowBackupReminder } from '@/hooks/useLocalStorage';
 import clsx from 'clsx';
+import { useCompactSidebar } from '@/hooks/useCompactSidebar';
 
 interface AppShellProps {
   children: ReactNode;
@@ -32,7 +33,7 @@ export function AppShell({
 }: AppShellProps) {
   const { theme } = useThemeStore();
   const { toasts, removeToast } = useToastStore();
-  const { sidebarCollapsed } = useUIStore();
+  const sidebarCollapsed = useCompactSidebar();
   const [showBackupReminder, setShowBackupReminder] = useState(false);
 
   useEffect(() => {
