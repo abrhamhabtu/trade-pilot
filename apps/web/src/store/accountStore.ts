@@ -47,7 +47,11 @@ export interface Account {
   isFunded?: boolean;
   profitTarget?: number;
   startingBalance?: number;
-  pacingPreference?: 'conservative' | 'moderate' | 'aggressive';
+  pacingPreference?: 'conservative' | 'moderate' | 'aggressive' | 'custom';
+  /** $/day used when pacingPreference is 'custom'. */
+  customDailyPace?: number;
+  /** The trader's own focus points shown on Journey. */
+  dailyFocus?: string[];
   consistencyRulePercentage?: number;
   consistencyBasis?: 'profitTarget' | 'currentProfit';
   // Consistency Guardian fields

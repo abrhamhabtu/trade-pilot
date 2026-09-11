@@ -1,1000 +1,979 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { useAccountStore } from '../../store/accountStore';
-import { useThemeStore } from '../../store/themeStore';
-import { ConsistencyGuardian } from './ConsistencyGuardian';
-import { JourneyGuide } from './JourneyGuide';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import clsx from 'clsx';
 import {
-  Trophy,
-  TrendingUp,
-  Shield,
-  Zap,
-  Flame,
   AlertCircle,
-  Mountain,
-  Quote,
-  CheckSquare,
+  ArrowRight,
+  Calculator,
+  CalendarDays,
+  Check,
   ChevronLeft,
   ChevronRight,
   Compass,
+  Flag,
+  Flame,
+  Gauge,
+  Mountain,
+  Pencil,
+  Plus,
+  Quote,
+  RefreshCw,
+  Shield,
   ShieldCheck,
-  RefreshCw
+  Target,
+  Trophy,
+  X,
+  Zap,
 } from 'lucide-react';
-import clsx from 'clsx';
-
-// Helper to format currency
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(value);
-};
+import { useAccountStore, type Account } from '../../store/accountStore';
+import type { Trade } from '../../store/tradingStore';
+import { DEFAULT_SETTINGS } from '@/lib/pilot/workspace';
+import { PositionSizer } from '../playbooks/PositionSizer';
+import { ConsistencyGuardian } from './ConsistencyGuardian';
+import { Bar, Card, CardTitle, MoneyInput, Segmented, StatusPill, usd } from './journeyUi';
 
 const TRADING_QUOTES = [
-  "The goal of a successful trader is to make the best trades. Money is secondary.",
-  "In trading, the impossible happens about every 48 hours.",
-  "The market is a device for transferring money from the impatient to the patient.",
-  "Risk comes from not knowing what you're doing.",
-  "Don't focus on the money; focus on the execution.",
-  "Your stops are your insurance. Don't trade without them.",
-  "The trend is your friend until the end when it bends.",
-  "A loss is only a mistake if you don't learn from it.",
-  "Discipline is the bridge between goals and accomplishment."
+  'The goal of a successful trader is to make the best trades. Money is secondary.',
+  'The market is a device for transferring money from the impatient to the patient.',
+  'Risk comes from not knowing what you’re doing.',
+  'Don’t focus on the money; focus on the execution.',
+  'A loss is only a mistake if you don’t learn from it.',
+  'Discipline is the bridge between goals and accomplishment.',
+  'Boring is profitable. Same setup, same size, same stop.',
 ];
 
-// Daily target configuration
-const PACE_CONFIG = {
-  conservative: { label: 'Conservative', dailyTarget: 150, color: '#00D68F', icon: Shield },
-  moderate: { label: 'Moderate', dailyTarget: 300, color: '#4F9CF9', icon: Zap },
-  aggressive: { label: 'Aggressive', dailyTarget: 600, color: '#FF4868', icon: Flame }
+type Pace = 'conservative' | 'moderate' | 'aggressive' | 'custom';
+const PACE_CONFIG: Record<Exclude<Pace, 'custom'>, { label: string; dailyTarget: number; icon: React.ElementType }> = {
+  conservative: { label: 'Steady', dailyTarget: 150, icon: Shield },
+  moderate: { label: 'Moderate', dailyTarget: 300, icon: Zap },
+  aggressive: { label: 'Fast', dailyTarget: 600, icon: Flame },
 };
+
+const DEFAULT_FOCUS = ['Wait for my A+ setup — no FOMO', 'Respect the hard stop, never move it', 'Check the economic calendar before the open'];
+
+const localDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export const JourneyPage: React.FC = () => {
   const { accounts, selectedAccountId, updateAccount } = useAccountStore();
-  const { theme } = useThemeStore();
-  const account = accounts.find(a => a.id === selectedAccountId) || null;
+  const account = accounts.find((a) => a.id === selectedAccountId) || null;
 
   const [target, setTarget] = useState(account?.profitTarget || 3000);
   const [isFunded, setIsFunded] = useState(account?.isFunded || false);
-  const [pace, setPace] = useState<'conservative' | 'moderate' | 'aggressive'>(account?.pacingPreference || 'moderate');
-  const [quote, setQuote] = useState("");
+  const [pace, setPace] = useState<Pace>(account?.pacingPreference || 'moderate');
+  const [customPace, setCustomPace] = useState(account?.customDailyPace || 250);
+  const [consistencyRule, setConsistencyRule] = useState(account?.consistencyRulePercentage || 30);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [activeTab, setActiveTab] = useState<'overview' | 'consistency'>('overview');
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  useEffect(() => {
-    setQuote(TRADING_QUOTES[Math.floor(Math.random() * TRADING_QUOTES.length)]);
-  }, []);
-
-  // Update target, isFunded, and pace when account changes
   useEffect(() => {
     if (account) {
       setTarget(account.profitTarget || 3000);
       setIsFunded(account.isFunded || false);
       setPace(account.pacingPreference || 'moderate');
-    }
-  }, [account]);
-
-  // Group existing trades by date
-  const [consistencyRule, setConsistencyRule] = useState(account?.consistencyRulePercentage || 30);
-
-  // Update consistency rule state when account changes
-  useEffect(() => {
-    if (account) {
+      setCustomPace(account.customDailyPace || 250);
       setConsistencyRule(account.consistencyRulePercentage || 30);
     }
   }, [account]);
 
-  // Find the most recent payout date - consistency resets after a payout
+  const dailyTarget = pace === 'custom' ? Math.max(1, customPace) : PACE_CONFIG[pace].dailyTarget;
+
+  // Most recent payout — consistency resets after a payout.
   const lastPayoutDate = useMemo(() => {
-    if (!account?.balanceAdjustments) return null;
-    
-    const payouts = account.balanceAdjustments
-      .filter(adj => adj.type === 'payout')
-      .sort((a, b) => b.date.localeCompare(a.date)); // Sort descending
-    
-    return payouts.length > 0 ? payouts[0].date : null;
+    const payouts = (account?.balanceAdjustments ?? []).filter((a) => a.type === 'payout').sort((a, b) => b.date.localeCompare(a.date));
+    return payouts.length ? payouts[0].date : null;
   }, [account?.balanceAdjustments]);
 
-  // Filter trades to only include those AFTER the last payout (for consistency calculation)
   const tradesAfterPayout = useMemo(() => {
     if (!account) return [];
     if (!lastPayoutDate) return account.trades;
-    
-    return account.trades.filter(trade => {
-      const tradeDate = trade.date ? trade.date.split('T')[0] : '';
-      return tradeDate > lastPayoutDate; // Only trades after the payout
-    });
+    return account.trades.filter((t) => (t.date ? t.date.split('T')[0] : '') > lastPayoutDate);
   }, [account, lastPayoutDate]);
 
-  // Daily P&L from ALL trades (for calendar display)
-  const actualDailyPnL = useMemo(() => {
-    if (!account) return {};
-    return account.trades.reduce((acc, trade) => {
-      // Ensure we only look at the date part, ignoring time
-      const date = trade.date ? trade.date.split('T')[0] : 'unknown';
-      acc[date] = (acc[date] || 0) + trade.netPL;
-      return acc;
-    }, {} as Record<string, number>);
-  }, [account]);
+  const byDay = (trades: Trade[]) =>
+    trades.reduce(
+      (acc, t) => {
+        const d = t.date ? t.date.split('T')[0] : 'unknown';
+        acc[d] = (acc[d] || 0) + t.netPL;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+  const actualDailyPnL = useMemo(() => (account ? byDay(account.trades) : {}), [account]);
+  const dailyPnLAfterPayout = useMemo(() => byDay(tradesAfterPayout), [tradesAfterPayout]);
+  const pnlAfterPayout = useMemo(() => tradesAfterPayout.reduce((s, t) => s + t.netPL, 0), [tradesAfterPayout]);
 
-  // Daily P&L from trades AFTER the last payout (for consistency calculation)
-  const dailyPnLAfterPayout = useMemo(() => {
-    if (!tradesAfterPayout.length) return {};
-    return tradesAfterPayout.reduce((acc, trade) => {
-      const date = trade.date ? trade.date.split('T')[0] : 'unknown';
-      acc[date] = (acc[date] || 0) + trade.netPL;
-      return acc;
-    }, {} as Record<string, number>);
-  }, [tradesAfterPayout]);
-
-  // Total P&L from trades after the last payout (for consistency)
-  const pnlAfterPayout = useMemo(() => {
-    return tradesAfterPayout.reduce((sum, t) => sum + t.netPL, 0);
-  }, [tradesAfterPayout]);
-
-  // Use account balance which includes adjustments (payouts, deposits)
-  // This ensures Journey matches the Accounts page and Dashboard
-  const calculatedTotalPnL = useMemo(() => {
-    if (!account) return 0;
-    // Use account.balance which already includes trades + adjustments
-    return account.balance;
-  }, [account]);
-
-  // Consistency Calculations - ONLY uses trades AFTER the last payout
-  // Formula: Minimum Required Profit = Highest Day / Consistency Rule %
-  // Current Consistency % = (Highest Day / Current Total Profit) * 100
-  // Qualified when Current Consistency % <= Consistency Rule %
-  const consistencyMetrics = useMemo(() => {
-    // Use dailyPnLAfterPayout for consistency - this resets after each payout
-    const dailyProfits = Object.values(dailyPnLAfterPayout);
-    const highestDay = dailyProfits.length > 0 ? Math.max(0, ...dailyProfits) : 0;
-
-    // Current Total Profit = P&L since last payout (not all-time)
-    // This ensures consistency resets after a payout
+  // Consistency: min required profit = highest day / rule %; qualified when highest/total ≤ rule.
+  const consistency = useMemo(() => {
+    const days = Object.values(dailyPnLAfterPayout);
+    const highestDay = days.length ? Math.max(0, ...days) : 0;
     const currentTotalProfit = Math.max(0, pnlAfterPayout);
-
-    // Minimum Required Profit to Qualify = Highest Day / (Rule% / 100)
     const minimumRequiredProfit = highestDay / (consistencyRule / 100);
-
-    // Current Consistency % = (Highest Day / Current Total Profit) * 100
-    const currentConsistencyPercent = currentTotalProfit > 0
-      ? (highestDay / currentTotalProfit) * 100
-      : 0;
-
-    // Qualified if current consistency % is at or below the rule threshold
+    const currentConsistencyPercent = currentTotalProfit > 0 ? (highestDay / currentTotalProfit) * 100 : 0;
     const isQualified = currentTotalProfit > 0 && currentConsistencyPercent <= consistencyRule;
-
-    // Count trading days since payout
-    const tradingDaysSincePayout = Object.keys(dailyPnLAfterPayout).length;
-
     return {
       highestDay,
       currentTotalProfit,
       minimumRequiredProfit,
       currentConsistencyPercent,
       isQualified,
-      consistencyRule,
-      lastPayoutDate,
-      tradingDaysSincePayout
+      tradingDaysSincePayout: Object.keys(dailyPnLAfterPayout).length,
     };
-  }, [dailyPnLAfterPayout, consistencyRule, pnlAfterPayout, lastPayoutDate]);
+  }, [dailyPnLAfterPayout, consistencyRule, pnlAfterPayout]);
 
-  const handleConsistencyChange = (rule: number) => {
-    setConsistencyRule(rule);
-    if (account) {
-      updateAccount(account.id, { consistencyRulePercentage: rule });
-    }
-  };
+  const currentPnL = account?.balance ?? 0;
 
-  const currentPnL = calculatedTotalPnL;
-  const isGoalHit = currentPnL >= target;
-
-  // Reaching a goal must not silently move the finish line.
-  const projectionTarget = target;
-
-  // Generate calendar data based on currentMonth
-  const calendarData = useMemo(() => {
+  const calendar = useMemo(() => {
     const days = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    // Calculate the start of the grid (always start from Monday of the first week of currentMonth)
     const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    const firstDayOfWeek = monthStart.getDay(); // 0 is Sunday, 1 is Monday
-    const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // Days to subtract to get to Monday
+    const offset = (monthStart.getDay() + 6) % 7; // Monday-first grid
+    const start = new Date(monthStart);
+    start.setDate(monthStart.getDate() - offset);
 
-    const startDate = new Date(monthStart);
-    startDate.setDate(monthStart.getDate() - startOffset);
-
-    // Fixed 42 days (6 weeks) to maintain consistent grid height
-    const dailyTarget = PACE_CONFIG[pace].dailyTarget;
-
-    // Find the last trade date (most recent day with actual trades)
-    const tradeDates = Object.keys(actualDailyPnL).filter(d => d !== 'unknown').sort();
-    const lastTradeDate = tradeDates.length > 0
-      ? new Date(tradeDates[tradeDates.length - 1] + 'T12:00:00')
-      : new Date(today);
+    const tradeDates = Object.keys(actualDailyPnL).filter((d) => d !== 'unknown').sort();
+    const lastTradeDate = tradeDates.length ? new Date(`${tradeDates[tradeDates.length - 1]}T12:00:00`) : new Date(today);
     lastTradeDate.setHours(0, 0, 0, 0);
 
-    // Calculate Goal Date Projection — BOTH conditions must be met
-    // Condition 1: Balance must reach profit target
-    const balanceRemaining = Math.max(0, projectionTarget - currentPnL);
-    const balanceDaysNeeded = balanceRemaining > 0 ? Math.ceil(balanceRemaining / dailyTarget) : 0;
+    // Goal needs BOTH conditions: balance target and consistency minimum.
+    const balanceDays = Math.ceil(Math.max(0, target - currentPnL) / dailyTarget);
+    const consistencyDays = Math.ceil(Math.max(0, consistency.minimumRequiredProfit - consistency.currentTotalProfit) / dailyTarget);
+    const tradingDaysNeeded = Math.max(balanceDays, consistencyDays);
+    const bothMet = currentPnL >= target && consistency.isQualified && consistency.currentTotalProfit >= consistency.minimumRequiredProfit;
 
-    // Condition 2: Total profit must reach consistency minimum required profit
-    const cMinRequired = consistencyMetrics.minimumRequiredProfit;
-    const cCurrentProfit = consistencyMetrics.currentTotalProfit;
-    const consistencyRemaining = Math.max(0, cMinRequired - cCurrentProfit);
-    const consistencyDaysNeeded = consistencyRemaining > 0 ? Math.ceil(consistencyRemaining / dailyTarget) : 0;
-
-    // Goal needs the LATER of both conditions (since both must be met)
-    const tradingDaysNeeded = Math.max(balanceDaysNeeded, consistencyDaysNeeded);
-
-    // Both conditions currently met?
-    const bothConditionsMet = currentPnL >= projectionTarget &&
-      consistencyMetrics.isQualified && cCurrentProfit >= cMinRequired;
-
-    let calculatedGoalDate: Date | null = null;
-    if (bothConditionsMet) {
-      // Goal already hit - find the date when we crossed the target
-      // Walk through trades chronologically to find when balance target was reached
-      let runningTotal = 0;
-      for (const dateStr of tradeDates) {
-        runningTotal += actualDailyPnL[dateStr] || 0;
-        if (runningTotal >= target) {
-          calculatedGoalDate = new Date(dateStr + 'T12:00:00');
-          calculatedGoalDate.setHours(0, 0, 0, 0);
+    let goalDate: Date | null = null;
+    if (bothMet) {
+      let running = 0;
+      for (const d of tradeDates) {
+        running += actualDailyPnL[d] || 0;
+        if (running >= target) {
+          goalDate = new Date(`${d}T00:00:00`);
           break;
         }
       }
-      // Fallback to last trade date if not found
-      if (!calculatedGoalDate) {
-        calculatedGoalDate = new Date(lastTradeDate);
-      }
+      goalDate = goalDate || new Date(lastTradeDate);
     } else if (tradingDaysNeeded > 0) {
-      // Project future goal date starting from last trade date (or today if no trades)
-      const startFrom = lastTradeDate > today ? lastTradeDate : today;
-      let daysAdded = 0;
-      const checkDate = new Date(startFrom);
-      // Safety cap at 365 days to prevent infinite loops
-      while (daysAdded < tradingDaysNeeded && daysAdded < 365) {
-        checkDate.setDate(checkDate.getDate() + 1);
-        const day = checkDate.getDay();
-        if (day !== 0 && day !== 6) { // Skip weekends (Sat=6, Sun=0)
-          daysAdded++;
-        }
+      const check = new Date(lastTradeDate > today ? lastTradeDate : today);
+      let added = 0;
+      while (added < tradingDaysNeeded && added < 365) {
+        check.setDate(check.getDate() + 1);
+        if (check.getDay() !== 0 && check.getDay() !== 6) added++;
       }
-      calculatedGoalDate = daysAdded >= tradingDaysNeeded ? checkDate : null;
+      goalDate = added >= tradingDaysNeeded ? check : null;
     }
 
+    const maxAbs = Math.max(1, ...Object.values(actualDailyPnL).map(Math.abs));
     for (let i = 0; i < 42; i++) {
-      const currentDate = new Date(startDate);
-      currentDate.setDate(startDate.getDate() + i);
-      const dateStr = currentDate.toISOString().split('T')[0];
-      const isPast = currentDate < today;
-      const isToday = currentDate.getTime() === today.getTime();
-      const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
-      const isCurrentMonth = currentDate.getMonth() === currentMonth.getMonth();
-
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      const dateStr = localDate(date);
+      const isPast = date < today;
+      const isToday = date.getTime() === today.getTime();
+      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
       let pnl = 0;
       let isProjected = false;
-
-      // Handle P&L and Projections
-      if (isPast || isToday) {
-        pnl = actualDailyPnL[dateStr] || 0;
-      } else if (!isWeekend && !bothConditionsMet && target > 0 && (!calculatedGoalDate || currentDate <= calculatedGoalDate)) {
+      if (isPast || isToday) pnl = actualDailyPnL[dateStr] || 0;
+      else if (!isWeekend && !bothMet && target > 0 && (!goalDate || date <= goalDate)) {
         pnl = dailyTarget;
         isProjected = true;
       }
-
-      // Check if this date matches our calculated goal date
-      const isGoalDay = calculatedGoalDate &&
-        currentDate.getDate() === calculatedGoalDate.getDate() &&
-        currentDate.getMonth() === calculatedGoalDate.getMonth() &&
-        currentDate.getFullYear() === calculatedGoalDate.getFullYear();
-
       days.push({
-        date: currentDate,
+        date,
         dateStr,
         pnl,
         isPast,
         isToday,
         isProjected,
         isWeekend,
-        isCurrentMonth,
-        isGoalDay
+        isCurrentMonth: date.getMonth() === currentMonth.getMonth(),
+        isGoalDay: !!goalDate && localDate(goalDate) === dateStr,
+        intensity: Math.min(1, Math.abs(pnl) / maxAbs),
       });
     }
-    return { days, goalReachedDay: calculatedGoalDate };
-  }, [actualDailyPnL, pace, projectionTarget, currentPnL, currentMonth, target, consistencyMetrics]);
-
-  const navigateMonth = (direction: number) => {
-    const newDate = new Date(currentMonth);
-    newDate.setMonth(currentMonth.getMonth() + direction);
-    setCurrentMonth(newDate);
-  };
+    // Trim a trailing week that belongs entirely to next month.
+    const trimmed = days.slice(35).every((d) => !d.isCurrentMonth) ? days.slice(0, 35) : days;
+    return { days: trimmed, goalDate, tradingDaysNeeded, bothMet };
+  }, [actualDailyPnL, dailyTarget, target, currentPnL, currentMonth, consistency]);
 
   if (!account) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
-        <div className="w-16 h-16 rounded-2xl bg-[#172035] flex items-center justify-center mb-4">
-          <AlertCircle className="w-8 h-8 text-zinc-400" />
+      <div className="flex h-[60vh] flex-col items-center justify-center px-4 text-center">
+        <div className="mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-tp-card">
+          <AlertCircle className="h-8 w-8 text-zinc-400" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">No Account Selected</h2>
+        <h2 className="text-xl font-semibold text-zinc-50">No account selected</h2>
+        <Link href="/app/accounts" className="mt-3 text-sm font-medium text-tp-green hover:underline">
+          Choose an account →
+        </Link>
       </div>
     );
   }
 
-  // === DUAL-CONDITION PAYOUT QUALIFICATION ===
-  // Condition 1: Balance Target — account balance must reach the payout target level
+  // Dual-condition payout qualification
   const balanceProgress = target > 0 ? Math.min(100, Math.max(0, (currentPnL / target) * 100)) : 0;
   const remainingPnL = Math.max(0, target - currentPnL);
-  const balanceTargetMet = target > 0 && currentPnL >= target;
+  const balanceMet = target > 0 && currentPnL >= target;
+  const consistencyProgress =
+    consistency.minimumRequiredProfit > 0 ? Math.min(100, Math.max(0, (consistency.currentTotalProfit / consistency.minimumRequiredProfit) * 100)) : 0;
+  const consistencyGap = Math.max(0, consistency.minimumRequiredProfit - consistency.currentTotalProfit);
+  const consistencyMet = consistency.isQualified && consistency.currentTotalProfit >= consistency.minimumRequiredProfit;
+  const payoutReady = balanceMet && consistencyMet;
 
-  // Condition 2: Consistency / Minimum Profit — total profit must reach minimum required
-  const consistencyProgress = consistencyMetrics.minimumRequiredProfit > 0
-    ? Math.min(100, Math.max(0, (consistencyMetrics.currentTotalProfit / consistencyMetrics.minimumRequiredProfit) * 100))
-    : 0;
-  const consistencyGap = Math.max(0, consistencyMetrics.minimumRequiredProfit - consistencyMetrics.currentTotalProfit);
-  const consistencyMet = consistencyMetrics.isQualified && consistencyMetrics.currentTotalProfit >= consistencyMetrics.minimumRequiredProfit;
-
-  // Combined: BOTH conditions must be met for payout qualification
-  const isPayoutReady = balanceTargetMet && consistencyMet;
-  // Progress ring shows minimum of both (since both must reach 100%)
-  const progressPercent = Math.min(balanceProgress, consistencyProgress);
+  const save = (patch: Partial<Account>) => updateAccount(account.id, patch);
+  const selectedTrades = selectedDay ? account.trades.filter((t) => t.date?.startsWith(selectedDay)) : [];
 
   return (
-    <div className="p-4 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <JourneyGuide account={account} target={target} consistencyGap={consistencyGap} consistencyMet={consistencyMet} />
+    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+      {/* Header */}
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-tp-green/25 to-tp-blue/20 ring-1 ring-inset ring-white/10">
+            <Compass className="h-5 w-5 text-tp-green" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold leading-tight text-zinc-50">Journey</h1>
+            <p className="text-xs text-zinc-500">Your road to {isFunded ? 'the next payout' : 'passing the evaluation'} · {account.name}</p>
+          </div>
+        </div>
+        <Segmented
+          value={isFunded ? 'funded' : 'challenge'}
+          onChange={(v) => {
+            setIsFunded(v === 'funded');
+            save({ isFunded: v === 'funded' });
+          }}
+          options={[
+            { value: 'challenge', label: <><Mountain className="h-4 w-4" /> Evaluation</> },
+            { value: 'funded', label: <><Trophy className="h-4 w-4" /> Funded</> },
+          ]}
+        />
+      </header>
 
-      {/* 1. HERO HEADER - REDESIGNED WITH INLINE CONTROLS */}
-      <div className="relative p-6 rounded-[2rem] overflow-hidden border border-white/5 bg-gradient-to-br from-[#111F35] to-[#111F35] shadow-xl">
-        <div className={clsx(
-          "absolute -right-20 -top-20 w-64 h-64 blur-[100px] rounded-full opacity-10 transition-all duration-1000",
-          isFunded ? "bg-emerald-500" : "bg-zinc-200"
-        )} />
+      <MissionHero
+        account={account}
+        balance={currentPnL}
+        target={target}
+        setTarget={(v) => {
+          setTarget(v);
+          save({ profitTarget: v });
+        }}
+        balanceProgress={balanceProgress}
+        consistencyProgress={consistencyProgress}
+        balanceMet={balanceMet}
+        consistencyMet={consistencyMet}
+        payoutReady={payoutReady}
+        remaining={remainingPnL}
+        consistencyGap={consistencyGap}
+        daysNeeded={calendar.tradingDaysNeeded}
+        goalDate={calendar.goalDate}
+        dailyTarget={dailyTarget}
+        isFunded={isFunded}
+      />
 
-        <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-
-          {/* LEFT: Dual Progress Ring */}
-          <div className="lg:col-span-3 flex items-center justify-center lg:justify-start pl-8">
-            <div className="relative w-32 h-32 flex items-center justify-center group">
-              {/* Glow Effect */}
-              <div className={clsx(
-                "absolute inset-0 rounded-full blur-2xl opacity-20 group-hover:opacity-30 transition-opacity duration-500",
-                isPayoutReady ? "bg-emerald-500" : "bg-zinc-200"
-              )} />
-
-              <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 100 100">
-                {/* Outer Ring Background */}
-                <circle
-                  cx="50" cy="50" r="42"
-                  stroke="currentColor" strokeWidth="6"
-                  fill="transparent"
-                  className="text-[#1E2F4A]"
-                />
-                {/* Outer Ring: Balance Progress */}
-                <circle
-                  cx="50" cy="50" r="42"
-                  stroke="currentColor" strokeWidth="6"
-                  fill="transparent"
-                  strokeDasharray={264}
-                  strokeDashoffset={264 - (264 * balanceProgress) / 100}
-                  className={clsx(
-                    "transition-all duration-1000 ease-out",
-                    balanceTargetMet ? "text-emerald-500" : "text-zinc-400"
-                  )}
-                  strokeLinecap="round"
-                />
-                {/* Inner Ring Background */}
-                <circle
-                  cx="50" cy="50" r="33"
-                  stroke="currentColor" strokeWidth="5"
-                  fill="transparent"
-                  className="text-[#1E2F4A]"
-                />
-                {/* Inner Ring: Consistency Progress */}
-                <circle
-                  cx="50" cy="50" r="33"
-                  stroke="currentColor" strokeWidth="5"
-                  fill="transparent"
-                  strokeDasharray={207}
-                  strokeDashoffset={207 - (207 * consistencyProgress) / 100}
-                  className={clsx(
-                    "transition-all duration-1000 ease-out",
-                    consistencyMet ? "text-emerald-500" : "text-[#F59E0B]"
-                  )}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                {isPayoutReady ? (
-                  <>
-                    <span className="text-lg font-black text-emerald-500 tracking-tighter">Goals met</span>
-                    <span className="text-[8px] font-bold text-emerald-500/60 uppercase tracking-widest mt-0.5">Review rules</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-2xl font-black text-white tracking-tighter">{Math.min(balanceProgress, consistencyProgress).toFixed(0)}%</span>
-                    <span className="text-[8px] font-bold text-[#9CA3AF] uppercase tracking-widest mt-0.5">Both Req.</span>
-                  </>
+      {/* Tabs */}
+      <nav aria-label="Journey sections" className="flex gap-1 border-b border-white/[0.06]">
+        {([
+          { id: 'overview', label: 'Overview', icon: Compass },
+          { id: 'consistency', label: 'Consistency Guardian', icon: ShieldCheck },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            aria-current={activeTab === t.id ? 'page' : undefined}
+            className={clsx(
+              '-mb-px inline-flex items-center gap-2 border-b-2 px-3 pb-3 pt-1 text-sm font-medium',
+              activeTab === t.id ? 'border-tp-green text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-200',
+            )}
+          >
+            <t.icon className="h-4 w-4" />
+            {t.label}
+            {t.id === 'consistency' && (
+              <span
+                className={clsx(
+                  'rounded-full px-1.5 text-[11px] font-semibold tabular-nums',
+                  consistency.currentConsistencyPercent <= consistencyRule ? 'bg-tp-green/15 text-tp-green' : 'bg-tp-red/15 text-tp-red',
                 )}
-              </div>
-            </div>
-          </div>
+              >
+                {consistency.currentConsistencyPercent.toFixed(0)}%
+              </span>
+            )}
+          </button>
+        ))}
+      </nav>
 
-          {/* CENTER: Account Info */}
-          <div className="lg:col-span-5 space-y-4">
-            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-none italic">
-              {account.name}
-            </h1>
-            <div className="flex items-center space-x-6 text-white">
-              <div>
-                <div className="text-[9px] font-black text-[#6B7280] uppercase tracking-[0.2em] mb-1">Balance</div>
-                <div className="text-2xl font-black tabular-nums tracking-tight">${currentPnL.toLocaleString()}</div>
-              </div>
-              <div className="w-px h-8 bg-[#172035]" />
-              <div>
-                <div className="text-[9px] font-black text-[#6B7280] uppercase tracking-[0.2em] mb-1">Target</div>
-                <div className="relative group flex items-center">
-                  <span className="text-2xl font-black text-emerald-500 mr-1">$</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={target.toString()}
-                    onChange={(e) => {
-                      const cleaned = e.target.value.replace(/[^0-9]/g, '');
-                      const val = parseInt(cleaned, 10) || 0;
-                      setTarget(val);
-                      updateAccount(account.id, { profitTarget: val });
-                    }}
-                    className="w-32 bg-transparent text-2xl font-black text-emerald-500 tabular-nums focus:outline-none placeholder-[#00D68F]/50"
-                  />
-                  {/* Invisible overlay to hint editability on hover */}
-                  <div className="absolute inset-0 border-b-2 border-emerald-500/30/0 group-hover:border-emerald-500/30/20 transition-colors pointer-events-none" />
-                </div>
-              </div>
-            </div>
-          </div>
+      {activeTab === 'overview' ? (
+        <div className="space-y-6">
+          <GamePlan
+            account={account}
+            pace={pace}
+            setPace={(p) => {
+              setPace(p);
+              save({ pacingPreference: p });
+            }}
+            customPace={customPace}
+            setCustomPace={(v) => {
+              setCustomPace(v);
+              save({ customDailyPace: v });
+            }}
+            dailyTarget={dailyTarget}
+            highestDay={consistency.highestDay}
+            remaining={Math.max(remainingPnL, consistencyGap)}
+          />
 
-          {/* RIGHT: Inline Controls */}
-          <div className="lg:col-span-4 space-y-5">
-            {/* Account Type Toggle */}
-            <div className="space-y-2">
-              <label className="text-[8px] font-black text-[#4B5563] uppercase tracking-[0.2em] ml-1">Account Status</label>
-              <div className="flex bg-[#0D1628] p-1.5 rounded-2xl border border-white/5">
-                <button
-                  onClick={() => {
-                    setIsFunded(false);
-                    updateAccount(account.id, { isFunded: false });
-                  }}
-                  className={clsx(
-                    "flex-1 py-3 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2",
-                    !isFunded ? "bg-zinc-200 text-zinc-950 shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
-                  )}
-                >
-                  <Mountain className="w-3.5 h-3.5" />
-                  Challenge
-                </button>
-                <button
-                  onClick={() => {
-                    setIsFunded(true);
-                    updateAccount(account.id, { isFunded: true });
-                  }}
-                  className={clsx(
-                    "flex-1 py-3 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2",
-                    isFunded ? "bg-emerald-500 text-black shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
-                  )}
-                >
-                  <Trophy className="w-3.5 h-3.5" />
-                  Funded
-                </button>
-              </div>
-            </div>
+          <div className="grid gap-6 xl:grid-cols-12">
+            {/* Roadmap calendar */}
+            <Card className="xl:col-span-8">
+              <CardTitle
+                icon={CalendarDays}
+                title="Roadmap"
+                subtitle={`Real days in colour, projected days at ${usd(dailyTarget)}/day dashed.`}
+                action={
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center rounded-xl bg-black/25 p-1 ring-1 ring-inset ring-white/[0.07]">
+                      <button
+                        aria-label="Previous month"
+                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+                        className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => setCurrentMonth(new Date())} className="px-2 text-sm font-semibold text-zinc-100">
+                        {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </button>
+                      <button
+                        aria-label="Next month"
+                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+                        className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                }
+              />
 
-            {/* Pacing Strategy */}
-            <div className="space-y-2">
-              <label className="text-[8px] font-black text-[#4B5563] uppercase tracking-[0.2em] ml-1">Trading Pace</label>
-              <div className="flex bg-[#0D1628] p-1.5 rounded-2xl border border-white/5">
-                {(['conservative', 'moderate', 'aggressive'] as const).map((p) => {
-                  const Icon = PACE_CONFIG[p].icon;
+              <div className="grid grid-cols-[repeat(5,minmax(0,1fr))_minmax(0,0.45fr)_minmax(0,0.45fr)] gap-1.5">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
+                  <div key={d} className="pb-1 text-center text-xs font-medium text-zinc-500">
+                    {d}
+                  </div>
+                ))}
+                {calendar.days.map((day) => {
+                  const hasTrades = !day.isProjected && day.pnl !== 0;
+                  const active = selectedDay === day.dateStr;
+                  const tint = hasTrades
+                    ? day.pnl > 0
+                      ? `rgba(0,214,143,${0.08 + day.intensity * 0.32})`
+                      : `rgba(255,72,104,${0.08 + day.intensity * 0.32})`
+                    : undefined;
                   return (
                     <button
-                      key={p}
-                      onClick={() => {
-                        setPace(p);
-                        updateAccount(account.id, { pacingPreference: p });
-                      }}
+                      key={day.dateStr}
+                      type="button"
+                      disabled={!hasTrades}
+                      onClick={() => setSelectedDay(active ? null : day.dateStr)}
+                      title={hasTrades ? `${day.date.toDateString()} · ${usd(day.pnl, true)}` : day.isProjected ? `Projected ${usd(day.pnl)}` : undefined}
+                      style={tint ? { background: tint } : undefined}
                       className={clsx(
-                        "flex-1 py-3 rounded-xl text-[8px] font-black tracking-wider uppercase transition-all flex items-center justify-center gap-1.5",
-                        pace === p ? "bg-white text-zinc-950 shadow-lg scale-[1.02]" : "text-[#6B7280] hover:text-[#9CA3AF]"
+                        'relative flex h-[74px] flex-col justify-between rounded-xl p-2 text-left transition-all',
+                        !day.isCurrentMonth && 'opacity-30',
+                        day.isWeekend && !hasTrades && 'bg-white/[0.015]',
+                        day.isGoalDay && 'bg-gradient-to-br from-tp-green to-[#3fe0b0] text-[#0D1628] shadow-[0_0_30px_-6px_rgba(0,214,143,0.7)]',
+                        day.isProjected && !day.isGoalDay && 'border border-dashed border-white/[0.1]',
+                        !day.isProjected && !hasTrades && !day.isWeekend && !day.isGoalDay && 'bg-white/[0.03]',
+                        day.isToday && 'ring-2 ring-tp-blue/70',
+                        active && 'ring-2 ring-white/70',
+                        hasTrades && 'cursor-pointer hover:brightness-125',
                       )}
                     >
-                      <Icon className="w-3.5 h-3.5" style={{ color: pace === p ? 'black' : PACE_CONFIG[p].color }} />
-                      {p}
+                      <span className={clsx('text-xs font-medium tabular-nums', day.isGoalDay ? 'text-[#0D1628]' : day.isToday ? 'text-tp-blue' : 'text-zinc-500')}>
+                        {day.date.getDate()}
+                      </span>
+                      {day.isGoalDay ? (
+                        <span className="flex items-center gap-1 text-xs font-bold">
+                          <Trophy className="h-3.5 w-3.5" /> Goal
+                        </span>
+                      ) : hasTrades ? (
+                        <span className={clsx('truncate text-[13px] font-semibold tabular-nums', day.pnl > 0 ? 'text-tp-green' : 'text-tp-red')}>
+                          {day.pnl > 0 ? '+' : '−'}
+                          {usd(Math.abs(day.pnl))}
+                        </span>
+                      ) : day.isProjected && !day.isWeekend ? (
+                        <span className="truncate text-xs tabular-nums text-zinc-600">+{usd(day.pnl)}</span>
+                      ) : null}
                     </button>
                   );
                 })}
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* TAB NAVIGATION */}
-      <div className={clsx(
-        "flex p-1.5 rounded-2xl border",
-        theme === 'dark' ? "bg-[#0D1628] border-white/5" : "bg-gray-100 border-gray-200"
-      )}>
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={clsx(
-            "flex-1 py-3 rounded-xl text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2",
-            activeTab === 'overview'
-              ? (theme === 'dark' ? "bg-[#172035] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
-              : (theme === 'dark' ? "text-[#6B7280] hover:text-[#9CA3AF]" : "text-gray-500 hover:text-gray-700")
-          )}
-        >
-          <Compass className="w-4 h-4" />
-          Overview
-        </button>
-        <button
-          onClick={() => setActiveTab('consistency')}
-          className={clsx(
-            "flex-1 py-3 rounded-xl text-sm font-bold tracking-wide transition-all flex items-center justify-center gap-2",
-            activeTab === 'consistency'
-              ? (theme === 'dark' ? "bg-[#172035] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm")
-              : (theme === 'dark' ? "text-[#6B7280] hover:text-[#9CA3AF]" : "text-gray-500 hover:text-gray-700")
-          )}
-        >
-          <ShieldCheck className="w-4 h-4" />
-          Consistency Guardian
-        </button>
-      </div>
-
-      {/* TAB CONTENT */}
-      {activeTab === 'overview' ? (
-        <>
-          {/* 2. CALENDAR & WIDGETS SECTION */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-            {/* PROGRESSIVE ROADMAP CALENDAR */}
-            <div className="lg:col-span-8 space-y-6 bg-[#111F35]/60 p-8 rounded-[2.5rem] border border-white/5/50 backdrop-blur-xl shadow-2xl">
-              <div className="flex items-center justify-between px-2">
-                <div className="flex items-center space-x-6">
-                  <div className="flex flex-col">
-                    <h2 className="text-3xl font-bold text-white tracking-tighter uppercase italic leading-none">
-                      {currentMonth.toLocaleDateString('en-US', { month: 'long' })}
-                    </h2>
-                    <span className="text-[10px] font-mono text-[#4B5563] tracking-[0.4em] uppercase mt-1">
-                      {currentMonth.getFullYear()} Roadmap
-                    </span>
-                  </div>
-
-                  <div className="flex items-center bg-white/5 rounded-2xl border border-white/10 p-1 backdrop-blur-md">
-                    <button
-                      onClick={() => navigateMonth(-1)}
-                      className="p-2 hover:bg-white/10 rounded-xl transition-all text-white/40 hover:text-white"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <div className="w-px h-4 bg-white/10 mx-1" />
-                    <button
-                      onClick={() => setCurrentMonth(new Date())}
-                      className="px-4 text-[10px] font-bold uppercase text-white/40 hover:text-zinc-400 transition-colors tracking-widest"
-                    >
-                      Current
-                    </button>
-                    <div className="w-px h-4 bg-white/10 mx-1" />
-                    <button
-                      onClick={() => navigateMonth(1)}
-                      className="p-2 hover:bg-white/10 rounded-xl transition-all text-white/40 hover:text-white"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {calendarData.goalReachedDay && (
-                  <div className="flex flex-col items-end">
-                    <div className="flex items-center space-x-2 text-emerald-500">
-                      <Trophy className="w-4 h-4" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">{isPayoutReady ? 'Configured goals' : 'Illustrative goal date'}</span>
-                    </div>
-                    <div className="text-xl font-bold text-white tracking-tighter">
-                      {isPayoutReady ? 'Reached' : calendarData.goalReachedDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </div>
-                  </div>
-                )}
+              {/* Legend */}
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-zinc-500">
+                <Legend swatch="bg-tp-green/40" label="Green day" />
+                <Legend swatch="bg-tp-red/40" label="Red day" />
+                <Legend swatch="border border-dashed border-white/30" label="Projected" />
+                <Legend swatch="bg-tp-green" label="Goal date" />
+                <Legend swatch="ring-2 ring-tp-blue/70" label="Today" />
+                <span className="ml-auto">Click a coloured day to see its trades</span>
               </div>
 
-              <div className="grid grid-cols-7 gap-4">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                  <div key={day} className="text-center text-[10px] font-bold text-[#4B5563] uppercase tracking-[0.3em] pb-2">
-                    {day}
+              {/* Day detail */}
+              {selectedDay && (
+                <div className="mt-4 rounded-xl border border-white/[0.08] bg-black/20 p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-zinc-100">
+                      {new Date(`${selectedDay}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                      <span className="ml-2 font-normal text-zinc-500">
+                        {selectedTrades.length} trade{selectedTrades.length === 1 ? '' : 's'}
+                      </span>
+                    </span>
+                    <button onClick={() => setSelectedDay(null)} aria-label="Close day" className="text-zinc-500 hover:text-zinc-200">
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                ))}
-
-                {calendarData.days.map((day, i) => (
-                  <div
-                    key={i}
-                    className={clsx(
-                      "relative aspect-square rounded-[1.25rem] transition-all duration-500 group overflow-hidden",
-                      day.isWeekend ? "bg-transparent opacity-30" :
-                        day.isGoalDay ? "bg-white shadow-[0_0_40px_rgba(255,255,255,0.15)] scale-105 z-10" :
-                          day.isToday ? "bg-white/5 border border-zinc-500" :
-                            day.isProjected ? "bg-white/[0.02] border border-dashed border-white/10" :
-                              !day.isCurrentMonth ? "opacity-10" :
-                                "bg-white/[0.03] border border-white/[0.05] hover:border-slate-300 dark:border-white/20"
-                    )}
-                  >
-                    {/* Background Pattern for Weekends */}
-                    {day.isWeekend && (
-                      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'repeating-linear-gradient(-45deg, #fff, #fff 1px, transparent 1px, transparent 10px)' }} />
-                    )}
-
-                    <div className="absolute inset-0 p-3 flex flex-col justify-between z-10">
-                      <div className="flex justify-between items-start">
-                        <span className={clsx(
-                          "text-[10px] font-medium tracking-tight",
-                          day.isGoalDay ? "text-black" :
-                            day.isToday ? "text-zinc-400 font-bold" :
-                              "text-white/40"
-                        )}>
-                          {day.date.getDate().toString().padStart(2, '0')}
+                  <div className="divide-y divide-white/[0.05]">
+                    {selectedTrades.map((t) => (
+                      <div key={t.id} className="flex items-center gap-3 py-2 text-sm">
+                        <span className="w-12 font-semibold text-zinc-200">{t.symbol}</span>
+                        {t.side && (
+                          <span className={clsx('rounded px-1.5 text-xs', t.side === 'Long' ? 'bg-tp-green/10 text-tp-green' : 'bg-tp-red/10 text-tp-red')}>
+                            {t.side}
+                          </span>
+                        )}
+                        <span className="flex-1 truncate text-zinc-500">
+                          {t.time || ''} {t.strategy ? `· ${t.strategy}` : ''}
                         </span>
-                        {day.isToday && (
-                          <div className="w-1 h-1 rounded-full bg-zinc-200 shadow-[0_0_10px_#4F9CF9]" />
-                        )}
-                      </div>
-
-                      {!day.isWeekend && (
-                        <div className="flex flex-col">
-                          {day.isGoalDay ? (
-                            <div className="flex flex-col items-center pb-1">
-                              <Trophy className="w-4 h-4 text-black mb-1" />
-                              <span className="text-[8px] font-black text-black uppercase tracking-tighter">Goal</span>
-                            </div>
-                          ) : (
-                            <div className="space-y-1">
-                              {day.pnl !== 0 ? (
-                                <div className={clsx(
-                                  "text-[11px] font-bold tabular-nums tracking-tighter",
-                                  day.isProjected ? "text-white/20" :
-                                    day.pnl > 0 ? "text-emerald-500" : "text-rose-500"
-                                )}>
-                                  {formatCurrency(day.pnl)}
-                                </div>
-                              ) : day.isPast && day.isCurrentMonth ? (
-                                <div className="w-1 h-1 rounded-full bg-white/10 mx-auto" />
-                              ) : null}
-
-                              {day.isProjected && !day.isGoalDay && day.pnl !== 0 && (
-                                <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
-                                  <div className="h-full bg-[#172035]/80 w-full" />
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Hover Glow Effect */}
-                    {!day.isWeekend && day.isCurrentMonth && !day.isGoalDay && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* SIDE WIDGETS: QUOTES & TASKS */}
-            <div className="lg:col-span-4 space-y-6">
-
-              {/* TRADING QUOTE WIDGET */}
-              <div className="p-6 rounded-[2.5rem] bg-[#0D1628]/80 backdrop-blur-md border border-white/5 shadow-xl relative overflow-hidden group">
-                <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-zinc-200/5 rounded-full blur-xl" />
-                <div className="relative z-10 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Quote className="w-4 h-4 text-zinc-400" />
-                    <span className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em]">Daily Wisdom</span>
-                  </div>
-                  <p className="text-sm text-white font-medium italic leading-relaxed">
-                    "{quote}"
-                  </p>
-                </div>
-              </div>
-
-              {/* FOCUS TASKS WIDGET */}
-              <div className="p-6 rounded-[2.5rem] bg-[#111F35] border border-white/5 shadow-xl relative overflow-hidden group">
-                <div className="absolute -left-4 -top-4 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl" />
-                <div className="relative z-10 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <CheckSquare className="w-4 h-4 text-emerald-500" />
-                    <span className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em]">Focus Points</span>
-                  </div>
-                  <div className="space-y-3">
-                    {[
-                      "Wait for your setup - No FOMO",
-                      "Respect the hard stop loss",
-                      "Check daily economic news"
-                    ].map((task, i) => (
-                      <div key={i} className="flex items-center gap-3 text-xs text-zinc-400 font-medium border-b border-white/5 pb-2 last:border-0 last:pb-0">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        {task}
+                        <span className={clsx('font-semibold tabular-nums', t.netPL >= 0 ? 'text-tp-green' : 'text-tp-red')}>{usd(t.netPL, true)}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
+              )}
+            </Card>
 
-              {/* PAYOUT READINESS - Dual Condition Qualification */}
-              <div className={clsx(
-                "p-6 rounded-[2.5rem] border shadow-xl overflow-hidden relative transition-colors",
-                theme === 'dark' ? "bg-[#0D1628]/80 backdrop-blur-md border-white/5" : "bg-[#F8F9FB] border-gray-100"
-              )}>
-                {/* Overall Status Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className={clsx(
-                      "p-1.5 rounded-lg",
-                      isPayoutReady ? "bg-emerald-500/10" : "bg-[#F59E0B]/10"
-                    )}>
-                      <Shield className={clsx("w-4 h-4", isPayoutReady ? "text-emerald-500" : "text-[#F59E0B]")} />
-                    </div>
-                    <span className={clsx(
-                      "text-sm font-bold",
-                      theme === 'dark' ? "text-zinc-100" : "text-gray-900"
-                    )}>Configured Goal Checks</span>
-                  </div>
-                  <div className={clsx(
-                    "px-3 py-1 rounded-full text-xs font-bold text-white",
-                    isPayoutReady ? "bg-emerald-500" : "bg-rose-500"
-                  )}>
-                    {isPayoutReady ? "Goals met" : "In progress"}
-                  </div>
-                </div>
-
-                {/* Payout Reset Notice */}
+            {/* Right rail */}
+            <div className="space-y-6 xl:col-span-4">
+              <Card>
+                <CardTitle icon={Shield} title="Payout readiness" subtitle="Both have to be green." tone={payoutReady ? 'green' : 'yellow'} />
                 {lastPayoutDate && (
-                  <div className={clsx(
-                    "flex items-center gap-2 p-2 rounded-lg text-xs mb-4",
-                    theme === 'dark' ? "bg-[#172035] text-zinc-400" : "bg-purple-50 text-purple-600"
-                  )}>
-                    <RefreshCw className="w-3 h-3" />
-                    <span>
-                      Reset on {new Date(lastPayoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • {consistencyMetrics.tradingDaysSincePayout} day{consistencyMetrics.tradingDaysSincePayout !== 1 ? 's' : ''} since payout
-                    </span>
-                  </div>
+                  <p className="mb-4 flex items-center gap-2 rounded-lg bg-white/[0.04] px-3 py-2 text-xs text-zinc-400">
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Reset after payout on {new Date(`${lastPayoutDate}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ·{' '}
+                    {consistency.tradingDaysSincePayout} trading day{consistency.tradingDaysSincePayout === 1 ? '' : 's'} since
+                  </p>
                 )}
-
-                {/* CONDITION 1: Balance Target */}
-                <div className={clsx(
-                  "p-4 rounded-2xl border mb-3",
-                  balanceTargetMet
-                    ? (theme === 'dark' ? "bg-emerald-500/5 border-emerald-500/30/20" : "bg-green-50 border-green-200")
-                    : (theme === 'dark' ? "bg-zinc-200/5 border-white/5" : "bg-gray-50 border-gray-200")
-                )}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Mountain className={clsx("w-3.5 h-3.5", balanceTargetMet ? "text-emerald-500" : "text-zinc-400")} />
-                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-400">
-                        ① Balance Target
-                      </span>
-                    </div>
-                    <div className={clsx(
-                      "px-2 py-0.5 rounded-full text-[10px] font-bold",
-                      balanceTargetMet ? "bg-emerald-500/20 text-emerald-500" : "bg-rose-500/20 text-rose-500"
-                    )}>
-                      {balanceTargetMet ? "Met" : "Not Met"}
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-zinc-400">Balance</span>
-                      <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
-                        {formatCurrency(currentPnL)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-zinc-400">Payout Target</span>
-                      <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
-                        {formatCurrency(target)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-zinc-400">Gap to Summit</span>
-                      <span className={clsx("font-bold", balanceTargetMet ? "text-emerald-500" : "text-[#F59E0B]")}>
-                        {balanceTargetMet ? "Target reached!" : formatCurrency(remainingPnL)}
-                      </span>
-                    </div>
-                    {/* Progress bar */}
-                    <div className="h-1.5 w-full bg-[#172035] rounded-full overflow-hidden mt-1">
-                      <div
-                        className={clsx(
-                          "h-full rounded-full transition-all duration-1000",
-                          balanceTargetMet ? "bg-emerald-500" : "bg-zinc-200"
-                        )}
-                        style={{ width: `${balanceProgress}%` }}
-                      />
-                    </div>
-                  </div>
+                <Condition
+                  n={1}
+                  title="Balance target"
+                  met={balanceMet}
+                  progress={balanceProgress}
+                  lines={[
+                    ['Balance', usd(currentPnL, true)],
+                    ['Target', usd(target)],
+                  ]}
+                  gap={balanceMet ? 'Reached' : `${usd(remainingPnL, true)} to go`}
+                />
+                <Condition
+                  n={2}
+                  title={`Consistency (${consistencyRule}%)`}
+                  met={consistencyMet}
+                  progress={consistencyProgress}
+                  tone="yellow"
+                  lines={[
+                    ['Best day since payout', usd(consistency.highestDay, true)],
+                    ['Profit since payout', usd(consistency.currentTotalProfit, true)],
+                    ['Best day share', `${consistency.currentConsistencyPercent.toFixed(1)}% of ${consistencyRule}% max`],
+                  ]}
+                  gap={consistencyMet ? 'Qualified' : `${usd(consistencyGap, true)} more profit`}
+                />
+                <div className="mt-4">
+                  <div className="mb-2 text-xs font-medium text-zinc-500">Your firm’s consistency rule</div>
+                  <Segmented
+                    size="sm"
+                    value={consistencyRule}
+                    onChange={(r) => {
+                      setConsistencyRule(r);
+                      save({ consistencyRulePercentage: r });
+                    }}
+                    options={[15, 20, 30, 40, 50].map((r) => ({ value: r, label: `${r}%` }))}
+                  />
                 </div>
+                <button
+                  onClick={() => setActiveTab('consistency')}
+                  className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-tp-green hover:underline"
+                >
+                  Simulate tomorrow in the Guardian <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </Card>
 
-                {/* CONDITION 2: Consistency / Minimum Profit */}
-                <div className={clsx(
-                  "p-4 rounded-2xl border mb-3",
-                  consistencyMet
-                    ? (theme === 'dark' ? "bg-emerald-500/5 border-emerald-500/30/20" : "bg-green-50 border-green-200")
-                    : (theme === 'dark' ? "bg-[#F59E0B]/5 border-white/5" : "bg-amber-50 border-amber-200")
-                )}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className={clsx("w-3.5 h-3.5", consistencyMet ? "text-emerald-500" : "text-[#F59E0B]")} />
-                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-400">
-                        ② Consistency Rule ({consistencyRule}%)
-                      </span>
-                    </div>
-                    <div className={clsx(
-                      "px-2 py-0.5 rounded-full text-[10px] font-bold",
-                      consistencyMet ? "bg-emerald-500/20 text-emerald-500" : "bg-rose-500/20 text-rose-500"
-                    )}>
-                      {consistencyMet ? "Qualified" : "Not Yet"}
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-zinc-400">Highest Profit Day</span>
-                      <span className="font-semibold text-[#F59E0B]">
-                        {formatCurrency(consistencyMetrics.highestDay)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-zinc-400">Current Total Profit</span>
-                      <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
-                        {formatCurrency(consistencyMetrics.currentTotalProfit)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-zinc-400">Min. Required Profit</span>
-                      <span className={clsx("font-semibold", theme === 'dark' ? "text-white" : "text-gray-900")}>
-                        {formatCurrency(consistencyMetrics.minimumRequiredProfit)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-zinc-400">Consistency</span>
-                      <span className={clsx(
-                        "font-bold",
-                        consistencyMetrics.currentConsistencyPercent <= consistencyRule ? "text-emerald-500" : "text-rose-500"
-                      )}>
-                        {consistencyMetrics.currentConsistencyPercent.toFixed(1)}% / {consistencyRule}%
-                      </span>
-                    </div>
-
-                    {/* Profit still needed — the key "how much more" metric */}
-                    <div className={clsx(
-                      "flex justify-between items-center text-xs mt-1 pt-2 border-t",
-                      theme === 'dark' ? "border-white/5" : "border-gray-200"
-                    )}>
-                      <span className={clsx(
-                        "font-semibold flex items-center gap-1.5",
-                        consistencyMet ? "text-emerald-500" : "text-[#F59E0B]"
-                      )}>
-                        <Zap className="w-3 h-3" />
-                        Profit Still Needed
-                      </span>
-                      <span className={clsx(
-                        "font-black text-sm",
-                        consistencyMet ? "text-emerald-500" : "text-[#F59E0B]"
-                      )}>
-                        {consistencyMet ? "Qualified!" : formatCurrency(consistencyGap)}
-                      </span>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="h-1.5 w-full bg-[#172035] rounded-full overflow-hidden mt-1">
-                      <div
-                        className={clsx(
-                          "h-full rounded-full transition-all duration-1000",
-                          consistencyMet ? "bg-emerald-500" : "bg-[#F59E0B]"
-                        )}
-                        style={{ width: `${consistencyProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Consistency Rule Selector */}
-                <div className="pt-1">
-                  <label className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em] mb-2 block">
-                    Consistency Rule
-                  </label>
-                  <div className={clsx(
-                    "flex p-1 rounded-xl border",
-                    theme === 'dark' ? "bg-[#0D1628] border-white/5" : "bg-gray-50 border-gray-200"
-                  )}>
-                    {[15, 20, 30, 40, 50].map((rule) => (
-                      <button
-                        key={rule}
-                        onClick={() => handleConsistencyChange(rule)}
-                        className={clsx(
-                          "flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all",
-                          consistencyRule === rule
-                            ? (theme === 'dark' ? "bg-[#172035] text-white shadow-lg" : "bg-white text-gray-900 shadow-sm border border-gray-100")
-                            : (theme === 'dark' ? "text-zinc-400 hover:text-zinc-100" : "text-gray-500 hover:text-gray-900")
-                        )}
-                      >
-                        {rule}%
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
+              <FocusList account={account} save={save} />
             </div>
           </div>
 
-          {/* FOOTER METRICS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-8 rounded-[2.5rem] bg-[#0D1628]/80 backdrop-blur-md border border-white/5 shadow-xl">
-              <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em] mb-4">Pacing Analysis</div>
-              <div className="space-y-4">
-                <div>
-                  <div className="text-3xl font-black text-white">${PACE_CONFIG[pace].dailyTarget}</div>
-                  <div className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mt-1">Daily Pace Target</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-black text-white">
-                    {remainingPnL > 0 ? Math.ceil(remainingPnL / PACE_CONFIG[pace].dailyTarget) : 0}
-                  </div>
-                  <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Trading Days Left</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-8 rounded-[2.5rem] bg-[#0D1628]/80 backdrop-blur-md border border-white/5 shadow-xl">
-              <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em] mb-4">Gap to Payout</div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-400">Balance Gap</span>
-                  <span className={clsx("text-lg font-black", balanceTargetMet ? "text-emerald-500" : "text-white")}>
-                    {balanceTargetMet ? "Met" : formatCurrency(remainingPnL)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-400">Consistency Gap</span>
-                  <span className={clsx("text-lg font-black", consistencyMet ? "text-emerald-500" : "text-white")}>
-                    {consistencyMet ? "Met" : formatCurrency(consistencyGap)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-[#111F35] to-[#172035] border border-white/5 shadow-xl flex items-center justify-between">
-              <div className="space-y-4">
-                <div className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.3em]">Execution Insight</div>
-                <p className="text-xs text-zinc-400 leading-relaxed max-w-[300px] font-medium italic">
-                  "This calendar assumes the selected daily pace on every projected weekday. Real sessions include losses, flat days and days off. Follow the setup and your loss limit, not a date on the calendar."
-                </p>
-              </div>
-              <div className="w-16 h-16 rounded-[1.5rem] bg-white/5 flex items-center justify-center border border-white/10">
-                <TrendingUp className="w-8 h-8 text-emerald-500" />
-              </div>
-            </div>
-          </div>
-        </>
+          {/* Micro sizing */}
+          <Card>
+            <CardTitle
+              icon={Calculator}
+              title="Size today’s trades for micros"
+              subtitle="Contracts per trade, your TradingView bracket, and how many winners it takes to close the gap."
+            />
+            <PositionSizer strategyId="journey" evalTarget={Math.round(Math.max(remainingPnL, consistencyGap))} targetLabel="Profit still needed" />
+          </Card>
+        </div>
       ) : (
         <ConsistencyGuardian
           account={account}
           actualDailyPnL={dailyPnLAfterPayout}
           lastPayoutDate={lastPayoutDate}
-          tradingDaysSincePayout={consistencyMetrics.tradingDaysSincePayout}
+          tradingDaysSincePayout={consistency.tradingDaysSincePayout}
+          rule={consistencyRule}
         />
       )}
     </div>
   );
 };
+
+// ─── Hero ────────────────────────────────────────────────────────────────────
+
+function MissionHero(p: {
+  account: Account;
+  balance: number;
+  target: number;
+  setTarget: (v: number) => void;
+  balanceProgress: number;
+  consistencyProgress: number;
+  balanceMet: boolean;
+  consistencyMet: boolean;
+  payoutReady: boolean;
+  remaining: number;
+  consistencyGap: number;
+  daysNeeded: number;
+  goalDate: Date | null;
+  dailyTarget: number;
+  isFunded: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const outer = 2 * Math.PI * 44;
+  const inner = 2 * Math.PI * 34;
+  const overall = Math.min(p.balanceProgress, p.consistencyProgress || (p.consistencyMet ? 100 : 0));
+
+  const steps = [
+    { label: 'Build your record', done: p.account.trades.length > 0, detail: `${p.account.trades.length} trades logged` },
+    {
+      label: p.isFunded ? 'Build a payout buffer' : 'Hit the profit target',
+      done: p.balanceMet,
+      detail: p.balanceMet ? 'Target reached' : `${usd(p.remaining)} to go`,
+    },
+    {
+      label: 'Keep days balanced',
+      done: p.consistencyMet,
+      detail: p.consistencyMet ? 'Consistency met' : p.consistencyGap > 0 ? `${usd(p.consistencyGap)} more profit` : 'Log profitable days first',
+    },
+    { label: p.isFunded ? 'Request payout' : 'Get funded', done: false, detail: 'Confirm min days & drawdown with your firm' },
+  ];
+  const nextIdx = steps.findIndex((s) => !s.done);
+  const next = steps[nextIdx];
+
+  return (
+    <section
+      className="overflow-hidden rounded-3xl border border-white/[0.07] p-6 sm:p-8"
+      style={{
+        background:
+          'radial-gradient(50% 90% at 0% 0%, rgba(0,214,143,0.13) 0%, transparent 60%), radial-gradient(40% 80% at 100% 100%, rgba(79,156,249,0.10) 0%, transparent 60%), #111c2e',
+      }}
+    >
+      <div className="grid items-center gap-8 lg:grid-cols-[auto_1fr_minmax(280px,340px)]">
+        {/* Ring */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative h-44 w-44">
+            <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+              <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+              <circle
+                cx="50"
+                cy="50"
+                r="44"
+                fill="none"
+                stroke={p.balanceMet ? '#00D68F' : '#e4e9f0'}
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray={outer}
+                strokeDashoffset={outer - (outer * p.balanceProgress) / 100}
+                className="transition-all duration-1000"
+              />
+              <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+              <circle
+                cx="50"
+                cy="50"
+                r="34"
+                fill="none"
+                stroke={p.consistencyMet ? '#00D68F' : '#FFB800'}
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray={inner}
+                strokeDashoffset={inner - (inner * p.consistencyProgress) / 100}
+                className="transition-all duration-1000"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              {p.payoutReady ? (
+                <>
+                  <Trophy className="h-6 w-6 text-tp-green" />
+                  <span className="mt-1 text-sm font-semibold text-tp-green">Goals met</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-3xl font-semibold tabular-nums text-zinc-50">{overall.toFixed(0)}%</span>
+                  <span className="text-xs text-zinc-500">both goals</span>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-4 text-xs text-zinc-400">
+            <span className="flex items-center gap-1.5">
+              <span className={clsx('h-2 w-2 rounded-full', p.balanceMet ? 'bg-tp-green' : 'bg-zinc-200')} /> Balance
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className={clsx('h-2 w-2 rounded-full', p.consistencyMet ? 'bg-tp-green' : 'bg-tp-yellow')} /> Consistency
+            </span>
+          </div>
+        </div>
+
+        {/* Numbers */}
+        <div className="min-w-0">
+          <div className="text-sm text-zinc-400">Balance (profit)</div>
+          <div className="text-4xl font-semibold tabular-nums tracking-tight text-zinc-50 sm:text-5xl">{usd(p.balance, true)}</div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[15px] text-zinc-400">
+            of
+            {editing ? (
+              <MoneyInput value={p.target} onChange={p.setTarget} className="w-36" />
+            ) : (
+              <button
+                onClick={() => setEditing(true)}
+                className="group inline-flex items-center gap-1.5 rounded-lg px-1.5 py-0.5 font-semibold text-tp-green hover:bg-white/[0.05]"
+              >
+                {usd(p.target)} target
+                <Pencil className="h-3.5 w-3.5 opacity-50 group-hover:opacity-100" />
+              </button>
+            )}
+            {editing && (
+              <button onClick={() => setEditing(false)} className="rounded-lg bg-white/[0.08] px-2 py-1 text-xs font-medium text-zinc-100">
+                Done
+              </button>
+            )}
+          </div>
+          <Bar value={p.balanceProgress} tone={p.balanceMet ? 'green' : 'white'} className="mt-4 max-w-md" />
+          <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-zinc-300">
+            {p.payoutReady ? (
+              <>Both goals are met. Confirm minimum days and drawdown with your firm before you request it.</>
+            ) : (
+              <>
+                {p.remaining > 0 && <><strong className="text-zinc-50">{usd(p.remaining)}</strong> to target · </>}
+                {p.consistencyGap > 0 && <><strong className="text-tp-yellow">{usd(p.consistencyGap)}</strong> for consistency · </>}
+                about <strong className="text-zinc-50">{p.daysNeeded} trading days</strong> at {usd(p.dailyTarget)}/day
+                {p.goalDate && <> → <strong className="text-tp-green">{p.goalDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</strong></>}.
+              </>
+            )}
+          </p>
+        </div>
+
+        {/* Next decision */}
+        <div className="rounded-2xl border border-tp-green/20 bg-black/20 p-5">
+          <div className="text-xs font-semibold uppercase tracking-wider text-tp-green">Your next good decision</div>
+          <div className="mt-1.5 text-lg font-semibold text-zinc-50">{next.label}</div>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-400">{next.detail}. Take the next qualified setup — a daily number is never a reason to force a trade.</p>
+          <Link href="/app/routine" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-tp-green hover:underline">
+            Open pre-trade routine <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Milestones */}
+      <ol className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {steps.map((s, i) => (
+          <li
+            key={s.label}
+            className={clsx(
+              'relative rounded-xl border px-4 py-3',
+              s.done ? 'border-tp-green/25 bg-tp-green/[0.06]' : i === nextIdx ? 'border-white/[0.15] bg-white/[0.04]' : 'border-white/[0.06] bg-black/10',
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className={clsx(
+                  'grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold',
+                  s.done ? 'bg-tp-green text-[#0D1628]' : i === nextIdx ? 'bg-white text-[#0D1628]' : 'bg-white/[0.07] text-zinc-400',
+                )}
+              >
+                {s.done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+              </span>
+              <span className="text-sm font-semibold text-zinc-100">{s.label}</span>
+            </div>
+            <p className="mt-1 pl-8 text-xs text-zinc-400">{s.detail}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+// ─── Game plan ───────────────────────────────────────────────────────────────
+
+function GamePlan({
+  account,
+  pace,
+  setPace,
+  customPace,
+  setCustomPace,
+  dailyTarget,
+  highestDay,
+  remaining,
+}: {
+  account: Account;
+  pace: Pace;
+  setPace: (p: Pace) => void;
+  customPace: number;
+  setCustomPace: (v: number) => void;
+  dailyTarget: number;
+  highestDay: number;
+  remaining: number;
+}) {
+  const [risk, setRisk] = useState(200);
+  const [r, setR] = useState(2);
+  useEffect(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('tp_sizer_v1') || '{}');
+      if (s.risk) setRisk(s.risk);
+    } catch {
+      /* default */
+    }
+  }, []);
+  const dailyLoss = account.pilotSettings?.rules.dailyLoss ?? DEFAULT_SETTINGS.rules.dailyLoss;
+  // Stop-at profit: stay under your best day so the consistency target can't grow.
+  const safeMax = highestDay > 0 ? Math.floor(highestDay - 1) : null;
+  const perWin = risk * r;
+  const winsToday = perWin > 0 ? Math.ceil(dailyTarget / perWin) : 0;
+  const lossesToStop = risk > 0 ? Math.floor(dailyLoss / risk) : 0;
+  const daysLeft = dailyTarget > 0 ? Math.ceil(remaining / dailyTarget) : 0;
+
+  return (
+    <Card>
+      <CardTitle
+        icon={Flag}
+        title="Today’s game plan"
+        subtitle="Your numbers for the session — decided before the open, not during it."
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <Segmented
+              value={pace}
+              onChange={setPace}
+              options={[
+                ...(Object.keys(PACE_CONFIG) as (keyof typeof PACE_CONFIG)[]).map((k) => {
+                  const Icon = PACE_CONFIG[k].icon;
+                  return { value: k as Pace, label: <><Icon className="h-3.5 w-3.5" />{PACE_CONFIG[k].label} ${PACE_CONFIG[k].dailyTarget}</> };
+                }),
+                { value: 'custom' as Pace, label: 'Custom' },
+              ]}
+            />
+            {pace === 'custom' && <MoneyInput value={customPace} onChange={setCustomPace} className="w-28" />}
+          </div>
+        }
+      />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <PlanTile icon={Target} tone="green" label="Daily goal" value={usd(dailyTarget)} note={`${daysLeft} trading day${daysLeft === 1 ? '' : 's'} to close the gap`} />
+        <PlanTile
+          icon={ShieldCheck}
+          tone="yellow"
+          label="Stop at profit"
+          value={safeMax !== null ? usd(safeMax) : '—'}
+          note={safeMax !== null ? 'Stay under your best day so the consistency target can’t grow' : 'No green days yet since payout'}
+        />
+        <PlanTile icon={AlertCircle} tone="red" label="Stop at loss" value={`−${usd(dailyLoss)}`} note={`${lossesToStop} full loss${lossesToStop === 1 ? '' : 'es'} at ${usd(risk)} risk · set in Pilot rules`} />
+        <div className="rounded-xl border border-white/[0.07] bg-black/20 p-4">
+          <div className="flex items-center gap-2 text-xs font-medium text-zinc-500">
+            <Gauge className="h-4 w-4 text-tp-blue" /> Winners needed today
+          </div>
+          <div className="mt-1 text-2xl font-semibold tabular-nums text-zinc-50">{winsToday}</div>
+          <div className="mt-2 flex items-center gap-2 text-xs text-zinc-400">
+            at
+            <MoneyInput value={risk} onChange={setRisk} className="w-24 [&_input]:py-1 [&_input]:text-sm" />
+            ×
+            <select
+              value={r}
+              onChange={(e) => setR(Number(e.target.value))}
+              aria-label="Reward multiple"
+              className="rounded-lg bg-black/25 px-2 py-1 text-sm text-zinc-100 ring-1 ring-inset ring-white/[0.09] focus:outline-none"
+            >
+              {[1, 1.5, 2, 2.5, 3].map((v) => (
+                <option key={v} value={v}>
+                  {v}R
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+      {safeMax !== null && dailyTarget > safeMax && (
+        <p className="mt-4 flex items-start gap-2 rounded-xl border border-tp-yellow/25 bg-tp-yellow/[0.06] px-4 py-3 text-sm text-zinc-300">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-tp-yellow" />
+          Your daily goal ({usd(dailyTarget)}) is above your stop-at-profit ({usd(safeMax)}). Hitting it would set a new best day and raise the consistency
+          target — pick a slower pace.
+        </p>
+      )}
+    </Card>
+  );
+}
+
+function PlanTile({ icon: Icon, tone, label, value, note }: { icon: React.ElementType; tone: 'green' | 'yellow' | 'red'; label: string; value: string; note: string }) {
+  const color = { green: 'text-tp-green', yellow: 'text-tp-yellow', red: 'text-tp-red' }[tone];
+  return (
+    <div className="rounded-xl border border-white/[0.07] bg-black/20 p-4">
+      <div className="flex items-center gap-2 text-xs font-medium text-zinc-500">
+        <Icon className={clsx('h-4 w-4', color)} /> {label}
+      </div>
+      <div className={clsx('mt-1 text-2xl font-semibold tabular-nums', color)}>{value}</div>
+      <p className="mt-1 text-xs leading-relaxed text-zinc-400">{note}</p>
+    </div>
+  );
+}
+
+// ─── Right rail pieces ───────────────────────────────────────────────────────
+
+function Condition({
+  n,
+  title,
+  met,
+  progress,
+  lines,
+  gap,
+  tone = 'white',
+}: {
+  n: number;
+  title: string;
+  met: boolean;
+  progress: number;
+  lines: [string, string][];
+  gap: string;
+  tone?: 'white' | 'yellow';
+}) {
+  return (
+    <div className={clsx('mb-3 rounded-xl border p-4', met ? 'border-tp-green/25 bg-tp-green/[0.05]' : 'border-white/[0.07] bg-black/15')}>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-white/[0.08] text-[11px]">{n}</span>
+          {title}
+        </span>
+        <StatusPill ok={met} okLabel="Met" noLabel="Not yet" />
+      </div>
+      <dl className="space-y-1.5 text-sm">
+        {lines.map(([k, v]) => (
+          <div key={k} className="flex justify-between gap-3">
+            <dt className="text-zinc-400">{k}</dt>
+            <dd className="font-medium tabular-nums text-zinc-100">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mt-3 flex items-center justify-between text-sm">
+        <span className={clsx('font-semibold', met ? 'text-tp-green' : tone === 'yellow' ? 'text-tp-yellow' : 'text-zinc-100')}>{gap}</span>
+        <span className="text-xs tabular-nums text-zinc-500">{progress.toFixed(0)}%</span>
+      </div>
+      <Bar value={progress} tone={met ? 'green' : tone === 'yellow' ? 'yellow' : 'white'} className="mt-1.5" />
+    </div>
+  );
+}
+
+function FocusList({ account, save }: { account: Account; save: (p: Partial<Account>) => void }) {
+  const items = account.dailyFocus?.length ? account.dailyFocus : DEFAULT_FOCUS;
+  const todayKey = `tp_focus_${account.id}_${localDate(new Date())}`;
+  const [done, setDone] = useState<number[]>([]);
+  const [draft, setDraft] = useState('');
+  const [quote, setQuote] = useState('');
+  useEffect(() => {
+    setQuote(TRADING_QUOTES[Math.floor(Math.random() * TRADING_QUOTES.length)]);
+    try {
+      setDone(JSON.parse(localStorage.getItem(todayKey) || '[]'));
+    } catch {
+      setDone([]);
+    }
+  }, [todayKey]);
+  const toggle = (i: number) => {
+    const next = done.includes(i) ? done.filter((x) => x !== i) : [...done, i];
+    setDone(next);
+    try {
+      localStorage.setItem(todayKey, JSON.stringify(next));
+    } catch {
+      /* session only */
+    }
+  };
+  const add = () => {
+    const t = draft.trim();
+    if (!t) return;
+    save({ dailyFocus: [...items, t].slice(0, 8) });
+    setDraft('');
+  };
+  const remove = (i: number) => {
+    save({ dailyFocus: items.filter((_, j) => j !== i) });
+    setDone(done.filter((x) => x !== i).map((x) => (x > i ? x - 1 : x)));
+  };
+
+  return (
+    <Card>
+      <CardTitle icon={Check} title="Today’s focus" subtitle={`${done.length}/${items.length} locked in · resets daily`} />
+      <ul className="space-y-2">
+        {items.map((item, i) => {
+          const on = done.includes(i);
+          return (
+            <li key={`${item}-${i}`} className="group flex items-center gap-2">
+              <button
+                onClick={() => toggle(i)}
+                aria-pressed={on}
+                className={clsx(
+                  'flex flex-1 items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors',
+                  on ? 'border-tp-green/25 bg-tp-green/[0.06] text-zinc-100' : 'border-white/[0.06] text-zinc-300 hover:border-white/[0.12]',
+                )}
+              >
+                <span className={clsx('grid h-5 w-5 shrink-0 place-items-center rounded-md', on ? 'bg-tp-green text-[#0D1628]' : 'ring-1 ring-inset ring-white/20')}>
+                  {on && <Check className="h-3.5 w-3.5" />}
+                </span>
+                {item}
+              </button>
+              <button
+                onClick={() => remove(i)}
+                aria-label={`Remove "${item}"`}
+                className="rounded-md p-1 text-zinc-600 opacity-0 hover:text-zinc-200 group-hover:opacity-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="mt-3 flex gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && add()}
+          placeholder="Add your own rule…"
+          className="flex-1 rounded-xl bg-black/25 px-3 py-2 text-sm text-zinc-100 ring-1 ring-inset ring-white/[0.09] placeholder:text-zinc-600 focus:outline-none focus:ring-tp-green/40"
+        />
+        <button onClick={add} aria-label="Add focus point" className="rounded-xl bg-white/[0.07] px-3 text-zinc-200 hover:bg-white/[0.12]">
+          <Plus className="h-4 w-4" />
+        </button>
+      </div>
+      {quote && (
+        <p className="mt-5 flex gap-2 border-t border-white/[0.06] pt-4 text-sm italic leading-relaxed text-zinc-400">
+          <Quote className="mt-0.5 h-4 w-4 shrink-0 text-zinc-600" />
+          {quote}
+        </p>
+      )}
+    </Card>
+  );
+}
+
+const Legend = ({ swatch, label }: { swatch: string; label: string }) => (
+  <span className="flex items-center gap-1.5">
+    <span className={clsx('h-3 w-3 rounded', swatch)} />
+    {label}
+  </span>
+);

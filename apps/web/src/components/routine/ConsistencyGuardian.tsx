@@ -1,39 +1,26 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useAccountStore, Account } from '../../store/accountStore';
-import { useThemeStore } from '../../store/themeStore';
-import {
-  Shield,
-  AlertTriangle,
-  TrendingUp,
-  Target,
-  Calculator,
-  ChevronDown,
-  ChevronUp,
-  Info,
-  Zap,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-  DollarSign
-} from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import clsx from 'clsx';
+import {
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  ChevronDown,
+  FlaskConical,
+  Info,
+  RefreshCw,
+  Route,
+  Settings2,
+  Shield,
+  XCircle,
+} from 'lucide-react';
+import { useAccountStore, type Account } from '../../store/accountStore';
+import { Bar, Card, CardTitle, MoneyInput, Segmented, StatusPill, usd } from './journeyUi';
 
-// Helper to format currency
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(value);
-};
-
-// Account tier configurations
 const TIER_CONFIG = {
-  instant: { label: 'Instant Funded', defaultRule: 20, color: '#00D68F' },
-  elite: { label: 'Elite Funded', defaultRule: 25, color: '#4F9CF9' }
+  instant: { label: 'Instant Funded', defaultRule: 20 },
+  elite: { label: 'Elite Funded', defaultRule: 25 },
 };
 
 interface ConsistencyGuardianProps {
@@ -41,73 +28,38 @@ interface ConsistencyGuardianProps {
   actualDailyPnL: Record<string, number>;
   lastPayoutDate?: string | null;
   tradingDaysSincePayout?: number;
+  /** Rule in effect on the Overview tab, so both tabs always agree. */
+  rule?: number;
 }
 
-export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
-  account,
-  actualDailyPnL,
-  lastPayoutDate,
-  tradingDaysSincePayout = 0
-}) => {
+export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({ account, actualDailyPnL, lastPayoutDate, tradingDaysSincePayout = 0, rule }) => {
   const { updateAccount } = useAccountStore();
-  const { theme } = useThemeStore();
-
-  // Local state
-  const [whatIfInput, setWhatIfInput] = useState('500');
-  const whatIfAmount = Number(whatIfInput) || 0;
+  const [whatIf, setWhatIf] = useState(500);
+  const [dailyRate, setDailyRate] = useState(300);
+  const [showSettings, setShowSettings] = useState(false);
   const [showEducation, setShowEducation] = useState(false);
 
-  // Get account settings with defaults
-  const consistencyRule = account.consistencyRulePercentage || 20;
+  const consistencyRule = rule ?? account.consistencyRulePercentage ?? 30;
   const originalTarget = account.originalProfitTarget || account.profitTarget || 3000;
   const accountTier = account.accountTier || 'instant';
+  const profitTarget = account.profitTarget || 3000;
 
-  // Core consistency calculations - matches Overview tab logic
+  // Core consistency calculations — same formulas as the Overview tab.
   const metrics = useMemo(() => {
     const dailyProfits = Object.values(actualDailyPnL);
-
-    // Highest day from ALL days (same as Overview)
     const highestDay = dailyProfits.length > 0 ? Math.max(0, ...dailyProfits) : 0;
-
-    // Find the date of highest day
     let highestDayDate = '';
     Object.entries(actualDailyPnL).forEach(([date, pnl]) => {
-      if (pnl === highestDay) {
-        highestDayDate = date;
-      }
+      if (pnl === highestDay) highestDayDate = date;
     });
-
-    // Trading P&L from daily trades (for consistency % - matches Overview tab)
-    const tradingPnL = dailyProfits.reduce((sum, pnl) => sum + pnl, 0);
-    const currentTradingProfit = Math.max(0, tradingPnL);
-
-    // Account balance for gap calculation (matches Gap to Summit)
+    const currentTradingProfit = Math.max(0, dailyProfits.reduce((s, p) => s + p, 0));
     const currentTotalProfit = Math.max(0, account.balance);
-
-    // Current consistency percentage using trading P&L (same formula as Overview)
-    const currentConsistencyPercent = currentTradingProfit > 0
-      ? (highestDay / currentTradingProfit) * 100
-      : 0;
-
-    // Required profit target based on highest day (same as Overview: minimumRequiredProfit)
+    const currentConsistencyPercent = currentTradingProfit > 0 ? (highestDay / currentTradingProfit) * 100 : 0;
     const requiredProfitTarget = highestDay / (consistencyRule / 100);
-
-    // Effective target (max of original and required)
     const effectiveTarget = Math.max(originalTarget, requiredProfitTarget);
-
-    // Gap to payout uses account.balance (synced with Gap to Summit)
     const gapToPayout = Math.max(0, effectiveTarget - currentTotalProfit);
-
-    // Is qualified? (same logic as Overview)
     const isQualified = currentConsistencyPercent <= consistencyRule;
-
-    // Safe daily max - max profit today without increasing target
-    // This is the amount that would keep highest day as is
     const safeMaxToday = highestDay > 0 ? highestDay - 0.01 : currentTradingProfit * (consistencyRule / 100);
-
-    // Warning threshold (80% of highest day)
-    const warningThreshold = highestDay * 0.8;
-
     return {
       currentTotalProfit,
       currentTradingProfit,
@@ -119,975 +71,456 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({
       gapToPayout,
       isQualified,
       safeMaxToday,
-      warningThreshold,
-      profitableDaysCount: Object.values(actualDailyPnL).filter(pnl => pnl > 0).length
+      warningThreshold: highestDay * 0.8,
     };
   }, [actualDailyPnL, consistencyRule, originalTarget, account.balance]);
 
-  // Dual-condition payout qualification (define profitTarget first)
-  const profitTarget = account.profitTarget || 3000;
-
-  // What-if scenario calculations
-  const whatIfScenario = useMemo(() => {
-    // Use trading profit for consistency calculations, account balance for gap
-    const newTradingProfit = metrics.currentTradingProfit + whatIfAmount;
-    const newTotalProfit = metrics.currentTotalProfit + whatIfAmount;
-    const wouldBecomeHighestDay = whatIfAmount > metrics.highestDay;
-    const newHighestDay = wouldBecomeHighestDay ? whatIfAmount : metrics.highestDay;
+  // What-if: "if I make $X tomorrow…"
+  const sim = useMemo(() => {
+    const newTradingProfit = metrics.currentTradingProfit + whatIf;
+    const newTotalProfit = metrics.currentTotalProfit + whatIf;
+    const wouldBecomeHighestDay = whatIf > metrics.highestDay;
+    const newHighestDay = wouldBecomeHighestDay ? whatIf : metrics.highestDay;
     const newConsistencyPercent = newTradingProfit > 0 ? (newHighestDay / newTradingProfit) * 100 : 0;
-
-    // Consistency-required target (what the rule demands based on highest day)
     const newConsistencyRequired = newHighestDay / (consistencyRule / 100);
     const consistencyRequiredIncreased = newConsistencyRequired > metrics.requiredProfitTarget;
-
-    // Effective target (actual payout threshold = max of profit target and consistency-required)
     const newEffectiveTarget = Math.max(originalTarget, newConsistencyRequired);
     const wouldIncreaseTarget = newEffectiveTarget > metrics.effectiveTarget;
-    const newGapToPayout = Math.max(0, newEffectiveTarget - newTotalProfit);
-
-    // Dual-condition payout qualification after what-if
-    const newBalance = account.balance + whatIfAmount;
+    const newBalance = account.balance + whatIf;
     const newBalanceTargetMet = newBalance >= profitTarget;
-    const newBalanceGap = Math.max(0, profitTarget - newBalance);
     const newConsistencyMet = newConsistencyPercent <= consistencyRule && newTradingProfit >= newConsistencyRequired;
-    const newConsistencyGap = Math.max(0, newConsistencyRequired - newTradingProfit);
-    const newPayoutReady = newBalanceTargetMet && newConsistencyMet;
-
     return {
-      newTotalProfit,
-      newTradingProfit,
       wouldBecomeHighestDay,
       newHighestDay,
       newConsistencyPercent,
       newConsistencyRequired,
       consistencyRequiredIncreased,
-      wouldIncreaseTarget,
       newEffectiveTarget,
-      newGapToPayout,
+      wouldIncreaseTarget,
+      newGapToPayout: Math.max(0, newEffectiveTarget - newTotalProfit),
       targetIncrease: wouldIncreaseTarget ? newEffectiveTarget - metrics.effectiveTarget : 0,
-      // Dual-condition
-      newBalance,
       newBalanceTargetMet,
-      newBalanceGap,
+      newBalanceGap: Math.max(0, profitTarget - newBalance),
       newConsistencyMet,
-      newConsistencyGap,
-      newPayoutReady,
+      newConsistencyGap: Math.max(0, newConsistencyRequired - newTradingProfit),
+      newPayoutReady: newBalanceTargetMet && newConsistencyMet,
     };
-  }, [whatIfAmount, metrics, consistencyRule, originalTarget, account.balance, profitTarget]);
+  }, [whatIf, metrics, consistencyRule, originalTarget, account.balance, profitTarget]);
 
-  // Path to payout projections
-  const projections = useMemo(() => {
-    const rates = [100, 200, 300, 500, 750, 1000];
-    return rates.map(dailyRate => {
-      const isSafe = dailyRate <= metrics.safeMaxToday;
-      const daysNeeded = metrics.gapToPayout > 0 ? Math.ceil(metrics.gapToPayout / dailyRate) : 0;
-      return { dailyRate, daysNeeded, isSafe };
-    });
-  }, [metrics]);
-
-  // Handle account tier change
-  const handleTierChange = (tier: 'instant' | 'elite') => {
-    const newRule = TIER_CONFIG[tier].defaultRule;
-    updateAccount(account.id, {
-      accountTier: tier,
-      consistencyRulePercentage: newRule
-    });
-  };
-
-  // Handle original target change
-  const handleOriginalTargetChange = (value: number) => {
-    updateAccount(account.id, { originalProfitTarget: value });
-  };
-
-  // Gauge percentage for visualization
-  const gaugePercent = Math.min(100, (metrics.currentConsistencyPercent / consistencyRule) * 100);
-  const gaugeColor = gaugePercent <= 70 ? '#00D68F' : gaugePercent <= 90 ? '#F59E0B' : '#FF4868';
-
-  // Dual-condition payout qualification (mirrors Overview tab logic)
   const balanceTargetMet = account.balance >= profitTarget;
   const balanceGap = Math.max(0, profitTarget - account.balance);
   const consistencyMet = metrics.isQualified && metrics.currentTradingProfit >= metrics.requiredProfitTarget;
   const isPayoutReady = balanceTargetMet && consistencyMet;
 
+  const usage = Math.min(100, (metrics.currentConsistencyPercent / consistencyRule) * 100);
+  const gaugeColor = usage <= 70 ? '#00D68F' : usage <= 90 ? '#FFB800' : '#FF4868';
+
+  const verdict = sim.wouldIncreaseTarget
+    ? { tone: 'red' as const, icon: XCircle, text: `New best day — your payout target jumps by ${usd(sim.targetIncrease)}` }
+    : sim.wouldBecomeHighestDay
+      ? { tone: 'yellow' as const, icon: AlertTriangle, text: 'New best day — the consistency minimum goes up' }
+      : whatIf > metrics.warningThreshold && metrics.highestDay > 0
+        ? { tone: 'yellow' as const, icon: AlertTriangle, text: 'Close to your best day — consider stopping here' }
+        : { tone: 'green' as const, icon: CheckCircle2, text: 'Safe — no impact on your consistency target' };
+
+  const rateRisk = (rate: number) => {
+    const ratio = rate / (metrics.highestDay || 1000);
+    if (ratio <= 0.25) return { label: 'Safe', cls: 'text-tp-green bg-tp-green/10' };
+    if (ratio <= 0.5) return { label: 'Moderate', cls: 'text-tp-blue bg-tp-blue/10' };
+    if (ratio <= 0.75) return { label: 'Caution', cls: 'text-tp-yellow bg-tp-yellow/10' };
+    if (ratio < 1) return { label: 'Risky', cls: 'text-orange-400 bg-orange-400/10' };
+    return { label: 'Raises target', cls: 'text-tp-red bg-tp-red/10' };
+  };
+  const daysAt = (rate: number) => (metrics.gapToPayout > 0 ? Math.ceil(metrics.gapToPayout / rate) : 0);
+  const sliderMax = Math.max(3000, Math.ceil((metrics.highestDay * 1.6) / 100) * 100);
+
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-
-      {/* ACCOUNT CONFIGURATION */}
-      <div className={clsx(
-        "p-6 rounded-[2rem] border",
-        theme === 'dark' ? "bg-[#111F35] border-white/5" : "bg-white border-gray-200"
-      )}>
-        <div className="flex items-center gap-2 mb-4">
-          <Shield className="w-5 h-5 text-zinc-400" />
-          <h3 className={clsx(
-            "text-sm font-bold uppercase tracking-wider",
-            theme === 'dark' ? "text-white" : "text-gray-900"
-          )}>Account Configuration</h3>
+    <div className="space-y-6">
+      {/* Status strip */}
+      <div className={clsx('flex flex-wrap items-center gap-4 rounded-2xl border p-4', isPayoutReady ? 'border-tp-green/25 bg-tp-green/[0.05]' : 'border-white/[0.07] bg-tp-card')}>
+        <div className={clsx('grid h-10 w-10 place-items-center rounded-xl', isPayoutReady ? 'bg-tp-green/15' : 'bg-tp-yellow/10')}>
+          <Shield className={clsx('h-5 w-5', isPayoutReady ? 'text-tp-green' : 'text-tp-yellow')} />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Account Tier */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em]">
-              Account Tier
-            </label>
-            <div className={clsx(
-              "flex p-1.5 rounded-2xl border",
-              theme === 'dark' ? "bg-[#0D1628] border-white/5" : "bg-gray-50 border-gray-200"
-            )}>
-              {(['instant', 'elite'] as const).map((tier) => (
-                <button
-                  key={tier}
-                  onClick={() => handleTierChange(tier)}
-                  className={clsx(
-                    "flex-1 py-3 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all",
-                    accountTier === tier
-                      ? `text-black shadow-lg scale-[1.02]`
-                      : "text-[#6B7280] hover:text-[#9CA3AF]"
-                  )}
-                  style={{
-                    backgroundColor: accountTier === tier ? TIER_CONFIG[tier].color : 'transparent'
-                  }}
-                >
-                  {TIER_CONFIG[tier].label} ({TIER_CONFIG[tier].defaultRule}%)
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Original Profit Target */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-[#4B5563] uppercase tracking-[0.2em]">
-              Original Profit Target
-            </label>
-            <div className="relative">
-              <span className={clsx(
-                "absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold",
-                theme === 'dark' ? "text-emerald-500" : "text-green-600"
-              )}>$</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={originalTarget.toString()}
-                onChange={(e) => {
-                  const cleaned = e.target.value.replace(/[^0-9]/g, '');
-                  const value = parseInt(cleaned, 10) || 0;
-                  handleOriginalTargetChange(value);
-                }}
-                className={clsx(
-                  "w-full pl-10 pr-4 py-3 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#00D68F]/50",
-                  theme === 'dark'
-                    ? "bg-[#172035] text-white border border-white/10"
-                    : "bg-gray-100 text-gray-900 border border-gray-200"
-                )}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* PAYOUT RESET NOTICE */}
-      {lastPayoutDate && (
-        <div className={clsx(
-          "p-4 rounded-2xl border flex items-center gap-4",
-          theme === 'dark'
-            ? "bg-[#172035] border-zinc-700"
-            : "bg-purple-50 border-purple-200"
-        )}>
-          <div className={clsx(
-            "w-12 h-12 rounded-xl flex items-center justify-center",
-            theme === 'dark' ? "bg-[#172035]/80" : "bg-purple-100"
-          )}>
-            <RefreshCw className="w-6 h-6 text-zinc-400" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-4 h-4 text-zinc-400" />
-              <span className={clsx(
-                "text-sm font-bold",
-                theme === 'dark' ? "text-white" : "text-gray-900"
-              )}>
-                Consistency Reset After Payout
+        <div className="flex-1">
+          <div className="text-[15px] font-semibold text-zinc-50">{isPayoutReady ? 'Ready for payout' : 'Not payout-ready yet'}</div>
+          <div className="mt-0.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-400">
+            <span>Balance: {balanceTargetMet ? <span className="text-tp-green">met</span> : `${usd(balanceGap)} to go`}</span>
+            <span>Consistency: {consistencyMet ? <span className="text-tp-green">qualified</span> : 'not yet'}</span>
+            {lastPayoutDate && (
+              <span className="inline-flex items-center gap-1">
+                <RefreshCw className="h-3.5 w-3.5" /> reset {new Date(`${lastPayoutDate}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ·{' '}
+                {tradingDaysSincePayout} days since
               </span>
-            </div>
-            <p className={clsx(
-              "text-xs",
-              theme === 'dark' ? "text-zinc-400" : "text-gray-600"
-            )}>
-              Last payout on {new Date(lastPayoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. 
-              Consistency tracking restarted with {tradingDaysSincePayout} trading day{tradingDaysSincePayout !== 1 ? 's' : ''} since then.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* OVERALL PAYOUT READINESS */}
-      <div className={clsx(
-        "p-4 rounded-[2rem] border flex items-center justify-between",
-        isPayoutReady
-          ? (theme === 'dark' ? "bg-emerald-500/5 border-emerald-500/30/20" : "bg-green-50 border-green-200")
-          : (theme === 'dark' ? "bg-[#0D1628]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200")
-      )}>
-        <div className="flex items-center gap-3">
-          <div className={clsx(
-            "w-10 h-10 rounded-xl flex items-center justify-center",
-            isPayoutReady ? "bg-emerald-500/20" : "bg-[#F59E0B]/10"
-          )}>
-            <Shield className={clsx("w-5 h-5", isPayoutReady ? "text-emerald-500" : "text-[#F59E0B]")} />
-          </div>
-          <div>
-            <div className={clsx(
-              "text-sm font-bold",
-              theme === 'dark' ? "text-white" : "text-gray-900"
-            )}>Payout Qualification</div>
-            <div className="flex items-center gap-3 mt-0.5">
-              <div className="flex items-center gap-1">
-                <div className={clsx("w-2 h-2 rounded-full", balanceTargetMet ? "bg-emerald-500" : "bg-rose-500")} />
-                <span className="text-[10px] text-zinc-400">Balance {balanceTargetMet ? "Met" : `Gap: ${formatCurrency(balanceGap)}`}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className={clsx("w-2 h-2 rounded-full", consistencyMet ? "bg-emerald-500" : "bg-rose-500")} />
-                <span className="text-[10px] text-zinc-400">Consistency {consistencyMet ? "Qualified" : "Not Yet"}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className={clsx(
-          "px-4 py-1.5 rounded-full text-xs font-bold text-white",
-          isPayoutReady ? "bg-emerald-500" : "bg-rose-500"
-        )}>
-          {isPayoutReady ? "Ready for Payout" : "Not Ready"}
-        </div>
-      </div>
-
-      {/* MAIN STATS GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        {/* LEFT: Consistency Gauge & Key Metrics */}
-        <div className="lg:col-span-5 space-y-6">
-
-          {/* Consistency Gauge */}
-          <div className={clsx(
-            "p-8 rounded-[2rem] border relative overflow-hidden",
-            theme === 'dark' ? "bg-[#0D1628]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
-          )}>
-            <div className="absolute -right-10 -top-10 w-40 h-40 blur-[80px] rounded-full opacity-20"
-              style={{ backgroundColor: gaugeColor }} />
-
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className={clsx(
-                  "text-sm font-bold uppercase tracking-wider",
-                  theme === 'dark' ? "text-white" : "text-gray-900"
-                )}>Consistency Status</h3>
-                <div className={clsx(
-                  "px-3 py-1 rounded-full text-xs font-bold",
-                  metrics.isQualified
-                    ? "bg-emerald-500/20 text-emerald-500"
-                    : "bg-rose-500/20 text-rose-500"
-                )}>
-                  {metrics.isQualified ? 'Qualified' : 'Not Yet'}
-                </div>
-              </div>
-
-              {/* Arc Gauge */}
-              <div className="flex flex-col items-center mb-6">
-                <div className="relative w-48 h-28">
-                  <svg className="w-48 h-28" viewBox="0 0 100 60">
-                    {/* Background arc */}
-                    <path
-                      d="M 10 50 A 40 40 0 0 1 90 50"
-                      fill="none"
-                      stroke={theme === 'dark' ? '#1E2F4A' : '#E0EAF8'}
-                      strokeWidth="8"
-                      strokeLinecap="round"
-                    />
-                    {/* Progress arc */}
-                    <path
-                      d="M 10 50 A 40 40 0 0 1 90 50"
-                      fill="none"
-                      stroke={gaugeColor}
-                      strokeWidth="8"
-                      strokeLinecap="round"
-                      strokeDasharray={`${gaugePercent * 1.26} 126`}
-                      className="transition-all duration-1000"
-                    />
-                    {/* Threshold marker */}
-                    <circle cx="90" cy="50" r="3" fill={theme === 'dark' ? '#6B7280' : '#9CA3AF'} />
-                  </svg>
-                </div>
-                {/* Text below the arc */}
-                <div className="flex flex-col items-center -mt-8">
-                  <span className="text-3xl font-black" style={{ color: gaugeColor }}>
-                    {metrics.currentConsistencyPercent.toFixed(1)}%
-                  </span>
-                  <span className={clsx(
-                    "text-[10px] font-bold uppercase tracking-wider",
-                    theme === 'dark' ? "text-[#6B7280]" : "text-gray-500"
-                  )}>of {consistencyRule}% limit</span>
-                </div>
-              </div>
-
-              {/* Key Stats */}
-              <div className="space-y-3">
-                <div className={clsx(
-                  "flex justify-between py-2 border-b",
-                  theme === 'dark' ? "border-white/5" : "border-gray-100"
-                )}>
-                  <span className={clsx("text-sm", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-                    Current Total Profit
-                  </span>
-                  <span className="text-sm font-bold text-emerald-500">
-                    {formatCurrency(metrics.currentTotalProfit)}
-                  </span>
-                </div>
-                <div className={clsx(
-                  "flex justify-between py-2 border-b",
-                  theme === 'dark' ? "border-white/5" : "border-gray-100"
-                )}>
-                  <span className={clsx("text-sm", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-                    Highest Profit Day
-                  </span>
-                  <div className="text-right">
-                    <span className="text-sm font-bold text-[#F59E0B]">
-                      {formatCurrency(metrics.highestDay)}
-                    </span>
-                    {metrics.highestDayDate && (
-                      <span className={clsx(
-                        "text-[10px] ml-2",
-                        theme === 'dark' ? "text-[#6B7280]" : "text-gray-400"
-                      )}>
-                        ({new Date(metrics.highestDayDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className={clsx(
-                  "flex justify-between py-2 border-b",
-                  theme === 'dark' ? "border-white/5" : "border-gray-100"
-                )}>
-                  <span className={clsx("text-sm", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-                    Required Profit Target
-                  </span>
-                  <span className={clsx(
-                    "text-sm font-bold",
-                    metrics.effectiveTarget > originalTarget ? "text-rose-500" : "text-white"
-                  )}>
-                    {formatCurrency(metrics.effectiveTarget)}
-                    {metrics.effectiveTarget > originalTarget && (
-                      <span className="text-[10px] ml-1">↑</span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex justify-between py-2">
-                  <span className={clsx("text-sm", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-                    Gap to Payout
-                  </span>
-                  <span className={clsx(
-                    "text-sm font-bold",
-                    theme === 'dark' ? "text-white" : "text-gray-900"
-                  )}>
-                    {formatCurrency(metrics.gapToPayout)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT: Daily Guardrails & What-If */}
-        <div className="lg:col-span-7 space-y-6">
-
-          {/* DAILY GUARDRAILS - Most Important */}
-          <div className={clsx(
-            "p-6 rounded-[2rem] border relative overflow-hidden",
-            theme === 'dark'
-              ? "bg-gradient-to-br from-[#111F35] to-[#111F35] border-white/5"
-              : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
-          )}>
-            <div className="absolute -left-10 -bottom-10 w-40 h-40 blur-[80px] rounded-full opacity-10 bg-emerald-500" />
-
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-4">
-                <Target className="w-5 h-5 text-emerald-500" />
-                <h3 className={clsx(
-                  "text-sm font-bold uppercase tracking-wider",
-                  theme === 'dark' ? "text-white" : "text-gray-900"
-                )}>Daily Guardrails</h3>
-              </div>
-
-              {/* Safe Daily Max - HERO */}
-              <div className={clsx(
-                "p-6 rounded-2xl mb-4",
-                theme === 'dark' ? "bg-emerald-500/10 border border-emerald-500/30/20" : "bg-green-50 border border-green-200"
-              )}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">
-                      Safe Daily Max
-                    </div>
-                    <div className="text-3xl font-black text-emerald-500">
-                      {formatCurrency(metrics.safeMaxToday)}
-                    </div>
-                    <div className={clsx(
-                      "text-xs mt-1",
-                      theme === 'dark' ? "text-zinc-400" : "text-gray-600"
-                    )}>
-                      Max profit today without increasing your target
-                    </div>
-                  </div>
-                  <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
-                    <Shield className="w-8 h-8 text-emerald-500" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Warning & Danger Zones */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className={clsx(
-                  "p-4 rounded-xl",
-                  theme === 'dark' ? "bg-[#F59E0B]/10 border border-[#F59E0B]/20" : "bg-amber-50 border border-amber-200"
-                )}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="w-4 h-4 text-[#F59E0B]" />
-                    <span className="text-[9px] font-black text-[#F59E0B] uppercase tracking-wider">Warning Zone</span>
-                  </div>
-                  <div className="text-lg font-bold text-[#F59E0B]">
-                    {formatCurrency(metrics.warningThreshold)} - {formatCurrency(metrics.highestDay)}
-                  </div>
-                  <div className={clsx(
-                    "text-[10px] mt-1",
-                    theme === 'dark' ? "text-zinc-400" : "text-gray-600"
-                  )}>Approaching your highest day</div>
-                </div>
-
-                <div className={clsx(
-                  "p-4 rounded-xl",
-                  theme === 'dark' ? "bg-rose-500/10 border border-rose-500/30/20" : "bg-red-50 border border-red-200"
-                )}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <XCircle className="w-4 h-4 text-rose-500" />
-                    <span className="text-[9px] font-black text-rose-500 uppercase tracking-wider">Danger Zone</span>
-                  </div>
-                  <div className="text-lg font-bold text-rose-500">
-                    &gt; {formatCurrency(metrics.highestDay)}
-                  </div>
-                  <div className={clsx(
-                    "text-[10px] mt-1",
-                    theme === 'dark' ? "text-zinc-400" : "text-gray-600"
-                  )}>Would increase your target</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* WHAT-IF SCENARIO PLANNER */}
-          <div className={clsx(
-            "p-6 rounded-[2rem] border",
-            theme === 'dark' ? "bg-[#0D1628]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
-          )}>
-            <div className="flex items-center gap-2 mb-4">
-              <Calculator className="w-5 h-5 text-zinc-400" />
-              <h3 className={clsx(
-                "text-sm font-bold uppercase tracking-wider",
-                theme === 'dark' ? "text-white" : "text-gray-900"
-              )}>What-If Scenario</h3>
-            </div>
-
-            {/* Input */}
-            <div className="mb-4">
-              <div className={clsx(
-                "flex items-center gap-3 mb-3 px-4 py-2.5 rounded-xl",
-                theme === 'dark' ? "bg-zinc-200/5 border border-[#4F9CF9]/10" : "bg-purple-50 border border-purple-100"
-              )}>
-                <span className="text-base">🔮</span>
-                <span className={clsx(
-                  "text-sm font-semibold tracking-wide",
-                  theme === 'dark' ? "text-zinc-400" : "text-purple-700"
-                )}>
-                  If I profit tomorrow...
-                </span>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="relative flex-1">
-                  <span className={clsx(
-                    "absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold",
-                    theme === 'dark' ? "text-zinc-400" : "text-purple-600"
-                  )}>$</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="Enter amount"
-                    value={whatIfInput}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9.]/g, '');
-                      setWhatIfInput(val);
-                    }}
-                    onFocus={(e) => {
-                      if (whatIfInput === '0') setWhatIfInput('');
-                    }}
-                    className={clsx(
-                      "w-full pl-10 pr-4 py-3.5 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#4F9CF9]/50 transition-all",
-                      theme === 'dark'
-                        ? "bg-[#0D1628] text-white border border-[#4F9CF9]/20 placeholder-[#4B5563]"
-                        : "bg-gray-100 text-gray-900 border border-gray-200 placeholder-gray-400"
-                    )}
-                  />
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="3000"
-                  step="50"
-                  value={whatIfAmount}
-                  onChange={(e) => setWhatIfInput(e.target.value)}
-                  className="flex-1 h-2 bg-[#172035] rounded-lg appearance-none cursor-pointer accent-[#4F9CF9]"
-                />
-              </div>
-            </div>
-
-            {/* Result */}
-            <div className={clsx(
-              "p-4 rounded-xl",
-              whatIfScenario.wouldIncreaseTarget
-                ? (theme === 'dark' ? "bg-rose-500/10 border border-rose-500/30/20" : "bg-red-50 border border-red-200")
-                : whatIfScenario.wouldBecomeHighestDay
-                  ? (theme === 'dark' ? "bg-[#F59E0B]/10 border border-[#F59E0B]/20" : "bg-amber-50 border border-amber-200")
-                  : whatIfAmount > metrics.highestDay * 0.8
-                    ? (theme === 'dark' ? "bg-[#F59E0B]/10 border border-[#F59E0B]/20" : "bg-amber-50 border border-amber-200")
-                    : (theme === 'dark' ? "bg-emerald-500/10 border border-emerald-500/30/20" : "bg-green-50 border border-green-200")
-            )}>
-              {/* Verdict badge */}
-              <div className="flex items-center gap-3 mb-4">
-                {whatIfScenario.wouldIncreaseTarget ? (
-                  <>
-                    <XCircle className="w-5 h-5 text-rose-500" />
-                    <span className="text-sm font-bold text-rose-500">
-                      New highest day — payout target increases
-                    </span>
-                  </>
-                ) : whatIfScenario.wouldBecomeHighestDay ? (
-                  <>
-                    <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
-                    <span className="text-sm font-bold text-[#F59E0B]">
-                      New highest day — consistency requirement increases
-                    </span>
-                  </>
-                ) : whatIfAmount > metrics.highestDay * 0.8 ? (
-                  <>
-                    <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
-                    <span className="text-sm font-bold text-[#F59E0B]">
-                      Approaching your highest day
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                    <span className="text-sm font-bold text-emerald-500">
-                      Safe — no impact on consistency
-                    </span>
-                  </>
-                )}
-              </div>
-
-              {/* Before → After comparison table */}
-              <div className="space-y-0">
-                {/* Header row */}
-                <div className="grid grid-cols-3 gap-2 pb-2 mb-2 border-b border-white/5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#4B5563]"></span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#4B5563] text-right">Now</span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 text-right">After</span>
-                </div>
-
-                {/* Highest Day - moved to top since it drives everything */}
-                <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
-                  <span className={clsx("text-xs", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-                    Highest Day
-                  </span>
-                  <span className="text-sm font-bold text-right text-[#F59E0B]">
-                    {formatCurrency(metrics.highestDay)}
-                  </span>
-                  <span className={clsx(
-                    "text-sm font-bold text-right",
-                    whatIfScenario.wouldBecomeHighestDay ? "text-rose-500" : "text-[#F59E0B]"
-                  )}>
-                    {formatCurrency(whatIfScenario.newHighestDay)}
-                    {whatIfScenario.wouldBecomeHighestDay && (
-                      <span className="text-[10px] ml-0.5 text-rose-500"> NEW</span>
-                    )}
-                  </span>
-                </div>
-
-                {/* Consistency % */}
-                <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
-                  <span className={clsx("text-xs", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-                    Consistency %
-                  </span>
-                  <span className={clsx(
-                    "text-sm font-bold text-right",
-                    metrics.currentConsistencyPercent > consistencyRule ? "text-rose-500" : "text-emerald-500"
-                  )}>
-                    {metrics.currentConsistencyPercent.toFixed(1)}%
-                  </span>
-                  <span className={clsx(
-                    "text-sm font-bold text-right",
-                    whatIfScenario.newConsistencyPercent > consistencyRule ? "text-rose-500" : "text-emerald-500"
-                  )}>
-                    {whatIfScenario.newConsistencyPercent.toFixed(1)}%
-                  </span>
-                </div>
-
-                {/* Consistency Required Target (the one that changes with highest day) */}
-                <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
-                  <span className={clsx("text-xs", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-                    Min. Required Profit
-                  </span>
-                  <span className={clsx(
-                    "text-sm font-bold text-right",
-                    metrics.requiredProfitTarget > originalTarget ? "text-rose-500" : (theme === 'dark' ? "text-white" : "text-gray-900")
-                  )}>
-                    {formatCurrency(metrics.requiredProfitTarget)}
-                  </span>
-                  <span className={clsx(
-                    "text-sm font-bold text-right",
-                    whatIfScenario.consistencyRequiredIncreased ? "text-rose-500" : (theme === 'dark' ? "text-white" : "text-gray-900")
-                  )}>
-                    {formatCurrency(whatIfScenario.newConsistencyRequired)}
-                    {whatIfScenario.consistencyRequiredIncreased && (
-                      <span className="text-[10px] ml-0.5 text-rose-500"> {'\u2191'}</span>
-                    )}
-                  </span>
-                </div>
-
-                {/* Payout Target (effective - the actual number to hit) */}
-                <div className="grid grid-cols-3 gap-2 py-1.5 items-center border-t border-white/5 mt-1 pt-2">
-                  <span className={clsx("text-xs font-semibold", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-                    Payout Target
-                  </span>
-                  <span className={clsx("text-sm font-bold text-right", theme === 'dark' ? "text-white" : "text-gray-900")}>
-                    {formatCurrency(metrics.effectiveTarget)}
-                  </span>
-                  <span className={clsx(
-                    "text-sm font-bold text-right",
-                    whatIfScenario.wouldIncreaseTarget ? "text-rose-500" : (theme === 'dark' ? "text-white" : "text-gray-900")
-                  )}>
-                    {formatCurrency(whatIfScenario.newEffectiveTarget)}
-                    {whatIfScenario.wouldIncreaseTarget && (
-                      <span className="text-[10px] ml-0.5 text-rose-500"> +{formatCurrency(whatIfScenario.targetIncrease)}</span>
-                    )}
-                  </span>
-                </div>
-
-                {/* Gap to Payout */}
-                <div className="grid grid-cols-3 gap-2 py-1.5 items-center">
-                  <span className={clsx("text-xs font-semibold", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-                    Gap to Payout
-                  </span>
-                  <span className={clsx("text-sm font-bold text-right", theme === 'dark' ? "text-white" : "text-gray-900")}>
-                    {formatCurrency(metrics.gapToPayout)}
-                  </span>
-                  <span className={clsx("text-sm font-bold text-right", theme === 'dark' ? "text-white" : "text-gray-900")}>
-                    {formatCurrency(whatIfScenario.newGapToPayout)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Dual-condition payout qualification status */}
-              <div className={clsx(
-                "mt-3 p-3 rounded-xl border",
-                whatIfScenario.newPayoutReady
-                  ? (theme === 'dark' ? "bg-emerald-500/5 border-emerald-500/30/20" : "bg-green-50 border-green-200")
-                  : (theme === 'dark' ? "bg-white/[0.02] border-white/5" : "bg-gray-50 border-gray-200")
-              )}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-400">
-                    Payout Status After
-                  </span>
-                  <div className={clsx(
-                    "px-2 py-0.5 rounded-full text-[10px] font-bold text-white",
-                    whatIfScenario.newPayoutReady ? "bg-emerald-500" : "bg-rose-500"
-                  )}>
-                    {whatIfScenario.newPayoutReady ? "Ready" : "Not Ready"}
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  {/* Balance condition */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <div className={clsx("w-2 h-2 rounded-full", whatIfScenario.newBalanceTargetMet ? "bg-emerald-500" : "bg-rose-500")} />
-                      <span className="text-[11px] text-zinc-400">Balance Target</span>
-                    </div>
-                    <span className={clsx(
-                      "text-[11px] font-bold",
-                      whatIfScenario.newBalanceTargetMet ? "text-emerald-500" : (theme === 'dark' ? "text-white" : "text-gray-900")
-                    )}>
-                      {whatIfScenario.newBalanceTargetMet ? "Met" : `${formatCurrency(whatIfScenario.newBalanceGap)} left`}
-                    </span>
-                  </div>
-                  {/* Consistency condition */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <div className={clsx("w-2 h-2 rounded-full", whatIfScenario.newConsistencyMet ? "bg-emerald-500" : "bg-rose-500")} />
-                      <span className="text-[11px] text-zinc-400">Consistency Rule</span>
-                    </div>
-                    <span className={clsx(
-                      "text-[11px] font-bold",
-                      whatIfScenario.newConsistencyMet ? "text-emerald-500" : (theme === 'dark' ? "text-white" : "text-gray-900")
-                    )}>
-                      {whatIfScenario.newConsistencyMet ? "Qualified" : `${formatCurrency(whatIfScenario.newConsistencyGap)} left`}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Explanation when consistency required increases but payout target doesn't */}
-              {whatIfScenario.consistencyRequiredIncreased && !whatIfScenario.wouldIncreaseTarget && (
-                <div className={clsx(
-                  "mt-3 px-3 py-2 rounded-lg text-[11px]",
-                  theme === 'dark' ? "bg-[#F59E0B]/5 text-[#F59E0B]/80" : "bg-amber-50 text-amber-700"
-                )}>
-                  <Info className="w-3 h-3 inline mr-1 -mt-0.5" />
-                  The consistency-required minimum increased to {formatCurrency(whatIfScenario.newConsistencyRequired)}, but your profit target ({formatCurrency(originalTarget)}) is still higher, so the payout target stays the same.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* PATH TO PAYOUT */}
-      <div className={clsx(
-        "p-6 rounded-[2rem] border",
-        theme === 'dark' ? "bg-[#111F35] border-white/5" : "bg-white border-gray-200"
-      )}>
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="w-5 h-5 text-emerald-500" />
-          <h3 className={clsx(
-            "text-sm font-bold uppercase tracking-wider",
-            theme === 'dark' ? "text-white" : "text-gray-900"
-          )}>Path to Payout</h3>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="mb-6">
-          <div className="flex justify-between text-xs mb-2">
-            <span className={clsx(theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-              Progress: {formatCurrency(metrics.currentTotalProfit)}
-            </span>
-            <span className={clsx(theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-              Target: {formatCurrency(metrics.effectiveTarget)}
-            </span>
-          </div>
-          <div className={clsx(
-            "h-4 rounded-full overflow-hidden relative",
-            theme === 'dark' ? "bg-[#172035]" : "bg-gray-200"
-          )}>
-            {/* Original target marker */}
-            {metrics.effectiveTarget > originalTarget && (
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-[#6B7280] z-10"
-                style={{ left: `${(originalTarget / metrics.effectiveTarget) * 100}%` }}
-              />
             )}
-            {/* Progress */}
-            <div
-              className="h-full bg-white text-zinc-950 hover:bg-zinc-200 transition-all duration-1000"
-              style={{ width: `${Math.min(100, (metrics.currentTotalProfit / metrics.effectiveTarget) * 100)}%` }}
-            />
           </div>
-          {metrics.effectiveTarget > originalTarget && (
-            <div className="flex items-center gap-2 mt-2 text-[10px] text-[#F59E0B]">
-              <AlertTriangle className="w-3 h-3" />
-              Original target was {formatCurrency(originalTarget)} - increased due to consistency rule
-            </div>
-          )}
         </div>
-
-        {/* Projections Grid - Sorted by days (most to least), colored by risk based on daily rate */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {projections
-            .slice()
-            .sort((a, b) => b.daysNeeded - a.daysNeeded) // Most days first (safest)
-            .map(({ dailyRate, daysNeeded }) => {
-              // Risk is based on how close the daily rate is to the highest day
-              // Higher daily rate = more aggressive = more dangerous
-              const highestDay = metrics.highestDay || 1000;
-              const riskRatio = dailyRate / highestDay; // 0 to 1+ (can exceed if rate > highest day)
-
-              // Color gradient based on how aggressive the daily rate is
-              const getCardStyle = () => {
-                if (riskRatio <= 0.25) {
-                  // Very conservative - green
-                  return {
-                    bg: theme === 'dark' ? 'bg-emerald-500/10' : 'bg-green-50',
-                    border: theme === 'dark' ? 'border-emerald-500/30' : 'border-green-300',
-                    text: 'text-emerald-500',
-                    label: 'Safe',
-                    labelBg: 'bg-emerald-500/20 text-emerald-500'
-                  };
-                }
-                if (riskRatio <= 0.5) {
-                  // Moderate - teal/cyan
-                  return {
-                    bg: theme === 'dark' ? 'bg-[#22D3EE]/10' : 'bg-cyan-50',
-                    border: theme === 'dark' ? 'border-[#22D3EE]/30' : 'border-cyan-300',
-                    text: 'text-[#22D3EE]',
-                    label: 'Moderate',
-                    labelBg: 'bg-[#22D3EE]/20 text-[#22D3EE]'
-                  };
-                }
-                if (riskRatio <= 0.75) {
-                  // Caution - yellow/amber
-                  return {
-                    bg: theme === 'dark' ? 'bg-[#F59E0B]/10' : 'bg-amber-50',
-                    border: theme === 'dark' ? 'border-[#F59E0B]/30' : 'border-amber-300',
-                    text: 'text-[#F59E0B]',
-                    label: 'Caution',
-                    labelBg: 'bg-[#F59E0B]/20 text-[#F59E0B]'
-                  };
-                }
-                if (riskRatio < 1) {
-                  // High risk - orange
-                  return {
-                    bg: theme === 'dark' ? 'bg-[#F97316]/10' : 'bg-orange-50',
-                    border: theme === 'dark' ? 'border-[#F97316]/30' : 'border-orange-300',
-                    text: 'text-[#F97316]',
-                    label: 'Risky',
-                    labelBg: 'bg-[#F97316]/20 text-[#F97316]'
-                  };
-                }
-                // Danger - exceeds or equals highest day (would increase target)
-                return {
-                  bg: theme === 'dark' ? 'bg-rose-500/10' : 'bg-red-50',
-                  border: theme === 'dark' ? 'border-rose-500/30/30' : 'border-red-300',
-                  text: 'text-rose-500',
-                  label: 'Danger',
-                  labelBg: 'bg-rose-500/20 text-rose-500'
-                };
-              };
-
-              const style = getCardStyle();
-
-              return (
-                <div
-                  key={dailyRate}
-                  className={clsx(
-                    "p-3 rounded-xl text-center transition-all border-2 hover:scale-105",
-                    style.bg,
-                    style.border
-                  )}
-                >
-                  <div className={clsx("text-2xl font-black", style.text)}>
-                    {daysNeeded}
-                  </div>
-                  <div className={clsx(
-                    "text-[9px] uppercase tracking-wider mb-2",
-                    theme === 'dark' ? "text-zinc-400" : "text-gray-500"
-                  )}>
-                    days @ ${dailyRate}/day
-                  </div>
-                  <span className={clsx(
-                    "text-[8px] px-2 py-1 rounded-full font-bold uppercase",
-                    style.labelBg
-                  )}>
-                    {style.label}
-                  </span>
-                </div>
-              );
-            })}
-        </div>
-      </div>
-
-      {/* EDUCATION SECTION */}
-      <div className={clsx(
-        "rounded-[2rem] border overflow-hidden",
-        theme === 'dark' ? "bg-[#0D1628]/80 backdrop-blur-md border-white/5" : "bg-white border-gray-200"
-      )}>
         <button
-          onClick={() => setShowEducation(!showEducation)}
-          className={clsx(
-            "w-full p-4 flex items-center justify-between transition-colors",
-            theme === 'dark' ? "hover:bg-[#172035]/50" : "hover:bg-gray-50"
-          )}
+          onClick={() => setShowSettings(!showSettings)}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-zinc-300 hover:text-zinc-50"
         >
-          <div className="flex items-center gap-2">
-            <Info className="w-5 h-5 text-zinc-400" />
-            <span className={clsx(
-              "text-sm font-bold",
-              theme === 'dark' ? "text-white" : "text-gray-900"
-            )}>Understanding the Consistency Rule</span>
-          </div>
-          {showEducation ? (
-            <ChevronUp className="w-5 h-5 text-[#6B7280]" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-[#6B7280]" />
-          )}
+          <Settings2 className="h-4 w-4" /> {TIER_CONFIG[accountTier].label} · {consistencyRule}%
+          <ChevronDown className={clsx('h-4 w-4 transition-transform', showSettings && 'rotate-180')} />
         </button>
-
-        {showEducation && (
-          <div className={clsx(
-            "p-6 border-t space-y-4",
-            theme === 'dark' ? "border-white/5" : "border-gray-200"
-          )}>
+        {showSettings && (
+          <div className="grid w-full gap-4 border-t border-white/[0.06] pt-4 sm:grid-cols-2">
             <div>
-              <h4 className={clsx(
-                "text-sm font-bold mb-2",
-                theme === 'dark' ? "text-white" : "text-gray-900"
-              )}>The Formula</h4>
-              <div className={clsx(
-                "p-4 rounded-xl font-mono text-sm",
-                theme === 'dark' ? "bg-[#0D1628]" : "bg-gray-100"
-              )}>
-                <div className={clsx(theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-                  Consistency % = (Highest Profit Day / Total Profit) × 100
-                </div>
-                <div className={clsx("mt-2", theme === 'dark' ? "text-zinc-400" : "text-gray-600")}>
-                  Required Target = Highest Day / (Consistency Rule % / 100)
-                </div>
-              </div>
+              <div className="mb-2 text-sm font-medium text-zinc-300">Account tier</div>
+              <Segmented
+                value={accountTier}
+                onChange={(tier) => updateAccount(account.id, { accountTier: tier, consistencyRulePercentage: TIER_CONFIG[tier].defaultRule })}
+                options={(['instant', 'elite'] as const).map((t) => ({ value: t, label: `${TIER_CONFIG[t].label} (${TIER_CONFIG[t].defaultRule}%)` }))}
+              />
             </div>
-
             <div>
-              <h4 className={clsx(
-                "text-sm font-bold mb-2",
-                theme === 'dark' ? "text-white" : "text-gray-900"
-              )}>Why Your Target Might Increase</h4>
-              <p className={clsx(
-                "text-sm",
-                theme === 'dark' ? "text-zinc-400" : "text-gray-600"
-              )}>
-                If your highest profit day exceeds the consistency threshold relative to your total profits,
-                your required profit target increases. This ensures no single day represents more than
-                {consistencyRule}% of your total profits.
-              </p>
-            </div>
-
-            <div>
-              <h4 className={clsx(
-                "text-sm font-bold mb-2",
-                theme === 'dark' ? "text-white" : "text-gray-900"
-              )}>Strategy Tips</h4>
-              <ul className={clsx(
-                "text-sm space-y-2",
-                theme === 'dark' ? "text-zinc-400" : "text-gray-600"
-              )}>
-                <li className="flex items-start gap-2">
-                  <Zap className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                  <span>Keep daily profits consistent - avoid one massive day that skews your ratio</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Zap className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                  <span>Use the "Safe Daily Max" as your profit target for the day</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Zap className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                  <span>If you're close to payout, be extra careful not to exceed your highest day</span>
-                </li>
-              </ul>
+              <div className="mb-2 text-sm font-medium text-zinc-300">Original profit target</div>
+              <MoneyInput value={originalTarget} onChange={(v) => updateAccount(account.id, { originalProfitTarget: v })} className="max-w-xs" />
             </div>
           </div>
         )}
       </div>
+
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* Gauge */}
+        <Card className="lg:col-span-5">
+          <CardTitle
+            icon={Shield}
+            title="Consistency score"
+            subtitle="How big your best day is compared with all your profit."
+            action={<StatusPill ok={metrics.isQualified} okLabel="Within limit" noLabel="Over limit" />}
+          />
+          <div className="relative mx-auto w-full max-w-[300px]">
+            <svg viewBox="0 0 200 120" className="w-full">
+              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="14" strokeLinecap="round" />
+              <path
+                d="M 20 100 A 80 80 0 0 1 180 100"
+                fill="none"
+                stroke={gaugeColor}
+                strokeWidth="14"
+                strokeLinecap="round"
+                pathLength={100}
+                strokeDasharray={`${usage} 100`}
+                className="transition-all duration-700"
+              />
+              <text x="20" y="116" fill="#71717a" fontSize="9" textAnchor="middle">0%</text>
+              <text x="180" y="116" fill="#71717a" fontSize="9" textAnchor="middle">{consistencyRule}%</text>
+            </svg>
+            <div className="absolute inset-x-0 bottom-3 text-center">
+              <div className="text-4xl font-semibold tabular-nums" style={{ color: gaugeColor }}>
+                {metrics.currentConsistencyPercent.toFixed(1)}%
+              </div>
+              <div className="text-sm text-zinc-500">of a {consistencyRule}% limit</div>
+            </div>
+          </div>
+          <p className="mt-4 text-center text-[15px] leading-relaxed text-zinc-300">
+            Your best day{metrics.highestDayDate && ` (${new Date(`${metrics.highestDayDate}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`} is{' '}
+            <strong className="text-zinc-50">{metrics.currentConsistencyPercent.toFixed(1)}%</strong> of your profit since payout.
+          </p>
+          <dl className="mt-5 divide-y divide-white/[0.05] text-sm">
+            {[
+              ['Profit since payout', usd(metrics.currentTradingProfit, true), 'text-tp-green'],
+              ['Best day', usd(metrics.highestDay, true), 'text-tp-yellow'],
+              ['Payout target (with rule)', usd(metrics.effectiveTarget, true), metrics.effectiveTarget > originalTarget ? 'text-tp-red' : 'text-zinc-100'],
+              ['Gap to payout', usd(metrics.gapToPayout, true), 'text-zinc-100'],
+            ].map(([k, v, cls]) => (
+              <div key={k} className="flex justify-between py-2.5">
+                <dt className="text-zinc-400">{k}</dt>
+                <dd className={clsx('font-semibold tabular-nums', cls)}>{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
+
+        {/* Tomorrow simulator */}
+        <Card className="lg:col-span-7">
+          <CardTitle icon={FlaskConical} title="Tomorrow simulator" subtitle="Drag to see what a day like that does to your payout." tone="blue" />
+
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-[15px] text-zinc-300">If I make</span>
+            <MoneyInput value={whatIf} onChange={setWhatIf} className="w-32" />
+            <span className="text-[15px] text-zinc-300">tomorrow…</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={sliderMax}
+            step={25}
+            value={Math.min(whatIf, sliderMax)}
+            onChange={(e) => setWhatIf(Number(e.target.value))}
+            aria-label="Tomorrow's profit"
+            className="mt-4 w-full accent-[#4F9CF9]"
+          />
+          <ZoneBar value={whatIf} max={sliderMax} warn={metrics.warningThreshold} best={metrics.highestDay} />
+
+          <div
+            className={clsx(
+              'mt-5 flex items-center gap-2 rounded-xl px-4 py-3 text-[15px] font-semibold',
+              verdict.tone === 'red' ? 'bg-tp-red/10 text-tp-red' : verdict.tone === 'yellow' ? 'bg-tp-yellow/10 text-tp-yellow' : 'bg-tp-green/10 text-tp-green',
+            )}
+          >
+            <verdict.icon className="h-5 w-5 shrink-0" />
+            {verdict.text}
+          </div>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[420px] text-sm">
+              <thead>
+                <tr className="text-left text-xs text-zinc-500">
+                  <th className="pb-2 font-medium"></th>
+                  <th className="pb-2 text-right font-medium">Now</th>
+                  <th className="pb-2 text-right font-medium">After</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.05]">
+                <SimRow label="Best day" now={usd(metrics.highestDay, true)} after={usd(sim.newHighestDay, true)} bad={sim.wouldBecomeHighestDay} />
+                <SimRow
+                  label="Best day share"
+                  now={`${metrics.currentConsistencyPercent.toFixed(1)}%`}
+                  after={`${sim.newConsistencyPercent.toFixed(1)}%`}
+                  bad={sim.newConsistencyPercent > consistencyRule}
+                />
+                <SimRow label="Consistency minimum" now={usd(metrics.requiredProfitTarget, true)} after={usd(sim.newConsistencyRequired, true)} bad={sim.consistencyRequiredIncreased} />
+                <SimRow label="Payout target" now={usd(metrics.effectiveTarget, true)} after={usd(sim.newEffectiveTarget, true)} bad={sim.wouldIncreaseTarget} />
+                <SimRow label="Gap to payout" now={usd(metrics.gapToPayout, true)} after={usd(sim.newGapToPayout, true)} />
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-zinc-500">After that day:</span>
+            <StatusPill ok={sim.newBalanceTargetMet} okLabel="Balance met" noLabel={`${usd(sim.newBalanceGap)} balance to go`} />
+            <StatusPill ok={sim.newConsistencyMet} okLabel="Consistency met" noLabel={`${usd(sim.newConsistencyGap)} for consistency`} />
+            {sim.newPayoutReady && <span className="font-semibold text-tp-green">→ payout-ready</span>}
+          </div>
+          {sim.consistencyRequiredIncreased && !sim.wouldIncreaseTarget && (
+            <p className="mt-3 flex gap-2 text-sm text-zinc-400">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-tp-yellow" />
+              The consistency minimum rises to {usd(sim.newConsistencyRequired)}, but your profit target ({usd(originalTarget)}) is still higher — so the payout
+              target doesn’t move.
+            </p>
+          )}
+        </Card>
+      </div>
+
+      {/* Daily chart */}
+      <Card>
+        <CardTitle
+          icon={BarChart3}
+          title="Your days vs the rule"
+          subtitle={`The dashed line is ${consistencyRule}% of your profit since payout. A green bar above it means one day is doing too much of the work.`}
+        />
+        <DailyChart daily={actualDailyPnL} cap={metrics.currentTradingProfit * (consistencyRule / 100)} best={metrics.highestDay} />
+      </Card>
+
+      {/* Path to payout */}
+      <Card>
+        <CardTitle icon={Route} title="Path to payout" subtitle="Pick a daily pace — see how long it takes and how risky that pace is against your best day." />
+        <div className="mb-2 flex justify-between text-sm text-zinc-400">
+          <span>{usd(metrics.currentTotalProfit)} now</span>
+          <span>{usd(metrics.effectiveTarget)} payout target</span>
+        </div>
+        <div className="relative">
+          <Bar value={(metrics.currentTotalProfit / Math.max(1, metrics.effectiveTarget)) * 100} tone="green" className="h-3" />
+          {metrics.effectiveTarget > originalTarget && (
+            <div className="absolute -top-1 h-5 w-0.5 bg-zinc-300" style={{ left: `${(originalTarget / metrics.effectiveTarget) * 100}%` }} title="Original target" />
+          )}
+        </div>
+        {metrics.effectiveTarget > originalTarget && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-tp-yellow">
+            <AlertTriangle className="h-3.5 w-3.5" /> Target raised from {usd(originalTarget)} by the consistency rule (white tick).
+          </p>
+        )}
+
+        <div className="mt-6 grid items-center gap-6 md:grid-cols-[1fr_auto]">
+          <div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-zinc-300">Daily pace</span>
+              <span className="font-semibold tabular-nums text-zinc-50">{usd(dailyRate)}/day</span>
+            </div>
+            <input
+              type="range"
+              min={50}
+              max={1500}
+              step={50}
+              value={dailyRate}
+              onChange={(e) => setDailyRate(Number(e.target.value))}
+              aria-label="Daily pace"
+              className="mt-2 w-full accent-[#00D68F]"
+            />
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {[100, 200, 300, 500, 750, 1000].map((r) => {
+                const risk = rateRisk(r);
+                return (
+                  <button
+                    key={r}
+                    onClick={() => setDailyRate(r)}
+                    className={clsx('rounded-lg px-2.5 py-1.5 text-xs font-medium tabular-nums', dailyRate === r ? 'bg-white/[0.12] text-zinc-50' : 'bg-white/[0.04] text-zinc-400 hover:text-zinc-100')}
+                  >
+                    ${r} · {daysAt(r)}d · <span className={risk.cls.split(' ')[0]}>{risk.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/[0.08] bg-black/20 px-6 py-4 text-center">
+            <div className="text-4xl font-semibold tabular-nums text-zinc-50">{daysAt(dailyRate)}</div>
+            <div className="text-sm text-zinc-500">trading days</div>
+            <span className={clsx('mt-2 inline-block rounded-full px-2.5 py-1 text-xs font-semibold', rateRisk(dailyRate).cls)}>{rateRisk(dailyRate).label}</span>
+          </div>
+        </div>
+      </Card>
+
+      {/* Education */}
+      <section className="overflow-hidden rounded-2xl border border-white/[0.06] bg-tp-card">
+        <button onClick={() => setShowEducation(!showEducation)} className="flex w-full items-center justify-between p-5 text-left hover:bg-white/[0.02]">
+          <span className="flex items-center gap-2 text-[15px] font-semibold text-zinc-100">
+            <Info className="h-5 w-5 text-tp-blue" /> How the consistency rule works — with your numbers
+          </span>
+          <ChevronDown className={clsx('h-5 w-5 text-zinc-500 transition-transform', showEducation && 'rotate-180')} />
+        </button>
+        {showEducation && (
+          <div className="space-y-5 border-t border-white/[0.06] p-5 text-[15px] leading-relaxed text-zinc-300">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl bg-black/25 p-4 font-mono text-sm">
+                <div className="text-zinc-500">Best day share</div>
+                <div className="mt-1 text-zinc-100">
+                  {usd(metrics.highestDay)} ÷ {usd(metrics.currentTradingProfit)} = <span style={{ color: gaugeColor }}>{metrics.currentConsistencyPercent.toFixed(1)}%</span>
+                </div>
+              </div>
+              <div className="rounded-xl bg-black/25 p-4 font-mono text-sm">
+                <div className="text-zinc-500">Minimum profit the rule needs</div>
+                <div className="mt-1 text-zinc-100">
+                  {usd(metrics.highestDay)} ÷ {consistencyRule}% = {usd(metrics.requiredProfitTarget)}
+                </div>
+              </div>
+            </div>
+            <p>
+              No single day can be more than <strong className="text-zinc-50">{consistencyRule}%</strong> of your total profit. A huge day doesn’t fail you — it
+              just raises how much total profit you need before a payout. That’s why the best play near payout is <em>smaller, steady days</em>.
+            </p>
+            <ul className="space-y-2">
+              {[
+                `Treat ${usd(metrics.safeMaxToday)} as your stop-at-profit for the day.`,
+                'Keep size the same every day — consistency in size makes consistency in P&L.',
+                'Close to payout? Protect it: fewer trades, same setup, no heroics.',
+              ].map((t) => (
+                <li key={t} className="flex gap-2">
+                  <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-tp-green" /> {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
     </div>
   );
 };
+
+// ─── Pieces ──────────────────────────────────────────────────────────────────
+
+function SimRow({ label, now, after, bad }: { label: string; now: string; after: string; bad?: boolean }) {
+  return (
+    <tr>
+      <td className="py-2 text-zinc-400">{label}</td>
+      <td className="py-2 text-right tabular-nums text-zinc-300">{now}</td>
+      <td className={clsx('py-2 text-right font-semibold tabular-nums', bad ? 'text-tp-red' : 'text-zinc-50')}>
+        {after}
+        {bad && ' ↑'}
+      </td>
+    </tr>
+  );
+}
+
+/** Safe / warning / danger zones with a marker for the simulated day. */
+function ZoneBar({ value, max, warn, best }: { value: number; max: number; warn: number; best: number }) {
+  const pct = (v: number) => `${Math.min(100, (v / max) * 100)}%`;
+  return (
+    <div className="mt-3">
+      <div className="relative h-3 overflow-hidden rounded-full bg-white/[0.06]">
+        {best > 0 ? (
+          <>
+            <div className="absolute inset-y-0 left-0 bg-tp-green/60" style={{ width: pct(warn) }} />
+            <div className="absolute inset-y-0 bg-tp-yellow/60" style={{ left: pct(warn), width: `calc(${pct(best)} - ${pct(warn)})` }} />
+            <div className="absolute inset-y-0 right-0 bg-tp-red/50" style={{ left: pct(best) }} />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-tp-green/50" />
+        )}
+      </div>
+      <div className="relative h-8">
+        <div className="absolute -top-5 -translate-x-1/2 transition-all" style={{ left: pct(value) }}>
+          <div className="mx-auto h-7 w-1 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+        </div>
+        {best > 0 && (
+          <span className="absolute top-2 -translate-x-1/2 whitespace-nowrap text-xs text-zinc-500" style={{ left: pct(best) }}>
+            best day {usd(best)}
+          </span>
+        )}
+      </div>
+      <div className="flex gap-4 text-xs text-zinc-500">
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-tp-green" /> Safe</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-tp-yellow" /> Near best day</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-tp-red" /> Raises target</span>
+      </div>
+    </div>
+  );
+}
+
+function DailyChart({ daily, cap, best }: { daily: Record<string, number>; cap: number; best: number }) {
+  const rows = Object.entries(daily)
+    .filter(([d]) => d !== 'unknown')
+    .sort(([a], [b]) => a.localeCompare(b));
+  if (!rows.length) return <p className="py-8 text-center text-sm text-zinc-500">No trading days since your last payout yet.</p>;
+
+  const W = 800;
+  const H = 220;
+  const pad = { l: 8, r: 8, t: 16, b: 28 };
+  const maxV = Math.max(cap, ...rows.map(([, v]) => v), 1);
+  const minV = Math.min(0, ...rows.map(([, v]) => v));
+  const y = (v: number) => pad.t + ((maxV - v) / (maxV - minV)) * (H - pad.t - pad.b);
+  const slot = (W - pad.l - pad.r) / rows.length;
+  const bw = Math.min(36, slot * 0.7);
+  const over = rows.filter(([, v]) => v > cap).length;
+
+  return (
+    <div>
+      <div className="overflow-x-auto">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[520px]" role="img" aria-label="Daily profit and loss since payout">
+          <line x1={pad.l} x2={W - pad.r} y1={y(0)} y2={y(0)} stroke="rgba(255,255,255,0.12)" />
+          {rows.map(([d, v], i) => {
+            const x = pad.l + i * slot + (slot - bw) / 2;
+            const color = v === best && v > 0 ? '#FFB800' : v > cap ? '#FF4868' : v >= 0 ? '#00D68F' : '#FF4868';
+            const top = Math.min(y(v), y(0));
+            return (
+              <g key={d}>
+                <rect x={x} y={top} width={bw} height={Math.max(2, Math.abs(y(v) - y(0)))} rx="3" fill={color} fillOpacity={v < 0 ? 0.45 : 0.85}>
+                  <title>{`${d}: ${usd(v, true)}`}</title>
+                </rect>
+                {rows.length <= 24 && (
+                  <text x={x + bw / 2} y={H - 8} textAnchor="middle" fontSize="10" fill="#71717a">
+                    {new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+          {cap > 0 && (
+            <>
+              <line x1={pad.l} x2={W - pad.r} y1={y(cap)} y2={y(cap)} stroke="#e4e9f0" strokeDasharray="6 5" strokeOpacity=".7" />
+              <text x={W - pad.r} y={y(cap) - 6} textAnchor="end" fontSize="11" fill="#e4e9f0">
+                max per day {usd(cap)}
+              </text>
+            </>
+          )}
+        </svg>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-4 text-xs text-zinc-500">
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-tp-green" /> Within the rule</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-tp-yellow" /> Best day</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-tp-red" /> Over the line / red day</span>
+        <span className="ml-auto text-zinc-400">
+          {over === 0 ? 'Every day is within the rule.' : `${over} day${over === 1 ? '' : 's'} above the line.`}
+        </span>
+      </div>
+    </div>
+  );
+}

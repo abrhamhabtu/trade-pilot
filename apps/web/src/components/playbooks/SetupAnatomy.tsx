@@ -2,10 +2,10 @@
 /* Browser-local reference images are kept at their native aspect ratio. */
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
-import { ArrowRight, ImagePlus, Maximize2, ScanLine } from "lucide-react";
+import clsx from "clsx";
+import { ArrowRight, ChevronDown, ImagePlus, Maximize2, ScanLine } from "lucide-react";
 import type { PlaybookStrategy } from "../Playbooks";
 import type { Evidence } from "@/lib/playbookLibrary";
-import "./anatomy.css";
 
 type Profile = {
   level: string;
@@ -14,6 +14,7 @@ type Profile = {
   path: number[];
   kind: "break" | "reclaim" | "reversal" | "trend";
   zone?: string;
+  levels?: { price: number; label: string }[];
 };
 const profiles: Record<string, Profile> = {
   orb: {
@@ -118,11 +119,14 @@ const profiles: Record<string, Profile> = {
     ],
   },
   "failed-auction": {
-    level: "Value area low",
-    context: "Auction outside value",
-    trigger: "Failure below value, then re-entry",
+    level: "VAL · cheap",
+    context: "Price is pushed to the cheap edge",
+    trigger: "Auction fails, body closes back through",
     kind: "reclaim",
-    zone: "Value area",
+    levels: [
+      { price: 88, label: "POC · fair value" },
+      { price: 124, label: "VAH · expensive" },
+    ],
     path: [
       85, 79, 84, 77, 72, 78, 69, 64, 53, 42, 49, 61, 73, 78, 71, 80, 86, 92,
       87, 98, 105, 100, 111, 118,
@@ -152,6 +156,42 @@ const profiles: Record<string, Profile> = {
   },
 };
 
+const STAGE_META = [
+  { name: "Context", hint: "Is this even my setup?", color: "#91bdf1" },
+  { name: "Confirmation", hint: "What makes me click buy/sell", color: "#00D68F" },
+  { name: "Invalidation", hint: "Where I'm wrong — the stop", color: "#FF4868" },
+  { name: "Objective", hint: "Where I get paid — the target", color: "#c9c2f7" },
+];
+
+const isTrigger = (r: string) =>
+  /^enter|enter on|enter only|enter when|entry trigger|enter immediately/i.test(r);
+const isFail = (r: string) =>
+  /exit if|exit immediately|exit on|closes (back|fully|decisively)/i.test(r);
+
+/** Build four stages with 2–3 concrete points each from the strategy rules. */
+function buildStages(strategy: PlaybookStrategy, profile: Profile) {
+  if (strategy.anatomy?.length === 4) return strategy.anatomy;
+  const triggers = strategy.entryRules.filter(isTrigger);
+  const context = strategy.entryRules.filter((r) => !isTrigger(r));
+  const fails = strategy.exitRules.filter(isFail);
+  const targets = strategy.exitRules.filter((r) => !isFail(r));
+  return [
+    { title: profile.context, points: context.slice(0, 3) },
+    {
+      title: profile.trigger,
+      points: (triggers.length ? triggers : strategy.entryRules.slice(-2)).slice(0, 3),
+    },
+    {
+      title: "Know exactly where the idea fails",
+      points: [strategy.riskManagement[0], ...fails].filter(Boolean).slice(0, 3),
+    },
+    {
+      title: "Plan the exit before the entry",
+      points: (targets.length ? targets : strategy.exitRules).slice(0, 3),
+    },
+  ];
+}
+
 export function SetupAnatomy({
   strategy,
   screenshots,
@@ -172,152 +212,167 @@ export function SetupAnatomy({
   const [step, setStep] = useState(0);
   const profile = profiles[strategy.id] || profiles["support-resistance"];
   const reference = screenshots.find((s) => s.id === selectedImage);
-  const stages = [
-    {
-      name: "Context",
-      title: profile.context,
-      body: strategy.entryRules[0] || strategy.overview,
-    },
-    {
-      name: "Confirmation",
-      title: profile.trigger,
-      body:
-        strategy.entryRules.find((rule) =>
-          /enter on|enter only|enter when|entry trigger/i.test(rule),
-        ) ||
-        strategy.entryRules[1] ||
-        strategy.entryRules[0],
-    },
-    {
-      name: "Invalidation",
-      title: "Know where the idea fails",
-      body: strategy.riskManagement[0],
-    },
-    {
-      name: "Objective",
-      title: "Plan the exit before the entry",
-      body: strategy.exitRules[0],
-    },
-  ];
+  const stages = buildStages(strategy, profile);
+
   return (
-    <section className="sa" aria-label="Setup anatomy">
-      <header className="sa-heading">
+    <section
+      id="anatomy"
+      aria-label="Setup anatomy"
+      className="scroll-mt-36 overflow-hidden rounded-2xl border border-white/[0.06] bg-tp-card"
+    >
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/[0.06] p-5 sm:p-7">
         <div>
-          <span className="sa-eyebrow">THE VISUAL PLAYBOOK</span>
-          <h2>
-            Anatomy of the setup<span>.</span>
-          </h2>
-          <p>See the sequence. Understand the decision. Make it your own.</p>
+          <div className="text-xs font-semibold uppercase tracking-wider text-tp-green">The visual playbook</div>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-50 sm:text-[28px]">Anatomy of the setup</h2>
+          <p className="mt-1 text-[15px] text-zinc-400">Four decisions, in order. Click a step to see it on the chart.</p>
         </div>
-        <button className="sa-button" disabled={!ready} onClick={addImage}>
-          <ImagePlus size={16} />
-          Add your own chart
-        </button>
-      </header>
-      <div className="sa-source-bar">
-        <div className="sa-source-tabs">
-          <button
-            aria-pressed={!reference}
-            disabled={!ready}
-            onClick={() => selectImage("")}
-          >
-            <ScanLine size={14} />
-            Illustrated guide
-          </button>
-          <label>
-            Your examples{" "}
-            <select
-              aria-label="Anatomy example"
-              disabled={!ready || !screenshots.length}
-              value={reference?.id || ""}
-              onChange={(e) => selectImage(e.target.value)}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-xl bg-black/25 p-1 ring-1 ring-inset ring-white/[0.07]">
+            <button
+              aria-pressed={!reference}
+              disabled={!ready}
+              onClick={() => selectImage("")}
+              className={clsx(
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium",
+                !reference ? "bg-white/[0.09] text-zinc-50" : "text-zinc-400 hover:text-zinc-100",
+              )}
             >
-              <option value="">
-                {screenshots.length
-                  ? "Choose a saved chart"
-                  : "Add a chart to begin"}
-              </option>
-              {screenshots.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <span className="sa-source-note">
-          {reference ? "YOUR REFERENCE" : "ILLUSTRATIVE · LONG SCENARIO"}
-        </span>
-      </div>
-      {reference ? (
-        <div className="sa-reference">
+              <ScanLine className="h-4 w-4" />
+              Illustrated
+            </button>
+            <label className="relative inline-flex items-center">
+              <span className="sr-only">Your examples</span>
+              <select
+                aria-label="Anatomy example"
+                disabled={!ready || !screenshots.length}
+                value={reference?.id || ""}
+                onChange={(e) => selectImage(e.target.value)}
+                className={clsx(
+                  "cursor-pointer appearance-none rounded-lg bg-transparent py-1.5 pl-3 pr-7 text-sm font-medium focus:outline-none disabled:cursor-not-allowed",
+                  reference ? "bg-white/[0.09] text-zinc-50" : "text-zinc-400",
+                )}
+              >
+                <option value="">{screenshots.length ? "My charts" : "My charts (none yet)"}</option>
+                {screenshots.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.title}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-zinc-500" />
+            </label>
+          </div>
           <button
-            className="sa-reference-image"
+            disabled={!ready}
+            onClick={addImage}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-zinc-100 hover:bg-white/[0.08] disabled:opacity-40"
+          >
+            <ImagePlus className="h-4 w-4" />
+            Add your chart
+          </button>
+        </div>
+      </header>
+
+      {reference ? (
+        <div className="grid gap-0 lg:grid-cols-[1.6fr_1fr]">
+          <button
+            className="group relative block bg-black/30"
             onClick={() => openImage(reference)}
             aria-label={`Enlarge ${reference.title}`}
           >
-            <img src={reference.image} alt={reference.title} />
-            <span>
-              <Maximize2 size={15} />
+            <img src={reference.image} alt={reference.title} className="mx-auto max-h-[560px] w-auto" />
+            <span className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1.5 text-xs text-zinc-100 opacity-0 transition-opacity group-hover:opacity-100">
+              <Maximize2 className="h-3.5 w-3.5" />
               View full size
             </span>
           </button>
-          <div className="sa-caption">
-            <div>
-              <h3>{reference.title}</h3>
-              <p>
-                {reference.notes ||
-                  "Add your observations in Workspace → Chart screenshots."}
-              </p>
-            </div>
-            <span>
-              {reference.source || "Your chart"} · Saved on this device
-            </span>
+          <div className="border-t border-white/[0.06] p-6 lg:border-l lg:border-t-0">
+            <h3 className="text-lg font-semibold text-zinc-50">{reference.title}</h3>
+            <p className="mt-2 text-[15px] leading-relaxed text-zinc-300">
+              {reference.notes || "Add your observations in Workspace → Chart screenshots."}
+            </p>
+            <p className="mt-4 text-xs text-zinc-500">{reference.source || "Your chart"} · Saved on this device</p>
           </div>
         </div>
       ) : (
-        <>
-          <div className="sa-diagram">
+        <div className="grid gap-0 2xl:grid-cols-[1.55fr_1fr]">
+          {/* Chart */}
+          <div className="border-b border-white/[0.06] bg-[#101c2c] 2xl:border-b-0 2xl:border-r">
             <AnatomyChart profile={profile} step={step} />
+            <p className="px-5 pb-4 text-xs text-zinc-500">
+              Schematic long example, not a historical trade. Shorts are the mirror image.
+            </p>
           </div>
-          <div className="sa-steps" aria-label="Setup stages">
-            {stages.map((s, i) => (
+
+          {/* Stepper */}
+          <ol className="grid gap-2 p-4 sm:p-5 md:grid-cols-2 2xl:flex 2xl:flex-col" aria-label="Setup stages">
+            {stages.map((s, i) => {
+              const meta = STAGE_META[i];
+              const active = step === i;
+              return (
+                <li key={meta.name}>
+                  <button
+                    aria-pressed={active}
+                    onClick={() => setStep(i)}
+                    className={clsx(
+                      "w-full rounded-xl border p-4 text-left transition-colors",
+                      active ? "border-white/[0.14] bg-white/[0.04]" : "border-transparent hover:bg-white/[0.025]",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold"
+                        style={
+                          active
+                            ? { background: meta.color, color: "#0D1628" }
+                            : { boxShadow: `inset 0 0 0 1.5px ${meta.color}`, color: meta.color }
+                        }
+                      >
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: meta.color }}>
+                          {meta.name}
+                          <span className="ml-2 font-normal normal-case tracking-normal text-zinc-500">{meta.hint}</span>
+                        </div>
+                        <div className="text-base font-semibold text-zinc-50">{s.title}</div>
+                      </div>
+                    </div>
+                    {active && (
+                      <ul className="mt-3 space-y-2 pl-11">
+                        {s.points.map((p) => (
+                          <li key={p} className="flex gap-2 text-[15px] leading-relaxed text-zinc-300">
+                            <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meta.color }} />
+                            {p}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+            <div className="mt-auto flex items-center justify-between gap-2 px-1 pt-2 md:col-span-2">
               <button
-                key={s.name}
-                aria-pressed={step === i}
-                onClick={() => setStep(i)}
+                onClick={() => setStep((s) => Math.max(0, s - 1))}
+                disabled={step === 0}
+                className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100 disabled:opacity-30"
               >
-                <span className="sa-step-number">0{i + 1}</span>
-                <span>{s.name}</span>
-                <ArrowRight size={14} />
+                ← Back
               </button>
-            ))}
-          </div>
-          <div className="sa-explanation" aria-live="polite">
-            <div>
-              <span className="sa-eyebrow">STEP 0{step + 1} / 04</span>
-              <h3>{stages[step].title}</h3>
+              <span className="text-xs tabular-nums text-zinc-500">Step {step + 1} of 4</span>
+              <button
+                onClick={() => setStep((s) => Math.min(3, s + 1))}
+                disabled={step === 3}
+                className="inline-flex items-center gap-1 rounded-lg bg-white/[0.06] px-3 py-1.5 text-sm font-medium text-zinc-100 hover:bg-white/[0.1] disabled:opacity-30"
+              >
+                Next <ArrowRight className="h-3.5 w-3.5" />
+              </button>
             </div>
-            <p>{stages[step].body}</p>
-          </div>
-          <p className="sa-footnote">
-            Schematic price action, not a historical trade. Zones and distances
-            are illustrative; use the strategy’s rules to define an actual
-            trade.
-          </p>
-        </>
+          </ol>
+        </div>
       )}
-      <div className="sa-upload-tip">
-        <ImagePlus size={16} />
-        <p>
-          <strong>Your charts belong here.</strong> Upload or paste a
-          screenshot, add its source and what you noticed. It’s saved with this
-          strategy and available in Workspace.
-        </p>
-        <button onClick={addImage} disabled={!ready}>
-          Add example <ArrowRight size={14} />
-        </button>
-      </div>
     </section>
   );
 }
@@ -341,6 +396,7 @@ function AnatomyChart({ profile, step }: { profile: Profile; step: number }) {
   return (
     <svg
       viewBox="0 0 920 410"
+      className="block h-auto w-full"
       role="img"
       aria-label={`${profile.context}; ${profile.trigger}. Entry, invalidation and objective are illustrated.`}
     >
@@ -370,10 +426,10 @@ function AnatomyChart({ profile, step }: { profile: Profile; step: number }) {
           strokeOpacity=".05"
         />
       ))}
-      <text x="35" y="29" fill="#b6c3d6" fontSize="10" letterSpacing="2">
+      <text x="35" y="29" fill="#b6c3d6" fontSize="12" letterSpacing="2">
         PRICE ACTION / EXECUTION MAP
       </text>
-      <text x="883" y="29" textAnchor="end" fill="#8294aa" fontSize="10">
+      <text x="883" y="29" textAnchor="end" fill="#8294aa" fontSize="12">
         CONCEPTUAL · NOT TO SCALE
       </text>
       {profile.kind === "break" && (
@@ -408,7 +464,7 @@ function AnatomyChart({ profile, step }: { profile: Profile; step: number }) {
         strokeDasharray={profile.kind === "trend" ? "" : "5 5"}
       />
       {profile.zone && (
-        <text x="50" y={y(level) + 34} fill="#8cadd6" fontSize="11">
+        <text x="50" y={y(level) + 34} fill="#8cadd6" fontSize="13">
           {profile.zone}
         </text>
       )}
@@ -485,23 +541,44 @@ function AnatomyChart({ profile, step }: { profile: Profile; step: number }) {
           />
           <rect
             x="726"
-            y={y(line.price) - 13}
-            width="160"
-            height="26"
+            y={y(line.price) - 14}
+            width="176"
+            height="28"
             rx="5"
             fill={line.active ? line.color : "#192a3f"}
           />
           <text
             x="738"
             y={y(line.price) + 4}
-            fontSize="11"
+            fontSize="13"
             fill={line.active ? "#111e2d" : line.color}
           >
             {line.label}
           </text>
         </g>
       ))}
-      <text x="52" y={y(level) - 17} fontSize="11" fill="#91bdf1">
+      {profile.levels?.map((l) => (
+        <g key={l.label}>
+          <line
+            x1="42"
+            x2="700"
+            y1={y(l.price)}
+            y2={y(l.price)}
+            stroke={l.label.startsWith("POC") ? "#FFB800" : "#91bdf1"}
+            strokeOpacity=".7"
+            strokeDasharray="6 5"
+          />
+          <text
+            x="52"
+            y={y(l.price) - 8}
+            fontSize="13"
+            fill={l.label.startsWith("POC") ? "#FFB800" : "#91bdf1"}
+          >
+            {l.label}
+          </text>
+        </g>
+      ))}
+      <text x="52" y={y(level) - 17} fontSize="13" fill="#91bdf1">
         {profile.level}
       </text>
       {markers.map((m, i) => (
@@ -519,18 +596,18 @@ function AnatomyChart({ profile, step }: { profile: Profile; step: number }) {
             y={m.y + 4}
             textAnchor="middle"
             fill={step === i ? "#112030" : colors[i]}
-            fontSize="11"
+            fontSize="13"
             fontWeight="600"
           >
             {i + 1}
           </text>
         </g>
       ))}
-      <text x="52" y="394" fill="#8294aa" fontSize="10">
+      <text x="52" y="394" fill="#8294aa" fontSize="12">
         OBSERVE THE CONTEXT
       </text>
       <path d="M240 390 H550 l-6 -4 m6 4 l-6 4" stroke="#536a85" fill="none" />
-      <text x="581" y="394" fill="#8294aa" fontSize="10">
+      <text x="581" y="394" fill="#8294aa" fontSize="12">
         WAIT FOR CONFIRMATION
       </text>
     </svg>

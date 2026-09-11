@@ -1,6 +1,17 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, AudioLines, Loader2, Square } from "lucide-react";
+import {
+  ArrowUp,
+  CalendarCheck,
+  Gauge,
+  Loader2,
+  MessageSquarePlus,
+  ShieldAlert,
+  Sparkles,
+  Square,
+  Trophy,
+} from "lucide-react";
+import clsx from "clsx";
 import type { Account } from "@/store/accountStore";
 import {
   DEFAULT_SETTINGS,
@@ -62,11 +73,11 @@ function builtIn(question: string, account: Account) {
   if (/rule|loss|revenge|risk|limit/.test(q)) {
     const flags = all.flatMap((t) =>
       inspectTrade(t, all, rules).flags.map(
-        (f) => `${t.date.slice(0, 10)} · ${t.symbol} [${t.id}]: ${f}`,
+        (f) => `• ${t.date.slice(0, 10)} · ${t.symbol} — ${f}`,
       ),
     );
     return flags.length
-      ? `${flags.length} observations across ${all.length} trades. Most recent:\n\n${flags.slice(-5).join("\n\n")}\n\nThese are configured-rule checks, not a diagnosis of your emotions or verified firm compliance.`
+      ? `${flags.length} rule ${flags.length === 1 ? "break" : "breaks"} across ${all.length} trades. Most recent:\n\n${flags.slice(-5).join("\n")}\n\nThese are checks against your configured rules, not verified firm compliance.`
       : "No configured-rule breaches found in available closed-trade data. Missing timestamps and open-position risk cannot be verified.";
   }
   if (/session|review|performance|pnl/.test(q)) {
@@ -74,8 +85,17 @@ function builtIn(question: string, account: Account) {
     const day = all.filter((t) => t.date.slice(0, 10) === latest);
     return `Latest recorded session · ${latest}\n\n${day.length} ${day.length === 1 ? "trade" : "trades"}, ${money(day.reduce((s, t) => s + t.netPL, 0))} net, ${Math.round((day.filter((t) => t.netPL > 0).length / day.length) * 100)}% win rate.\n\nOpen a trade review to inspect its rule observations and add your own execution notes.`;
   }
-  return "Built-in analysis can summarize your last session, compare recorded setups, or check your rules. Choose a connected model in Models for open-ended coaching.";
+  return "Built-in analysis can summarize your last session, compare recorded setups, or check your rules. Connect a model in Settings for open-ended coaching.";
 }
+
+const PROMPTS = [
+  { icon: CalendarCheck, text: "Review my last session" },
+  { icon: ShieldAlert, text: "Where am I breaking my rules?" },
+  { icon: Trophy, text: "Which setup is working best?" },
+  { icon: Gauge, text: "How is my risk looking?" },
+];
+
+/** Chat-first hero: the main way to use Pilot. */
 export function PilotCoach({
   account,
   model,
@@ -90,10 +110,12 @@ export function PilotCoach({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const controller = useRef<AbortController | null>(null);
-  const bottom = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLTextAreaElement>(null);
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "nearest" });
+    const el = scroller.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages, busy]);
   const ask = async (question: string) => {
     if (!question.trim() || busy) return;
@@ -129,68 +151,97 @@ export function PilotCoach({
       setBusy(false);
     }
   };
+  const reset = () => {
+    controller.current?.abort();
+    setMessages([]);
+    setError("");
+    field.current?.focus();
+  };
+  const chatting = messages.length > 0 || busy;
+  const local = model.provider === "local";
+
   return (
-    <section className="pilot-coach">
-      <header>
-        <div className="pilot-coach-icon">
-          <AudioLines size={19} />
-        </div>
-        <div>
-          <h2>Ask Pilot</h2>
-          <p>{PROVIDERS[model.provider].label}</p>
-        </div>
-        <span className="pilot-status">
-          {model.provider === "local" ? "Private" : "On demand"}
-        </span>
-      </header>
-      <div className="pilot-conversation" aria-live="polite">
-        {!messages.length && (
-          <div className="pilot-coach-welcome">
-            <span className="pilot-eyebrow">A SECOND PAIR OF EYES</span>
-            <h3>
-              Let’s look at
-              <br />
-              your trading.
-            </h3>
-            <p>
-              I can work with {account.trades.length} trades from{" "}
-              <strong>{account.name}</strong>. What would you like to
-              understand?
-            </p>
-            <div className="pilot-prompts">
-              {[
-                "Review my last session",
-                "Where am I breaking my rules?",
-                "Compare my recorded setups",
-              ].map((q) => (
-                <button key={q} onClick={() => ask(q)}>
-                  {q}
-                  <ArrowUp size={13} />
-                </button>
-              ))}
-            </div>
+    <section
+      className="relative overflow-hidden rounded-3xl border border-white/[0.07] bg-tp-card px-5 py-8 sm:px-10 sm:py-10"
+      style={{
+        backgroundImage:
+          "radial-gradient(70% 55% at 50% 0%, rgba(0,214,143,0.10) 0%, transparent 70%), radial-gradient(40% 40% at 90% 100%, rgba(79,156,249,0.07) 0%, transparent 70%)",
+      }}
+    >
+      {!chatting ? (
+        <div className="mx-auto max-w-2xl text-center">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-tp-green/25 to-tp-blue/20 ring-1 ring-inset ring-white/10">
+            <Sparkles className="h-6 w-6 text-tp-green" />
           </div>
-        )}
-        {messages.map((m, i) => (
-          <div key={i} className={`pilot-message ${m.role}`}>
-            <span>{m.role === "user" ? "You" : "Pilot"}</span>
-            <p>{m.content}</p>
-          </div>
-        ))}
-        {busy && (
-          <div className="pilot-muted pilot-inline-info">
-            <Loader2 size={15} className="animate-spin" />
-            Reading your account context…
-          </div>
-        )}
-        {error && (
-          <p role="alert" className="pilot-error">
-            {error}
+          <h2 className="mt-5 text-2xl font-semibold tracking-tight text-zinc-50 sm:text-[28px]">
+            What do you want to know about your trading?
+          </h2>
+          <p className="mt-2 text-sm text-zinc-400">
+            Pilot has read {account.trades.length} trades from{" "}
+            <span className="font-medium text-zinc-200">{account.name}</span>.
+            Ask in plain English.
           </p>
-        )}
-        <div ref={bottom} />
-      </div>
+        </div>
+      ) : (
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-tp-green/25 to-tp-blue/20 ring-1 ring-inset ring-white/10">
+              <Sparkles className="h-4 w-4 text-tp-green" />
+            </div>
+            <span className="text-sm font-semibold text-zinc-100">Ask Pilot</span>
+          </div>
+          <button
+            type="button"
+            onClick={reset}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
+          >
+            <MessageSquarePlus className="h-3.5 w-3.5" />
+            New chat
+          </button>
+        </div>
+      )}
+
+      {chatting && (
+        <div
+          ref={scroller}
+          aria-live="polite"
+          className="mx-auto max-h-[440px] max-w-3xl space-y-4 overflow-y-auto pb-2 pr-1"
+        >
+          {messages.map((m, i) =>
+            m.role === "user" ? (
+              <div key={i} className="flex justify-end">
+                <p className="max-w-[80%] whitespace-pre-line rounded-2xl rounded-br-md bg-white/[0.08] px-4 py-2.5 text-sm text-zinc-100">
+                  {m.content}
+                </p>
+              </div>
+            ) : (
+              <div key={i} className="flex gap-3">
+                <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-tp-green/15">
+                  <Sparkles className="h-3.5 w-3.5 text-tp-green" />
+                </div>
+                <p className="min-w-0 max-w-[85%] whitespace-pre-line rounded-2xl rounded-tl-md border border-white/[0.06] bg-black/20 px-4 py-3 text-sm leading-relaxed text-zinc-200">
+                  {m.content}
+                </p>
+              </div>
+            ),
+          )}
+          {busy && (
+            <div className="flex items-center gap-2 pl-10 text-sm text-zinc-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Reading your trades…
+            </div>
+          )}
+          {error && (
+            <p role="alert" className="pl-10 text-sm text-tp-red">
+              {error}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Composer */}
       <form
+        className={clsx("mx-auto", chatting ? "mt-4 max-w-3xl" : "mt-7 max-w-2xl")}
         onSubmit={(e) => {
           e.preventDefault();
           ask(input);
@@ -199,48 +250,66 @@ export function PilotCoach({
         <label className="sr-only" htmlFor="pilot-question">
           Ask Pilot
         </label>
-        <textarea
-          id="pilot-question"
-          rows={2}
-          maxLength={6000}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about your trading…"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              ask(input);
-            }
-          }}
-        />
-        <div>
-          <span>
-            {model.provider === "local"
-              ? "Built-in · no model connected"
-              : `${model.model || "Choose a model ID"} · latest 100 trades`}
-          </span>
+        <div className="flex items-end gap-2 rounded-2xl bg-black/30 p-2 pl-4 ring-1 ring-inset ring-white/[0.09] transition focus-within:ring-tp-green/40">
+          <textarea
+            ref={field}
+            id="pilot-question"
+            rows={1}
+            maxLength={6000}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={chatting ? "Ask a follow-up…" : "e.g. Why did I lose money last week?"}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                ask(input);
+              }
+            }}
+            className="max-h-40 min-h-[40px] flex-1 resize-none bg-transparent py-2.5 text-[15px] text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
+            style={{ outline: "none" }}
+          />
           {busy ? (
             <button
               type="button"
               aria-label="Stop response"
               onClick={() => controller.current?.abort()}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/[0.08] text-zinc-200 hover:bg-white/[0.12]"
             >
-              <Square size={14} />
+              <Square className="h-4 w-4" />
             </button>
           ) : (
             <button
               type="submit"
               disabled={!input.trim()}
               aria-label="Send message"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-tp-green text-[#0D1628] hover:brightness-110 disabled:bg-white/[0.06] disabled:text-zinc-500"
             >
-              <ArrowUp size={17} />
+              <ArrowUp className="h-5 w-5" />
             </button>
           )}
         </div>
+        <p className="mt-2 text-center text-[11px] text-zinc-500">
+          {local
+            ? "Built-in analysis · runs privately on this device"
+            : `${PROVIDERS[model.provider].label} · ${model.model || "choose a model ID"} · latest 100 trades`}
+        </p>
       </form>
-      <p className="pilot-coach-footnote">
-        Grounded in this account. Always review the evidence.
-      </p>
+
+      {/* Suggested questions */}
+      <div className={clsx("mx-auto flex flex-wrap justify-center gap-2", chatting ? "mt-3 max-w-3xl" : "mt-5 max-w-2xl")}>
+        {PROMPTS.map(({ icon: Icon, text }) => (
+          <button
+            key={text}
+            type="button"
+            disabled={busy}
+            onClick={() => ask(text)}
+            className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-1.5 text-[13px] text-zinc-300 hover:border-tp-green/30 hover:bg-tp-green/[0.06] hover:text-zinc-50"
+          >
+            <Icon className="h-3.5 w-3.5 text-tp-green" />
+            {text}
+          </button>
+        ))}
+      </div>
     </section>
   );
 }
