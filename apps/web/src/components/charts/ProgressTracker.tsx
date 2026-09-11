@@ -1,829 +1,461 @@
 'use client';
 
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { Tooltip } from '../Tooltip';
-import { useRoutineStore } from '../../store/routineStore';
-import { ExternalLink, X, Check, Flame, Trophy, Zap, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import clsx from 'clsx';
+import { ArrowRight, Check, CheckCheck, ChevronLeft, ChevronRight, Flame, ListChecks, X } from 'lucide-react';
+import { useRoutineStore } from '../../store/routineStore';
 
 interface ProgressTrackerProps {
   onViewMore?: () => void;
 }
 
-interface DayData {
+interface DayCell {
   date: Date;
+  key: string;
   score: number;
   hasData: boolean;
-  rulesFollowed: number;
-  totalRules: number;
+  followed: number;
+  total: number;
 }
 
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+const dateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const noon = (d: Date) => {
+  const n = new Date(d);
+  n.setHours(12, 0, 0, 0);
+  return n;
+};
+const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+
+// 80%+ followed = green, 50–79% = amber, below = red.
+const band = (score: number) => (score >= 80 ? 'good' : score >= 50 ? 'mixed' : 'poor');
+const CELL_TONE = {
+  good: 'bg-tp-green',
+  mixed: 'bg-tp-yellow',
+  poor: 'bg-tp-red',
+} as const;
+const TEXT_TONE = { good: 'text-tp-green', mixed: 'text-tp-yellow', poor: 'text-tp-red' } as const;
+const STROKE = { good: '#00D68F', mixed: '#FFB800', poor: '#FF4868' } as const;
+
 export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) => {
-  const { gamePlans, tradingRules, batchUpdateRuleCompliance, getGamePlan } = useRoutineStore();
-  const [showQuickLog, setShowQuickLog] = useState(false);
-  const [logDate, setLogDate] = useState<Date>(() => {
-    const d = new Date();
-    d.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
-    return d;
-  });
-  const [pendingChanges, setPendingChanges] = useState<Record<string, boolean>>({});
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [hoveredCell, setHoveredCell] = useState<{ weekIdx: number; dayIdx: number } | null>(null);
-
-  // Generate last 8 weeks of data (fits better with larger cells)
-  const heatmapData = useMemo(() => {
-    const weeks: DayData[][] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const currentDayOfWeek = today.getDay();
-    const mostRecentSunday = new Date(today);
-    mostRecentSunday.setDate(today.getDate() - currentDayOfWeek);
-
-    const startDate = new Date(mostRecentSunday);
-    startDate.setDate(startDate.getDate() - 7 * 7);
-
-    for (let week = 0; week < 8; week++) {
-      const weekData: DayData[] = [];
-
-      for (let day = 0; day < 7; day++) {
-        const currentDate = new Date(startDate);
-        currentDate.setDate(startDate.getDate() + week * 7 + day);
-
-        // Use LOCAL date to avoid timezone issues
-        const year = currentDate.getFullYear();
-        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const dayNum = String(currentDate.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${dayNum}`;
-        const gamePlan = gamePlans[dateStr];
-
-        let score = 0;
-        let hasData = false;
-        let rulesFollowed = 0;
-        const totalRules = tradingRules.filter(r => r.isActive).length;
-
-        if (gamePlan && gamePlan.ruleCompliance && gamePlan.ruleCompliance.length > 0) {
-          const ratedRules = gamePlan.ruleCompliance.filter(rc => rc.followed !== null);
-
-          if (ratedRules.length > 0) {
-            hasData = true;
-            rulesFollowed = ratedRules.filter(rc => rc.followed === true).length;
-            // Calculate score based on ACTUAL rules answered, not just followed
-            score = Math.round((rulesFollowed / totalRules) * 100);
-          }
-        } else if (gamePlan && gamePlan.completed) {
-          hasData = true;
-          score = 50;
-        }
-
-        weekData.push({ date: currentDate, score, hasData, rulesFollowed, totalRules });
-      }
-
-      weeks.push(weekData);
-    }
-
-    return weeks;
-  }, [gamePlans, tradingRules]);
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    let currentStreak = 0;
-    let maxStreak = 0;
-    let tempStreak = 0;
-
-    const allDays = heatmapData.flat().filter(d => d.hasData);
-
-    const sortedDays = [...allDays].sort((a, b) => b.date.getTime() - a.date.getTime());
-
-    for (const day of sortedDays) {
-      if (day.score >= 80) {
-        tempStreak++;
-        if (tempStreak > maxStreak) maxStreak = tempStreak;
-      } else {
-        if (currentStreak === 0 && tempStreak > 0) {
-          currentStreak = tempStreak;
-        }
-        tempStreak = 0;
-      }
-    }
-
-    if (tempStreak > 0 && currentStreak === 0) {
-      currentStreak = tempStreak;
-    }
-
-    return { currentStreak, maxStreak };
-  }, [heatmapData]);
-
-  const getColorForScore = (score: number, hasData: boolean): string => {
-    if (!hasData) return '#303655'; // Calm blue-slate for empty cells — visible on navy bg
-    if (score >= 80) return '#22C55E';
-    if (score >= 60) return '#4ADE80';
-    if (score >= 40) return '#FACC15';
-    if (score >= 20) return '#F97316';
-    return '#EF4444';
-  };
-
-  const getMonthLabel = (date: Date): string => {
-    return date.toLocaleDateString('en-US', { month: 'short' });
-  };
-
-  const monthLabels = useMemo(() => {
-    const months: { label: string; weekIndex: number }[] = [];
-    let lastMonth = -1;
-
-    heatmapData.forEach((week, weekIndex) => {
-      const firstDayOfWeek = week[0].date;
-      const month = firstDayOfWeek.getMonth();
-
-      if (month !== lastMonth) {
-        if (months.length > 0 && (weekIndex - months[months.length - 1].weekIndex < 3)) {
-          months.pop(); // Remove previous if they are too close to prevent overlap
-        }
-        months.push({ label: getMonthLabel(firstDayOfWeek), weekIndex });
-        lastMonth = month;
-      }
-    });
-
-    return months;
-  }, [heatmapData]);
-
-  const tooltipContent = `Track your consistency in following your trading rules.\n\nClick any day to log your progress.\n\n🟢 80%+ · 🟡 40-79% · 🔴 <40%`;
-
-  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  const cellSize = 24;
-  const cellGap = 4;
-
-  const activeRules = tradingRules.filter(r => r.isActive);
-
-  // Helper to get today's date string consistently
-  const getTodayDateString = useCallback(() => {
-    try {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    } catch {
-      return '';
-    }
-  }, []);
-
-  // Get current today data
-  const todayData = useMemo(() => {
-    try {
-      const todayStr = getTodayDateString();
-      if (!todayStr) return undefined;
-
-      const allDays = heatmapData.flat();
-      return allDays.find(d => {
-        if (!d || !d.date) return false;
-        try {
-          const year = d.date.getFullYear();
-          const month = String(d.date.getMonth() + 1).padStart(2, '0');
-          const day = String(d.date.getDate()).padStart(2, '0');
-          return `${year}-${month}-${day}` === todayStr;
-        } catch {
-          return false;
-        }
-      });
-    } catch (e) {
-      console.error('Error calculating todayData:', e);
-      return undefined;
-    }
-  }, [heatmapData, getTodayDateString]);
-
-  // Get date string safely - using LOCAL date to avoid timezone issues
-  const getDateString = useCallback((date: Date): string => {
-    try {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    } catch {
-      return getTodayDateString();
-    }
-  }, [getTodayDateString]);
-
-  // Format date for display
-  const formatLogDate = useCallback((date: Date): string => {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const compareDate = new Date(date);
-      compareDate.setHours(0, 0, 0, 0);
-
-      if (compareDate.getTime() === today.getTime()) {
-        return 'Today';
-      }
-
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      if (compareDate.getTime() === yesterday.getTime()) {
-        return 'Yesterday';
-      }
-
-      return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    } catch {
-      return 'Today';
-    }
-  }, []);
-
-  // Navigate to previous/next day
-  const navigateDay = useCallback((direction: 'prev' | 'next') => {
-    setLogDate(currentDate => {
-      const newDate = new Date(currentDate);
-      newDate.setHours(12, 0, 0, 0); // Keep at noon
-      newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
-
-      // Don't allow future dates
-      const today = new Date();
-      today.setHours(23, 59, 59, 999);
-
-      if (newDate <= today) {
-        setPendingChanges({}); // Reset pending changes when changing date
-        return newDate;
-      }
-      return currentDate;
-    });
-  }, []);
-
-  // Check if can go to next day
-  const canGoNext = useMemo(() => {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const compareDate = new Date(logDate);
-      compareDate.setHours(0, 0, 0, 0);
-      return compareDate < today;
-    } catch {
-      return false;
-    }
-  }, [logDate]);
-
-  // Get current status (pending or saved) for the selected logDate
-  const getRuleStatus = useCallback((ruleId: string): boolean | null => {
-    if (pendingChanges[ruleId] !== undefined) {
-      return pendingChanges[ruleId];
-    }
-    try {
-      const dateStr = getDateString(logDate);
-      const gamePlan = getGamePlan(dateStr);
-      const compliance = gamePlan.ruleCompliance.find(rc => rc.ruleId === ruleId);
-      return compliance?.followed ?? null;
-    } catch {
-      return null;
-    }
-  }, [pendingChanges, getGamePlan, logDate, getDateString]);
-
-  // Toggle rule in pending changes
-  const handleRuleToggle = (ruleId: string, followed: boolean) => {
-    setPendingChanges(prev => {
-      const newChanges = { ...prev };
-      // If clicking same value, remove from pending (toggle off)
-      if (newChanges[ruleId] === followed) {
-        delete newChanges[ruleId];
-      } else {
-        newChanges[ruleId] = followed;
-      }
-      return newChanges;
-    });
-  };
-
-  // Handle success state auto-close
+  const { gamePlans, tradingRules } = useRoutineStore();
+  const [logDate, setLogDate] = useState<Date | null>(null);
+  const [hovered, setHovered] = useState<DayCell | null>(null);
+  // Store data and "today" only exist in the browser, so render after mount (no hydration mismatch).
+  const [mounted, setMounted] = useState(false);
+  const [width, setWidth] = useState(0);
+  const boxRef = React.useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (showSuccess) {
-      const timer = setTimeout(() => {
-        setShowSuccess(false);
-        setShowQuickLog(false);
-      }, 1000);
-      return () => clearTimeout(timer);
+    setMounted(true);
+    const el = boxRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const narrow = width > 0 && width < 520;
+  // Each week column is 24px (20px cell + 4px gap); 32px for day labels.
+  const WEEKS = Math.max(6, Math.min(20, Math.floor(((narrow ? width : width - 184) - 36) / 24) || 12));
+
+  const activeRules = tradingRules.filter((r) => r.isActive);
+
+  const scoreFor = useMemo(
+    () => (key: string) => {
+      const plan = gamePlans[key];
+      const rated = (plan?.ruleCompliance ?? []).filter((rc) => rc.followed !== null);
+      if (!rated.length) return { hasData: false, score: 0, followed: 0, total: activeRules.length };
+      const followed = rated.filter((rc) => rc.followed).length;
+      const total = Math.max(activeRules.length, rated.length);
+      return { hasData: true, score: Math.round((followed / total) * 100), followed, total };
+    },
+    [gamePlans, activeRules.length],
+  );
+
+  // Weekday-only grid: columns are weeks (oldest → newest), rows Mon–Fri.
+  const weeks = useMemo(() => {
+    const today = noon(new Date());
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    const cols: DayCell[][] = [];
+    for (let w = WEEKS - 1; w >= 0; w--) {
+      const col: DayCell[] = [];
+      for (let d = 0; d < 5; d++) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() - w * 7 + d);
+        const key = dateKey(date);
+        col.push({ date, key, ...scoreFor(key) });
+      }
+      cols.push(col);
     }
-  }, [showSuccess]);
+    return cols;
+  }, [scoreFor, WEEKS]);
 
-  // Submit all changes for the selected date
-  const handleSubmit = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
+  const stats = useMemo(() => {
+    const now = new Date();
+    const past = weeks.flat().filter((c) => c.date <= now);
+    const logged = past.filter((c) => c.hasData);
+    const last20 = past.slice(-20).filter((c) => c.hasData);
+    const avg = last20.length ? Math.round(last20.reduce((n, c) => n + c.score, 0) / last20.length) : null;
 
-    if (isSaving) return;
-
-    const changesCount = Object.keys(pendingChanges).length;
-    if (changesCount === 0) {
-      setShowQuickLog(false);
-      return;
+    // Streak across all history: days you logged at 80%+. Unlogged days are neutral (no trading).
+    const keys = Object.keys(gamePlans).sort();
+    let run = 0;
+    let best = 0;
+    for (const k of keys) {
+      const s = scoreFor(k);
+      if (!s.hasData) continue;
+      run = s.score >= 80 ? run + 1 : 0;
+      best = Math.max(best, run);
     }
+    const thisWeek = weeks[weeks.length - 1].filter((c) => c.date <= now);
+    return {
+      avg,
+      streak: run,
+      best,
+      loggedCount: logged.length,
+      weekLogged: thisWeek.filter((c) => c.hasData).length,
+      weekDays: thisWeek.length,
+    };
+  }, [weeks, gamePlans, scoreFor]);
 
-    try {
-      setIsSaving(true);
+  const today = scoreFor(dateKey(new Date()));
+  const isWeekend = [0, 6].includes(new Date().getDay());
 
-      // Use consistent local date string
-      const dateStr = getDateString(logDate);
-
-      // Apply all pending changes in one batch
-      batchUpdateRuleCompliance(dateStr, pendingChanges);
-
-      // Brief delay for better UX and state synchronization
-      setTimeout(() => {
-        setPendingChanges({});
-        setShowSuccess(true);
-        setIsSaving(false);
-      }, 400);
-    } catch (err) {
-      console.error('Submit failed:', err);
-      setIsSaving(false);
-    }
-  }, [pendingChanges, logDate, getDateString, batchUpdateRuleCompliance, isSaving]);
-
-  const hasPendingChanges = Object.keys(pendingChanges).length > 0;
-  const rulesAnswered = activeRules.filter(r => getRuleStatus(r.id) !== null).length;
+  const monthMarks = weeks.map((col, i) => {
+    const m = col[0].date.getMonth();
+    return i === 0 || m !== weeks[i - 1][0].date.getMonth() ? col[0].date.toLocaleDateString('en-US', { month: 'short' }) : '';
+  });
 
   return (
-    <div
-      className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group h-full"
-
-    >
-      {/* Gradient border on hover */}
-      <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
-        <div
-          className="w-full h-full rounded-xl"
-
-        />
-      </div>
-
-      <div className="relative z-10 h-full flex flex-col">
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-white/5 transition-all duration-200 hover:border-white/10 hover:shadow-lg hover:shadow-black/20">
+      <div ref={boxRef} className="relative z-10 flex h-full flex-col p-4">
         {/* Header */}
-        <div className="px-3 pt-2 pb-1.5 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <h3 className="text-white text-sm font-bold tracking-tight">Progress Tracker</h3>
-            <Tooltip content={tooltipContent} position="top">
-              <div className="w-4 h-4 rounded-full bg-[#364060] flex items-center justify-center cursor-help hover:bg-[#1E2F4A] transition-colors">
-                <span className="text-[#9CA3AF] text-[10px] font-bold">?</span>
-              </div>
-            </Tooltip>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4 text-tp-green" />
+              <h3 className="text-sm font-semibold text-zinc-100">Rule discipline</h3>
+            </div>
+            <p className="mt-1 text-xs text-zinc-500">Did you follow your trading rules each day?</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => {
-                if (!showQuickLog) {
-                  const today = new Date();
-                  today.setHours(12, 0, 0, 0);
-                  setLogDate(today);
-                }
-                setShowQuickLog(!showQuickLog);
-                setPendingChanges({});
-              }}
-              className={clsx(
-                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center space-x-1',
-                showQuickLog
-                  ? 'bg-white text-zinc-950 shadow-lg shadow-white/10'
-                  : 'bg-[#172035] text-zinc-400 hover:bg-[#172035]/80 border border-zinc-700'
-              )}
-            >
-              <Zap className="w-3 h-3" />
-              <span>Quick Log</span>
+          {onViewMore && (
+            <button onClick={onViewMore} className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100">
+              Edit rules <ArrowRight className="h-3 w-3" />
             </button>
+          )}
+        </div>
+
+        {!mounted ? (
+          <div className="flex-1 animate-pulse rounded-xl bg-white/[0.02]" />
+        ) : activeRules.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+            <div className="grid h-11 w-11 place-items-center rounded-xl bg-tp-green/10 text-tp-green ring-1 ring-inset ring-tp-green/20">
+              <ListChecks className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-zinc-200">Write your rules first</p>
+              <p className="mx-auto mt-1 max-w-[260px] text-xs leading-relaxed text-zinc-500">
+                Add 3–5 rules you want to trade by. Then tick them off each day and watch the streak grow.
+              </p>
+            </div>
             {onViewMore && (
-              <button
-                onClick={onViewMore}
-                className="w-7 h-7 rounded-lg bg-slate-200/50 dark:bg-[#364060]/50 hover:bg-[#364060] flex items-center justify-center text-[#9CA3AF] hover:text-white transition-all"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
+              <button onClick={onViewMore} className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-zinc-200">
+                Set up rules
               </button>
             )}
           </div>
-        </div>
-
-        {/* Quick Log Modal - Full Screen Overlay */}
-        {showQuickLog && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-              onClick={() => setShowQuickLog(false)}
-            />
-
-            {/* Modal */}
-            <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[480px] max-w-[90vw] rounded-2xl overflow-hidden border border-white/10 bg-[#111F35] shadow-2xl shadow-black/80">
-              {/* Success Overlay */}
-              {showSuccess && (
-                <div className="absolute inset-0 bg-[#22C55E]/10 backdrop-blur-sm flex items-center justify-center z-20 rounded-2xl">
-                  <div className="flex items-center space-x-3 text-[#22C55E] bg-[#22C55E]/20 px-6 py-3 rounded-full">
-                    <Check className="w-6 h-6" />
-                    <span className="text-lg font-semibold">Saved!</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Header */}
-              <div className="px-6 py-4 bg-[#111F35]/50 border-b border-white/10/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#172035]/80 flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-zinc-400" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-white">Log Your Rules</h2>
-                      <p className="text-sm text-[#9CA3AF]">Track your trading discipline</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowQuickLog(false)}
-                    className="w-10 h-10 rounded-xl bg-slate-200/50 dark:bg-[#364060]/50 hover:bg-[#EF4444]/20 flex items-center justify-center text-[#9CA3AF] hover:text-[#EF4444] transition-all"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Date Navigator */}
-                <div className="mt-4 flex items-center justify-center">
-                  <div className="flex items-center space-x-2 bg-[#172035] rounded-xl p-1">
-                    <button
-                      onClick={() => navigateDay('prev')}
-                      className="w-10 h-10 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-white hover:bg-[#364060] transition-all"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <span className="text-base font-bold text-white min-w-[140px] text-center px-4">
-                      {formatLogDate(logDate)}
-                    </span>
-                    <button
-                      onClick={() => navigateDay('next')}
-                      disabled={!canGoNext}
-                      className={clsx(
-                        'w-10 h-10 rounded-lg flex items-center justify-center transition-all',
-                        canGoNext
-                          ? 'text-[#9CA3AF] hover:text-white hover:bg-[#364060]'
-                          : 'text-[#364060] cursor-not-allowed'
-                      )}
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Rules List - No scroll needed */}
-              <div className="p-4 space-y-3 max-h-[50vh] overflow-y-auto">
-                {activeRules.map((rule, index) => {
-                  const status = getRuleStatus(rule.id);
-                  const isPending = pendingChanges[rule.id] !== undefined;
-
-                  return (
-                    <div
-                      key={rule.id}
-                      className={clsx(
-                        'flex items-center justify-between p-4 rounded-xl transition-all',
-                        isPending
-                          ? 'bg-white/5 border-2 border-slate-300 dark:border-white/20'
-                          : 'bg-[#172035]/70 hover:bg-[#172035] border-2 border-transparent'
-                      )}
-                    >
-                      <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        <span className="w-6 h-6 rounded-full bg-[#364060] flex items-center justify-center text-xs font-bold text-[#9CA3AF]">
-                          {index + 1}
-                        </span>
-                        <span className="text-sm text-zinc-100 font-medium">{rule.text}</span>
-                      </div>
-                      <div className="flex items-center space-x-2 flex-shrink-0 ml-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRuleToggle(rule.id, true);
-                          }}
-                          className={clsx(
-                            'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
-                            status === true
-                              ? 'bg-[#22C55E] text-white shadow-lg shadow-[#22C55E]/40 scale-105'
-                              : 'bg-[#364060] text-[#9CA3AF] hover:text-[#22C55E] hover:bg-[#22C55E]/20 hover:scale-105'
-                          )}
-                        >
-                          <Check className="w-6 h-6" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRuleToggle(rule.id, false);
-                          }}
-                          className={clsx(
-                            'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
-                            status === false
-                              ? 'bg-[#EF4444] text-white shadow-lg shadow-[#EF4444]/40 scale-105'
-                              : 'bg-[#364060] text-[#9CA3AF] hover:text-[#EF4444] hover:bg-[#EF4444]/20 hover:scale-105'
-                          )}
-                        >
-                          <X className="w-6 h-6" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Footer */}
-              <div className="px-6 py-4 bg-[#0D1628]/80 backdrop-blur-md border-t border-white/10/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    {/* Progress bar */}
-                    <div className="flex items-center space-x-3">
-                      <div className="w-32 h-2 bg-[#364060] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-white rounded-full transition-all duration-300"
-                          style={{ width: `${(rulesAnswered / activeRules.length) * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-sm text-[#9CA3AF] font-medium">
-                        {rulesAnswered}/{activeRules.length} logged
+        ) : (
+          <div className={clsx('flex min-h-0 flex-1 gap-4', narrow && 'flex-col-reverse justify-end gap-3')}>
+            {/* Heatmap */}
+            <div className="flex min-w-0 flex-1 flex-col justify-center">
+              <div className="flex overflow-x-auto [scrollbar-width:none]">
+                <div className="mx-auto inline-flex flex-col">
+                  <div className="ml-8 flex gap-1 pb-1">
+                    {monthMarks.map((m, i) => (
+                      <span key={i} className="w-5 shrink-0 overflow-visible whitespace-nowrap text-[10px] font-medium text-zinc-500">
+                        {m}
                       </span>
-                    </div>
+                    ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleSubmit(e);
-                    }}
-                    disabled={!hasPendingChanges || isSaving}
-                    className={clsx(
-                      'px-8 py-3 rounded-xl text-base font-bold transition-all flex items-center space-x-2 min-w-[180px] justify-center',
-                      hasPendingChanges && !isSaving
-                        ? 'bg-[#22C55E] text-white hover:bg-[#16A34A] shadow-lg shadow-[#22C55E]/40 hover:scale-105 active:scale-95'
-                        : isSaving
-                          ? 'bg-[#22C55E]/70 text-white cursor-wait'
-                          : 'bg-[#364060] text-[#6B7280] cursor-not-allowed'
-                    )}
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                        <span>Saving...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-5 h-5" />
-                        <span>Save Progress</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Main Content - Side by Side Layout */}
-        <div className="flex-1 px-3 pb-2 flex justify-center overflow-hidden">
-          {/* Left Side - Heatmap */}
-          <div className="flex flex-col justify-center min-h-0 min-w-0 overflow-x-auto custom-scrollbar pr-2">
-            <div className="min-w-max pb-1">
-              {/* Month labels */}
-              <div className="flex mb-1.5 relative" style={{ marginLeft: '20px', height: '14px' }}>
-                {monthLabels.map((month, idx) => {
-                  // Calculate position accounting for month separators
-                  let position = 0;
-                  for (let i = 0; i < month.weekIndex; i++) {
-                    position += cellSize + cellGap;
-                    // Add extra space for month separators
-                    if (i > 0 && heatmapData[i] && heatmapData[i - 1] &&
-                      heatmapData[i][0].date.getMonth() !== heatmapData[i - 1][0].date.getMonth()) {
-                      position += 13; // 6px margin + 6px padding + 1px border
-                    }
-                  }
-                  return (
-                    <div
-                      key={idx}
-                      className="text-[#9CA3AF] text-[10px] font-bold absolute tracking-wide uppercase"
-                      style={{ left: `${position}px` }}
-                    >
-                      {month.label}
+                  <div className="flex gap-1">
+                    <div className="flex w-7 flex-col gap-1">
+                      {DAY_LABELS.map((d) => (
+                        <span key={d} className="flex h-5 items-center text-[10px] text-zinc-600">
+                          {d}
+                        </span>
+                      ))}
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Grid */}
-              <div className="flex">
-                {/* Day labels */}
-                <div className="flex flex-col mr-1.5" style={{ gap: `${cellGap}px` }}>
-                  {dayLabels.map((day, idx) => (
-                    <div
-                      key={`${day}-${idx}`}
-                      className="text-[#6B7280] text-[10px] font-semibold flex items-center justify-end"
-                      style={{ height: `${cellSize}px`, width: '16px' }}
-                    >
-                      {day}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Heatmap cells */}
-                <div className="flex">
-                  {heatmapData.map((week, weekIdx) => {
-                    // Check if this week starts a new month
-                    const isNewMonth = weekIdx > 0 &&
-                      week[0].date.getMonth() !== heatmapData[weekIdx - 1][0].date.getMonth();
-
-                    return (
-                      <div
-                        key={weekIdx}
-                        className="flex flex-col"
-                        style={{
-                          gap: `${cellGap}px`,
-                          marginLeft: isNewMonth ? '6px' : weekIdx === 0 ? '0' : `${cellGap}px`,
-                          paddingLeft: isNewMonth ? '6px' : '0',
-                          borderLeft: isNewMonth ? '1px solid rgba(107, 114, 128, 0.3)' : 'none',
-                        }}
-                      >
-                        {week.map((day, dayIdx) => {
-                          let isToday = false;
-                          let isFuture = false;
-                          let isLogDateCell = false;
-                          const isWeekend = dayIdx === 0 || dayIdx === 6; // Sunday or Saturday
-                          const isHovered = hoveredCell?.weekIdx === weekIdx && hoveredCell?.dayIdx === dayIdx;
-
-                          try {
-                            isToday = day.date.toDateString() === new Date().toDateString();
-                            isFuture = day.date > new Date();
-                            isLogDateCell = showQuickLog && logDate.toDateString() === day.date.toDateString();
-                          } catch {
-                            // Ignore date comparison errors
-                          }
-
-                          const getBackgroundColor = () => {
-                            if (isFuture) return '#252A3E';      // dimmed future
-                            if (isWeekend && !day.hasData) return '#232645'; // distinct weekend
-                            return getColorForScore(day.score, day.hasData);
-                          };
-
+                    {weeks.map((col, wi) => (
+                      <div key={wi} className="flex flex-col gap-1">
+                        {col.map((c) => {
+                          const future = c.date > new Date() && !sameDay(c.date, new Date());
+                          const isToday = sameDay(c.date, new Date());
                           return (
-                            <div
-                              key={dayIdx}
-                              className="relative"
-                              onMouseEnter={() => !isFuture && setHoveredCell({ weekIdx, dayIdx })}
-                              onMouseLeave={() => setHoveredCell(null)}
-                            >
-                              {/* Hover Tooltip */}
-                              {isHovered && !isFuture && (
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
-                                  <div className="bg-[#172035] border border-white/10 rounded-lg px-2.5 py-1.5 shadow-xl whitespace-nowrap">
-                                    <div className="text-[10px] font-bold text-white">
-                                      {day.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                    </div>
-                                    <div className={clsx(
-                                      'text-[9px] font-medium',
-                                      day.hasData
-                                        ? day.score >= 80 ? 'text-[#22C55E]' : day.score >= 40 ? 'text-[#FACC15]' : 'text-[#EF4444]'
-                                        : 'text-[#6B7280]'
-                                    )}>
-                                      {day.hasData ? `${day.score}% compliance` : 'Click to log'}
-                                    </div>
-                                  </div>
-                                  {/* Arrow */}
-                                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-[#172035] border-r border-b border-white/10 rotate-45" />
-                                </div>
+                            <button
+                              key={c.key}
+                              type="button"
+                              disabled={future}
+                              onClick={() => setLogDate(noon(c.date))}
+                              onMouseEnter={() => setHovered(c)}
+                              onMouseLeave={() => setHovered(null)}
+                              onFocus={() => setHovered(c)}
+                              onBlur={() => setHovered(null)}
+                              aria-label={`${c.date.toDateString()}: ${c.hasData ? `${c.score}% of rules followed` : 'not logged'}`}
+                              className={clsx(
+                                'h-5 w-5 rounded-[5px] transition-transform',
+                                future
+                                  ? 'bg-white/[0.02]'
+                                  : c.hasData
+                                    ? clsx(CELL_TONE[band(c.score)], c.score < 100 && c.score >= 80 && 'opacity-75', 'hover:scale-110')
+                                    : 'bg-white/[0.05] ring-1 ring-inset ring-white/[0.04] hover:bg-white/[0.1]',
+                                isToday && 'ring-2 ring-white/70 ring-offset-2 ring-offset-tp-card',
                               )}
-
-                              <div
-                                onClick={() => {
-                                  if (isFuture) return;
-                                  const newDate = new Date(day.date);
-                                  newDate.setHours(12, 0, 0, 0);
-                                  setLogDate(newDate);
-                                  setPendingChanges({});
-                                  setShowQuickLog(true);
-                                }}
-                                className={clsx(
-                                  'rounded-md transition-all duration-200 cursor-pointer',
-                                  isToday && 'ring-2 ring-[#4F9CF9] ring-offset-1 ring-offset-[#111F35]',
-                                  isLogDateCell && 'ring-2 ring-white scale-105 z-10',
-                                  !isFuture && !isLogDateCell && 'hover:scale-110 hover:brightness-125',
-                                  isFuture && 'opacity-20 cursor-not-allowed',
-                                  isWeekend && !day.hasData && !isFuture && 'border border-dashed border-white/10'
-                                )}
-                                style={{
-                                  width: `${cellSize}px`,
-                                  height: `${cellSize}px`,
-                                  backgroundColor: getBackgroundColor(),
-                                }}
-                              />
-                            </div>
+                            />
                           );
                         })}
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
+              </div>
+
+              <div className="mt-3 flex h-4 items-center justify-between gap-3 text-[11px] text-zinc-500">
+                {hovered ? (
+                  <span className="truncate">
+                    <span className="text-zinc-300">{hovered.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                    {' · '}
+                    {hovered.hasData ? (
+                      <span className={TEXT_TONE[band(hovered.score)]}>
+                        {hovered.followed}/{hovered.total} rules followed
+                      </span>
+                    ) : (
+                      'Not logged — click to log'
+                    )}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-3">
+                    {(
+                      [
+                        ['bg-white/[0.06]', 'Not logged'],
+                        ['bg-tp-red', 'Under 50%'],
+                        ['bg-tp-yellow', '50–79%'],
+                        ['bg-tp-green', '80%+'],
+                      ] as const
+                    ).map(([c, l]) => (
+                      <span key={l} className="flex items-center gap-1">
+                        <span className={clsx('h-2.5 w-2.5 rounded-sm', c)} />
+                        {l}
+                      </span>
+                    ))}
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* Legend - Compact */}
-            <div className="mt-2 flex items-center justify-between">
-              <div className="flex items-center space-x-0.5">
-                <span className="text-[#6B7280] text-[8px] font-medium mr-0.5">0%</span>
-                {['#252A36', '#EF4444', '#F97316', '#FACC15', '#4ADE80', '#22C55E'].map((color, idx) => (
-                  <div key={idx} className="w-3 h-3 rounded-sm" style={{ backgroundColor: color }} />
-                ))}
-                <span className="text-[#6B7280] text-[8px] font-medium ml-0.5">100%</span>
-              </div>
-              <div className="flex items-center space-x-1 ml-2">
-                <div className="w-3 h-3 rounded-sm bg-[#232645] border border-dashed border-[#303655]" />
-                <span className="text-[#6B7280] text-[8px] font-medium">Weekend</span>
+            {/* Today + stats */}
+            <div className={clsx('shrink-0 gap-2', narrow ? 'grid grid-cols-3' : 'flex w-[168px] flex-col gap-2.5 border-l border-white/[0.06] pl-4')}>
+              <TodayCard compact={narrow} today={today} weekend={isWeekend} onLog={() => setLogDate(noon(new Date()))} />
+              <div className={clsx(narrow ? 'contents' : 'grid grid-cols-2 gap-2')}>
+                <MiniStat
+                  label="Streak"
+                  value={stats.streak ? `${stats.streak}d` : '0'}
+                  icon={<Flame className={clsx('h-3 w-3', stats.streak ? 'text-orange-400' : 'text-zinc-600')} />}
+                  sub={stats.best ? `best ${stats.best}d` : 'at 80%+'}
+                />
+                <MiniStat
+                  label="Avg (4 wks)"
+                  value={stats.avg === null ? '—' : `${stats.avg}%`}
+                  tone={stats.avg === null ? undefined : TEXT_TONE[band(stats.avg)]}
+                  sub={`${stats.weekLogged}/${stats.weekDays || 5} this wk`}
+                />
               </div>
             </div>
           </div>
+        )}
+      </div>
 
-          {/* Right Side - Today's Score Circle & Stats */}
-          <div className="w-[100px] flex-shrink-0 flex flex-col items-center justify-center pl-2 border-l border-white/10 bg-[#111F35]/40 rounded-r-xl">
-            {/* Score Circle */}
-            <div className="relative mb-1">
-              <svg width="70" height="70" viewBox="0 0 90 90">
-                {/* Background circle */}
-                <circle
-                  cx="45"
-                  cy="45"
-                  r="38"
-                  fill="none"
-                  stroke="currentColor"
-                  className="stroke-slate-200 dark:stroke-[#364060]"
-                  strokeWidth="8"
-                />
-                {/* Progress circle */}
-                <circle
-                  cx="45"
-                  cy="45"
-                  r="38"
-                  fill="none"
-                  stroke={todayData?.hasData ? getColorForScore(todayData.score, true) : '#364060'}
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray={`${(todayData?.hasData ? todayData.score : 0) * 2.39} 239`}
-                  transform="rotate(-90 45 45)"
-                  className="transition-all duration-500"
-                  style={{
-                    filter: todayData?.hasData ? `drop-shadow(0 0 6px ${getColorForScore(todayData.score, true)}60)` : 'none'
-                  }}
-                />
-              </svg>
-              {/* Center content */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={clsx(
-                  'text-xl font-bold',
-                  todayData?.hasData ? 'text-white' : 'text-[#6B7280]'
-                )}>
-                  {todayData?.hasData ? `${todayData.score}%` : '—'}
-                </span>
-                <span className="text-[8px] text-[#6B7280] font-semibold tracking-wider">TODAY</span>
-              </div>
+      {logDate && <QuickLog date={logDate} setDate={setLogDate} onClose={() => setLogDate(null)} />}
+    </div>
+  );
+};
+
+function TodayCard({ today, weekend, onLog, compact }: { today: { hasData: boolean; score: number; followed: number; total: number }; weekend: boolean; onLog: () => void; compact?: boolean }) {
+  if (!today.hasData) {
+    return (
+      <div className={clsx('flex min-w-0 flex-1 flex-col rounded-xl bg-black/20 ring-1 ring-inset ring-white/[0.05]', compact ? 'justify-between p-2.5' : 'justify-center p-3')}>
+        <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Today</div>
+        <div className="mt-1 truncate text-sm font-medium text-zinc-200">{weekend ? 'Weekend' : 'Not logged yet'}</div>
+        <button onClick={onLog} className={clsx(compact ? 'mt-1.5 px-2 py-1' : 'mt-3 px-3 py-1.5', 'inline-flex items-center justify-center gap-1.5 rounded-lg bg-white text-xs font-semibold text-zinc-950 hover:bg-zinc-200')}>
+          <Check className="h-3.5 w-3.5" /> Log today
+        </button>
+      </div>
+    );
+  }
+  const b = band(today.score);
+  const r = 22;
+  const c = 2 * Math.PI * r;
+  return (
+    <button onClick={onLog} className={clsx('flex min-w-0 flex-1 items-center rounded-xl bg-black/20 text-left ring-1 ring-inset ring-white/[0.05] hover:bg-black/30', compact ? 'gap-2 p-2.5' : 'gap-3 p-3')}>
+      <svg width="52" height="52" viewBox="0 0 52 52" className={clsx('shrink-0 -rotate-90', compact && 'h-8 w-8')}>
+        <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="5" />
+        <circle cx="26" cy="26" r={r} fill="none" stroke={STROKE[b]} strokeWidth="5" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c - (c * today.score) / 100} className="transition-all duration-700" />
+      </svg>
+      <div className="min-w-0">
+        <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Today</div>
+        <div className={clsx('text-lg font-semibold tabular-nums leading-tight', TEXT_TONE[b])}>{today.score}%</div>
+        <div className="truncate text-[11px] text-zinc-500">
+          {today.followed}/{today.total}{compact ? ' rules' : ' rules · edit'}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function MiniStat({ label, value, sub, icon, tone }: { label: string; value: string; sub: string; icon?: React.ReactNode; tone?: string }) {
+  return (
+    <div className="rounded-xl bg-black/20 p-2.5 ring-1 ring-inset ring-white/[0.05]">
+      <div className="flex items-center gap-1 text-[10px] text-zinc-500">
+        {icon}
+        {label}
+      </div>
+      <div className={clsx('mt-0.5 text-base font-semibold tabular-nums leading-tight text-zinc-100', tone)}>{value}</div>
+      <div className="mt-0.5 truncate text-[10px] text-zinc-600">{sub}</div>
+    </div>
+  );
+}
+
+// ─── Quick log ───────────────────────────────────────────────────────────────
+
+function QuickLog({ date, setDate, onClose }: { date: Date; setDate: (d: Date) => void; onClose: () => void }) {
+  const { tradingRules, getGamePlan, batchUpdateRuleCompliance } = useRoutineStore();
+  const rules = tradingRules.filter((r) => r.isActive);
+  const key = dateKey(date);
+  const saved = useMemo(() => {
+    const plan = getGamePlan(key);
+    return Object.fromEntries(plan.ruleCompliance.map((rc) => [rc.ruleId, rc.followed])) as Record<string, boolean | null>;
+  }, [getGamePlan, key]);
+  const [answers, setAnswers] = useState<Record<string, boolean | null>>(saved);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => setAnswers(saved), [saved]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  useEffect(() => {
+    if (!done) return;
+    const t = setTimeout(onClose, 700);
+    return () => clearTimeout(t);
+  }, [done, onClose]);
+
+  const changes = Object.fromEntries(
+    Object.entries(answers).filter(([id, v]) => v !== null && v !== undefined && v !== saved[id]),
+  ) as Record<string, boolean>;
+  const answered = rules.filter((r) => answers[r.id] === true || answers[r.id] === false).length;
+  const followed = rules.filter((r) => answers[r.id] === true).length;
+  const isToday = sameDay(date, new Date());
+  const label = isToday
+    ? 'Today'
+    : sameDay(date, new Date(Date.now() - 86_400_000))
+      ? 'Yesterday'
+      : date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+  const shift = (days: number) => {
+    const next = noon(date);
+    next.setDate(next.getDate() + days);
+    if (next <= noon(new Date())) setDate(next);
+  };
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Log your rules">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.08] bg-tp-raised shadow-2xl shadow-black/60">
+        {done && (
+          <div className="absolute inset-0 z-10 grid place-items-center bg-tp-raised/90 backdrop-blur-sm">
+            <div className="flex items-center gap-2 rounded-full bg-tp-green/15 px-5 py-2.5 text-tp-green">
+              <Check className="h-5 w-5" /> <span className="font-semibold">Logged</span>
             </div>
-
-            {/* Stats Row */}
-            <div className="flex items-center justify-center space-x-3">
-              {/* Streak */}
-              <div className="flex flex-col items-center">
-                <div className={clsx(
-                  'w-7 h-7 rounded-lg flex items-center justify-center mb-0.5',
-                  stats.currentStreak > 0 ? 'bg-[#F97316]/20' : 'bg-slate-200/50 dark:bg-[#364060]/50'
-                )}>
-                  <Flame className={clsx('w-3.5 h-3.5', stats.currentStreak > 0 ? 'text-[#F97316]' : 'text-[#6B7280]')} />
-                </div>
-                <span className={clsx(
-                  'text-base font-bold leading-tight',
-                  stats.currentStreak > 0 ? 'text-[#F97316]' : 'text-[#6B7280]'
-                )}>
-                  {stats.currentStreak}
-                </span>
-                <span className="text-[7px] text-[#6B7280] uppercase">Streak</span>
-              </div>
-
-              {/* Best */}
-              <div className="flex flex-col items-center">
-                <div className={clsx(
-                  'w-7 h-7 rounded-lg flex items-center justify-center mb-0.5',
-                  stats.maxStreak > 0 ? 'bg-[#FACC15]/20' : 'bg-slate-200/50 dark:bg-[#364060]/50'
-                )}>
-                  <Trophy className={clsx('w-3.5 h-3.5', stats.maxStreak > 0 ? 'text-[#FACC15]' : 'text-[#6B7280]')} />
-                </div>
-                <span className={clsx(
-                  'text-base font-bold leading-tight',
-                  stats.maxStreak > 0 ? 'text-[#FACC15]' : 'text-[#6B7280]'
-                )}>
-                  {stats.maxStreak}
-                </span>
-                <span className="text-[7px] text-[#6B7280] uppercase">Best</span>
-              </div>
+          </div>
+        )}
+        <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] p-4">
+          <div className="flex items-center gap-1">
+            <button onClick={() => shift(-1)} className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100" aria-label="Previous day">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div className="min-w-[150px] text-center">
+              <div className="text-sm font-semibold text-zinc-50">{label}</div>
+              <div className="text-[11px] text-zinc-500">Did you follow each rule?</div>
             </div>
+            <button onClick={() => shift(1)} disabled={isToday} className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100 disabled:opacity-25" aria-label="Next day">
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-100" aria-label="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-            {/* Full Routine Button */}
+        <ul className="max-h-[50vh] space-y-1.5 overflow-y-auto p-3">
+          {rules.map((rule) => {
+            const v = answers[rule.id];
+            return (
+              <li key={rule.id} className="flex items-center gap-3 rounded-xl bg-black/20 p-3 ring-1 ring-inset ring-white/[0.04]">
+                <span className="min-w-0 flex-1 text-sm leading-snug text-zinc-200">{rule.text}</span>
+                <div className="flex shrink-0 gap-1 rounded-lg bg-black/30 p-0.5">
+                  {([true, false] as const).map((val) => (
+                    <button
+                      key={String(val)}
+                      type="button"
+                      onClick={() => setAnswers((a) => ({ ...a, [rule.id]: a[rule.id] === val ? null : val }))}
+                      aria-pressed={v === val}
+                      className={clsx(
+                        'inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
+                        v === val
+                          ? val
+                            ? 'bg-tp-green text-zinc-950'
+                            : 'bg-tp-red text-white'
+                          : 'text-zinc-500 hover:text-zinc-200',
+                      )}
+                    >
+                      {val ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                      {val ? 'Yes' : 'No'}
+                    </button>
+                  ))}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] p-4">
+          <button
+            onClick={() => setAnswers(Object.fromEntries(rules.map((r) => [r.id, true])))}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
+          >
+            <CheckCheck className="h-3.5 w-3.5" /> Followed all
+          </button>
+          <div className="flex items-center gap-3">
+            <span className="text-xs tabular-nums text-zinc-500">
+              {answered ? `${followed}/${rules.length} followed` : `0/${rules.length} answered`}
+            </span>
             <button
-              className="mt-3 w-full px-1 py-1.5 bg-[#172035] hover:bg-[#1E2F4A] border border-white/5 rounded-lg text-zinc-300 text-[10px] font-semibold transition-all shadow hover:shadow-lg flex items-center justify-center group"
-              onClick={onViewMore}
+              onClick={() => {
+                if (!Object.keys(changes).length) return onClose();
+                batchUpdateRuleCompliance(key, changes);
+                setDone(true);
+              }}
+              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-zinc-200"
             >
-              <span>Full Routine</span>
-              <ChevronRight className="w-3 h-3 ml-0.5 group-hover:translate-x-0.5 transition-transform" />
+              {Object.keys(changes).length ? 'Save' : 'Done'}
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
-};
+}

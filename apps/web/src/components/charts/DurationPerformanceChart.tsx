@@ -1,12 +1,11 @@
 'use client';
 
-import React from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Tooltip } from '../Tooltip';
-import { useHasMounted } from '@/hooks/useHasMounted';
+import React, { useMemo } from 'react';
+import { Timer } from 'lucide-react';
+import { TradeScatterCard, type Bucket } from './TradeScatterCard';
 
 interface DurationData {
-  duration: number; // Duration in minutes
+  duration: number; // Minutes
   pnl: number;
   outcome: 'win' | 'loss';
 }
@@ -15,242 +14,52 @@ interface DurationPerformanceChartProps {
   data: DurationData[];
 }
 
+const RANGES: Bucket[] = [
+  { label: '<5m', from: 0, to: 5 },
+  { label: '5–15m', from: 5, to: 15 },
+  { label: '15–30m', from: 15, to: 30 },
+  { label: '30–60m', from: 30, to: 60 },
+  { label: '1–2h', from: 60, to: 120 },
+  { label: '2h+', from: 120, to: Infinity },
+];
+
+const TICKS = [1, 2, 5, 10, 15, 30, 60, 120, 240, 480].map((m) => ({ value: m, label: m < 60 ? `${m}m` : `${m / 60}h` }));
+
+const hold = (m: number) => {
+  if (m < 1) return `${Math.round(m * 60)} sec`;
+  if (m < 60) return `${Math.round(m)} min`;
+  const h = Math.floor(m / 60);
+  const r = Math.round(m % 60);
+  return r ? `${h}h ${r}m` : `${h}h`;
+};
+
 export const DurationPerformanceChart: React.FC<DurationPerformanceChartProps> = ({ data }) => {
-  const hasMounted = useHasMounted();
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
-  };
-
-  // Clean duration formatting for X-axis - only show clean hour labels
-  const formatDurationAxis = (minutes: number) => {
-    if (minutes <= 30) return '30m';
-    if (minutes <= 60) return '1h';
-    if (minutes <= 120) return '2h';
-    if (minutes <= 180) return '3h';
-    if (minutes <= 240) return '4h';
-    if (minutes <= 300) return '5h';
-    if (minutes <= 360) return '6h';
-    if (minutes <= 420) return '7h';
-    if (minutes <= 480) return '8h';
-    
-    // For anything longer, round to nearest hour
-    const hours = Math.round(minutes / 60);
-    return `${hours}h`;
-  };
-
-  // Format duration for tooltip display (more precise)
-  const formatTooltipDuration = (minutes: number) => {
-    if (minutes < 60) {
-      return `${Math.round(minutes)} min`;
-    }
-    const hours = Math.floor(minutes / 60);
-    const remainingMins = Math.round(minutes % 60);
-    if (remainingMins === 0) {
-      return `${hours}h`;
-    }
-    return `${hours}h ${remainingMins}m`;
-  };
-
-  const tooltipContent = `Shows profit/loss performance by trade duration.\n\nGreen dots = winning trades\nRed dots = losing trades\n\nHelps identify optimal holding periods.`;
-
-  // Calculate data bounds for proper chart sizing
-  const minPnL = Math.min(...data.map(d => d.pnl));
-  const maxPnL = Math.max(...data.map(d => d.pnl));
-  const pnlRange = maxPnL - minPnL;
-  const pnlPadding = pnlRange * 0.15; // 15% padding
-
-  const minDuration = Math.min(...data.map(d => d.duration));
-  const maxDuration = Math.max(...data.map(d => d.duration));
-  const durationPadding = (maxDuration - minDuration) * 0.1; // 10% padding
-
-  // Process data with controlled jitter that stays within bounds
-  const processedData = data.map((item, index) => {
-    // Reduce jitter to keep points well within bounds
-    const durationJitter = (Math.random() - 0.5) * Math.min(15, (maxDuration - minDuration) * 0.05);
-    const pnlJitter = (Math.random() - 0.5) * (pnlRange * 0.05); // 5% of range
-    
+  const { points, buckets, domain } = useMemo(() => {
+    const points = data.map((d) => ({ x: Math.max(0, d.duration), pnl: d.pnl }));
+    if (!points.length) return { points, buckets: RANGES, domain: [1, 120] as [number, number] };
+    const xs = points.map((p) => Math.max(p.x, 0.5));
+    const used = RANGES.map((r, i) => (points.some((p) => p.x >= r.from && p.x < r.to) ? i : -1)).filter((i) => i >= 0);
     return {
-      ...item,
-      displayDuration: Math.max(minDuration - durationPadding + 5, Math.min(maxDuration + durationPadding - 5, item.duration + durationJitter)),
-      displayPnl: Math.max(minPnL - pnlPadding + 50, Math.min(maxPnL + pnlPadding - 50, item.pnl + pnlJitter)),
-      originalDuration: item.duration,
-      originalPnl: item.pnl
+      points,
+      buckets: RANGES.slice(used[0], used[used.length - 1] + 1),
+      // Log scale: short scalps and long holds both get room.
+      domain: [Math.min(...xs) / 1.4, Math.max(...xs) * 1.4] as [number, number],
     };
-  });
-
-  // Generate clean tick values for X-axis
-  const generateCleanTicks = () => {
-    const ticks = [];
-    const maxHours = Math.ceil(maxDuration / 60);
-    
-    // Always start with 30m if we have short trades
-    if (minDuration <= 30) {
-      ticks.push(30);
-    }
-    
-    // Add hourly ticks
-    for (let hour = 1; hour <= Math.min(maxHours, 8); hour++) {
-      ticks.push(hour * 60);
-    }
-    
-    return ticks;
-  };
-
-  const cleanTicks = generateCleanTicks();
-
-  // Custom tooltip component
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div 
-          style={{
-            background: 'linear-gradient(135deg, #1E2F4A 0%, #364060 100%)',
-            border: '2px solid #00D68F',
-            borderRadius: '12px',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 246, 138, 0.3)',
-            padding: '12px 16px',
-            backdropFilter: 'blur(10px)',
-            minWidth: '140px'
-          }}
-        >
-          <div style={{ 
-            color: '#FFFFFF', 
-            fontWeight: 'bold',
-            fontSize: '14px',
-            marginBottom: '6px',
-            textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)'
-          }}>
-            Duration: {formatTooltipDuration(data.originalDuration)}
-          </div>
-          <div style={{ 
-            color: data.originalPnl >= 0 ? '#00D68F' : '#FF4868', 
-            fontWeight: 'bold',
-            fontSize: '16px',
-            textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)'
-          }}>
-            {formatCurrency(data.originalPnl)}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  if (!hasMounted) {
-    return <div className="h-[22rem] rounded-xl border border-white/5 bg-[#0D1628]/40" />;
-  }
+  }, [data]);
 
   return (
-    <div 
-      className="rounded-xl p-4 border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group h-full"
-      
-    >
-      {/* Gradient border on hover */}
-      <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
-        <div 
-          className="w-full h-full rounded-xl"
-          
-        />
-      </div>
-      
-      <div className="relative z-10 h-full flex flex-col">
-        {/* Header - Compact */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <h3 className="text-zinc-100 text-lg font-semibold">Trade duration performance</h3>
-            <Tooltip content={tooltipContent} position="top">
-              <div className="w-4 h-4 rounded-full bg-[#172035] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
-                <span className="text-zinc-400 text-xs">?</span>
-              </div>
-            </Tooltip>
-          </div>
-        </div>
-        
-        {/* Chart Area */}
-        <div className="flex-1 min-h-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart
-              data={processedData}
-              margin={{ top: 8, right: 18, left: 0, bottom: 50 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E2F4A" opacity={0.3} />
-              <XAxis
-                type="number"
-                dataKey="displayDuration"
-                domain={[Math.max(0, minDuration - durationPadding), maxDuration + durationPadding]}
-                axisLine={{ stroke: '#364060', strokeWidth: 1 }}
-                tickLine={{ stroke: '#364060', strokeWidth: 1 }}
-                tick={{ fill: '#7B91B4', fontSize: 12 }}
-                tickFormatter={formatDurationAxis}
-                ticks={cleanTicks}
-                label={{
-                  value: 'Trade Duration',
-                  position: 'insideBottom',
-                  offset: -28,
-                  style: { textAnchor: 'middle', fill: '#7B91B4', fontSize: '12px', fontWeight: '500' }
-                }}
-              />
-              <YAxis
-                type="number"
-                dataKey="displayPnl"
-                domain={[minPnL - pnlPadding, maxPnL + pnlPadding]}
-                axisLine={{ stroke: '#364060', strokeWidth: 1 }}
-                tickLine={{ stroke: '#364060', strokeWidth: 1 }}
-                tick={{ fill: '#7B91B4', fontSize: 12 }}
-                width={74}
-                tickFormatter={(value) => `$${Math.round(value)}`}
-                label={{
-                  value: 'P & L',
-                  angle: -90,
-                  position: 'insideLeft',
-                  offset: -50,
-                  style: { textAnchor: 'middle', fill: '#7B91B4', fontSize: '11px', fontWeight: '500' }
-                }}
-              />
-              <RechartsTooltip
-                content={<CustomTooltip />}
-                cursor={{ strokeDasharray: '3 3', stroke: '#00D68F', strokeWidth: 1 }}
-              />
-              <Scatter
-                name="Trades"
-                dataKey="displayPnl"
-                r={8}
-                strokeWidth={1.5}
-                stroke="#0D1628"
-              >
-                {processedData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.outcome === 'win' ? '#00D68F' : '#FF4868'}
-                    style={{ 
-                      cursor: 'pointer',
-                      filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
-                    }}
-                  />
-                ))}
-              </Scatter>
-            </ScatterChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Legend - More padding from bottom */}
-        <div className="flex items-center justify-center space-x-6 mt-4 pt-4 pb-3 border-t border-white/5">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-            <span className="text-zinc-400 text-xs">Winning Trades</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-            <span className="text-zinc-400 text-xs">Losing Trades</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <TradeScatterCard
+      title="Holding time"
+      icon={Timer}
+      points={points}
+      buckets={buckets}
+      scale="log"
+      domain={domain}
+      ticks={TICKS}
+      formatX={(x) => `Held ${hold(x)}`}
+      xNoun="holding time"
+      bestPhrase={(b) => `${b.label} holds`}
+      emptyText="Import trades with durations to see your best holding time."
+    />
   );
 };
