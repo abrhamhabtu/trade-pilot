@@ -96,6 +96,28 @@ function HealthRow({ account, now }: { account: Account; now: number }) {
           </div>
         ))}
       </dl>
+      {s && s.cushion > 0 && (
+        <div className="mt-4">
+          <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.06]">
+            <div
+              className="h-full bg-tp-red/50"
+              style={{ width: `${Math.min(100, (s.reserve / s.cushion) * 100)}%` }}
+              title="Protected reserve"
+            />
+            <div
+              className={`h-full ${depleted ? "bg-tp-red" : "bg-tp-green"}`}
+              style={{
+                width: `${Math.max(0, Math.min(100, (Math.min(s.dailyRemaining, s.cushion - s.reserve) / s.cushion) * 100))}%`,
+              }}
+              title="Usable today"
+            />
+          </div>
+          <p className={`${muted} mt-1.5 text-xs`}>
+            <span className="text-tp-green">■</span> usable today{" "}
+            <span className="ml-2 text-tp-red/70">■</span> reserve you keep
+          </p>
+        </div>
+      )}
       <p className="text-sm mt-4">
         <span className={muted}>Next payout requirement: </span>
         {s?.nextRequirement || "Review your program’s current requirements."}
@@ -118,7 +140,7 @@ function HealthRow({ account, now }: { account: Account; now: number }) {
         <button
           type="button"
           onClick={() => setEditing(!editing)}
-          className="rounded-lg border border-zinc-500/30 px-3 py-2 font-medium"
+          className="rounded-xl bg-white/[0.05] px-3 py-2 font-medium text-zinc-100 ring-1 ring-inset ring-white/[0.08] hover:bg-white/[0.09]"
           aria-expanded={editing}
         >
           {editing ? "Cancel" : "Update limits"}
@@ -215,7 +237,7 @@ function HealthRow({ account, now }: { account: Account; now: number }) {
           </div>
           <button
             type="submit"
-            className="mt-4 rounded-lg bg-emerald-500 text-gray-950 px-4 py-2.5 text-sm font-semibold"
+            className="mt-4 rounded-xl bg-white text-zinc-950 px-4 py-2.5 text-sm font-semibold hover:bg-zinc-200"
           >
             I checked my platform · save snapshot
           </button>
@@ -225,7 +247,7 @@ function HealthRow({ account, now }: { account: Account; now: number }) {
   );
 }
 
-export function AccountHealthBoard() {
+export function AccountHealthBoard({ onAdd }: { onAdd?: () => void }) {
   const accounts = useAccountStore((s) => s.accounts);
   const { card, text, muted } = useThemeClasses();
   const [now, setNow] = useState(Date.now());
@@ -241,38 +263,54 @@ export function AccountHealthBoard() {
   return (
     <section
       id="account-health"
-      className={`${card} ${text} p-4 sm:p-6 mb-6 scroll-mt-20`}
+      className={`${card} ${text} p-5 sm:p-6 scroll-mt-20`}
       aria-label="Account health board"
     >
       <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
         <div>
-          <h2 className="font-semibold text-lg flex gap-2 items-center">
-            <ShieldCheck className="w-5 h-5 text-emerald-500" /> Account health
-          </h2>
-          <p className={`${muted} text-sm mt-1`}>
-            Protect the room you have left, not the account size on the label.
-          </p>
+          <div className="flex items-start gap-3">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-tp-green/10 text-tp-green ring-1 ring-inset ring-tp-green/20">
+              <ShieldCheck className="h-[18px] w-[18px]" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-zinc-50">
+                Risk check
+              </h2>
+              <p className={`${muted} text-sm mt-0.5`}>
+                Protect the room you have left, not the account size on the
+                label. Confirm limits before each session.
+              </p>
+            </div>
+          </div>
         </div>
         <Link
-          className="text-sm text-emerald-500 flex gap-1 items-center"
+          className="text-sm font-medium text-tp-green flex gap-1 items-center hover:underline"
           href="/app/session"
         >
           Plan this session <ArrowUpRight size={16} />
         </Link>
       </div>
-      <div className="space-y-3">
+      <div className="grid gap-3 xl:grid-cols-2">
         {relevant.map((a) => (
           <HealthRow key={a.id} account={a} now={Math.max(now, Date.now())} />
         ))}
       </div>
       {!relevant.length && (
-        <p className={`${muted} py-5 text-sm`}>
-          Add a real active account in{" "}
-          <Link href="/app/accounts" className="underline">
-            Accounts
-          </Link>{" "}
-          to begin. Demo accounts are excluded from risk planning.
-        </p>
+        <div className="rounded-xl border border-dashed border-white/[0.08] p-8 text-center">
+          <p className="text-sm text-zinc-300">No live accounts to check yet</p>
+          <p className={`${muted} mx-auto mt-1 max-w-sm text-xs`}>
+            Add a real active account to begin. Sample accounts are excluded
+            from risk planning.
+          </p>
+          {onAdd && (
+            <button
+              onClick={onAdd}
+              className="mt-4 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-zinc-200"
+            >
+              Add account
+            </button>
+          )}
+        </div>
       )}
       <p className={`${muted} text-xs mt-4`}>
         Snapshots expire after 30 minutes. Trade sync imports executions; it

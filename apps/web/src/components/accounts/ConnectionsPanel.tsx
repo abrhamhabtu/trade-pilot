@@ -11,7 +11,7 @@ import {
 import { TradovateConnection } from "./TradovateConnection";
 import { useThemeClasses } from "../payout/payoutPrimitives";
 
-export function ConnectionsPanel() {
+export function ConnectionsPanel({ onImport }: { onImport?: () => void }) {
   const { card, text, muted, input, inset } = useThemeClasses();
   const { accounts, addAccount, updateAccount, selectAccount } =
     useAccountStore();
@@ -24,7 +24,6 @@ export function ConnectionsPanel() {
   const [start, setStart] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const [expanded, setExpanded] = useState(false);
   const connected = accounts.filter((a) => Boolean(a.syncSource));
   async function connect(e: React.FormEvent) {
     e.preventDefault();
@@ -81,32 +80,24 @@ export function ConnectionsPanel() {
       className={`${card} ${text} p-5 sm:p-6 mb-6`}
       aria-label="Trade connections"
     >
-      <div className="flex flex-wrap justify-between items-start gap-4">
+      <div className="flex items-start gap-3">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-tp-green/10 text-tp-green ring-1 ring-inset ring-tp-green/20">
+          <PlugZap size={18} />
+        </div>
         <div>
-          <div className="flex items-center gap-2">
-            <PlugZap size={18} className="text-emerald-500" />
-            <h2 className="font-semibold">
-              Your trades, without the spreadsheet ritual
-            </h2>
-          </div>
-          <p className={`${muted} text-sm mt-2`}>
-            Connect a platform once per session. Keep accounts separate and
-            bring in closed executions automatically.
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-50">
+            Sync trades automatically
+          </h2>
+          <p className={`${muted} text-sm mt-0.5`}>
+            Connect a platform once per session and closed trades flow into
+            their own account — no spreadsheet ritual.
           </p>
         </div>
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          aria-expanded={expanded}
-          className="text-sm rounded-lg border border-emerald-500/30 text-emerald-500 px-4 py-2"
-        >
-          {expanded ? "Hide connections" : "Set up a connection"}
-        </button>
       </div>
-      {expanded && (
-        <div className="mt-5">
-          <p className={`${muted} text-sm mb-4`}>
-            Start with the platform shown in your account credentials. Your prop
-            firm is the account label; the platform determines how trades sync.
+      {(
+        <div className="mt-6">
+          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">
+            1 · Which platform do you log in to?
           </p>
           <div
             className="grid sm:grid-cols-3 gap-3 mb-5"
@@ -134,7 +125,7 @@ export function ConnectionsPanel() {
                 key={p.id}
                 onClick={() => setPlatform(p.id)}
                 aria-pressed={platform === p.id}
-                className={`text-left rounded-xl border p-4 ${platform === p.id ? "border-emerald-500/50 bg-emerald-500/10" : "border-current/10"}`}
+                className={`text-left rounded-xl p-4 ring-1 ring-inset transition-colors ${platform === p.id ? "ring-tp-green/50 bg-tp-green/[0.07]" : "ring-white/[0.07] hover:bg-white/[0.03]"}`}
               >
                 <span className="block font-semibold text-sm">{p.title}</span>
                 <span className={`${muted} block text-xs leading-relaxed mt-2`}>
@@ -143,6 +134,9 @@ export function ConnectionsPanel() {
               </button>
             ))}
           </div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">
+            2 · Authorize and link
+          </p>
           <p className={`${muted} text-xs mb-5`}>
             Local app connector · API authorization required · Closed trade
             history only. Production hosting and one-click Tradovate OAuth are
@@ -205,7 +199,7 @@ export function ConnectionsPanel() {
                 </label>
                 <button
                   disabled={busy}
-                  className="self-end py-2.5 px-4 rounded-lg bg-emerald-500 text-zinc-950 text-sm disabled:opacity-40"
+                  className="self-end py-2.5 px-4 rounded-xl bg-white text-zinc-950 text-sm font-semibold hover:bg-zinc-200 disabled:opacity-40"
                 >
                   Connect
                 </button>
@@ -306,12 +300,23 @@ export function ConnectionsPanel() {
                 Trades with a supported export. Keep each account’s history
                 separate.
               </p>
+              {onImport && (
+                <button
+                  onClick={onImport}
+                  className="mt-4 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-zinc-200"
+                >
+                  Import a CSV instead
+                </button>
+              )}
             </div>
           )}
         </div>
       )}
       {connected.length > 0 && (
-        <div className="mt-5 space-y-4">
+        <div className="mt-6 space-y-4 border-t border-white/[0.06] pt-5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            Linked accounts
+          </p>
           {connected.map((a) => (
             <div key={a.id} className="border-t border-current/10 pt-4">
               <div className="flex flex-wrap gap-4 justify-between">

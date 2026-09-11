@@ -69,8 +69,8 @@ export function TradovateConnection({ firm }: { firm: string }) {
       >
         Check Tradovate API requirements ↗
       </a>
-      <div className="mt-4 rounded-lg border border-current/10 p-4 text-xs leading-relaxed">
-        <p className="font-medium">Before you connect</p>
+      <details className="mt-4 rounded-xl p-4 text-xs leading-relaxed ring-1 ring-inset ring-white/[0.07]">
+        <summary className="cursor-pointer font-medium text-zinc-200">Before you connect — requirements checklist</summary>
         <ol className={`list-decimal pl-4 space-y-2 mt-2 ${muted}`}>
           <li>
             Activate the account in Tradovate and complete its required
@@ -121,7 +121,7 @@ export function TradovateConnection({ firm }: { firm: string }) {
           Confirm prop-account eligibility with the provider before purchasing
           anything.
         </p>
-      </div>
+      </details>
       <form
         className="mt-4"
         onSubmit={(e) => {
@@ -181,7 +181,7 @@ export function TradovateConnection({ firm }: { firm: string }) {
         <div className="flex flex-wrap items-center gap-4 mt-4">
           <button
             disabled={busy}
-            className="bg-emerald-500 text-zinc-950 text-sm rounded-lg px-4 py-2 disabled:opacity-40"
+            className="bg-white text-zinc-950 text-sm font-semibold rounded-xl px-4 py-2 hover:bg-zinc-200 disabled:opacity-40"
           >
             Connect Tradovate
           </button>
