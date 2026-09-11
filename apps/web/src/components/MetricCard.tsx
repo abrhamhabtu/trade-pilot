@@ -1,339 +1,180 @@
 'use client';
 
-import React from 'react';
-import type { LucideIcon } from 'lucide-react';
+import React, { useId } from 'react';
 import clsx from 'clsx';
-import { HelpTooltip, SurfaceCard } from '@/components/ui';
+import { HelpTooltip } from '@/components/ui';
 
-const GREEN = '#00FF9D';
-const RED = '#FF3356';
-const TRACK = 'rgba(255,255,255,0.08)';
+export type Tone = 'green' | 'red' | 'yellow' | 'blue' | 'neutral';
 
-function Sparkline({
-  points,
-  positive,
-}: {
-  points: number[];
-  positive: boolean;
-}) {
-  const width = 96;
-  const height = 40;
+const TONE_TEXT: Record<Tone, string> = {
+  green: 'text-tp-green',
+  red: 'text-tp-red',
+  yellow: 'text-tp-yellow',
+  blue: 'text-tp-blue',
+  neutral: 'text-zinc-50',
+};
+const TONE_CHIP: Record<Tone, string> = {
+  green: 'bg-tp-green/10 text-tp-green ring-tp-green/20',
+  red: 'bg-tp-red/10 text-tp-red ring-tp-red/20',
+  yellow: 'bg-tp-yellow/10 text-tp-yellow ring-tp-yellow/20',
+  blue: 'bg-tp-blue/10 text-tp-blue ring-tp-blue/20',
+  neutral: 'bg-white/[0.05] text-zinc-300 ring-white/10',
+};
+const TONE_ICON: Record<Tone, string> = {
+  green: 'bg-tp-green/10 text-tp-green',
+  red: 'bg-tp-red/10 text-tp-red',
+  yellow: 'bg-tp-yellow/10 text-tp-yellow',
+  blue: 'bg-tp-blue/10 text-tp-blue',
+  neutral: 'bg-white/[0.06] text-zinc-300',
+};
+
+interface MetricCardProps {
+  title: string;
+  icon: React.ElementType;
+  value: string;
+  suffix?: string;
+  valueTone?: Tone;
+  accent?: Tone;
+  badge?: { label: string; tone: Tone };
+  tooltip: string;
+  context: React.ReactNode;
+  children?: React.ReactNode;
+  /** Visual runs to the card's edges (sparklines). */
+  bleed?: boolean;
+}
+
+export function MetricCard({ title, icon: Icon, value, suffix, valueTone = 'neutral', accent = 'neutral', badge, tooltip, context, children, bleed }: MetricCardProps) {
+  return (
+    <div className="group relative flex h-full min-h-[148px] flex-col overflow-hidden rounded-2xl border border-white/[0.07] bg-tp-card transition-colors duration-200 hover:border-white/[0.12]">
+      <div className={clsx('pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-60 blur-2xl', accent === 'neutral' ? 'bg-white/[0.03]' : TONE_ICON[accent].split(' ')[0])} />
+      <div className="relative flex flex-1 flex-col p-4 pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className={clsx('grid h-6 w-6 shrink-0 place-items-center rounded-lg', TONE_ICON[accent])}>
+              <Icon className="h-3.5 w-3.5" />
+            </span>
+            <span className="truncate text-xs font-medium text-zinc-400">{title}</span>
+            <HelpTooltip content={tooltip} />
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-baseline gap-1">
+            <span className={clsx('text-[28px] font-semibold leading-none tracking-tight tabular-nums', TONE_TEXT[valueTone])}>{value}</span>
+            {suffix && <span className="text-sm font-medium text-zinc-500">{suffix}</span>}
+          </div>
+          {badge && <span className={clsx('truncate rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset', TONE_CHIP[badge.tone])}>{badge.label}</span>}
+        </div>
+        <div className="mt-1.5 truncate text-xs text-zinc-500">{context}</div>
+
+        {children && !bleed && <div className="mt-auto pt-3">{children}</div>}
+      </div>
+      {children && bleed && <div className="relative -mt-2">{children}</div>}
+    </div>
+  );
+}
+
+// ─── Visuals ─────────────────────────────────────────────────────────────────
+
+export function AreaSpark({ points, positive }: { points: number[]; positive: boolean }) {
+  const id = useId().replace(/:/g, '');
   const values = points.length >= 2 ? points : [0, 0];
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
-  const step = width / Math.max(values.length - 1, 1);
-  const path = values
-    .map((point, index) => {
-      const x = index * step;
-      const y = height - ((point - min) / range) * (height - 8) - 4;
-      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(' ');
-  const areaPath = `${path} L ${width} ${height} L 0 ${height} Z`;
-  const stroke = positive ? GREEN : RED;
-  const fill = positive ? 'rgba(0,255,157,0.10)' : 'rgba(255,51,86,0.10)';
-
+  const w = 200;
+  const h = 44;
+  const xy = values.map((v, i) => [(i / (values.length - 1)) * w, h - 4 - ((v - min) / range) * (h - 10)]);
+  const line = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const color = positive ? '#00D68F' : '#FF4868';
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0">
-      <path d={areaPath} fill={fill} />
-      <path
-        d={path}
-        fill="none"
-        stroke={stroke}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="block h-12 w-full" aria-hidden>
+      <defs>
+        <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`${line} L${w},${h} L0,${h} Z`} fill={`url(#${id})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
 
-function DonutIndicator({ pct, size = 54 }: { pct: number; size?: number }) {
-  const strokeW = 6;
-  const r = (size - strokeW * 2) / 2;
-  const cx = size / 2;
-  const cy = size / 2;
-  const circumference = 2 * Math.PI * r;
-  const clamped = Math.min(Math.max(pct, 0), 1);
-  const greenDash = circumference * clamped;
-  const redDash = circumference * (1 - clamped);
-  const redOffset = -(circumference * clamped);
-
+/** Profit factor on a 0–3 scale with losing / thin / healthy zones. */
+export function PfScale({ value }: { value: number }) {
+  const max = 3;
+  const pos = Math.min(value, max) / max;
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      className="shrink-0"
-      style={{ transform: 'rotate(-90deg)' }}
-    >
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={TRACK} strokeWidth={strokeW} />
-      {clamped < 1 && (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={r}
-          fill="none"
-          stroke={RED}
-          strokeWidth={strokeW}
-          strokeDasharray={`${redDash} ${circumference}`}
-          strokeDashoffset={redOffset}
-          strokeLinecap="butt"
+    <div>
+      <div className="relative h-2 rounded-full">
+        <div className="absolute inset-0 flex overflow-hidden rounded-full">
+          <div className="h-full bg-tp-red/35" style={{ width: `${(1 / max) * 100}%` }} />
+          <div className="h-full bg-tp-yellow/35" style={{ width: `${(0.5 / max) * 100}%` }} />
+          <div className="h-full flex-1 bg-tp-green/35" />
+        </div>
+        <div
+          className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-tp-card bg-white shadow-[0_0_0_3px_rgba(255,255,255,0.12)] transition-all duration-700"
+          style={{ left: `${pos * 100}%` }}
         />
-      )}
-      {clamped > 0 && (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={r}
-          fill="none"
-          stroke={GREEN}
-          strokeWidth={strokeW}
-          strokeDasharray={`${greenDash} ${circumference}`}
-          strokeLinecap="butt"
-        />
-      )}
-    </svg>
-  );
-}
-
-function WinRateGauge({
-  wins,
-  breakeven,
-  losses,
-}: {
-  wins: number;
-  breakeven: number;
-  losses: number;
-}) {
-  const total = wins + breakeven + losses || 1;
-  const segments = [
-    {
-      label: 'W',
-      count: wins,
-      width: (wins / total) * 100,
-      barClassName: 'bg-emerald-400',
-      textClassName: 'text-emerald-400',
-    },
-    {
-      label: 'BE',
-      count: breakeven,
-      width: (breakeven / total) * 100,
-      barClassName: 'bg-blue-500',
-      textClassName: 'text-blue-400',
-    },
-    {
-      label: 'L',
-      count: losses,
-      width: (losses / total) * 100,
-      barClassName: 'bg-rose-500',
-      textClassName: 'text-rose-400',
-    },
-  ];
-
-  return (
-    <div className="w-[112px] shrink-0">
-      <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.05]">
-        {segments.map((segment) =>
-          segment.count > 0 ? (
-            <div
-              key={segment.label}
-              className={segment.barClassName}
-              style={{ width: `${segment.width}%` }}
-            />
-          ) : null
-        )}
       </div>
-      <div className="mt-1.5 grid grid-cols-3 gap-1 text-[10px] font-semibold leading-none">
-        {segments.map((segment) => (
-          <div key={segment.label} className="text-center">
-            <span className={segment.textClassName}>{segment.count}</span>
-            <span className="ml-0.5 text-zinc-600">{segment.label}</span>
-          </div>
+      <div className="relative mt-1.5 h-3 text-[10px] text-zinc-600">
+        {[1, 2, 3].map((t) => (
+          <span key={t} className={clsx('absolute', t === 3 ? 'right-0' : '-translate-x-1/2')} style={t === 3 ? undefined : { left: `${(t / max) * 100}%` }}>
+            {t === 3 ? '3+' : t}
+          </span>
+        ))}
+        <span className="absolute left-0">0</span>
+      </div>
+    </div>
+  );
+}
+
+export function OutcomeBar({ wins, breakeven, losses }: { wins: number; breakeven: number; losses: number }) {
+  const total = wins + breakeven + losses || 1;
+  const parts = [
+    { n: wins, label: 'wins', bar: 'bg-tp-green', text: 'text-tp-green' },
+    { n: breakeven, label: 'BE', bar: 'bg-zinc-500', text: 'text-zinc-400' },
+    { n: losses, label: 'losses', bar: 'bg-tp-red', text: 'text-tp-red' },
+  ];
+  return (
+    <div>
+      <div className="flex h-2 gap-0.5 overflow-hidden rounded-full">
+        {parts.map((p) => (p.n ? <div key={p.label} className={clsx('h-full first:rounded-l-full last:rounded-r-full', p.bar)} style={{ width: `${(p.n / total) * 100}%` }} /> : null))}
+        {!wins && !breakeven && !losses && <div className="h-full w-full bg-white/[0.06]" />}
+      </div>
+      <div className="mt-1.5 flex justify-between text-[11px] tabular-nums">
+        {parts.map((p) => (
+          <span key={p.label} className={clsx(!p.n && 'opacity-40')}>
+            <span className={clsx('font-semibold', p.text)}>{p.n}</span> <span className="text-zinc-500">{p.label}</span>
+          </span>
         ))}
       </div>
     </div>
   );
 }
 
-function WinLossBar({ avgWin, avgLoss }: { avgWin: number; avgLoss: number }) {
+export function WinLossBars({ avgWin, avgLoss, fmt }: { avgWin: number; avgLoss: number; fmt: (n: number) => string }) {
   const win = Math.max(avgWin, 0);
   const loss = Math.abs(avgLoss);
-  const total = win + loss || 1;
-  const winPct = (win / total) * 100;
-
-  const fmt = (v: number) =>
-    new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(v);
-
+  const max = Math.max(win, loss) || 1;
   return (
-    <div className="w-[112px] shrink-0">
-      <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.05]">
-        <div className="bg-emerald-400" style={{ width: `${winPct}%` }} />
-        <div className="bg-rose-500" style={{ width: `${100 - winPct}%` }} />
-      </div>
-      <div className="mt-1.5 flex justify-between text-[11px] font-semibold leading-none">
-        <span className="text-emerald-400">{fmt(win)}</span>
-        <span className="text-rose-400">-{fmt(loss)}</span>
-      </div>
+    <div className="space-y-1.5">
+      {[
+        { label: 'Avg win', v: win, bar: 'bg-tp-green', text: 'text-tp-green', sign: '' },
+        { label: 'Avg loss', v: loss, bar: 'bg-tp-red', text: 'text-tp-red', sign: '-' },
+      ].map((r) => (
+        <div key={r.label} className="flex items-center gap-2 text-[11px]">
+          <span className="w-12 shrink-0 text-zinc-500">{r.label}</span>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.05]">
+            <div className={clsx('h-full rounded-full transition-all duration-700', r.bar)} style={{ width: `${(r.v / max) * 100}%` }} />
+          </div>
+          <span className={clsx('w-12 shrink-0 text-right font-semibold tabular-nums', r.text)}>
+            {r.sign}
+            {fmt(r.v)}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
-
-export type MetricVisual =
-  | { type: 'icon-box'; icon: LucideIcon }
-  | { type: 'sparkline'; points: number[]; positive: boolean }
-  | { type: 'donut'; pct: number }
-  | { type: 'gauge'; wins: number; breakeven: number; losses: number }
-  | { type: 'winloss-bar'; avgWin: number; avgLoss: number };
-
-interface MetricCardProps {
-  title: string;
-  value: string | number;
-  format?: 'currency' | 'percentage' | 'number';
-  trend?: 'up' | 'down' | 'neutral';
-  tooltip?: string;
-  context?: string;
-  visual?: MetricVisual;
-}
-
-export const MetricCard: React.FC<MetricCardProps> = ({
-  title,
-  value,
-  format = 'number',
-  trend = 'neutral',
-  tooltip,
-  context,
-  visual,
-}) => {
-  const formatValue = (val: string | number) => {
-    if (typeof val === 'string') return val;
-    switch (format) {
-      case 'currency':
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(val);
-      case 'percentage':
-        return `${val.toFixed(2)}%`;
-      case 'number':
-        return val.toLocaleString(undefined, { maximumFractionDigits: 2 });
-      default:
-        return val.toLocaleString();
-    }
-  };
-
-  const valueColor = () => {
-    if (trend === 'up') return 'text-emerald-400';
-    if (trend === 'down') return 'text-rose-400';
-    return 'text-zinc-50';
-  };
-
-  const accentStyles = () => {
-    if (trend === 'up') {
-      return {
-        rail: 'from-emerald-400/80 to-emerald-400/5',
-        wash: 'bg-emerald-400/[0.035]',
-        icon: 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/20',
-      };
-    }
-    if (trend === 'down') {
-      return {
-        rail: 'from-rose-400/80 to-rose-400/5',
-        wash: 'bg-rose-400/[0.035]',
-        icon: 'bg-rose-400/10 text-rose-300 ring-rose-400/20',
-      };
-    }
-    if (title === 'Trade win %') {
-      return {
-        rail: 'from-blue-400/80 to-blue-400/5',
-        wash: 'bg-blue-400/[0.03]',
-        icon: 'bg-blue-400/10 text-blue-300 ring-blue-400/20',
-      };
-    }
-    return {
-      rail: 'from-zinc-300/55 to-zinc-300/0',
-      wash: 'bg-white/[0.018]',
-      icon: 'bg-white/[0.045] text-zinc-300 ring-white/10',
-    };
-  };
-
-  const accent = accentStyles();
-
-  const tooltipMap: Record<string, string> = {
-    'Net P&L': 'Account balance including all trades and adjustments (payouts, deposits).',
-    'Profit factor': 'Gross profit ÷ gross loss. Above 1.0 = profitable. Above 2.0 = excellent.',
-    'Trade win %': 'Percentage of trades that closed in profit.',
-    'Avg win/loss trade': 'Average winning trade size divided by average losing trade size.',
-  };
-
-  return (
-    <SurfaceCard
-      padding="sm"
-      hoverable
-      className="group min-h-[126px] !border-white/[0.075] !bg-[#0c1424]/95 !p-0"
-    >
-      <div className={clsx('pointer-events-none absolute inset-0 opacity-100', accent.wash)} />
-      <div className={clsx('absolute inset-x-4 top-0 h-px bg-gradient-to-r', accent.rail)} />
-
-      <div className="relative flex h-full min-h-[126px] flex-col justify-between p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-[12px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
-              {title}
-            </span>
-            <HelpTooltip content={tooltipMap[title] ?? tooltip ?? ''} />
-          </div>
-        </div>
-
-        <div className="mt-4 flex items-end justify-between gap-4">
-          <div className="min-w-0">
-            <div
-              className={clsx(
-                'text-[1.7rem] font-bold tabular-nums leading-none tracking-tight',
-                valueColor()
-              )}
-            >
-              {formatValue(value)}
-            </div>
-            {context && (
-              <div className="mt-2 truncate text-[11px] font-medium text-zinc-500">
-                {context}
-              </div>
-            )}
-          </div>
-
-          <div className="flex shrink-0 items-end">
-          {visual?.type === 'icon-box' && (
-            <div
-              className={clsx(
-                'flex h-11 w-11 items-center justify-center rounded-xl ring-1 transition-transform group-hover:scale-105',
-                accent.icon
-              )}
-            >
-              <visual.icon className="h-5 w-5" />
-            </div>
-          )}
-          {visual?.type === 'sparkline' && (
-            <Sparkline points={visual.points} positive={visual.positive} />
-          )}
-          {visual?.type === 'donut' && <DonutIndicator pct={visual.pct / 100} />}
-          {visual?.type === 'gauge' && (
-            <WinRateGauge wins={visual.wins} breakeven={visual.breakeven} losses={visual.losses} />
-          )}
-          {visual?.type === 'winloss-bar' && (
-            <WinLossBar avgWin={visual.avgWin} avgLoss={visual.avgLoss} />
-          )}
-          </div>
-        </div>
-      </div>
-    </SurfaceCard>
-  );
-};

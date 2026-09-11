@@ -113,6 +113,17 @@ export function PilotCoach({
   const scroller = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
   useEffect(() => () => controller.current?.abort(), []);
+  // A question handed over from the dashboard coach (?ask=...) is asked once, then cleared from the URL.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("ask");
+    if (!q) return;
+    params.delete("ask");
+    const rest = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${rest ? `?${rest}` : ""}`);
+    void ask(q.slice(0, 500));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     const el = scroller.current;
     if (el) el.scrollTop = el.scrollHeight;

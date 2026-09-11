@@ -1,13 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Clock } from 'lucide-react';
 import { DashboardHeader } from './DashboardHeader';
 import { MetricsGrid } from './MetricsGrid';
-import { CoachingTipCard } from './CoachingTipCard';
+import { CoachCard } from './CoachCard';
 import { ChartsContainer } from './ChartsContainer';
 import { useChartData } from '../../hooks/useChartData';
-import { useCoachingTips } from '../../hooks/useCoachingTips';
 import { Trade, TradingMetrics, TimePeriod } from '../../store/tradingStore';
 import { PageSection } from '@/components/ui';
 
@@ -47,11 +45,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     durationPerformanceData
   } = useChartData(trades, metrics);
 
-  const {
-    topCoachingTip,
-    performanceCoachingTip
-  } = useCoachingTips(metrics, timePerformanceData, durationPerformanceData);
-
   return (
     <PageSection>
       <DashboardHeader
@@ -66,11 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       <MetricsGrid metrics={metrics} trades={trades} accountBalance={accountBalance} />
 
-      <CoachingTipCard
-        title="Trading Coach Tip"
-        tip={topCoachingTip}
-        variant="default"
-      />
+      <CoachCard trades={trades} />
 
       <ChartsContainer
         radarData={radarData}
@@ -85,12 +74,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         accountId={accountId}
       />
 
-      <CoachingTipCard
-        title="Performance Insights"
-        tip={performanceCoachingTip}
-        variant="performance"
-        icon={Clock}
-      />
     </PageSection>
   );
 };
