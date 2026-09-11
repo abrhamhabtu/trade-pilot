@@ -76,7 +76,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = React.memo(({ metrics, tr
         title="Trade win %"
         value={has ? `${metrics.winRate.toFixed(1)}%` : '—'}
         tooltip="Share of trades that closed in profit. The white tick marks the win rate you need to break even at your average win and loss size."
-        context={has && breakEvenRate ? `${(metrics.winRate - breakEvenRate).toFixed(0)} pts above break-even` : 'wins · breakeven · losses'}
+        context={has && breakEvenRate ? `${Math.abs(metrics.winRate - breakEvenRate).toFixed(0)} pts ${metrics.winRate >= breakEvenRate ? 'above' : 'below'} break-even` : 'wins · breakeven · losses'}
         visual={(peek) => <WinGauge wins={wins} breakeven={breakeven} losses={losses} breakEvenRate={has ? breakEvenRate : 0} peek={peek} />}
       />
 
