@@ -50,6 +50,8 @@ export const TimePerformanceChart: React.FC<TimePerformanceChartProps> = ({ data
       domain={domain}
       ticks={ticks}
       formatX={(x) => `Entered ${clock(x)}`}
+      pillX={clock}
+      bandLabel="Net"
       xNoun="entry time"
       bestPhrase={(b) => {
         const end = hourLabel(b.to);

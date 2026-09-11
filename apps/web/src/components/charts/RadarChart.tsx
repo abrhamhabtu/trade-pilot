@@ -81,23 +81,9 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
           opacity: hoveredPoint ? 1 : 0
         }}
       >
-        <div 
-          className="bg-[#172035] border border-emerald-500/30 rounded-lg shadow-xl backdrop-blur-sm"
-          style={{
-            background: 'linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(55, 65, 81, 0.95) 100%)',
-            boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6), 0 0 8px rgba(59, 246, 138, 0.2)',
-            padding: '6px 10px',
-            minWidth: '84px'
-          }}
-        >
-          <div className="text-center">
-            <div className="text-zinc-100 font-medium mb-1" style={{ fontSize: '10px' }}>
-              {hoveredPoint.category}
-            </div>
-            <div className="text-emerald-500 font-bold" style={{ fontSize: '11px' }}>
-              Score: {hoveredPoint.value.toFixed(1)}%
-            </div>
-          </div>
+        {/* Compact pill, matching the crosshair labels on the other dashboard charts */}
+        <div className="-translate-y-1 whitespace-nowrap rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-950 shadow-lg shadow-black/40">
+          {hoveredPoint.category} <span className="text-emerald-700 tabular-nums">{hoveredPoint.value.toFixed(0)}</span>
         </div>
       </div>
     );

@@ -57,6 +57,8 @@ export const DurationPerformanceChart: React.FC<DurationPerformanceChartProps> =
       domain={domain}
       ticks={TICKS}
       formatX={(x) => `Held ${hold(x)}`}
+      pillX={hold}
+      bandLabel="Net"
       xNoun="holding time"
       bestPhrase={(b) => `${b.label} holds`}
       emptyText="Import trades with durations to see your best holding time."
