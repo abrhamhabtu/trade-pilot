@@ -3,13 +3,25 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { ArrowRight, Brain, ChevronLeft, ChevronRight, Clock, Pause, ShieldAlert, Sparkles, Target, Trophy } from 'lucide-react';
+import { ArrowRight, Brain, Check, ChevronLeft, ChevronRight, Clock, Pause, Plus, ShieldAlert, Sparkles, Target, Trophy } from 'lucide-react';
 import type { Trade } from '@/store/tradingStore';
-import { useRoutineStore } from '@/store/routineStore';
+import { useRoutineStore, type TradingRule } from '@/store/routineStore';
 import { buildCoachInsights, type CoachCategory, type RuleLog } from '@/lib/coachInsights';
 import { useHasMounted } from '@/hooks/useHasMounted';
 
-const ROTATE_MS = 9000;
+const ROTATE_MS = 15000;
+
+/** Where a coaching card lands if the trader promotes it to a standing rule. */
+const RULE_CATEGORY: Record<CoachCategory, TradingRule['category']> = {
+  discipline: 'mindset',
+  risk: 'risk',
+  timing: 'time',
+  mindset: 'mindset',
+  strength: 'entry',
+};
+
+const usd0 = (n: number) =>
+  `$${Math.abs(Math.round(n)).toLocaleString()}`;
 
 const CATEGORY: Record<CoachCategory, { label: string; icon: React.ElementType; chip: string; glow: string }> = {
   discipline: { label: 'Discipline', icon: Target, chip: 'text-tp-yellow bg-tp-yellow/10 ring-tp-yellow/20', glow: 'from-tp-yellow/25' },
@@ -21,7 +33,7 @@ const CATEGORY: Record<CoachCategory, { label: string; icon: React.ElementType; 
 
 export function CoachCard({ trades }: { trades: Trade[] }) {
   const mounted = useHasMounted();
-  const { gamePlans, tradingRules } = useRoutineStore();
+  const { gamePlans, tradingRules, addTradingRule } = useRoutineStore();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [tick, setTick] = useState(0); // restarts the progress animation
@@ -66,6 +78,7 @@ export function CoachCard({ trades }: { trades: Trade[] }) {
   const insight = insights[Math.min(index, count - 1)];
   const cat = CATEGORY[insight.category];
   const warnCount = insights.filter((i) => i.tone === 'warn').length;
+  const ruleExists = tradingRules.some((r) => r.text.trim() === insight.action.trim());
 
   return (
     <section
@@ -140,6 +153,19 @@ export function CoachCard({ trades }: { trades: Trade[] }) {
             </span>
             {insight.tone === 'warn' && <span className="text-[11px] font-medium text-tp-yellow">Needs attention</span>}
             {insight.tone === 'good' && <span className="text-[11px] font-medium text-tp-green">Keep doing this</span>}
+            {insight.weight >= 250 && (
+              <span
+                className="ml-auto inline-flex items-baseline gap-1 rounded-full bg-white/[0.05] px-2.5 py-0.5 ring-1 ring-inset ring-white/[0.08]"
+                title="Roughly what this pattern is worth, measured from your own trades."
+              >
+                <span className={clsx('text-[13px] font-bold tabular-nums', insight.tone === 'good' ? 'text-tp-green' : 'text-tp-red')}>
+                  {usd0(insight.weight)}
+                </span>
+                <span className="text-[10px] uppercase tracking-wide text-zinc-500">
+                  {insight.tone === 'good' ? 'worth' : 'at stake'}
+                </span>
+              </span>
+            )}
           </div>
           <h3 className="mt-1.5 text-lg font-semibold leading-snug tracking-tight text-zinc-50">{insight.title}</h3>
           <p className="mt-1 text-sm leading-relaxed text-zinc-400" aria-label={insight.detail}>
@@ -150,12 +176,42 @@ export function CoachCard({ trades }: { trades: Trade[] }) {
               </span>
             ))}
           </p>
+          {insight.evidence && insight.evidence.length > 0 && (
+            <dl className="mt-3 flex flex-wrap gap-2">
+              {insight.evidence.map((e) => (
+                <div
+                  key={e.label}
+                  className="rounded-lg bg-white/[0.03] px-2.5 py-1.5 ring-1 ring-inset ring-white/[0.06]"
+                >
+                  <dt className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">{e.label}</dt>
+                  <dd className="text-[13px] font-semibold tabular-nums text-zinc-100">{e.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
           <div className="mt-3 inline-flex max-w-full items-start gap-2 rounded-xl bg-white/[0.04] px-3 py-2 text-sm text-zinc-200 ring-1 ring-inset ring-white/[0.06]">
             <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-tp-green" />
             <span>
               <span className="font-semibold text-zinc-50">Try: </span>
               {insight.action}
             </span>
+          </div>
+          <div className="mt-2">
+            {ruleExists ? (
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-tp-green">
+                <Check className="h-3.5 w-3.5" />
+                This is one of your rules — Preflight grades it daily
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => addTradingRule(insight.action, RULE_CATEGORY[insight.category])}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] font-medium text-zinc-400 ring-1 ring-inset ring-white/[0.08] transition hover:bg-white/[0.05] hover:text-zinc-100"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Make this a rule
+              </button>
+            )}
           </div>
         </div>
 

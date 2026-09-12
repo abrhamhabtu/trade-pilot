@@ -25,6 +25,39 @@ const TONES = {
 
 const OPEN_KEY = 'tradepilot_clock_open';
 
+function LimitRow({ label, left, of, ratio, color, binds, note }: {
+  label: string;
+  left: string;
+  of: string;
+  ratio: number;
+  color: string;
+  binds: boolean;
+  note?: string;
+}) {
+  return (
+    <div className={clsx('rounded-xl px-3 py-2.5', binds ? 'bg-white/[0.05]' : 'bg-white/[0.02]')}>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/70">
+          {label}
+          {binds && (
+            <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/70">
+              hits first
+            </span>
+          )}
+        </span>
+        <span className="text-sm font-bold tabular-nums" style={{ color }}>{left}</span>
+      </div>
+      <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/[0.07]">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${Math.max(0, Math.min(100, ratio * 100))}%`, background: color }}
+        />
+      </div>
+      <div className="mt-1 text-[10px] text-white/35">{note ?? `of ${of}`}</div>
+    </div>
+  );
+}
+
 function Stat({ label, value, hint, tone }: {
   label: string;
   value: React.ReactNode;
@@ -101,8 +134,15 @@ export function LiquidationClock() {
   const ticks = points !== null && spec ? points / spec.tick : null;
   const pct = dead ? 0 : Math.round(state.bufferRemaining * 100);
 
+  const firmLimit = state.rules.dailyLossLimit;
+  const personalLimit = account.personalDailyLimit ?? null;
+  const dayLimit =
+    firmLimit !== null && personalLimit !== null
+      ? Math.min(firmLimit, personalLimit)
+      : firmLimit ?? personalLimit;
+
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex flex-col items-end gap-2">
       {/* Expanded panel: here only when asked for, never occupying the page */}
       {open && (
         <div
@@ -138,6 +178,48 @@ export function LiquidationClock() {
               >
                 <X className="h-3.5 w-3.5" />
               </button>
+            </div>
+
+            <p className="mb-3 text-[13px] leading-relaxed text-white/70">
+              {dead ? (
+                'This account is closed out. The numbers below are how it finished.'
+              ) : state.cushion <= 0 ? (
+                'This account is past the threshold its firm liquidates at.'
+              ) : (
+                <>
+                  You can lose{' '}
+                  <span className="font-bold" style={{ color: tone.bar }}>{money(roomToStop)}</span>{' '}
+                  more{' '}
+                  {state.bindingConstraint === 'daily'
+                    ? 'today before you hit the daily stop you set.'
+                    : `before ${state.rules.label.split(' · ')[0]} closes this account.`}
+                </>
+              )}
+            </p>
+
+            <div className="mb-3 grid gap-2 sm:grid-cols-2">
+              <LimitRow
+                label="Your daily stop"
+                left={dayLimit === null ? 'None set' : money(state.dailyRemaining ?? 0)}
+                of={dayLimit === null ? '' : money(dayLimit)}
+                ratio={dayLimit ? (state.dailyRemaining ?? 0) / dayLimit : 0}
+                color={dayLimit === null ? 'rgba(255,255,255,0.25)' : '#4F9CF9'}
+                binds={!dead && state.bindingConstraint === 'daily'}
+                note={
+                  dayLimit === null
+                    ? 'Set one in Preflight'
+                    : `of ${money(dayLimit)} · today ${money(state.todayPnL)}`
+                }
+              />
+              <LimitRow
+                label="Account threshold"
+                left={money(Math.max(0, dead ? 0 : state.cushion))}
+                of={money(state.rules.drawdown)}
+                ratio={dead ? 0 : state.bufferRemaining}
+                color={tone.bar}
+                binds={!dead && state.bindingConstraint === 'drawdown'}
+                note={`liquidates at ${money(state.threshold)}`}
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-3">
@@ -234,7 +316,7 @@ export function LiquidationClock() {
       <button
         onClick={toggle}
         aria-expanded={open}
-        aria-label={`${money(roomToStop)} to ${state.bindingConstraint === 'daily' ? 'daily stop' : 'liquidation'}. ${open ? 'Collapse' : 'Expand'} risk details.`}
+        aria-label={`${money(roomToStop)} left to lose before your ${state.bindingConstraint === 'daily' ? "daily stop" : 'account is closed'}. ${open ? 'Collapse' : 'Expand'} risk details.`}
         title={dead ? 'Account closed out' : liquidationHeadline(state)}
         className={clsx(
           'pointer-events-auto flex items-center gap-2.5 rounded-full border py-2 pl-3 pr-3.5 shadow-xl backdrop-blur-xl transition hover:brightness-125',
@@ -255,9 +337,14 @@ export function LiquidationClock() {
           />
         )}
         <span className={clsx('text-sm font-bold tabular-nums', tone.text)}>{money(roomToStop)}</span>
-        <span className="hidden text-[10px] font-medium uppercase tracking-wide text-white/40 sm:inline">
-          {dead ? 'closed out' : state.bindingConstraint === 'daily' ? 'to stop' : 'to liq'}
+        <span className="hidden whitespace-nowrap text-[11px] font-medium text-white/55 sm:inline">
+          {dead ? 'account is over' : 'left to lose'}
         </span>
+        {!dead && (
+          <span className="hidden rounded-full bg-white/[0.07] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/45 md:inline">
+            {state.bindingConstraint === 'daily' ? 'today' : 'account'}
+          </span>
+        )}
         {state.estimated && !dead && (
           <TrendingUp className="h-3 w-3 text-tp-yellow" aria-label="Best-case estimate" />
         )}

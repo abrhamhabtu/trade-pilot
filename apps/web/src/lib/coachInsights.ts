@@ -16,6 +16,8 @@ export interface CoachInsight {
   action: string;
   /** Question handed to Pilot AI for a deeper look. */
   ask: string;
+  /** The two or three numbers this card stands on, shown as chips. */
+  evidence?: { label: string; value: string }[];
   /** Rough dollar impact, used for ranking. */
   weight: number;
 }
@@ -87,6 +89,11 @@ export function buildCoachInsights(trades: Trade[], ruleLogs: RuleLog[] = [], ru
           detail: `After back-to-back losses, your next trade wins ${pct(wr)} of the time (vs ${pct(overallWR)} normally) and has netted ${signed(net)}.`,
           action: 'Hard rule: two straight losses = session over. Close the platform.',
           ask: 'How do my trades perform right after two losses in a row, and what should my stop rule be?',
+          evidence: [
+            { label: 'Win rate after 2 losses', value: pct(wr) },
+            { label: 'Normally', value: pct(overallWR) },
+            { label: 'Net on those trades', value: signed(net) },
+          ],
           weight: Math.abs(Math.min(net, 0)) + 200,
         });
       }
@@ -107,6 +114,10 @@ export function buildCoachInsights(trades: Trade[], ruleLogs: RuleLog[] = [], ru
         detail: `You increased size right after a losing trade ${revenge.length} times. Those trades netted ${signed(net)}.`,
         action: 'After any loss, your next trade uses the same size or smaller. No exceptions.',
         ask: 'Am I revenge trading? Show me the trades where I sized up after a loss.',
+        evidence: [
+          { label: 'Times you sized up', value: `${revenge.length}` },
+          { label: 'Net on those trades', value: signed(net) },
+        ],
         weight: Math.abs(Math.min(net, 0)) + 150,
       });
     }
@@ -129,6 +140,11 @@ export function buildCoachInsights(trades: Trade[], ruleLogs: RuleLog[] = [], ru
           detail: `Days with ${cap + 1}+ trades average ${signed(busyAvg)}; days with ${cap} or fewer average ${signed(normAvg)}.`,
           action: `Set a daily cap of ${cap} trades. When you hit it, you're done — win or lose.`,
           ask: `Do I overtrade? Compare my days with more than ${cap} trades to the rest.`,
+          evidence: [
+            { label: `${cap + 1}+ trade days`, value: signed(busyAvg) },
+            { label: `${cap} or fewer`, value: signed(normAvg) },
+            { label: 'Days over cap', value: `${busy.length}` },
+          ],
           weight: (normAvg - busyAvg) * busy.length,
         });
       }
@@ -158,6 +174,10 @@ export function buildCoachInsights(trades: Trade[], ruleLogs: RuleLog[] = [], ru
         detail: `${givebacks} days you were up nicely and gave back more than half — ${usd(givenBack)} handed back in total.`,
         action: 'Once you give back 30% of the day’s peak, stop. A smaller green day is still a win.',
         ask: 'Which days did I give back my gains, and what happened on those trades?',
+        evidence: [
+          { label: 'Days given back', value: `${givebacks}` },
+          { label: 'Handed back', value: usd(givenBack) },
+        ],
         weight: givenBack,
       });
     }
@@ -175,6 +195,11 @@ export function buildCoachInsights(trades: Trade[], ruleLogs: RuleLog[] = [], ru
           detail: `Your biggest loss (${usd(worst.netPL)} on ${worst.symbol}) is ${ratio.toFixed(1)}× your average loss — about ${Math.max(1, Math.round(Math.abs(worst.netPL) / (avgWin || 1)))} average wins wiped out.`,
           action: 'Place the stop before you enter, every time. Never move it further away.',
           ask: 'What went wrong on my biggest losing trade and how do I prevent it?',
+          evidence: [
+            { label: 'Worst loss', value: usd(worst.netPL) },
+            { label: 'vs average loss', value: `${ratio.toFixed(1)}x` },
+            { label: 'Instrument', value: worst.symbol },
+          ],
           weight: Math.abs(worst.netPL),
         });
       }
@@ -192,6 +217,10 @@ export function buildCoachInsights(trades: Trade[], ruleLogs: RuleLog[] = [], ru
         detail: `Losing trades are held ${Math.round(lDur)} min on average vs ${Math.round(wDur)} min for winners. Hope is not a plan.`,
         action: 'If price hits your invalidation, exit. Let winners have the extra time instead.',
         ask: 'Am I holding losing trades too long compared to my winners?',
+        evidence: [
+          { label: 'Losers held', value: `${Math.round(lDur)} min` },
+          { label: 'Winners held', value: `${Math.round(wDur)} min` },
+        ],
         weight: avgLoss * 3,
       });
     }
@@ -217,6 +246,11 @@ export function buildCoachInsights(trades: Trade[], ruleLogs: RuleLog[] = [], ru
           detail: `${worst.n} trades in that hour have netted ${signed(worst.net)}. Your best hour (${hourLabel(best.h)}) has made ${signed(best.net)}.`,
           action: `Make ${hourLabel(worst.h)}–${hourLabel(worst.h + 1)} a no-trade window for the next two weeks and compare.`,
           ask: `Why do my trades between ${hourLabel(worst.h)} and ${hourLabel(worst.h + 1)} lose money?`,
+          evidence: [
+            { label: 'Trades in that hour', value: `${worst.n}` },
+            { label: 'Net', value: signed(worst.net) },
+            { label: `Best hour (${hourLabel(best.h)})`, value: signed(best.net) },
+          ],
           weight: Math.abs(worst.net),
         });
       } else if (best.net > 0) {
@@ -228,6 +262,10 @@ export function buildCoachInsights(trades: Trade[], ruleLogs: RuleLog[] = [], ru
           detail: `${best.n} trades between ${hourLabel(best.h)} and ${hourLabel(best.h + 1)} have made ${signed(best.net)}.`,
           action: 'Be fully prepared before that window opens — levels marked, plan written.',
           ask: `What makes my ${hourLabel(best.h)} trades work so well?`,
+          evidence: [
+            { label: 'Trades in that hour', value: `${best.n}` },
+            { label: 'Net', value: signed(best.net) },
+          ],
           weight: best.net * 0.3,
         });
       }
@@ -264,6 +302,9 @@ export function buildCoachInsights(trades: Trade[], ruleLogs: RuleLog[] = [], ru
         detail: `“${top[0]}” was broken on ${top[1]} of your last ${last.length} logged days.`,
         action: 'Write it on a sticky note on your screen. Read it before every entry.',
         ask: `I keep breaking my rule "${top[0]}". How do I make it stick?`,
+        evidence: [
+          { label: 'Broken on', value: `${top[1]} of ${last.length} days` },
+        ],
         weight: 180 + top[1] * 40,
       });
     }
@@ -280,6 +321,10 @@ export function buildCoachInsights(trades: Trade[], ruleLogs: RuleLog[] = [], ru
         detail: `Days you followed 80%+ of your rules averaged ${signed(avg(good))}. Days you didn’t: ${signed(avg(bad))}.`,
         action: 'That gap is your edge. Protect it before chasing a new setup.',
         ask: 'Show me how my P&L changes on days I follow my rules vs days I don’t.',
+        evidence: [
+          { label: 'Rules followed', value: signed(avg(good)) },
+          { label: 'Rules broken', value: signed(avg(bad)) },
+        ],
         weight: (avg(good) - avg(bad)) * 2,
       });
     }
@@ -297,6 +342,11 @@ export function buildCoachInsights(trades: Trade[], ruleLogs: RuleLog[] = [], ru
         detail: `Average win ${usd(avgWin)} vs average loss ${usd(avgLoss)} — ${rr.toFixed(1)}:1. That is what keeps you profitable on red days.`,
         action: 'Keep taking full targets. Don’t cut winners early to feel safe.',
         ask: 'What is my real edge based on my trade history?',
+        evidence: [
+          { label: 'Average win', value: usd(avgWin) },
+          { label: 'Average loss', value: usd(avgLoss) },
+          { label: 'Ratio', value: `${rr.toFixed(1)}:1` },
+        ],
         weight: 60,
       });
     }
