@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { Trade } from './tradingStore';
 import { persistence } from '@/lib/persistence';
 import type { RiskSnapshot } from '@/lib/sessionRisk';
-import { buildDemoAccounts, nowCutoff, refreshDemoAccounts } from '@/lib/demo/demoData';
+import { buildDemoAccounts, hasTraderEdits, nowCutoff, refreshDemoAccounts } from '@/lib/demo/demoData';
 
 // Import history entry
 export interface ImportHistoryEntry {
@@ -451,8 +451,8 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       // Sample accounts are regenerated up to right now; the user's own accounts, Pilot reviews
       // and edits on the samples carry over. With nothing worth keeping, start from fresh samples.
       const hasRealAccounts = saved.some(a => a.type !== 'demo');
-      const hasPilotEdits = saved.some(a => a.pilotSettings || a.trades.some(t => t.pilotReview));
-      const accounts = hasRealAccounts || hasPilotEdits ? refreshDemoAccounts(saved) : buildDemoAccounts(nowCutoff());
+      const hasOwnWork = saved.some(hasTraderEdits);
+      const accounts = hasRealAccounts || hasOwnWork ? refreshDemoAccounts(saved) : buildDemoAccounts(nowCutoff());
       const selectedId = persistence.loadSelectedAccountId();
       set({
         accounts,

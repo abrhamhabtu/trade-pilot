@@ -360,7 +360,21 @@ const USER_KEYS = [
   'consistencyRulePercentage',
   'consistencyBasis',
   'accountTier',
+  'liquidationRules',
+  'personalDailyLimit',
 ] as const;
+
+/**
+ * True when a sample account carries anything the trader put there themselves —
+ * a setting from USER_KEYS, a recorded payout, or a note, tag or Pilot review on
+ * a trade. Callers use this to decide whether saved samples are worth carrying
+ * forward; rebuilding from scratch throws all of it away.
+ */
+export function hasTraderEdits(account: Account): boolean {
+  if (USER_KEYS.some((key) => account[key] !== undefined)) return true;
+  if (account.balanceAdjustments?.length) return true;
+  return account.trades.some((t) => t.pilotReview || t.notes || t.tags?.length);
+}
 
 /**
  * Regenerate the sample accounts up to `cutoff` while keeping the trader's own work on them:
