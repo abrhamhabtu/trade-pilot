@@ -41,7 +41,6 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
       <PilotAutomation />
       <main className={clsx('h-full overflow-auto transition-all duration-300', sidebarCollapsed ? 'ml-20' : 'ml-64')}>
         {children}
-        <div className="h-24" aria-hidden />
       </main>
       <LiquidationClock />
       {Agentation && <Agentation />}

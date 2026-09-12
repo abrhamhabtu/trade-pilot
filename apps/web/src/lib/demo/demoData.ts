@@ -132,7 +132,7 @@ interface Profile {
   payouts: { date: string; amount: number; description: string }[];
 }
 
-export const DEMO_ACCOUNT_IDS = ['demo-account', 'demo-paid-out', 'demo-blown'] as const;
+export const DEMO_ACCOUNT_IDS = ['demo-account', 'demo-scaled', 'demo-paid-out', 'demo-blown'] as const;
 
 const PROFILES: Profile[] = [
   {
@@ -156,22 +156,52 @@ const PROFILES: Profile[] = [
     ],
   },
   {
+    id: 'demo-scaled',
+    name: 'MFF 150K Expert',
+    broker: 'My Funded Futures',
+    status: 'active',
+    isFunded: true,
+    start: '2026-03-02',
+    profitTarget: 9000,
+    startingBalance: 150000,
+    winBase: 0.565,
+    gainScale: 1.0,
+    lossScale: 1.25,
+    skip: 0.2,
+    // The shape a scaled account actually has: a grinding spring, a drawdown in
+    // May that nearly ended it, then size earned back slowly over the summer.
+    regime: (d) =>
+      d >= '2026-05-11' && d <= '2026-05-29'
+        ? { win: -0.11, loss: 1.25 }
+        : d >= '2026-06-01' && d <= '2026-06-19'
+          ? { win: 0.01, gain: 0.7, loss: 0.7, skip: 0.1 }
+          : d >= '2026-06-22'
+            ? { win: 0.04 }
+            : {},
+    payouts: [
+      { date: '2026-04-17', amount: 3200, description: 'First payout · 90% split' },
+      { date: '2026-06-26', amount: 4100, description: 'Second payout · after the May drawdown' },
+      { date: '2026-08-14', amount: 5500, description: 'Third payout · 90% split' },
+    ],
+  },
+  {
     id: 'demo-paid-out',
-    name: 'Lucid 50K Flex',
+    name: 'Lucid 100K Flex',
     broker: 'Lucid Trading',
     status: 'inactive',
     isFunded: true,
     start: '2026-02-02',
     end: '2026-04-24',
-    profitTarget: 3000,
-    startingBalance: 50000,
-    winBase: 0.58,
-    gainScale: 0.72,
-    lossScale: 0.9,
+    profitTarget: 6000,
+    startingBalance: 100000,
+    winBase: 0.575,
+    gainScale: 0.9,
+    lossScale: 1.0,
     skip: 0.22,
     payouts: [
-      { date: '2026-03-20', amount: 1500, description: 'First payout' },
-      { date: '2026-04-24', amount: 3200, description: 'Final payout · account closed' },
+      { date: '2026-03-06', amount: 1800, description: 'First payout · 90% split' },
+      { date: '2026-04-03', amount: 2400, description: 'Second payout · 90% split' },
+      { date: '2026-04-24', amount: 3600, description: 'Final payout · account closed' },
     ],
   },
   {
@@ -200,10 +230,14 @@ const PROFILES: Profile[] = [
         { minutes: 10 * 60 + 5, symbol: 'MNQ', side: 'Long', netPL: -410, duration: 13, strategy: 'Momentum Breakout', quantity: 3 },
         { minutes: 10 * 60 + 38, symbol: 'MNQ', side: 'Short', netPL: -365, duration: 10, strategy: 'Liquidity Sweep', quantity: 3 },
       ],
+      // The last morning: size doubles after every loss, the trades get shorter,
+      // and the final one takes the account through its trailing threshold.
       '2026-07-17': [
         { minutes: 9 * 60 + 34, symbol: 'MNQ', side: 'Long', netPL: -240, duration: 22, strategy: 'Opening Range Breakout', quantity: 2 },
         { minutes: 9 * 60 + 58, symbol: 'MNQ', side: 'Short', netPL: -380, duration: 14, strategy: 'Failed Breakout', quantity: 4 },
         { minutes: 10 * 60 + 21, symbol: 'MNQ', side: 'Long', netPL: -1185, duration: 11, strategy: 'Momentum Breakout', quantity: 6 },
+        { minutes: 10 * 60 + 44, symbol: 'MNQ', side: 'Long', netPL: -1460, duration: 7, strategy: 'Momentum Breakout', quantity: 8 },
+        { minutes: 11 * 60 + 2, symbol: 'MNQ', side: 'Long', netPL: -905, duration: 4, strategy: 'Momentum Breakout', quantity: 10 },
       ],
     },
     payouts: [],
