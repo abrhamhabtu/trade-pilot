@@ -43,6 +43,19 @@ export interface DailyGamePlan {
   completed: boolean;
   // Rule compliance for the day
   ruleCompliance: DailyRuleCompliance[];
+  /** Preflight: how the trader is actually arriving today. */
+  condition?: {
+    sleep: number;
+    stress: number;
+    focus: number;
+    lifeNoise: boolean;
+  };
+  /** The hour the trader commits to walking away, regardless of P&L. */
+  stopTime?: string;
+  /** Size multiplier the trader signed off on at the open. */
+  committedSize?: number;
+  /** ISO timestamp of clearance. null until preflight is signed off. */
+  committedAt?: string | null;
   // Post-trade reflection
   followedPlan: boolean | null;
   emotionalState: 'calm' | 'anxious' | 'confident' | 'frustrated' | 'neutral' | null;

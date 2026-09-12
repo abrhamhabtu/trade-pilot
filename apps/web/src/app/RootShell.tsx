@@ -7,6 +7,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { useUIStore } from '@/store/uiStore';
 import dynamic from 'next/dynamic';
 import { PilotAutomation } from '@/components/pilot/PilotAutomation';
+import { LiquidationClock } from '@/components/risk/LiquidationClock';
 import { AutoSync } from '@/components/accounts/AutoSync';
 import { useCompactSidebar } from '@/hooks/useCompactSidebar';
 import { persistence } from '@/lib/persistence';
@@ -40,7 +41,9 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
       <PilotAutomation />
       <main className={clsx('h-full overflow-auto transition-all duration-300', sidebarCollapsed ? 'ml-20' : 'ml-64')}>
         {children}
+        <div className="h-24" aria-hidden />
       </main>
+      <LiquidationClock />
       {Agentation && <Agentation />}
     </div>
   );

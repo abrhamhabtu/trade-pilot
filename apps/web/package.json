@@ -6,7 +6,8 @@
     "dev": "next dev -H 127.0.0.1 -p 4040",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --experimental-strip-types --import ./tests/register-hooks.mjs --test tests/*.test.mjs"
   },
   "dependencies": {
     "@types/papaparse": "^5.5.2",

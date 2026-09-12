@@ -37,6 +37,13 @@ export interface PropFirm {
   payoutModel: PayoutModel;
   drawdownType: DrawdownType;
   drawdownNote: string;
+  /**
+   * Profit (dollars above starting balance) at which a trailing threshold stops
+   * trailing and locks forever. 0 = locks level with the starting balance.
+   * null = the threshold trails the peak for the life of the account.
+   * Editable in the UI — firms move this more often than any other rule.
+   */
+  drawdownLockProfit: number | null;
   /** Best single day must stay at/below this % of the basis. */
   consistencyPercent: number;
   consistencyBasis: ConsistencyBasis;
@@ -85,6 +92,7 @@ export const PROP_FIRMS: PropFirm[] = [
     payoutModel: 'eval',
     drawdownType: 'trailing-eod',
     drawdownNote: 'Trailing Max Loss Limit trails your peak EOD, then locks once it reaches your starting balance.',
+    drawdownLockProfit: 0,
     consistencyPercent: 50,
     consistencyBasis: 'profitTarget',
     minTradingDays: 2,
@@ -108,6 +116,7 @@ export const PROP_FIRMS: PropFirm[] = [
     payoutModel: 'instant',
     drawdownType: 'trailing-eod',
     drawdownNote: 'EOD trailing drawdown that locks at starting balance + $100. No withdrawing into the buffer zone.',
+    drawdownLockProfit: 100,
     consistencyPercent: 15,
     consistencyBasis: 'totalProfit',
     minTradingDays: 5,
@@ -132,6 +141,7 @@ export const PROP_FIRMS: PropFirm[] = [
     payoutModel: 'eval',
     drawdownType: 'trailing-intraday',
     drawdownNote: 'Intraday trailing threshold during the Sim PRO stage. Trails your intraday peak until you are above the initial buffer.',
+    drawdownLockProfit: 100,
     consistencyPercent: 20,
     consistencyBasis: 'totalProfit',
     minTradingDays: 10,
@@ -155,6 +165,7 @@ export const PROP_FIRMS: PropFirm[] = [
     payoutModel: 'instant',
     drawdownType: 'trailing-eod',
     drawdownNote: 'EOD trailing drawdown. Funded from day one, same buffer logic as Ignite.',
+    drawdownLockProfit: 100,
     consistencyPercent: 20,
     consistencyBasis: 'totalProfit',
     minTradingDays: 5,
@@ -178,6 +189,7 @@ export const PROP_FIRMS: PropFirm[] = [
     payoutModel: 'eval',
     drawdownType: 'trailing-eod',
     drawdownNote: 'EOD trailing drawdown during the single-step evaluation, locks at start + $100 once funded.',
+    drawdownLockProfit: 100,
     consistencyPercent: 25,
     consistencyBasis: 'totalProfit',
     minTradingDays: 5,
@@ -201,6 +213,7 @@ export const PROP_FIRMS: PropFirm[] = [
     payoutModel: 'eval',
     drawdownType: 'trailing-intraday',
     drawdownNote: 'Intraday trailing threshold that stops trailing once you are $100 above the starting drawdown (i.e. start + $100).',
+    drawdownLockProfit: 100,
     consistencyPercent: 50,
     consistencyBasis: 'totalProfit',
     minTradingDays: 8,
@@ -228,6 +241,7 @@ export const PROP_FIRMS: PropFirm[] = [
     payoutModel: 'eval',
     drawdownType: 'trailing-eod',
     drawdownNote: 'EOD trailing drawdown (Expert/Pro plans). Expert has no daily loss limit; Starter plan does.',
+    drawdownLockProfit: 0,
     consistencyPercent: 50,
     consistencyBasis: 'totalProfit',
     minTradingDays: 2,
@@ -251,6 +265,7 @@ export const PROP_FIRMS: PropFirm[] = [
     payoutModel: 'eval',
     drawdownType: 'trailing-eod',
     drawdownNote: 'EOD trailing Max Loss Limit — updates only at close (4:45pm ET), then locks once you clear the initial trail balance. No intraday wick risk.',
+    drawdownLockProfit: 0,
     consistencyPercent: 40,
     consistencyBasis: 'totalProfit',
     minTradingDays: 5,
@@ -274,6 +289,7 @@ export const PROP_FIRMS: PropFirm[] = [
     payoutModel: 'eval',
     drawdownType: 'trailing-eod',
     drawdownNote: 'EOD trailing Max Loss Limit (updates at close, then locks). The funded stage has NO daily loss limit.',
+    drawdownLockProfit: 0,
     consistencyPercent: 50,
     consistencyBasis: 'totalProfit',
     minTradingDays: 5,
@@ -297,6 +313,7 @@ export const PROP_FIRMS: PropFirm[] = [
     payoutModel: 'instant',
     drawdownType: 'trailing-eod',
     drawdownNote: 'EOD trailing Max Loss Limit. Instant-style funded — no evaluation phase.',
+    drawdownLockProfit: 0,
     consistencyPercent: 20,
     consistencyBasis: 'totalProfit',
     minTradingDays: 5,
@@ -320,6 +337,7 @@ export const PROP_FIRMS: PropFirm[] = [
     payoutModel: 'eval',
     drawdownType: 'trailing-eod',
     drawdownNote: 'Fully custom — set every value to match any firm or account.',
+    drawdownLockProfit: 0,
     consistencyPercent: 30,
     consistencyBasis: 'totalProfit',
     minTradingDays: 1,

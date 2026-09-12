@@ -60,6 +60,10 @@ export interface Account {
   accountTier?: 'instant' | 'elite';
   pilotSettings?: import("@/lib/pilot/workspace").PilotSettings;
   riskSnapshot?: RiskSnapshot;
+  /** Hand-set drawdown rules for the Liquidation Clock. Overrides firm inference. */
+  liquidationRules?: import('@/lib/liquidation').LiquidationRules;
+  /** The trader's own daily stop, tighter than the firm's. */
+  personalDailyLimit?: number | null;
   syncSource?: { provider: 'projectx' | 'tradovate-demo' | 'tradovate-live'; remoteId: number; start: string; automatic: boolean; lastSynced?: string };
 }
 
