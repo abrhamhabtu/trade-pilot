@@ -1,9 +1,14 @@
+const path = require('path');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'class',
-  content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx}"
-  ],
+  // Anchored to this file, not the working directory. A relative glob resolves
+  // against wherever the dev server was started; start it anywhere but apps/web
+  // and Tailwind scans nothing, emits CSS with no utilities, and webpack caches
+  // that empty sheet in .next — the app then loads unstyled until .next is
+  // cleared. tests/tailwind-content.test.mjs guards this.
+  content: [path.join(__dirname, 'src/**/*.{js,ts,jsx,tsx,mdx}')],
   theme: {
     extend: {
       colors: {
