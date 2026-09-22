@@ -3,26 +3,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { ArrowRight, BellOff, Brain, Check, ChevronLeft, ChevronRight, Clock, Pause, Plus, ShieldAlert, Sparkles, Target, Trophy } from 'lucide-react';
+import { ArrowRight, Brain, Check, ChevronLeft, ChevronRight, Clock, Pause, Plus, ShieldAlert, Sparkles, Target, Trophy } from 'lucide-react';
 import type { Trade } from '@/store/tradingStore';
 import { useRoutineStore, type TradingRule } from '@/store/routineStore';
 import { buildCoachInsights, type CoachCategory, type RuleLog } from '@/lib/coachInsights';
 import { useHasMounted } from '@/hooks/useHasMounted';
 
 const ROTATE_MS = 15000;
-const SNOOZE_KEY = 'tradepilot_coach_snoozed';
-const SNOOZE_DAYS = 7;
-
-// Snoozes live in this browser only: a convenience, never something that must persist.
-function readSnoozed(): Record<string, number> {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(SNOOZE_KEY) || '{}') as Record<string, number>;
-    return Object.fromEntries(Object.entries(parsed).filter(([, until]) => until > Date.now()));
-  } catch {
-    return {};
-  }
-}
-
 /** Where a coaching card lands if the trader promotes it to a standing rule. */
 const RULE_CATEGORY: Record<CoachCategory, TradingRule['category']> = {
   discipline: 'mindset',
@@ -49,11 +36,16 @@ export function CoachCard({ trades }: { trades: Trade[] }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [tick, setTick] = useState(0); // restarts the progress animation
-  const [snoozed, setSnoozed] = useState<Record<string, number>>({});
+  // A snooze feature once hid tips here; clear what it left behind so every tip shows.
+  useEffect(() => {
+    try {
+      localStorage.removeItem('tradepilot_coach_snoozed');
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
-  useEffect(() => setSnoozed(readSnoozed()), []);
-
-  const all = useMemo(() => {
+  const insights = useMemo(() => {
     const names = new Map(tradingRules.map((r) => [r.id, r.text]));
     const active = tradingRules.filter((r) => r.isActive).length;
     const logs: RuleLog[] = Object.entries(gamePlans)
@@ -69,14 +61,8 @@ export function CoachCard({ trades }: { trades: Trade[] }) {
       .filter((l) => l.followed + l.broken.length > 0);
     return buildCoachInsights(trades, logs, active);
   }, [trades, gamePlans, tradingRules]);
-  // Snoozing every tip would leave an empty card, so then show them all again.
-  const insights = useMemo(() => {
-    const open = all.filter((i) => !snoozed[i.id]);
-    return open.length ? open : all;
-  }, [all, snoozed]);
 
   const count = insights.length;
-  const snoozedCount = all.length - count;
   const go = useCallback(
     (d: number) => {
       setIndex((i) => (i + d + count) % count);
@@ -100,15 +86,6 @@ export function CoachCard({ trades }: { trades: Trade[] }) {
   const cat = CATEGORY[insight.category];
   const warnCount = insights.filter((i) => i.tone === 'warn').length;
   const ruleExists = tradingRules.some((r) => r.text.trim() === insight.action.trim());
-  const snooze = () => {
-    const next = { ...snoozed, [insight.id]: Date.now() + SNOOZE_DAYS * 86_400_000 };
-    setSnoozed(next);
-    try {
-      localStorage.setItem(SNOOZE_KEY, JSON.stringify(next));
-    } catch {
-      /* private mode or blocked storage: the snooze lasts for this visit only */
-    }
-  };
   const chips = [
     ...(insight.weight >= 250
       ? [{ label: insight.tone === 'good' ? 'Worth' : 'At stake', value: usd0(insight.weight), tone: insight.tone === 'good' ? 'text-tp-green' : 'text-tp-red' }]
@@ -178,22 +155,6 @@ export function CoachCard({ trades }: { trades: Trade[] }) {
             <div>
               <div className="text-sm font-semibold text-zinc-50">Pilot Coach</div>
               <div className="text-[11px] leading-tight text-zinc-500">{trades.length ? `From your last ${trades.length} trades` : 'Discipline principles'}</div>
-              {snoozedCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSnoozed({});
-                    try {
-                      localStorage.removeItem(SNOOZE_KEY);
-                    } catch {
-                      /* ignore */
-                    }
-                  }}
-                  className="mt-0.5 text-[11px] leading-tight text-zinc-500 underline-offset-2 hover:text-zinc-200 hover:underline"
-                >
-                  {snoozedCount} snoozed · show
-                </button>
-              )}
             </div>
           </div>
           <div className="-ml-1.5 flex items-center gap-0.5">
@@ -261,16 +222,6 @@ export function CoachCard({ trades }: { trades: Trade[] }) {
                   className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-300 ring-1 ring-inset ring-white/[0.08] transition hover:bg-white/[0.05] hover:text-zinc-50"
                 >
                   <Plus className="h-3.5 w-3.5" /> Make this a rule
-                </button>
-              )}
-              {count > 1 && (
-                <button
-                  type="button"
-                  onClick={snooze}
-                  title={`Hide this tip for ${SNOOZE_DAYS} days`}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition hover:bg-white/[0.05] hover:text-zinc-200"
-                >
-                  <BellOff className="h-3.5 w-3.5" /> Snooze
                 </button>
               )}
               <Link
