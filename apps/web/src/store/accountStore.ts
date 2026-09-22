@@ -26,6 +26,25 @@ export interface BalanceAdjustment {
   amount: number; // Negative for payouts/withdrawals, positive for deposits
   type: 'payout' | 'deposit' | 'adjustment';
   description?: string;
+  /** Payouts only: what actually reached the trader after the firm's split. */
+  received?: number;
+  createdAt: string;
+}
+
+/**
+ * Money spent to run a prop account: evaluation fees, resets, activations, data.
+ * Paid from the trader's pocket, so it never touches the account balance. The
+ * Ledger weighs these against payouts received.
+ */
+export type CostKind = 'evaluation' | 'reset' | 'activation' | 'subscription' | 'data' | 'other';
+
+export interface AccountCost {
+  id: string;
+  date: string; // YYYY-MM-DD
+  /** Dollars spent, always positive. */
+  amount: number;
+  kind: CostKind;
+  description?: string;
   createdAt: string;
 }
 
@@ -44,6 +63,8 @@ export interface Account {
   importHistory: ImportHistoryEntry[];
   // Balance adjustments (payouts, deposits, manual adjustments)
   balanceAdjustments?: BalanceAdjustment[];
+  /** Fees paid to the firm for this account. Never affects the balance. */
+  costs?: AccountCost[];
   // Journey fields
   isFunded?: boolean;
   profitTarget?: number;
@@ -90,6 +111,8 @@ interface AccountState {
   addBalanceAdjustment: (accountId: string, adjustment: Omit<BalanceAdjustment, 'id' | 'createdAt'>) => void;
   deleteBalanceAdjustment: (accountId: string, adjustmentId: string) => void;
   getAccountAdjustments: (accountId: string) => BalanceAdjustment[];
+  addAccountCost: (accountId: string, cost: Omit<AccountCost, 'id' | 'createdAt'>) => void;
+  deleteAccountCost: (accountId: string, costId: string) => void;
   initializeFromStorage: () => void;
   initializeFromIDB: () => Promise<void>;
   /** Bring the sample accounts up to the current moment (new demo trades appear as the day goes on). */
@@ -417,6 +440,36 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         }
         return account;
       });
+      persistAccounts(newAccounts);
+      return { accounts: newAccounts };
+    });
+  },
+
+  addAccountCost: (accountId, cost) => {
+    set((state) => {
+      const newAccounts = state.accounts.map((account) => {
+        if (account.id !== accountId) return account;
+        const entry: AccountCost = {
+          ...cost,
+          amount: Math.abs(cost.amount),
+          id: `cost-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          createdAt: new Date().toISOString(),
+        };
+        const costs = [...(account.costs || []), entry].sort((a, b) => b.date.localeCompare(a.date));
+        return { ...account, costs };
+      });
+      persistAccounts(newAccounts);
+      return { accounts: newAccounts };
+    });
+  },
+
+  deleteAccountCost: (accountId, costId) => {
+    set((state) => {
+      const newAccounts = state.accounts.map((account) =>
+        account.id === accountId
+          ? { ...account, costs: (account.costs || []).filter((c) => c.id !== costId) }
+          : account,
+      );
       persistAccounts(newAccounts);
       return { accounts: newAccounts };
     });

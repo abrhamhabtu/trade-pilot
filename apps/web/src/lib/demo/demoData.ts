@@ -1,4 +1,4 @@
-import type { Account, BalanceAdjustment } from '@/store/accountStore';
+import type { Account, AccountCost, BalanceAdjustment, CostKind } from '@/store/accountStore';
 import type { Trade } from '@/store/tradingStore';
 
 /**
@@ -130,6 +130,8 @@ interface Profile {
   regime?: (date: string) => Regime;
   scripted?: Record<string, ScriptedTrade[]>;
   payouts: { date: string; amount: number; description: string }[];
+  /** What the account cost to run, for the Ledger. */
+  costs: { date: string; amount: number; kind: CostKind; description: string }[];
 }
 
 export const DEMO_ACCOUNT_IDS = ['demo-account', 'demo-scaled', 'demo-paid-out', 'demo-blown'] as const;
@@ -150,6 +152,12 @@ const PROFILES: Profile[] = [
     skip: 0.18,
     // A shaky early June, then a steadier summer — the equity curve should look earned.
     regime: (d) => (d >= '2026-06-08' && d <= '2026-06-19' ? { win: -0.08 } : d >= '2026-06-22' ? { win: 0.03 } : {}),
+    costs: [
+      { date: '2026-03-30', amount: 49, kind: 'evaluation', description: 'Trading Combine · month 1' },
+      { date: '2026-04-06', amount: 49, kind: 'reset', description: 'Combine reset after a daily-loss day' },
+      { date: '2026-04-30', amount: 49, kind: 'evaluation', description: 'Trading Combine · month 2' },
+      { date: '2026-05-01', amount: 149, kind: 'activation', description: 'Express Funded activation' },
+    ],
     payouts: [
       { date: '2026-07-17', amount: 2000, description: 'First payout · 90% split' },
       { date: '2026-08-21', amount: 2500, description: 'Second payout · 90% split' },
@@ -178,6 +186,10 @@ const PROFILES: Profile[] = [
           : d >= '2026-06-22'
             ? { win: 0.04 }
             : {},
+    costs: [
+      { date: '2026-02-02', amount: 270, kind: 'evaluation', description: '150K Expert evaluation' },
+      { date: '2026-02-27', amount: 270, kind: 'evaluation', description: '150K Expert · second month' },
+    ],
     payouts: [
       { date: '2026-04-17', amount: 3200, description: 'First payout · 90% split' },
       { date: '2026-06-26', amount: 4100, description: 'Second payout · after the May drawdown' },
@@ -198,6 +210,9 @@ const PROFILES: Profile[] = [
     gainScale: 0.9,
     lossScale: 1.0,
     skip: 0.22,
+    costs: [
+      { date: '2026-01-12', amount: 255, kind: 'evaluation', description: 'LucidFlex 100K evaluation' },
+    ],
     payouts: [
       { date: '2026-03-06', amount: 1800, description: 'First payout · 90% split' },
       { date: '2026-04-03', amount: 2400, description: 'Second payout · 90% split' },
@@ -240,6 +255,10 @@ const PROFILES: Profile[] = [
         { minutes: 11 * 60 + 2, symbol: 'MNQ', side: 'Long', netPL: -905, duration: 4, strategy: 'Momentum Breakout', quantity: 10 },
       ],
     },
+    costs: [
+      { date: '2026-06-01', amount: 207, kind: 'evaluation', description: 'Apex 100K · month 1' },
+      { date: '2026-07-01', amount: 207, kind: 'evaluation', description: 'Apex 100K · month 2' },
+    ],
     payouts: [],
   },
 ];
@@ -343,7 +362,16 @@ function buildAccount(p: Profile, cutoff: DemoCutoff): Account {
       amount: -po.amount,
       type: 'payout',
       description: po.description,
+      received: round2(po.amount * 0.9),
       createdAt: `${po.date}T21:00:00.000Z`,
+    }));
+
+  const costs: AccountCost[] = p.costs
+    .filter((c) => c.date <= last)
+    .map((c, i) => ({
+      id: `demo-cost-${p.id}-${i + 1}`,
+      ...c,
+      createdAt: `${c.date}T14:00:00.000Z`,
     }));
 
   const tradePnL = trades.reduce((n, t) => n + t.netPL, 0);
@@ -361,6 +389,7 @@ function buildAccount(p: Profile, cutoff: DemoCutoff): Account {
     createdAt: `${p.start}T13:00:00.000Z`,
     importHistory: [],
     balanceAdjustments,
+    costs,
     isFunded: p.isFunded,
     profitTarget: p.profitTarget,
     startingBalance: p.startingBalance,
@@ -407,6 +436,7 @@ const USER_KEYS = [
 export function hasTraderEdits(account: Account): boolean {
   if (USER_KEYS.some((key) => account[key] !== undefined)) return true;
   if (account.balanceAdjustments?.length) return true;
+  if (account.costs?.some((c) => !c.id.startsWith('demo-cost-'))) return true;
   return account.trades.some((t) => t.pilotReview || t.notes || t.tags?.length);
 }
 
@@ -427,9 +457,11 @@ export function refreshDemoAccounts(current: Account[], cutoff: DemoCutoff = now
     });
     const userAdjustments = (old.balanceAdjustments ?? []).filter((a) => !a.id.startsWith('demo-adj-'));
     const balanceAdjustments = [...(fresh.balanceAdjustments ?? []), ...userAdjustments];
+    const userCosts = (old.costs ?? []).filter((c) => !c.id.startsWith('demo-cost-'));
+    const costs = [...(fresh.costs ?? []), ...userCosts];
     const kept = Object.fromEntries(USER_KEYS.filter((k) => old[k] !== undefined).map((k) => [k, old[k]]));
     const balance = round2(trades.reduce((n, t) => n + t.netPL, 0) + balanceAdjustments.reduce((n, a) => n + a.amount, 0));
-    return { ...fresh, ...kept, trades, balanceAdjustments, balance };
+    return { ...fresh, ...kept, trades, balanceAdjustments, costs, balance };
   });
   return [...current.filter((a) => !isDemoAccount(a)), ...demos];
 }

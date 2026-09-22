@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
-import { ArrowDownLeft, ArrowUpRight, Check, CircleDot, FileText, Scale, SlidersHorizontal, Trash2, Upload, Wallet, X, History } from 'lucide-react';
-import { useAccountStore, type Account, type AccountStatus, type BalanceAdjustment } from '@/store/accountStore';
+import { ArrowDownLeft, ArrowUpRight, Check, CircleDot, FileText, Receipt, Scale, SlidersHorizontal, Trash2, Upload, Wallet, X, History } from 'lucide-react';
+import { useAccountStore, type Account, type AccountCost, type AccountStatus, type BalanceAdjustment, type CostKind } from '@/store/accountStore';
+import { COST_KIND_LABEL } from '@/lib/propLedger';
 import { toast } from '@/store/toastStore';
 import { Segmented } from '@/components/routine/journeyUi';
 import { BrokerPicker } from './AccountModals';
@@ -25,6 +26,7 @@ export function AccountDrawer({ account, tab, setTab, current, onMakeCurrent, on
   const s = accountStats(account);
   const adjustments = account.balanceAdjustments ?? [];
   const imports = account.importHistory ?? [];
+  const moneyCount = adjustments.length + (account.costs?.length ?? 0);
 
   return (
     <Drawer onClose={onClose} label={`${account.name} details`}>
@@ -66,7 +68,7 @@ export function AccountDrawer({ account, tab, setTab, current, onMakeCurrent, on
             onChange={setTab}
             options={[
               { value: 'details', label: <><SlidersHorizontal className="h-3.5 w-3.5" /> Details</> },
-              { value: 'money', label: <><Wallet className="h-3.5 w-3.5" /> Payouts{adjustments.length ? ` · ${adjustments.length}` : ''}</> },
+              { value: 'money', label: <><Wallet className="h-3.5 w-3.5" /> Payouts &amp; fees{moneyCount ? ` · ${moneyCount}` : ''}</> },
               { value: 'imports', label: <><History className="h-3.5 w-3.5" /> Imports{imports.length ? ` · ${imports.length}` : ''}</> },
             ]}
           />
@@ -243,18 +245,28 @@ function DetailsTab({ account, onDelete }: { account: Account; onDelete: () => v
 // ─── Money ───────────────────────────────────────────────────────────────────
 
 type AdjType = BalanceAdjustment['type'];
-const ADJ_META: Record<AdjType, { label: string; icon: React.ElementType; tone: string; verb: string; help: string }> = {
+/** Balance adjustments, plus fees: money spent on the account that never touches its balance. */
+type EntryType = AdjType | 'fee';
+const ADJ_META: Record<EntryType, { label: string; icon: React.ElementType; tone: string; verb: string; help: string }> = {
   payout: { label: 'Payout', icon: ArrowUpRight, tone: 'text-tp-yellow bg-tp-yellow/10', verb: 'Record payout', help: 'Money you withdrew. Lowers the balance.' },
+  fee: { label: 'Fee', icon: Receipt, tone: 'text-tp-red bg-tp-red/10', verb: 'Log fee', help: 'An evaluation, reset or activation you paid. Leaves the balance alone and counts against you in the Ledger.' },
   deposit: { label: 'Deposit', icon: ArrowDownLeft, tone: 'text-tp-green bg-tp-green/10', verb: 'Record deposit', help: 'Money you added. Raises the balance.' },
-  adjustment: { label: 'Correction', icon: Scale, tone: 'text-tp-blue bg-tp-blue/10', verb: 'Save correction', help: 'Fix the balance to match your platform (fees, resets).' },
+  adjustment: { label: 'Correction', icon: Scale, tone: 'text-tp-blue bg-tp-blue/10', verb: 'Save correction', help: 'Fix the balance to match your platform.' },
 };
+const ENTRY_ORDER: EntryType[] = ['payout', 'fee', 'deposit', 'adjustment'];
+
+type HistoryItem =
+  | { kind: 'adj'; id: string; date: string; entry: BalanceAdjustment }
+  | { kind: 'cost'; id: string; date: string; entry: AccountCost };
 
 function MoneyTab({ account }: { account: Account }) {
-  const { addBalanceAdjustment, deleteBalanceAdjustment } = useAccountStore();
+  const { addBalanceAdjustment, deleteBalanceAdjustment, addAccountCost, deleteAccountCost } = useAccountStore();
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const [type, setType] = useState<AdjType>('payout');
+  const [type, setType] = useState<EntryType>('payout');
   const [amount, setAmount] = useState('');
+  const [received, setReceived] = useState('');
+  const [costKind, setCostKind] = useState<CostKind>('evaluation');
   const [negative, setNegative] = useState(false);
   const [date, setDate] = useState(today);
   const [note, setNote] = useState('');
@@ -262,30 +274,74 @@ function MoneyTab({ account }: { account: Account }) {
 
   useEffect(() => setNegative(false), [type]);
 
-  const list = [...(account.balanceAdjustments ?? [])].sort((a, b) => b.date.localeCompare(a.date));
-  const paid = list.filter((v) => v.type === 'payout').reduce((n, v) => n + Math.abs(v.amount), 0);
-  const deposited = list.filter((v) => v.type === 'deposit').reduce((n, v) => n + v.amount, 0);
-  const net = list.reduce((n, v) => n + v.amount, 0);
+  const adjustments = account.balanceAdjustments ?? [];
+  const costs = account.costs ?? [];
+  const history: HistoryItem[] = [
+    ...adjustments.map((e) => ({ kind: 'adj' as const, id: e.id, date: e.date, entry: e })),
+    ...costs.map((e) => ({ kind: 'cost' as const, id: e.id, date: e.date, entry: e })),
+  ].sort((a, b) => b.date.localeCompare(a.date));
+
+  const paid = adjustments
+    .filter((v) => v.type === 'payout')
+    .reduce((n, v) => n + (v.received && v.received > 0 ? v.received : Math.abs(v.amount)), 0);
+  const fees = costs.reduce((n, c) => n + c.amount, 0);
+  const toYou = paid - fees;
 
   const value = parseFloat(amount);
-  const signed = !value || value <= 0 ? 0 : type === 'payout' ? -value : type === 'deposit' ? value : negative ? -value : value;
+  const got = parseFloat(received);
+  const isFee = type === 'fee';
+  const signed = !value || value <= 0 ? 0 : type === 'payout' || isFee ? -value : type === 'deposit' ? value : negative ? -value : value;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!signed) return toast.error('Enter an amount above zero');
-    addBalanceAdjustment(account.id, { date, amount: signed, type, description: note.trim() || undefined });
-    toast.success(`${ADJ_META[type].label} recorded`);
+    if (type === 'fee') {
+      addAccountCost(account.id, { date, amount: value, kind: costKind, description: note.trim() || undefined });
+      toast.success(`${COST_KIND_LABEL[costKind]} fee logged`);
+    } else {
+      if (type === 'payout' && got > value) return toast.error('What reached your bank cannot be more than the withdrawal');
+      addBalanceAdjustment(account.id, {
+        date,
+        amount: signed,
+        type,
+        description: note.trim() || undefined,
+        received: type === 'payout' && got > 0 ? got : undefined,
+      });
+      toast.success(`${ADJ_META[type].label} recorded`);
+    }
     setAmount('');
+    setReceived('');
     setNote('');
   };
+
+  const remove = (item: HistoryItem) => {
+    if (item.kind === 'cost') deleteAccountCost(account.id, item.id);
+    else deleteBalanceAdjustment(account.id, item.id);
+    setConfirmId(null);
+    toast.success('Entry removed');
+  };
+
+  const moneyInput = (val: string, set: (v: string) => void, label: string, placeholder = '0.00') => (
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      inputMode="decimal"
+      value={val}
+      onChange={(e) => set(e.target.value)}
+      placeholder={placeholder}
+      className="w-full min-w-0 bg-transparent py-2.5 pl-1 pr-3 text-sm font-semibold tabular-nums text-zinc-50 focus:outline-none"
+      aria-label={label}
+    />
+  );
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-3 gap-2">
         {[
-          ['Paid out', signedUsd(paid), 'text-tp-yellow'],
-          ['Deposited', signedUsd(deposited), 'text-zinc-100'],
-          ['Balance effect', `${net > 0 ? '+' : ''}${signedUsd(net)}`, net < 0 ? 'text-tp-red' : 'text-tp-green'],
+          ['Paid to you', signedUsd(paid), 'text-tp-yellow'],
+          ['Fees', signedUsd(fees), fees ? 'text-tp-red' : 'text-zinc-100'],
+          ['Net to you', `${toYou > 0 ? '+' : ''}${signedUsd(toYou)}`, toYou < 0 ? 'text-tp-red' : 'text-tp-green'],
         ].map(([k, v, c]) => (
           <div key={k} className="rounded-xl bg-black/20 p-3 ring-1 ring-inset ring-white/[0.04]">
             <div className="text-[11px] text-zinc-500">{k}</div>
@@ -297,16 +353,31 @@ function MoneyTab({ account }: { account: Account }) {
       <form onSubmit={submit} className="rounded-2xl bg-tp-card p-4 ring-1 ring-inset ring-white/[0.06]">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-zinc-100">Record money in or out</h3>
-          <Segmented
-            size="sm"
-            value={type}
-            onChange={setType}
-            options={(Object.keys(ADJ_META) as AdjType[]).map((t) => ({ value: t, label: ADJ_META[t].label }))}
-          />
+          <Segmented size="sm" value={type} onChange={setType} options={ENTRY_ORDER.map((t) => ({ value: t, label: ADJ_META[t].label }))} />
         </div>
         <p className="mt-1.5 text-xs text-zinc-500">{ADJ_META[type].help}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <Field label="Amount">
+          {isFee && (
+            <Field label="What for" className="sm:col-span-2">
+              <div className="flex flex-wrap gap-1.5">
+                {(Object.keys(COST_KIND_LABEL) as CostKind[]).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setCostKind(k)}
+                    aria-pressed={costKind === k}
+                    className={clsx(
+                      'rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 ring-inset transition-colors',
+                      costKind === k ? 'bg-tp-red/10 text-tp-red ring-tp-red/30' : 'text-zinc-400 ring-white/[0.08] hover:text-zinc-100',
+                    )}
+                  >
+                    {COST_KIND_LABEL[k]}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          )}
+          <Field label={type === 'payout' ? 'Withdrawn from account' : 'Amount'}>
             <div className="flex items-center rounded-xl bg-black/25 ring-1 ring-inset ring-white/[0.09] focus-within:ring-tp-green/50">
               {type === 'adjustment' ? (
                 <button
@@ -318,33 +389,45 @@ function MoneyTab({ account }: { account: Account }) {
                   {negative ? '−' : '+'}
                 </button>
               ) : (
-                <span className={clsx('pl-3.5 text-sm font-semibold', type === 'payout' ? 'text-tp-yellow' : 'text-tp-green')}>{type === 'payout' ? '−' : '+'}</span>
+                <span className={clsx('pl-3.5 text-sm font-semibold', type === 'payout' ? 'text-tp-yellow' : isFee ? 'text-tp-red' : 'text-tp-green')}>
+                  {type === 'deposit' ? '+' : '−'}
+                </span>
               )}
               <span className="pl-1.5 text-sm text-zinc-500">$</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                className="w-full min-w-0 bg-transparent py-2.5 pl-1 pr-3 text-sm font-semibold tabular-nums text-zinc-50 focus:outline-none"
-                aria-label="Amount"
-              />
+              {moneyInput(amount, setAmount, 'Amount')}
             </div>
           </Field>
           <Field label="Date">
             <input type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} className={inputCls} required />
           </Field>
+          {type === 'payout' && (
+            <Field label="Reached your bank (optional)" hint="After the firm's split and transfer fees. Makes the Ledger exact." className="sm:col-span-2">
+              <div className="flex items-center rounded-xl bg-black/25 ring-1 ring-inset ring-white/[0.09] focus-within:ring-tp-green/50">
+                <span className="pl-3.5 text-sm text-zinc-500">$</span>
+                {moneyInput(received, setReceived, 'Amount received', value > 0 ? (value * 0.9).toFixed(2) : '0.00')}
+              </div>
+            </Field>
+          )}
           <Field label="Note (optional)" className="sm:col-span-2">
-            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. First payout — 80% split" className={inputCls} maxLength={120} />
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={isFee ? 'e.g. Reset after the CPI day' : 'e.g. First payout'}
+              className={inputCls}
+              maxLength={120}
+            />
           </Field>
         </div>
         <div className="mt-4 flex items-center justify-between gap-3">
           <span className="text-xs text-zinc-500">
-            Balance {signed < 0 || (!signed && (type === 'payout' || negative)) ? 'drops' : 'rises'} by{' '}
-            <strong className={clsx('tabular-nums', signed < 0 ? 'text-tp-red' : signed > 0 ? 'text-tp-green' : 'text-zinc-400')}>{signedUsd(Math.abs(signed), true)}</strong>
+            {isFee ? (
+              <>Balance unchanged · counts as a cost in your Ledger</>
+            ) : (
+              <>
+                Balance {signed < 0 || (!signed && (type === 'payout' || negative)) ? 'drops' : 'rises'} by{' '}
+                <strong className={clsx('tabular-nums', signed < 0 ? 'text-tp-red' : signed > 0 ? 'text-tp-green' : 'text-zinc-400')}>{signedUsd(Math.abs(signed), true)}</strong>
+              </>
+            )}
           </span>
           <button type="submit" disabled={!signed} className={btn.primary}>
             {ADJ_META[type].verb}
@@ -354,48 +437,48 @@ function MoneyTab({ account }: { account: Account }) {
 
       <div>
         <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">History</h3>
-        {list.length === 0 ? (
+        {history.length === 0 ? (
           <p className="rounded-xl border border-dashed border-white/[0.08] p-6 text-center text-sm text-zinc-500">
-            Nothing recorded yet. Log your first payout above — it counts toward “money taken home”.
+            Nothing recorded yet. Log what this account cost you and every payout it sends. The Ledger weighs one against the other.
           </p>
         ) : (
           <ul className="divide-y divide-white/[0.05] rounded-xl ring-1 ring-inset ring-white/[0.06]">
-            {list.map((a) => {
-              const m = ADJ_META[a.type];
+            {history.map((item) => {
+              const m = ADJ_META[item.kind === 'cost' ? 'fee' : item.entry.type];
+              const amt = item.kind === 'cost' ? -item.entry.amount : item.entry.amount;
+              const title = item.kind === 'cost' ? `${COST_KIND_LABEL[item.entry.kind]} fee` : m.label;
+              const gotBack = item.kind === 'adj' && item.entry.type === 'payout' && item.entry.received ? item.entry.received : null;
               return (
-                <li key={a.id} className="flex items-center gap-3 px-3.5 py-3">
+                <li key={item.id} className="flex items-center gap-3 px-3.5 py-3">
                   <span className={clsx('grid h-8 w-8 shrink-0 place-items-center rounded-lg', m.tone)}>
                     <m.icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-zinc-200">
-                      {m.label}
-                      {a.description && <span className="text-zinc-500"> · {a.description}</span>}
+                      {title}
+                      {item.entry.description && <span className="text-zinc-500"> · {item.entry.description}</span>}
                     </p>
-                    <p className="text-xs text-zinc-500">{shortDate(a.date)}</p>
+                    <p className="text-xs text-zinc-500">
+                      {shortDate(item.date)}
+                      {gotBack !== null && <> · {signedUsd(gotBack)} to you</>}
+                      {item.kind === 'cost' && <> · not in balance</>}
+                    </p>
                   </div>
-                  <span className={clsx('text-sm font-semibold tabular-nums', a.amount < 0 ? 'text-zinc-300' : 'text-tp-green')}>
-                    {a.amount > 0 ? '+' : ''}
-                    {signedUsd(a.amount, true)}
+                  <span className={clsx('text-sm font-semibold tabular-nums', item.kind === 'cost' ? 'text-tp-red' : amt < 0 ? 'text-zinc-300' : 'text-tp-green')}>
+                    {amt > 0 ? '+' : ''}
+                    {signedUsd(amt, true)}
                   </span>
-                  {confirmId === a.id ? (
+                  {confirmId === item.id ? (
                     <span className="flex gap-1">
                       <button onClick={() => setConfirmId(null)} className={clsx(btn.ghost, 'px-2 py-1 text-xs')}>
                         Keep
                       </button>
-                      <button
-                        onClick={() => {
-                          deleteBalanceAdjustment(account.id, a.id);
-                          setConfirmId(null);
-                          toast.success('Entry removed');
-                        }}
-                        className="rounded-lg bg-tp-red px-2 py-1 text-xs font-semibold text-white"
-                      >
+                      <button onClick={() => remove(item)} className="rounded-lg bg-tp-red px-2 py-1 text-xs font-semibold text-white">
                         Remove
                       </button>
                     </span>
                   ) : (
-                    <button onClick={() => setConfirmId(a.id)} className="rounded-lg p-1.5 text-zinc-600 hover:bg-tp-red/10 hover:text-tp-red" aria-label="Remove entry">
+                    <button onClick={() => setConfirmId(item.id)} className="rounded-lg p-1.5 text-zinc-600 hover:bg-tp-red/10 hover:text-tp-red" aria-label="Remove entry">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}

@@ -174,7 +174,7 @@ function CardMenu({
                 <Upload className="h-4 w-4" /> Import trades
               </button>
               <button role="menuitem" className={item} onClick={run(() => onOpen('money'))}>
-                <Wallet className="h-4 w-4" /> Record payout or deposit
+                <Wallet className="h-4 w-4" /> Record payout or fee
               </button>
               <button role="menuitem" className={item} onClick={run(() => onOpen('imports'))}>
                 <History className="h-4 w-4" /> Import history
