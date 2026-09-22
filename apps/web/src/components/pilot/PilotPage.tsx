@@ -65,11 +65,33 @@ export function PilotPage() {
     initializeFromIDB,
   } = useAccountStore();
   const [view, setView] = useState<View>("overview");
-  const { model, setModel: saveModel, hydrate } = useModelStore();
+  const { model, setModel: saveModel, hydrate, forgetKey } = useModelStore();
   useEffect(() => {
     initializeFromIDB();
     hydrate();
   }, [initializeFromIDB, hydrate]);
+  // Entry points elsewhere in the app link straight to a tab and an account,
+  // so arriving here continues the thought instead of restarting it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tabs.some((t) => t.id === tab)) setView(tab as View);
+    // Strip the account param even when the id is unknown, so a stale link
+    // cannot leave the coach waiting for a switch that will never happen.
+    const account = params.get("account");
+    if (account) selectAccount(account);
+    if (!tab && !account) return;
+    params.delete("tab");
+    params.delete("account");
+    const rest = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${rest ? `?${rest}` : ""}`,
+    );
+    // Reading the entry link once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const account = accounts.find((a) => a.id === selectedAccountId);
   const pendingCount =
     account?.trades.filter((t) => t.pilotReview && !t.pilotReview.reviewed)
@@ -181,7 +203,7 @@ export function PilotPage() {
           setView={setView}
         />
       ) : view === "settings" ? (
-        <ModelPanel config={model} onChange={saveModel} />
+        <ModelPanel config={model} onChange={saveModel} onForgetKey={forgetKey} />
       ) : (
         <div className="rounded-3xl border border-dashed border-white/[0.1] px-6 py-16 text-center">
           <Layers3 className="mx-auto h-8 w-8 text-zinc-500" />
@@ -222,6 +244,7 @@ function AccountWorkspace({
   setView: (v: View) => void;
 }) {
   const updateAccount = useAccountStore((s) => s.updateAccount);
+  const forgetKey = useModelStore((s) => s.forgetKey);
   const settings = account.pilotSettings || DEFAULT_SETTINGS;
   const [selectedTrade, setSelectedTrade] = useState<string | null>(null);
   const [manual, setManual] = useState(false);
@@ -367,7 +390,7 @@ function AccountWorkspace({
       {view === "settings" ? (
         <div className="grid items-start gap-6 xl:grid-cols-2 [&_.pilot-settings]:max-w-none">
           <Settings account={account} settings={settings} />
-          <ModelPanel config={model} onChange={saveModel} />
+          <ModelPanel config={model} onChange={saveModel} onForgetKey={forgetKey} />
         </div>
       ) : view === "playbook" ? (
         <Edge trades={account.trades} />

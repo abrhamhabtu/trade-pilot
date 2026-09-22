@@ -6,14 +6,18 @@ const KEY = "pilot_model_v1";
 
 /**
  * The model chosen in Pilot AI → Settings, shared with Playbooks.
- * Provider/model/baseUrl persist in localStorage; the API key stays in memory
- * for this browser session only (never written to storage).
+ *
+ * The whole config, API key included, persists in this browser's localStorage
+ * until the trader clears it, so a reload does not cost them the key. That is
+ * a deliberate trade: the key is readable by anything with access to this
+ * origin and this device, and `forgetKey` is the way back out.
  */
 export const useModelStore = create<{
   model: ModelConfig;
   hydrated: boolean;
   hydrate: () => void;
   setModel: (value: ModelConfig) => void;
+  forgetKey: () => void;
 }>((set, get) => ({
   model: DEFAULT_MODEL,
   hydrated: false,
@@ -22,7 +26,7 @@ export const useModelStore = create<{
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || "null");
       if (saved && Object.hasOwn(PROVIDERS, saved.provider))
-        set({ model: { ...DEFAULT_MODEL, ...saved, apiKey: "" } });
+        set({ model: { ...DEFAULT_MODEL, ...saved } });
     } catch {
       /* keep default */
     }
@@ -31,10 +35,18 @@ export const useModelStore = create<{
   setModel: (value) => {
     set({ model: value });
     try {
-      const { apiKey: _omit, ...safe } = value;
-      localStorage.setItem(KEY, JSON.stringify(safe));
+      localStorage.setItem(KEY, JSON.stringify(value));
     } catch {
       /* in-memory config still works */
+    }
+  },
+  forgetKey: () => {
+    const model = { ...get().model, apiKey: "" };
+    set({ model });
+    try {
+      localStorage.setItem(KEY, JSON.stringify(model));
+    } catch {
+      /* the in-memory clear is what matters */
     }
   },
 }));

@@ -12,6 +12,8 @@ import {
   Trophy,
 } from "lucide-react";
 import clsx from "clsx";
+import { useModelStore } from "@/lib/pilot/modelStore";
+import { PilotMarkdown } from "./PilotMarkdown";
 import type { Account } from "@/store/accountStore";
 import {
   DEFAULT_SETTINGS,
@@ -109,21 +111,47 @@ export function PilotCoach({
   >([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const hydrated = useModelStore((s) => s.hydrated);
+  const urlAsk = useRef(false);
   const controller = useRef<AbortController | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
   useEffect(() => () => controller.current?.abort(), []);
-  // A question handed over from the dashboard coach (?ask=...) is asked once, then cleared from the URL.
+  // A question handed over from elsewhere in the app (?ask=...) is asked once,
+  // then cleared from the URL. Two things have to settle first, or the answer
+  // is thrown away: the saved model config has to hydrate (this component is
+  // keyed by the model, so hydrating remounts it), and an account named in the
+  // link has to be selected. Until both are true, leave the URL alone.
   useEffect(() => {
+    if (!hydrated) return;
     const params = new URLSearchParams(window.location.search);
     const q = params.get("ask");
     if (!q) return;
-    params.delete("ask");
-    const rest = params.toString();
-    window.history.replaceState(null, "", `${window.location.pathname}${rest ? `?${rest}` : ""}`);
-    void ask(q.slice(0, 500));
+    const wanted = params.get("account");
+    if (wanted && wanted !== account.id) return;
+    if (urlAsk.current) return;
+    urlAsk.current = true;
+    const pending = ask(q.slice(0, 500));
+    const mine = controller.current;
+    void pending.then(() => {
+      urlAsk.current = false;
+      // Clear ?ask= only once the question has actually been answered. An
+      // aborted attempt leaves it in place so the next mount can retry it —
+      // Strict Mode aborts the first attempt on every mount in development.
+      if (mine?.signal.aborted) return;
+      params.delete("ask");
+      const rest = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${rest ? `?${rest}` : ""}`,
+      );
+    });
+    return () => {
+      urlAsk.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [account.id, hydrated]);
   useEffect(() => {
     const el = scroller.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -138,7 +166,10 @@ export function PilotCoach({
     setError("");
     setMessages(next);
     setBusy(true);
-    controller.current = new AbortController();
+    const mine = new AbortController();
+    controller.current = mine;
+    // A superseded attempt must not write over the turn that replaced it.
+    const current = () => controller.current === mine;
     try {
       const content =
         model.provider === "local"
@@ -147,19 +178,27 @@ export function PilotCoach({
               model,
               next.slice(-15),
               accountContext(account),
-              controller.current.signal,
+              mine.signal,
             );
+      if (!current()) return;
       setMessages([...next, { role: "assistant", content }]);
     } catch (e) {
+      if (!current()) return;
+      const stopped = e instanceof Error && e.name === "AbortError";
+      // A failed turn leaves no answer, so take the question back out of the
+      // transcript and return it to the box — otherwise unanswered questions
+      // pile up above a single error and the next send resends them as context.
+      setMessages(messages);
+      if (!stopped) setInput(question.trim());
       setError(
-        e instanceof Error && e.name === "AbortError"
+        stopped
           ? "Response stopped."
           : e instanceof Error
             ? e.message
             : "Request failed.",
       );
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   };
   const reset = () => {
@@ -168,7 +207,9 @@ export function PilotCoach({
     setError("");
     field.current?.focus();
   };
-  const chatting = messages.length > 0 || busy;
+  // An error counts as transcript: a first message that fails rolls back to an
+  // empty transcript, and the reason it failed still has to be on screen.
+  const chatting = messages.length > 0 || busy || !!error;
   const local = model.provider === "local";
 
   return (
@@ -230,9 +271,9 @@ export function PilotCoach({
                 <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-tp-green/15">
                   <Sparkles className="h-3.5 w-3.5 text-tp-green" />
                 </div>
-                <p className="min-w-0 max-w-[85%] whitespace-pre-line rounded-2xl rounded-tl-md border border-white/[0.06] bg-black/20 px-4 py-3 text-sm leading-relaxed text-zinc-200">
-                  {m.content}
-                </p>
+                <div className="min-w-0 max-w-[85%] rounded-2xl rounded-tl-md border border-white/[0.06] bg-black/20 px-4 py-3">
+                  <PilotMarkdown text={m.content} />
+                </div>
               </div>
             ),
           )}

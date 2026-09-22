@@ -134,6 +134,12 @@ export function DayReviewModal({ isOpen, onClose, date, trades, accountId, tradi
 
   if (!isOpen || !date) return null;
   const d = new Date(`${date}T12:00:00`);
+  // Hand Pilot the day being reviewed, so the chat opens on this session
+  // instead of a blank page the trader has to re-explain.
+  const pilotHref = `/app/pilot?${new URLSearchParams({
+    ask: `Review my trading session on ${date}. What went well, what broke my rules, and what should I change next session?`,
+    ...(accountId ? { account: accountId } : {}),
+  })}`;
   const green = stats.net >= 0;
 
   return (
@@ -273,7 +279,7 @@ export function DayReviewModal({ isOpen, onClose, date, trades, accountId, tradi
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-4 sm:px-7">
           <p className="text-xs text-zinc-500">Notes save automatically when you click away.</p>
           <div className="flex gap-2">
-            <Link href="/app/pilot" className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.09] px-3.5 py-2 text-sm font-medium text-zinc-200 hover:bg-white/[0.05]">
+            <Link href={pilotHref} className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.09] px-3.5 py-2 text-sm font-medium text-zinc-200 hover:bg-white/[0.05]">
               <Sparkles className="h-4 w-4 text-tp-green" /> Review with Pilot AI
             </Link>
             <Link href="/app/journal" className="inline-flex items-center gap-1.5 rounded-xl bg-tp-green px-3.5 py-2 text-sm font-semibold text-[#0D1628] hover:brightness-110">
@@ -481,7 +487,7 @@ function RuleCheck({ flagCount, trades, maxTrades, net, dailyLoss, custom }: { f
       </div>
       <p className="mt-3 text-xs text-zinc-500">
         {custom ? 'Using your rules from Pilot AI.' : 'Starter rules —'}{' '}
-        <Link href="/app/pilot" className="text-zinc-300 underline-offset-2 hover:underline">
+        <Link href="/app/pilot?tab=settings" className="text-zinc-300 underline-offset-2 hover:underline">
           {custom ? 'edit' : 'set your own in Pilot AI'}
         </Link>
         {flagCount > 0 && ' · open a trade to see what was broken.'}

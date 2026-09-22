@@ -820,6 +820,7 @@
 }
 .pilot-rule-fields input,
 .pilot-model-form input,
+.pilot-model-form select,
 .pilot-dialog input,
 .pilot-dialog select,
 .pilot-dialog textarea {
@@ -867,6 +868,24 @@
 }
 .pilot-model-form .pilot-button {
   justify-self: start;
+}
+.pilot-model-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.pilot-model-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 12px;
+  color: var(--p-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.pilot-model-link:hover {
+  color: var(--p-text);
 }
 .pilot-connection-note {
   margin-top: 25px;

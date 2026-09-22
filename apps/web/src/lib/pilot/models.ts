@@ -7,22 +7,22 @@ export const PROVIDERS = {
   openrouter: {
     label: "OpenRouter",
     url: "https://openrouter.ai/api/v1",
-    hint: "Use any chat model ID from your OpenRouter catalog.",
+    hint: "Add your key and pick from your OpenRouter catalog.",
   },
   deepseek: {
     label: "DeepSeek",
     url: "https://api.deepseek.com",
-    hint: "Enter a model ID available to your DeepSeek API account.",
+    hint: "Add your key and pick a model from your DeepSeek account.",
   },
   kimi: {
     label: "Kimi",
     url: "https://api.moonshot.ai/v1",
-    hint: "Connect your Kimi / Moonshot API account.",
+    hint: "Add your Kimi / Moonshot key and pick a model.",
   },
   opencode: {
     label: "OpenCode Zen",
     url: "https://opencode.ai/zen/v1",
-    hint: "Use a Zen model supporting chat/completions, such as a DeepSeek or Kimi model.",
+    hint: "Add your key and pick a Zen model that supports chat/completions.",
   },
   ollama: {
     label: "Ollama / local models",
@@ -63,4 +63,22 @@ export async function requestCoaching(
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || "Could not reach the model.");
   return data.text as string;
+}
+
+/** The chat models the configured key can reach, for the model picker. */
+export async function listModels(config: ModelConfig, signal?: AbortSignal) {
+  const response = await fetch("/api/pilot/models", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      provider: config.provider,
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+    }),
+    signal,
+  });
+  const data = await response.json();
+  if (!response.ok)
+    throw new Error(data.error || "Could not list models for this key.");
+  return data.models as string[];
 }

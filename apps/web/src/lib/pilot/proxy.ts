@@ -2,12 +2,11 @@ import { PROVIDERS, type Provider } from "@/lib/pilot/models";
 
 /**
  * Server-side validation for the bring-your-own-key model proxy.
- * Returns the chat/completions endpoint and auth header for a request body
- * carrying { provider, model, baseUrl, apiKey }. Throws with a user-facing message.
+ * Resolves { provider, baseUrl, apiKey } to the provider's API base and auth
+ * header, without requiring a model ID. Throws with a user-facing message.
  */
-export function resolveModelEndpoint(body: {
+export function resolveProviderBase(body: {
   provider?: unknown;
-  model?: unknown;
   baseUrl?: unknown;
   apiKey?: unknown;
 }) {
@@ -18,12 +17,6 @@ export function resolveModelEndpoint(body: {
   )
     throw new Error("Choose a model provider.");
   const provider = body.provider as Provider;
-  if (
-    typeof body.model !== "string" ||
-    !body.model.trim() ||
-    body.model.length > 200
-  )
-    throw new Error("Enter a valid model ID.");
   if (typeof body.apiKey !== "string" || body.apiKey.length > 4096)
     throw new Error("Invalid API key.");
   const url = new URL(
@@ -53,11 +46,34 @@ export function resolveModelEndpoint(body: {
   if (!loopback && !body.apiKey.trim())
     throw new Error("Enter your provider API key.");
   return {
-    endpoint: `${url.toString().replace(/\/$/, "")}/chat/completions`,
+    base: url.toString().replace(/\/$/, ""),
     headers: {
       "Content-Type": "application/json",
       ...(body.apiKey ? { Authorization: `Bearer ${body.apiKey}` } : {}),
     } as Record<string, string>,
+  };
+}
+
+/**
+ * The chat/completions endpoint, auth header and model ID for a request body
+ * carrying { provider, model, baseUrl, apiKey }.
+ */
+export function resolveModelEndpoint(body: {
+  provider?: unknown;
+  model?: unknown;
+  baseUrl?: unknown;
+  apiKey?: unknown;
+}) {
+  if (
+    typeof body.model !== "string" ||
+    !body.model.trim() ||
+    body.model.length > 200
+  )
+    throw new Error("Enter a valid model ID.");
+  const { base, headers } = resolveProviderBase(body);
+  return {
+    endpoint: `${base}/chat/completions`,
+    headers,
     model: body.model.trim(),
   };
 }
@@ -70,8 +86,24 @@ export function providerErrorMessage(status: number) {
       : `Provider returned ${status}. Check the model ID and endpoint compatibility.`;
 }
 
-/** True when the request comes from this app's own pages. */
+/**
+ * True when the request comes from this app's own pages.
+ *
+ * Compares the Origin header against the host the request actually arrived on.
+ * `request.url` is not usable here: the Next dev server reports it as
+ * `localhost` whatever host header the browser sent, so an app opened on
+ * 127.0.0.1 would reject its own requests.
+ */
 export function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  return !!origin && origin === new URL(request.url).origin;
+  if (!origin) return false;
+  const host =
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    new URL(request.url).host;
+  try {
+    return !!host && new URL(origin).host === host;
+  } catch {
+    return false;
+  }
 }
