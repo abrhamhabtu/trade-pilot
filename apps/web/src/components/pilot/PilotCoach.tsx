@@ -2,19 +2,28 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUp,
+  Bookmark,
   CalendarCheck,
+  Check,
   Gauge,
+  History,
   Loader2,
+  MessageSquare,
   MessageSquarePlus,
-  ShieldAlert,
+  Plus,
+  Search,
   Sparkles,
   Square,
   Trophy,
+  Wallet,
+  X,
 } from "lucide-react";
 import clsx from "clsx";
 import { useModelStore } from "@/lib/pilot/modelStore";
 import { PilotMarkdown } from "./PilotMarkdown";
-import type { Account } from "@/store/accountStore";
+import { useAccountStore, type Account } from "@/store/accountStore";
+import { useRoutineStore } from "@/store/routineStore";
+import { localSessionDate } from "@/lib/sessionRisk";
 import {
   DEFAULT_SETTINGS,
   inspectTrade,
@@ -22,11 +31,11 @@ import {
   orderedTrades,
   playbookStats,
 } from "@/lib/pilot/workspace";
-import {
-  PROVIDERS,
-  requestCoaching,
-  type ModelConfig,
-} from "@/lib/pilot/models";
+import { PROVIDERS, type ModelConfig } from "@/lib/pilot/models";
+import type { ChatTurn } from "@/lib/pilot/chatTypes";
+import { buildFactSheet } from "@/lib/pilot/facts";
+import { lookupsIn, runPilotTurn } from "@/lib/pilot/runChat";
+import { newChatId, takeaway, usePilotMemory } from "@/lib/pilot/memoryStore";
 
 export function accountContext(account: Account) {
   const rules = account.pilotSettings?.rules || DEFAULT_SETTINGS.rules;
@@ -91,11 +100,73 @@ function builtIn(question: string, account: Account) {
 }
 
 const PROMPTS = [
+  { icon: Wallet, text: "Can I take a payout this week?" },
+  { icon: Gauge, text: "Am I trading too big for my drawdown?" },
   { icon: CalendarCheck, text: "Review my last session" },
-  { icon: ShieldAlert, text: "Where am I breaking my rules?" },
   { icon: Trophy, text: "Which setup is working best?" },
-  { icon: Gauge, text: "How is my risk looking?" },
 ];
+
+type Item = { kind: "user"; text: string } | { kind: "answer"; text: string; lookups: string[] };
+
+/** The transcript as the trader reads it: questions, and one answer per question with the lookups behind it. */
+function toItems(turns: ChatTurn[]): Item[] {
+  const items: Item[] = [];
+  for (const t of turns) {
+    if (t.role === "user") items.push({ kind: "user", text: t.content });
+    else if (t.role === "assistant") {
+      const last = items.at(-1);
+      const lookups = lookupsIn([t]);
+      if (last?.kind === "answer") {
+        if (t.content) last.text = last.text ? `${last.text}\n\n${t.content}` : t.content;
+        last.lookups.push(...lookups);
+      } else items.push({ kind: "answer", text: t.content, lookups });
+    }
+  }
+  return items.filter((i) => i.kind === "user" || i.text);
+}
+
+const ago = (iso: string) => {
+  const mins = Math.round((Date.now() - Date.parse(iso)) / 60000);
+  if (mins < 60) return `${Math.max(1, mins)}m ago`;
+  if (mins < 60 * 24) return `${Math.round(mins / 60)}h ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+};
+
+function AnswerActions({ text, accountId }: { text: string; accountId: string }) {
+  const addNote = usePilotMemory((s) => s.addNote);
+  const notes = usePilotMemory((s) => s.notes);
+  const { tradingRules, addTradingRule } = useRoutineStore();
+  const line = takeaway(text);
+  if (!line) return null;
+  const remembered = notes.some((n) => n.accountId === accountId && n.text === line.replace(/\s+/g, " ").slice(0, 280));
+  const ruled = tradingRules.some((r) => r.text.trim() === line.trim());
+  const chip =
+    "inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium ring-1 ring-inset transition";
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-10">
+      <button
+        type="button"
+        disabled={remembered}
+        onClick={() => addNote(accountId, line)}
+        title={`Pilot will keep this in mind: “${line}”`}
+        className={clsx(chip, remembered ? "text-tp-green ring-tp-green/25" : "text-zinc-400 ring-white/[0.08] hover:bg-white/[0.05] hover:text-zinc-100")}
+      >
+        {remembered ? <Check className="h-3 w-3" /> : <Bookmark className="h-3 w-3" />}
+        {remembered ? "Remembered" : "Remember"}
+      </button>
+      <button
+        type="button"
+        disabled={ruled}
+        onClick={() => addTradingRule(line, "mindset")}
+        title={`Add to your Preflight rules: “${line}”`}
+        className={clsx(chip, ruled ? "text-tp-green ring-tp-green/25" : "text-zinc-400 ring-white/[0.08] hover:bg-white/[0.05] hover:text-zinc-100")}
+      >
+        {ruled ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+        {ruled ? "In your rules" : "Make it a rule"}
+      </button>
+    </div>
+  );
+}
 
 /** Chat-first hero: the main way to use Pilot. */
 export function PilotCoach({
@@ -106,17 +177,27 @@ export function PilotCoach({
   model: ModelConfig;
 }) {
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<
-    { role: "user" | "assistant"; content: string }[]
-  >([]);
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [chatId, setChatId] = useState(() => newChatId());
+  const [live, setLive] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
   const hydrated = useModelStore((s) => s.hydrated);
+  const accounts = useAccountStore((s) => s.accounts);
+  const gamePlans = useRoutineStore((s) => s.gamePlans);
+  const memory = usePilotMemory();
   const urlAsk = useRef(false);
   const controller = useRef<AbortController | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
   useEffect(() => () => controller.current?.abort(), []);
+  useEffect(() => usePilotMemory.getState().hydrate(), []);
+
+  const notes = memory.notes.filter((n) => n.accountId === account.id);
+  const chats = memory.chats.filter((c) => c.accountId === account.id);
+
   // A question handed over from elsewhere in the app (?ask=...) is asked once,
   // then cleared from the URL. Two things have to settle first, or the answer
   // is thrown away: the saved model config has to hydrate (this component is
@@ -155,62 +236,129 @@ export function PilotCoach({
   useEffect(() => {
     const el = scroller.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages, busy]);
+  }, [turns, live, status, busy]);
+
+  /** The fact sheet plus a slice of raw trades, rebuilt for every question so it is current. */
+  const buildContext = () => {
+    const today = localSessionDate();
+    const plan = gamePlans[today];
+    const rules = account.pilotSettings?.rules || DEFAULT_SETTINGS.rules;
+    return {
+      facts: buildFactSheet({
+        account,
+        accounts,
+        today,
+        plan: plan ? { maxLoss: plan.maxLoss, maxProfit: plan.maxProfit, maxTrades: plan.maxTrades, stopTime: plan.stopTime } : undefined,
+        notes: notes.map((n) => n.text),
+      }),
+      pilotRules: rules,
+      recentTrades: orderedTrades(account.trades)
+        .slice(-40)
+        .map((t) => ({ date: t.date.slice(0, 10), time: t.time, symbol: t.symbol, side: t.side, qty: t.quantity, netPL: t.netPL, setup: t.strategy, flags: inspectTrade(t, account.trades, rules).flags })),
+    };
+  };
+
   const ask = async (question: string) => {
-    if (!question.trim() || busy) return;
-    const next = [
-      ...messages,
-      { role: "user" as const, content: question.trim() },
-    ];
+    const q = question.trim();
+    if (!q || busy) return;
+    const prior = turns;
     setInput("");
     setError("");
-    setMessages(next);
+    setLive("");
+    setTurns([...prior, { role: "user", content: q }]);
     setBusy(true);
     const mine = new AbortController();
     controller.current = mine;
     // A superseded attempt must not write over the turn that replaced it.
     const current = () => controller.current === mine;
     try {
-      const content =
+      const next: ChatTurn[] =
         model.provider === "local"
-          ? builtIn(question, account)
-          : await requestCoaching(
-              model,
-              next.slice(-15),
-              accountContext(account),
-              mine.signal,
-            );
+          ? [...prior, { role: "user", content: q }, { role: "assistant", content: builtIn(q, account) }]
+          : await runPilotTurn({
+              config: model,
+              history: prior,
+              question: q,
+              context: buildContext(),
+              toolContext: { account, accounts, today: localSessionDate() },
+              signal: mine.signal,
+              onText: (text) => current() && setLive(text),
+              onStatus: (s) => current() && setStatus(s),
+            });
       if (!current()) return;
-      setMessages([...next, { role: "assistant", content }]);
+      setTurns(next);
+      const title = (next.find((t) => t.role === "user") as { content: string } | undefined)?.content ?? q;
+      memory.saveChat({ id: chatId, accountId: account.id, title: title.slice(0, 90), updatedAt: new Date().toISOString(), turns: next });
     } catch (e) {
       if (!current()) return;
       const stopped = e instanceof Error && e.name === "AbortError";
       // A failed turn leaves no answer, so take the question back out of the
       // transcript and return it to the box — otherwise unanswered questions
       // pile up above a single error and the next send resends them as context.
-      setMessages(messages);
-      if (!stopped) setInput(question.trim());
-      setError(
-        stopped
-          ? "Response stopped."
-          : e instanceof Error
-            ? e.message
-            : "Request failed.",
-      );
+      setTurns(prior);
+      if (!stopped) setInput(q);
+      setError(stopped ? "Response stopped." : e instanceof Error ? e.message : "Request failed.");
     } finally {
-      if (current()) setBusy(false);
+      if (current()) {
+        setBusy(false);
+        setStatus(null);
+        setLive("");
+      }
     }
   };
   const reset = () => {
     controller.current?.abort();
-    setMessages([]);
+    setTurns([]);
+    setChatId(newChatId());
     setError("");
+    setShowHistory(false);
     field.current?.focus();
+  };
+  const resume = (id: string) => {
+    const chat = chats.find((c) => c.id === id);
+    if (!chat || busy) return;
+    setTurns(chat.turns);
+    setChatId(chat.id);
+    setError("");
+    setShowHistory(false);
   };
   // An error counts as transcript: a first message that fails rolls back to an
   // empty transcript, and the reason it failed still has to be on screen.
-  const chatting = messages.length > 0 || busy || !!error;
+  const chatting = turns.length > 0 || busy || !!error;
   const local = model.provider === "local";
+  const items = toItems(turns);
+
+  const history = (
+    <ul className="max-h-64 space-y-0.5 overflow-y-auto">
+      {chats.map((c) => (
+        <li key={c.id} className="group flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => resume(c.id)}
+            className={clsx(
+              "flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition hover:bg-white/[0.05]",
+              c.id === chatId ? "text-zinc-50" : "text-zinc-300",
+            )}
+          >
+            <MessageSquare className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+            <span className="truncate">{c.title}</span>
+            <span className="ml-auto shrink-0 text-[11px] text-zinc-500">{ago(c.updatedAt)}</span>
+          </button>
+          <button
+            type="button"
+            aria-label={`Delete chat: ${c.title}`}
+            onClick={() => {
+              memory.deleteChat(c.id);
+              if (c.id === chatId) reset();
+            }}
+            className="rounded-md p-1 text-zinc-600 opacity-0 transition hover:text-tp-red group-hover:opacity-100 focus:opacity-100"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <section
@@ -229,27 +377,44 @@ export function PilotCoach({
             What do you want to know about your trading?
           </h2>
           <p className="mt-2 text-sm text-zinc-400">
-            Pilot has read {account.trades.length} trades from{" "}
-            <span className="font-medium text-zinc-200">{account.name}</span>.
-            Ask in plain English.
+            Pilot knows {account.trades.length} trades from{" "}
+            <span className="font-medium text-zinc-200">{account.name}</span>, your room to lose, payouts, fees and firm rules. Ask in plain English.
           </p>
         </div>
       ) : (
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 pb-4">
+        <div className="relative mx-auto flex max-w-3xl items-center justify-between gap-3 pb-4">
           <div className="flex items-center gap-2.5">
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-tp-green/25 to-tp-blue/20 ring-1 ring-inset ring-white/10">
               <Sparkles className="h-4 w-4 text-tp-green" />
             </div>
             <span className="text-sm font-semibold text-zinc-100">Ask Pilot</span>
           </div>
-          <button
-            type="button"
-            onClick={reset}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-          >
-            <MessageSquarePlus className="h-3.5 w-3.5" />
-            New chat
-          </button>
+          <div className="flex items-center gap-1">
+            {chats.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowHistory((v) => !v)}
+                aria-expanded={showHistory}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
+              >
+                <History className="h-3.5 w-3.5" />
+                History
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={reset}
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+              New chat
+            </button>
+          </div>
+          {showHistory && (
+            <div className="absolute right-0 top-10 z-20 w-80 rounded-xl border border-white/[0.08] bg-tp-raised p-1.5 shadow-2xl shadow-black/50">
+              {history}
+            </div>
+          )}
         </div>
       )}
 
@@ -257,27 +422,55 @@ export function PilotCoach({
         <div
           ref={scroller}
           aria-live="polite"
-          className="mx-auto max-h-[440px] max-w-3xl space-y-4 overflow-y-auto pb-2 pr-1"
+          className="mx-auto max-h-[520px] max-w-3xl space-y-4 overflow-y-auto pb-2 pr-1"
         >
-          {messages.map((m, i) =>
-            m.role === "user" ? (
+          {items.map((m, i) =>
+            m.kind === "user" ? (
               <div key={i} className="flex justify-end">
                 <p className="max-w-[80%] whitespace-pre-line rounded-2xl rounded-br-md bg-white/[0.08] px-4 py-2.5 text-sm text-zinc-100">
-                  {m.content}
+                  {m.text}
                 </p>
               </div>
             ) : (
-              <div key={i} className="flex gap-3">
-                <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-tp-green/15">
-                  <Sparkles className="h-3.5 w-3.5 text-tp-green" />
+              <div key={i}>
+                <div className="flex gap-3">
+                  <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-tp-green/15">
+                    <Sparkles className="h-3.5 w-3.5 text-tp-green" />
+                  </div>
+                  <div className="min-w-0 max-w-[85%] rounded-2xl rounded-tl-md border border-white/[0.06] bg-black/20 px-4 py-3">
+                    <PilotMarkdown text={m.text} />
+                    {m.lookups.length > 0 && (
+                      <p className="mt-2 flex flex-wrap items-center gap-1 border-t border-white/[0.05] pt-2 text-[11px] text-zinc-500">
+                        <Search className="h-3 w-3" /> Checked: {[...new Set(m.lookups)].join(" · ")}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="min-w-0 max-w-[85%] rounded-2xl rounded-tl-md border border-white/[0.06] bg-black/20 px-4 py-3">
-                  <PilotMarkdown text={m.content} />
-                </div>
+                {!busy && <AnswerActions text={m.text} accountId={account.id} />}
               </div>
             ),
           )}
-          {busy && (
+          {busy && (live || status) && (
+            <div className="flex gap-3">
+              <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-tp-green/15">
+                <Sparkles className="h-3.5 w-3.5 text-tp-green" />
+              </div>
+              <div className="min-w-0 max-w-[85%]">
+                {live && (
+                  <div className="rounded-2xl rounded-tl-md border border-white/[0.06] bg-black/20 px-4 py-3">
+                    <PilotMarkdown text={live} />
+                  </div>
+                )}
+                {status && (
+                  <p className="mt-1.5 flex items-center gap-2 text-sm text-zinc-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {status}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          {busy && !live && !status && (
             <div className="flex items-center gap-2 pl-10 text-sm text-zinc-500">
               <Loader2 className="h-4 w-4 animate-spin" />
               Reading your trades…
@@ -342,8 +535,8 @@ export function PilotCoach({
         </div>
         <p className="mt-2 text-center text-[11px] text-zinc-500">
           {local
-            ? "Built-in analysis · runs privately on this device"
-            : `${PROVIDERS[model.provider].label} · ${model.model || "choose a model ID"} · latest 100 trades`}
+            ? "Built-in analysis · runs privately on this device · connect a model in Settings for full coaching"
+            : `${PROVIDERS[model.provider].label} · ${model.model || "choose a model ID"} · fact sheet + journal lookups`}
         </p>
       </form>
 
@@ -362,6 +555,31 @@ export function PilotCoach({
           </button>
         ))}
       </div>
+
+      {/* Memory: past chats to pick up, and what Pilot keeps in mind */}
+      {!chatting && chats.length > 0 && (
+        <div className="mx-auto mt-8 max-w-2xl">
+          <p className="mb-2 px-2.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">Recent chats</p>
+          {history}
+        </div>
+      )}
+      {notes.length > 0 && (
+        <div className={clsx("mx-auto", chatting ? "mt-5 max-w-3xl" : "mt-6 max-w-2xl")}>
+          <p className="mb-2 flex items-center gap-1.5 px-0.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            <Bookmark className="h-3 w-3" /> Pilot remembers
+          </p>
+          <ul className="flex flex-wrap gap-1.5">
+            {notes.map((n) => (
+              <li key={n.id} className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-white/[0.04] py-1 pl-2.5 pr-1 text-xs text-zinc-300 ring-1 ring-inset ring-white/[0.06]">
+                <span className="truncate">{n.text}</span>
+                <button type="button" aria-label={`Forget: ${n.text}`} onClick={() => memory.deleteNote(n.id)} className="rounded p-0.5 text-zinc-500 hover:text-tp-red">
+                  <X className="h-3 w-3" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }
