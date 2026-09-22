@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Wallet, TrendingUp, Route, Calculator, Layers, Building2, ShieldCheck, ShieldAlert, Swords, BookOpenCheck, Dices } from 'lucide-react';
 import clsx from 'clsx';
-import { useAccountStore, Account } from '@/store/accountStore';
+import { accountsInScope, useAccountStore, Account } from '@/store/accountStore';
 import { Trade } from '@/store/tradingStore';
 import { calculateTradeSummaryMetrics } from '@/lib/domain/trading';
 
@@ -26,6 +26,8 @@ import { DisciplinePlanner, DisciplineSettings } from './DisciplinePlanner';
 import { WithdrawalReview } from './WithdrawalReview';
 import { LedgerTab } from './LedgerTab';
 import { OddsTab } from './OddsTab';
+import { copyPlanWarning } from '@/lib/copyRisk';
+import { dailySamples } from '@/lib/passOdds';
 import { useThemeClasses, SectionHeader, SliderField } from './payoutPrimitives';
 
 const STORAGE_KEY = 'tradepilot_payout_config_v2';
@@ -324,6 +326,14 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
   // ~21 trading days per month — used to turn a monthly eval fee into an all-in cost.
   const monthsToPass = Math.max(1, Math.ceil((projection.totalDays || idealDays || 21) / 21));
 
+  // Scaling means copying: say what the trader's worst day does to every copy at once.
+  const allAccounts = useAccountStore((st) => st.accounts);
+  const copyWarning = useMemo(() => {
+    const samples = dailySamples(hasLinkedAccount && selectedAccount ? [selectedAccount] : accountsInScope(allAccounts));
+    const worst = samples.length ? Math.max(0, -Math.min(...samples)) : 0;
+    return copyPlanWarning(worst, values.drawdown, focusCount, values.cost);
+  }, [hasLinkedAccount, selectedAccount, allAccounts, values.drawdown, values.cost, focusCount]);
+
   const linkedTradeCount = useMemo(
     () => (hasLinkedAccount && selectedAccount ? tradesAfterPayout(selectedAccount).length : 0),
     [hasLinkedAccount, selectedAccount]
@@ -495,6 +505,12 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
 
       {tab === 'eval' && <EvalVsFunded />}
 
+      {tab === 'scale' && copyWarning && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-tp-yellow/30 bg-tp-yellow/10 px-4 py-3 text-sm text-tp-yellow">
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>{copyWarning}</p>
+        </div>
+      )}
       {tab === 'scale' && (
         <AccountScaler
           pullTarget={pullTarget}

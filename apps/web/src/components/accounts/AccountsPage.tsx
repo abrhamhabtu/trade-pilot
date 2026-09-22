@@ -15,6 +15,7 @@ import { ConnectionsPanel } from './ConnectionsPanel';
 import { AccountHealthBoard } from './AccountHealthBoard';
 import { DataPanel } from './DataPanel';
 import { NextPayouts } from './NextPayouts';
+import { CopyRiskPanel } from './CopyRiskPanel';
 import { STATUS_META, STATUS_ORDER, btn, signedUsd } from './accountUi';
 
 type PageTab = 'accounts' | 'connections' | 'health' | 'data';
@@ -281,7 +282,12 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
       )}
 
       {tab === 'connections' && <ConnectionsPanel onImport={() => (selectedAccountId ? importFor(selectedAccountId) : setAdding(true))} />}
-      {tab === 'health' && <AccountHealthBoard onAdd={() => setAdding(true)} />}
+      {tab === 'health' && (
+        <div className="space-y-5">
+          <AccountHealthBoard onAdd={() => setAdding(true)} />
+          <CopyRiskPanel />
+        </div>
+      )}
       {tab === 'data' && <DataPanel />}
 
       {adding && (
