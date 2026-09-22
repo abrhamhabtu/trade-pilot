@@ -5,6 +5,7 @@ import { DashboardHeader } from './DashboardHeader';
 import { MetricsGrid } from './MetricsGrid';
 import { CoachCard } from './CoachCard';
 import { PropNetCard } from './PropNetCard';
+import { DailyStopBanner } from './DailyStopBanner';
 import { ChartsContainer } from './ChartsContainer';
 import { useChartData } from '../../hooks/useChartData';
 import { Trade, TradingMetrics, TimePeriod } from '../../store/tradingStore';
@@ -57,6 +58,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         onRefresh={onRefresh}
         onImport={onImport}
       />
+
+      <DailyStopBanner />
 
       <MetricsGrid metrics={metrics} trades={trades} accountBalance={accountBalance} />
 

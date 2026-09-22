@@ -27,6 +27,7 @@ import { useRoutineStore, type TradingRule } from '@/store/routineStore';
 import { useAccountStore } from '@/store/accountStore';
 import { computeLiquidation } from '@/lib/liquidation';
 import { firmWarningsFor } from '@/lib/firmWarnings';
+import { consistencyCeiling } from '@/lib/dailyStop';
 import {
   evaluatePreflight,
   redDayStreak,
@@ -688,6 +689,29 @@ export const PreflightPage: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {account && (() => {
+                const cap = consistencyCeiling(account, date);
+                if (cap === null) return null;
+                const over = !!plan.maxProfit && plan.maxProfit > cap;
+                return (
+                  <div className={clsx('mt-5 rounded-xl border p-4', over ? 'border-tp-yellow/30 bg-tp-yellow/10' : 'border-white/[0.07] bg-tp-base/40')}>
+                    <p className="text-xs text-white/60">
+                      Your firm&apos;s consistency rule caps a day at about{' '}
+                      <span className="font-semibold text-tp-blue">{money(cap)}</span> on this account.{' '}
+                      {over
+                        ? 'Your target is above it: a day that big can hold your next payout. Set the target at or under the cap.'
+                        : plan.maxProfit
+                          ? 'Your target sits under it. The clock tells you to stop when you reach either.'
+                          : (
+                            <button onClick={() => updateGamePlan(date, { maxProfit: Math.floor(cap) })} className="font-semibold text-tp-blue hover:underline">
+                              Use it as today&apos;s target
+                            </button>
+                          )}
+                    </p>
+                  </div>
+                );
+              })()}
 
               {liquidation && plan.maxLoss ? (
                 <div className="mt-5 rounded-xl border border-white/[0.07] bg-tp-base/40 p-4">

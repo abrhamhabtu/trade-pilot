@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
-import { ChevronDown, Lock, Skull, TrendingUp, X } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Hand, Lock, Skull, TrendingUp, X } from 'lucide-react';
 import { useAccountStore } from '@/store/accountStore';
 import {
   computeLiquidation,
@@ -12,6 +12,7 @@ import {
   type LiquidationState,
 } from '@/lib/liquidation';
 import { SESSION_INSTRUMENTS } from '@/lib/sessionRisk';
+import { useDailyStop } from '@/hooks/useDailyStop';
 
 const money = (n: number) =>
   `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -119,6 +120,8 @@ export function LiquidationClock() {
     [account],
   );
 
+  const stop = useDailyStop(account);
+
   if (!mounted || !account || !state || dismissed) return null;
 
   // An account the trader has marked blown is over, whatever our reconstruction
@@ -126,7 +129,10 @@ export function LiquidationClock() {
   const dead = account.status === 'blown';
   const status = dead ? 'breached' : state.status;
   const roomToStop = dead ? 0 : state.roomToStop;
-  const urgent = status === 'danger' || status === 'breached';
+  // A hit daily stop outranks the cushion: the answer to "can I trade?" is no.
+  const done = !dead && !!stop?.stopped;
+  const lossStop = done && stop!.reasons.some((r) => r.kind === 'loss');
+  const urgent = status === 'danger' || status === 'breached' || lossStop;
 
   const tone = TONES[status];
   const points = dollarsToPoints(roomToStop, symbol, contracts);
@@ -179,6 +185,29 @@ export function LiquidationClock() {
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
+
+            {!dead && stop && (stop.stopped || stop.warning) && (
+              <div
+                className={clsx(
+                  'mb-3 rounded-xl border px-3 py-2.5',
+                  stop.stopped
+                    ? lossStop
+                      ? 'border-tp-red/30 bg-tp-red/10'
+                      : 'border-tp-blue/30 bg-tp-blue/10'
+                    : 'border-tp-yellow/30 bg-tp-yellow/10',
+                )}
+              >
+                <div className={clsx('flex items-center gap-1.5 text-xs font-semibold', stop.stopped ? (lossStop ? 'text-tp-red' : 'text-tp-blue') : 'text-tp-yellow')}>
+                  {stop.stopped ? <Hand className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                  {stop.stopped ? 'Done for today' : 'Close to a line'}
+                </div>
+                <ul className="mt-1 space-y-0.5 text-[12px] leading-snug text-white/70">
+                  {(stop.stopped ? stop.reasons : [stop.warning!]).map((r) => (
+                    <li key={r.kind}>{r.text}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <p className="mb-3 text-[13px] leading-relaxed text-white/70">
               {dead ? (
@@ -316,8 +345,8 @@ export function LiquidationClock() {
       <button
         onClick={toggle}
         aria-expanded={open}
-        aria-label={`${money(roomToStop)} left to lose before your ${state.bindingConstraint === 'daily' ? "daily stop" : 'account is closed'}. ${open ? 'Collapse' : 'Expand'} risk details.`}
-        title={dead ? 'Account closed out' : liquidationHeadline(state)}
+        aria-label={done ? `Done for today: ${stop!.reasons.map((r) => r.text).join(' ')} ${open ? 'Collapse' : 'Expand'} risk details.` : `${money(roomToStop)} left to lose before your ${state.bindingConstraint === 'daily' ? "daily stop" : 'account is closed'}. ${open ? 'Collapse' : 'Expand'} risk details.`}
+        title={dead ? 'Account closed out' : done ? stop!.reasons[0].text : liquidationHeadline(state)}
         className={clsx(
           'pointer-events-auto flex items-center gap-2.5 rounded-full border py-2 pl-3 pr-3.5 shadow-xl backdrop-blur-xl transition hover:brightness-125',
           urgent && 'animate-pulse',
@@ -330,17 +359,28 @@ export function LiquidationClock() {
       >
         {dead ? (
           <Skull className={clsx('h-3.5 w-3.5', tone.text)} />
+        ) : done ? (
+          <Hand className={clsx('h-3.5 w-3.5', lossStop ? 'text-tp-red' : 'text-tp-blue')} />
         ) : (
           <span
             className="h-2 w-2 shrink-0 rounded-full"
             style={{ background: tone.bar, boxShadow: `0 0 8px ${tone.bar}` }}
           />
         )}
-        <span className={clsx('text-sm font-bold tabular-nums', tone.text)}>{money(roomToStop)}</span>
-        <span className="hidden whitespace-nowrap text-[11px] font-medium text-white/55 sm:inline">
-          {dead ? 'account is over' : 'left to lose'}
-        </span>
-        {!dead && (
+        {done ? (
+          <span className={clsx('whitespace-nowrap text-sm font-bold', lossStop ? 'text-tp-red' : 'text-tp-blue')}>Done for today</span>
+        ) : (
+          <>
+            <span className={clsx('text-sm font-bold tabular-nums', tone.text)}>{money(roomToStop)}</span>
+            <span className="hidden whitespace-nowrap text-[11px] font-medium text-white/55 sm:inline">
+              {dead ? 'account is over' : 'left to lose'}
+            </span>
+          </>
+        )}
+        {!dead && !done && stop?.warning && (
+          <AlertTriangle className="h-3 w-3 text-tp-yellow" aria-label={stop.warning.text} />
+        )}
+        {!dead && !done && (
           <span className="hidden rounded-full bg-white/[0.07] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/45 md:inline">
             {state.bindingConstraint === 'daily' ? 'today' : 'account'}
           </span>
