@@ -5,6 +5,8 @@ import clsx from 'clsx';
 import { Swords, Repeat, Zap, TrendingDown, CheckCircle2 } from 'lucide-react';
 import { PROP_FIRMS, getFirmById } from './propFirmData';
 import { formatCurrency } from './payoutMath';
+import { accountsInScope, useAccountStore } from '@/store/accountStore';
+import { MIN_SAMPLE_DAYS, dailySamples, rulesFromFirm, simulateOdds } from '@/lib/passOdds';
 import { useThemeClasses, SectionHeader, SliderField, NumberInput, MiniStat, PillToggle } from './payoutPrimitives';
 
 const EVAL_FIRMS = PROP_FIRMS.filter((f) => f.payoutModel === 'eval' && f.id !== 'custom');
@@ -31,6 +33,15 @@ export const EvalVsFunded: React.FC = () => {
   const [evalsToRun, setEvalsToRun] = useState(4);
   const [passRate, setPassRate] = useState(50);
   const [daysToPass, setDaysToPass] = useState(4);
+
+  // The trader's own simulated odds for this eval, so the pass rate need not be a guess.
+  const accounts = useAccountStore((st) => st.accounts);
+  const simulated = useMemo(() => {
+    const samples = dailySamples(accountsInScope(accounts));
+    if (samples.length < MIN_SAMPLE_DAYS) return null;
+    const o = simulateOdds(samples, rulesFromFirm(evalFirm, evalTier), { runs: 1500 });
+    return { pass: Math.round(o.pass * 100), days: o.medianDays };
+  }, [accounts, evalFirm, evalTier]);
 
   // Re-seed fees when program/tier changes.
   useEffect(() => setEvalFee(evalTier.cost), [evalTier.cost]);
@@ -152,6 +163,22 @@ export const EvalVsFunded: React.FC = () => {
         <SliderField label="Your pass rate" tip="How often you actually pass when pushing for a fast finish. Aggressive sizing usually lowers this." value={passRate} min={10} max={90} step={5} format={(v) => `${v}%`} onChange={setPassRate} />
         <SliderField label="Days to pass" tip="Target days to clear each eval on an aggressive push." value={daysToPass} min={1} max={15} step={1} format={(v) => `${v}d`} onChange={setDaysToPass} />
       </div>
+      {simulated && (
+        <p className={clsx('mt-3 text-xs', muted)}>
+          Simulated from your own trading days: <span className="font-semibold text-tp-green">{simulated.pass}%</span> pass rate
+          {simulated.days !== null && <>, {simulated.days} days to pass</>} on {evalFirm.name} {evalTier.label}.{' '}
+          <button
+            type="button"
+            onClick={() => {
+              setPassRate(Math.min(90, Math.max(10, Math.round(simulated.pass / 5) * 5)));
+              if (simulated.days !== null) setDaysToPass(Math.min(15, Math.max(1, simulated.days)));
+            }}
+            className="font-semibold text-tp-green underline-offset-4 hover:underline"
+          >
+            Use these
+          </button>
+        </p>
+      )}
 
       {/* Expected outcome of the eval batch */}
       <div className={clsx(inset, 'mt-6 p-4')}>

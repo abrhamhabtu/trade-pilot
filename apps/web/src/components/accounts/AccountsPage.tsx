@@ -3,9 +3,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { AlertTriangle, ArrowRight, Check, FlaskConical, HardDrive, Layers, Plus, PlugZap, Search, ShieldCheck, Upload, Wallet } from 'lucide-react';
-import { useAccountStore, type Account, type AccountStatus } from '@/store/accountStore';
+import { accountsInScope, useAccountStore, type Account, type AccountStatus } from '@/store/accountStore';
 import { toast } from '@/store/toastStore';
 import { snapshotFresh } from '@/lib/sessionRisk';
+import { accountPassOdds, dailySamples } from '@/lib/passOdds';
 import { Segmented } from '@/components/routine/journeyUi';
 import { AccountCard, type DrawerTab } from './AccountCard';
 import { AccountDrawer } from './AccountDrawer';
@@ -61,6 +62,12 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
     };
   }, [pool, real, accounts]);
 
+  // Evaluations in progress get a simulated pass chance on their card.
+  const passOdds = useMemo(() => {
+    const fallback = dailySamples(accountsInScope(accounts));
+    return new Map(accounts.map((a) => [a.id, accountPassOdds(a, fallback)?.pass ?? null]));
+  }, [accounts]);
+
   const counts = useMemo(() => {
     const c: Record<Filter, number> = { all: accounts.length, active: 0, passed_eval: 0, inactive: 0, blown: 0 };
     accounts.forEach((a) => (c[a.status || 'active'] += 1));
@@ -99,6 +106,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
       onImport={() => importFor(a.id)}
       onStatus={(st) => changeStatus(a, st)}
       onDelete={() => setDeleting(a)}
+      passOdds={passOdds.get(a.id)}
     />
   );
 

@@ -17,9 +17,11 @@ interface AccountCardProps {
   onImport: () => void;
   onStatus: (s: AccountStatus) => void;
   onDelete: () => void;
+  /** Simulated chance an evaluation in progress passes, 0–1. */
+  passOdds?: number | null;
 }
 
-export function AccountCard({ account, current, onMakeCurrent, onOpen, onImport, onStatus, onDelete }: AccountCardProps) {
+export function AccountCard({ account, current, onMakeCurrent, onOpen, onImport, onStatus, onDelete, passOdds }: AccountCardProps) {
   const s = accountStats(account);
   const demo = account.type === 'demo';
 
@@ -56,6 +58,14 @@ export function AccountCard({ account, current, onMakeCurrent, onOpen, onImport,
             {signedUsd(account.balance, true)}
           </div>
           {s.paidOut > 0 && <div className="mt-1.5 text-xs text-tp-yellow">{signedUsd(s.paidOut)} paid out</div>}
+          {typeof passOdds === 'number' && (
+            <div
+              className={clsx('mt-1.5 text-xs font-medium', passOdds >= 0.5 ? 'text-tp-green' : passOdds >= 0.3 ? 'text-tp-yellow' : 'text-tp-red')}
+              title="Simulated from your own trading days against this firm's rules, from where the account stands now"
+            >
+              {Math.round(passOdds * 100)}% to pass
+            </div>
+          )}
         </div>
         <Sparkline points={s.curve} className="h-11 w-28 shrink-0" />
       </div>

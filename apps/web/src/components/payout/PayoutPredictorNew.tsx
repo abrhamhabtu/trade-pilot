@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Wallet, TrendingUp, Route, Calculator, Layers, Building2, ShieldCheck, ShieldAlert, Swords, BookOpenCheck } from 'lucide-react';
+import { Wallet, TrendingUp, Route, Calculator, Layers, Building2, ShieldCheck, ShieldAlert, Swords, BookOpenCheck, Dices } from 'lucide-react';
 import clsx from 'clsx';
 import { useAccountStore, Account } from '@/store/accountStore';
 import { Trade } from '@/store/tradingStore';
@@ -25,6 +25,7 @@ import { MotivationStrip } from './MotivationStrip';
 import { DisciplinePlanner, DisciplineSettings } from './DisciplinePlanner';
 import { WithdrawalReview } from './WithdrawalReview';
 import { LedgerTab } from './LedgerTab';
+import { OddsTab } from './OddsTab';
 import { useThemeClasses, SectionHeader, SliderField } from './payoutPrimitives';
 
 const STORAGE_KEY = 'tradepilot_payout_config_v2';
@@ -129,11 +130,12 @@ const tradesAfterPayout = (account: Account): Trade[] => {
   return account.trades.filter((t) => (t.date ? t.date.split('T')[0] : '') > last);
 };
 
-type PayoutTab = 'ledger' | 'path' | 'stress' | 'withdraw' | 'sizing' | 'eval' | 'scale' | 'firm';
+type PayoutTab = 'ledger' | 'odds' | 'path' | 'stress' | 'withdraw' | 'sizing' | 'eval' | 'scale' | 'firm';
 
 const TABS: { id: PayoutTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'ledger', label: 'Ledger', icon: BookOpenCheck },
   { id: 'path', label: 'Build your plan', icon: Route },
+  { id: 'odds', label: 'Pass odds', icon: Dices },
   { id: 'stress', label: 'Pressure test', icon: ShieldAlert },
   { id: 'withdraw', label: 'Review a payout', icon: Wallet },
 ];
@@ -443,6 +445,16 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
       </div>
 
       {tab === 'ledger' && <LedgerTab />}
+      {tab === 'odds' && (
+        <OddsTab
+          firm={firm}
+          tier={tier}
+          onPick={(fId, tId) => {
+            handleFirmChange(fId);
+            setTierId(tId);
+          }}
+        />
+      )}
       {(tab === 'path' || tab === 'stress') && <DisciplinePlanner view={tab==='path'?'plan':'stress'} micro={micro} onMicro={updateMicro} accounts={focusCount} onAccounts={setFocusCount} settings={discipline} onSettings={patch=>setDiscipline(d=>({...d,...patch}))} strategy={strategy} onStrategy={patch=>setStrategy(s=>({...s,...patch}))} split={values.profitSplit} onView={setTab} />}
       {tab === 'withdraw' && <WithdrawalReview key={`withdrawal-${hasLinkedAccount ? selectedAccount?.id : 'none'}`} account={hasLinkedAccount ? selectedAccount : null} />}
 
