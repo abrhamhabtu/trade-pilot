@@ -25,6 +25,8 @@ import clsx from 'clsx';
 import { Trade, useTradingStore } from '../store/tradingStore';
 import { useDailyNotesStore, NoteImage } from '../store/dailyNotesStore';
 import { useAccountStore } from '../store/accountStore';
+import { payoutWindow } from '@/lib/payoutSchedule';
+import { localSessionDate } from '@/lib/sessionRisk';
 import { DayReviewModal } from './calendar/DayReviewModal';
 
 
@@ -52,6 +54,18 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
     return account?.balanceAdjustments || [];
   }, [accounts, accountId, selectedAccountId]);
   
+  // The day this account can next request a payout: today when it is ready,
+  // otherwise the earliest date its day count could be met.
+  const payoutDay = useMemo(() => {
+    const account = accounts.find(a => a.id === (accountId || selectedAccountId));
+    if (!account) return null;
+    const today = localSessionDate();
+    const w = payoutWindow(account, today);
+    if (!w) return null;
+    if (w.status === 'ready') return { date: today, amount: w.afterSplit };
+    return w.earliestDate ? { date: w.earliestDate, amount: w.afterSplit } : null;
+  }, [accounts, accountId, selectedAccountId]);
+
   // Helper to check if a date has an adjustment
   const hasAdjustment = (dateStr: string) => {
     return adjustments.some(adj => adj.date === dateStr);
@@ -407,6 +421,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                     const dayHasNote = hasNote(dateString, accountId);
                     const dayHasAdjustment = hasAdjustment(dateString);
                     const dayAdjustment = getAdjustmentForDate(dateString);
+                    const payoutEligible = payoutDay?.date === dateString;
                     
                     return (
                       <div
@@ -415,6 +430,8 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                           'relative flex h-20 flex-col rounded-lg border p-2 transition-all duration-200 group sm:h-[5.25rem] sm:p-2.5',
                           isToday 
                             ? 'border-blue-500 bg-blue-500/10' 
+                            : isFuture && payoutEligible
+                              ? 'border-amber-400/40 bg-amber-400/[0.06]'
                             : isFuture
                               ? 'border-white/5 bg-[#172035]/20 opacity-50' // Future dates styling
                               : isWeekendDay
@@ -431,6 +448,15 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                       >
                         {/* Top-right indicators container */}
                         <div className="absolute right-1 top-1 flex items-center space-x-1">
+                          {payoutEligible && (
+                            <div
+                              className="rounded-full bg-amber-400/20 px-1 text-[11px] leading-5"
+                              title={`Payout eligible${payoutDay && payoutDay.amount > 0 ? ` · about $${Math.round(payoutDay.amount).toLocaleString()} to you` : ''} (estimate, if every day until then qualifies)`}
+                              aria-label="Payout eligible"
+                            >
+                              💰
+                            </div>
+                          )}
                           {/* Adjustment indicator */}
                           {dayHasAdjustment && (
                             <div 
@@ -470,7 +496,9 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                           {day}
                         </div>
                         
-                        {isFuture ? null : isWeekendDay ? (
+                        {isFuture ? (
+                          payoutEligible ? <div className="mt-1 truncate text-[11px] font-semibold text-amber-300">Payout eligible</div> : null
+                        ) : isWeekendDay ? (
                           <div className="mt-1 text-xs text-zinc-500">Market closed</div>
                         ) : dayData && dayData.trades > 0 ? (
                           <div className="mt-0.5 min-w-0">

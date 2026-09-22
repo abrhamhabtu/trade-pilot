@@ -214,3 +214,10 @@ test('dollars convert to points per contract', () => {
   assert.equal(dollarsToPoints(1000, 'MNQ', 5), 100);
   assert.equal(dollarsToPoints(1000, 'ES', 1), 20);
 });
+
+test('a program named in the account name picks that program', () => {
+  const base = { broker: 'Lucid Trading', startingBalance: 100000, balance: 0 };
+  assert.equal(resolveFirm({ ...base, name: 'Lucid 100K Flex' }).firm.id, 'lucid-flex');
+  assert.equal(resolveFirm({ ...base, name: 'My Lucid account' }).firm.id, 'lucid-pro');
+  assert.equal(resolveFirm({ ...base, broker: 'Top One Futures', name: 'TOF Elite 50K' }).firm.id, 'tof-elite');
+});

@@ -42,6 +42,11 @@ export interface FirmFinePrint {
   maxPayouts?: FineRule<number>;
   /** Profit you must leave in the account, above the starting balance. */
   safetyNet?: FineRule<string>;
+  /**
+   * The same rule as a number: only profit above drawdown + this many dollars
+   * can be withdrawn. Present only where the firm states it that way.
+   */
+  safetyNetOverDrawdown?: number;
   inactivity?: FineRule<string>;
   /** Anything else that quietly ends accounts or holds payouts. */
   gotchas?: FineRule<string>[];
@@ -122,6 +127,7 @@ export const FIRM_FINE_PRINT: Record<string, FirmFinePrint> = {
       value: 'Drawdown + $100 must stay in the account for its life. Only profit above that is withdrawable.',
       source: 'official',
     },
+    safetyNetOverDrawdown: 100,
     inactivity: {
       value: 'Reported: at least 2 days with $50+ net profit every rolling 30 days, or the account goes dormant, then closes.',
       source: 'reported',
@@ -163,6 +169,7 @@ export const FIRM_FINE_PRINT: Record<string, FirmFinePrint> = {
       value: 'Profit must clear the initial Max Loss Limit + $100 before any payout.',
       source: 'official',
     },
+    safetyNetOverDrawdown: 100,
     gotchas: [
       { value: 'Payout requests are final once submitted. They cannot be edited or cancelled.', source: 'official' },
     ],

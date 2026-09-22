@@ -112,7 +112,7 @@ function norm(s: string): string {
  * clock than a confidently wrong one.
  */
 export function resolveFirm(
-  account: Pick<Account, 'broker' | 'startingBalance' | 'balance'>,
+  account: Pick<Account, 'broker' | 'startingBalance' | 'balance'> & { name?: string },
 ): { firm: PropFirm; tier: FirmAccountTier } | null {
   const broker = norm(account.broker || '');
   if (!broker) return null;
@@ -124,8 +124,16 @@ export function resolveFirm(
   });
   if (!candidates.length) return null;
 
-  // Prefer the firm's flagship program: the first entry for that name.
-  const firm = candidates[0];
+  // A program named in the account ("Lucid 100K Flex") wins; otherwise the
+  // firm's flagship program, its first entry.
+  const name = norm(account.name || '');
+  const named = name
+    ? candidates.find((f) => {
+        const key = norm(f.program.split(/[\s(]/)[0]).replace(/^lucid/, '');
+        return key.length >= 3 && name.includes(key);
+      })
+    : undefined;
+  const firm = named ?? candidates[0];
   const size = account.startingBalance ?? account.balance ?? 0;
   if (!firm.tiers.length) return null;
 

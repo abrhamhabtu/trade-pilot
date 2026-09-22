@@ -14,6 +14,7 @@ import { AddAccountModal, DeleteAccountModal } from './AccountModals';
 import { ConnectionsPanel } from './ConnectionsPanel';
 import { AccountHealthBoard } from './AccountHealthBoard';
 import { DataPanel } from './DataPanel';
+import { NextPayouts } from './NextPayouts';
 import { STATUS_META, STATUS_ORDER, btn, signedUsd } from './accountUi';
 
 type PageTab = 'accounts' | 'connections' | 'health' | 'data';
@@ -198,6 +199,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
       {tab === 'accounts' && (
         <div className="space-y-5">
           {sample && <GetStarted onAdd={() => setAdding(true)} onConnect={() => setTab('connections')} />}
+
+          <NextPayouts onOpen={(id) => setDrawer({ id, tab: 'money' })} />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Segmented
