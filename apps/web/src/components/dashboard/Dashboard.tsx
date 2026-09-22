@@ -63,8 +63,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       <MetricsGrid metrics={metrics} trades={trades} accountBalance={accountBalance} />
 
-      <PropNetCard />
-
       <CoachCard trades={trades} />
 
       <ChartsContainer
@@ -79,6 +77,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
         onNavigateToRoutine={onNavigateToRoutine}
         accountId={accountId}
       />
+
+      <div className="mt-6">
+        <PropNetCard />
+      </div>
 
     </PageSection>
   );

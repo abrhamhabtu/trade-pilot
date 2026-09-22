@@ -446,11 +446,11 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                         )}
                         onClick={() => handleDayClick(day)}
                       >
-                        {/* Top-right indicators container */}
-                        <div className="absolute right-1 top-1 flex items-center space-x-1">
+                        {/* Header row: indicators sit beside the day number, never on top of it */}
+                        <div className="flex h-5 items-center justify-end gap-1">
                           {payoutEligible && (
                             <div
-                              className="rounded-full bg-amber-400/20 px-1 text-[11px] leading-5"
+                              className="rounded-full bg-amber-400/20 px-1 text-[10px] leading-4"
                               title={`Payout eligible${payoutDay && payoutDay.amount > 0 ? ` · about $${Math.round(payoutDay.amount).toLocaleString()} to you` : ''} (estimate, if every day until then qualifies)`}
                               aria-label="Payout eligible"
                             >
@@ -487,13 +487,12 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                               <FileText className="h-3 w-3 text-zinc-400" />
                             </div>
                           )}
-                        </div>
-                        
-                        <div className={clsx(
-                          'text-right text-xs font-medium',
-                          isFuture ? 'text-zinc-400/50' : isWeekendDay ? 'text-zinc-400' : 'text-zinc-300'
-                        )}>
-                          {day}
+                          <span className={clsx(
+                            'ml-0.5 text-xs font-medium tabular-nums',
+                            isFuture ? 'text-zinc-400/50' : isWeekendDay ? 'text-zinc-400' : 'text-zinc-300'
+                          )}>
+                            {day}
+                          </span>
                         </div>
                         
                         {isFuture ? (
