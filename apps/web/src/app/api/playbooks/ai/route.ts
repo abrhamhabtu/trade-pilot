@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   providerErrorMessage,
   resolveModelEndpoint,
+  resolveProviderBase,
   sameOrigin,
 } from "@/lib/pilot/proxy";
 import { extractJson, sanitizeDraft, sanitizeImprove, type AiSource } from "@/lib/playbookAI";
@@ -134,7 +135,12 @@ export async function POST(request: Request) {
     } catch {
       throw new Error("Invalid request.");
     }
-    const { endpoint, headers, model } = resolveModelEndpoint(body);
+    const claude = body.provider === "anthropic";
+    const { endpoint, headers, model } = claude ? { endpoint: "", headers: {}, model: String(body.model || "").trim() } : resolveModelEndpoint(body);
+    if (claude) {
+      resolveProviderBase(body);
+      if (!model || model.length > 200) throw new Error("Enter a valid model ID.");
+    }
     const mode = body.mode === "improve" ? "improve" : "create";
 
     const sources: AiSource[] = (Array.isArray(body.sources) ? body.sources : [])
@@ -162,6 +168,34 @@ export async function POST(request: Request) {
     const content = images.length
       ? [{ type: "text", text }, ...images.map((url) => ({ type: "image_url", image_url: { url } }))]
       : text;
+
+    if (claude) {
+      const { completeClaude, claudeErrorMessage } = await import("@/lib/pilot/claude");
+      let reply: string;
+      try {
+        reply = await completeClaude({
+          apiKey: String(body.apiKey),
+          model,
+          system: mode === "improve" ? IMPROVE_PROMPT : CREATE_PROMPT,
+          content: images.length
+            ? [
+                ...images.map((url) => {
+                  const [, mediaType, data] = /^data:(image\/[a-z]+);base64,(.*)$/.exec(url)!;
+                  return { type: "image" as const, source: { type: "base64" as const, media_type: mediaType.replace("jpg", "jpeg") as "image/png", data } };
+                }),
+                { type: "text" as const, text },
+              ]
+            : text,
+          signal: AbortSignal.timeout(170000),
+        });
+      } catch (error) {
+        return NextResponse.json({ error: error instanceof Error && error.message.startsWith("Claude declined") ? error.message : claudeErrorMessage(error) }, { status: 502 });
+      }
+      if (!reply) return NextResponse.json({ error: "Claude returned nothing. Try again." }, { status: 502 });
+      const parsedClaude = extractJson(reply);
+      const resultClaude = mode === "improve" ? sanitizeImprove(parsedClaude) : sanitizeDraft(parsedClaude);
+      return NextResponse.json({ mode, result: resultClaude }, { headers: { "Cache-Control": "no-store" } });
+    }
 
     const response = await fetch(endpoint, {
       method: "POST",

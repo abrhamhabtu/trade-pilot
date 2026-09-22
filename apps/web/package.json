@@ -11,6 +11,7 @@
     "build:verify": "NEXT_DIST_DIR=.next-verify next build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@types/papaparse": "^5.5.2",
     "clsx": "^2.1.1",
     "lucide-react": "^0.575.0",

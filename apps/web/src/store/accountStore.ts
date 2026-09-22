@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { Trade } from './tradingStore';
+import type { Trade } from './tradingStore';
 import { persistence } from '@/lib/persistence';
 import type { RiskSnapshot } from '@/lib/sessionRisk';
 import { buildDemoAccounts, hasTraderEdits, nowCutoff, refreshDemoAccounts } from '@/lib/demo/demoData';

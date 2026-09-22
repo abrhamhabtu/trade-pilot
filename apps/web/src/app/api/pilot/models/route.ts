@@ -20,6 +20,17 @@ export async function POST(request: Request) {
   try {
     const body = JSON.parse(await request.text());
     const { base, headers } = resolveProviderBase(body);
+    if (body.provider === "anthropic") {
+      const { listClaudeModels, claudeErrorMessage } = await import("@/lib/pilot/claude");
+      try {
+        const models = await listClaudeModels(String(body.apiKey));
+        return models.length
+          ? NextResponse.json({ models }, { headers: { "Cache-Control": "no-store" } })
+          : NextResponse.json({ error: "Anthropic listed no models for this key." }, { status: 502 });
+      } catch (error) {
+        return NextResponse.json({ error: claudeErrorMessage(error) }, { status: 502 });
+      }
+    }
     const response = await fetch(`${base}/models`, {
       method: "GET",
       headers,

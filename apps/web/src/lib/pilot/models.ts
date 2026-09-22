@@ -4,6 +4,11 @@ export const PROVIDERS = {
     url: "",
     hint: "Private, deterministic analysis. No API key needed.",
   },
+  anthropic: {
+    label: "Anthropic (Claude)",
+    url: "https://api.anthropic.com",
+    hint: "Add your Anthropic API key. Claude gets tool lookups, streaming and adaptive thinking.",
+  },
   openrouter: {
     label: "OpenRouter",
     url: "https://openrouter.ai/api/v1",
