@@ -9,6 +9,7 @@ import { accountsInScope, useAccountStore } from '@/store/accountStore';
 import { APP_ROUTES } from '@/lib/navigation';
 import { COST_KIND_LABEL, computeLedger, type LedgerMonth, type LedgerRow } from '@/lib/propLedger';
 import { AdviceLine, MiniStat, SectionHeader, useThemeClasses } from './payoutPrimitives';
+import { AskPilotLink } from '@/components/pilot/AskPilotLink';
 
 const usd = (n: number) => `${n < 0 ? '−' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 const signed = (n: number) => `${n > 0 ? '+' : ''}${usd(n)}`;
@@ -130,6 +131,13 @@ export function LedgerTab() {
             <p className={clsx('mt-2 text-sm', muted)}>
               {usd(l.received)} received from {l.payoutCount} payout{l.payoutCount === 1 ? '' : 's'}, less {usd(l.spent)} in fees.
             </p>
+            {hasCosts && (
+              <AskPilotLink
+                className="mt-2"
+                question="Look at my prop ledger: which firms and account types are actually paying me after fees, and where should my next evaluation dollar go?"
+                label="Ask Pilot where your next dollar should go"
+              />
+            )}
           </div>
           <div className={clsx('rounded-xl px-4 py-3 text-right', dark ? 'bg-white/[0.03]' : 'bg-gray-50')}>
             <p className={clsx('text-[11px] uppercase tracking-wide', muted)}>Return on fees</p>

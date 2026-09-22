@@ -6,6 +6,7 @@ import { AlertTriangle, Hand } from 'lucide-react';
 import { useAccountStore } from '@/store/accountStore';
 import { useDailyStop } from '@/hooks/useDailyStop';
 import { useHasMounted } from '@/hooks/useHasMounted';
+import { AskPilotLink } from '@/components/pilot/AskPilotLink';
 
 /** Loud, and only there when it matters: the day is over, or close to a line. */
 export function DailyStopBanner() {
@@ -47,6 +48,16 @@ export function DailyStopBanner() {
         {stop.stopped && !loss && (
           <p className="mt-1.5 text-xs text-zinc-500">A good day kept is worth more than a great day given back.</p>
         )}
+        <AskPilotLink
+          className="mt-2"
+          accountId={account.id}
+          label={stop.stopped ? 'Two-minute debrief with Pilot' : 'Ask Pilot whether to keep going'}
+          question={
+            stop.stopped
+              ? `Debrief today's session in two minutes: what happened, what I did well, and one thing to change tomorrow. (${lines.map((r) => r.text).join(' ')})`
+              : `I'm close to a line today (${lines.map((r) => r.text).join(' ')}). Should I keep trading or stop?`
+          }
+        />
       </div>
     </div>
   );

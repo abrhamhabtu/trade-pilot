@@ -7,6 +7,7 @@ import { accountsInScope, useAccountStore } from '@/store/accountStore';
 import { localSessionDate } from '@/lib/sessionRisk';
 import { payoutSchedule, type PayoutStatus, type PayoutWindow } from '@/lib/payoutSchedule';
 import { shortDate, signedUsd } from './accountUi';
+import { AskPilotLink } from '@/components/pilot/AskPilotLink';
 
 const STATUS: Record<PayoutStatus, { label: string; icon: React.ElementType; tone: string }> = {
   ready: { label: 'Ready to request', icon: CheckCircle2, tone: 'text-tp-green bg-tp-green/10' },
@@ -17,11 +18,18 @@ const STATUS: Record<PayoutStatus, { label: string; icon: React.ElementType; ton
 
 function WindowCard({ w, onOpen }: { w: PayoutWindow; onOpen: () => void }) {
   const s = STATUS[w.status];
+  const question =
+    w.status === 'ready'
+      ? `${w.accountName} can pay out about ${signedUsd(w.afterSplit)} now. Should I take it all, or leave a buffer?`
+      : w.status === 'maxed'
+        ? `${w.accountName} has taken every payout it allows. What should I do with it now?`
+        : `Why can't ${w.accountName} pay out yet (${w.blockers.map((b) => b.text).join(' ')}), and what's the fastest safe way to get there?`;
   return (
+    <div className="flex min-w-[250px] flex-1 flex-col rounded-xl bg-black/20 ring-1 ring-inset ring-white/[0.05] transition-colors hover:ring-white/[0.12]">
     <button
       type="button"
       onClick={onOpen}
-      className="flex min-w-[250px] flex-1 flex-col rounded-xl bg-black/20 p-4 text-left ring-1 ring-inset ring-white/[0.05] transition-colors hover:ring-white/[0.12]"
+      className="flex flex-1 flex-col p-4 pb-2 text-left"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -69,6 +77,10 @@ function WindowCard({ w, onOpen }: { w: PayoutWindow; onOpen: () => void }) {
         </ul>
       )}
     </button>
+    <div className="px-4 pb-3">
+      <AskPilotLink question={question} accountId={w.accountId} label={w.status === 'ready' ? 'Ask Pilot how much to take' : w.status === 'maxed' ? 'Ask Pilot what next' : 'Ask Pilot why'} />
+    </div>
+    </div>
   );
 }
 

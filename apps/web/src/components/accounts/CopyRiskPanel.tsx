@@ -6,6 +6,7 @@ import { Copy, Skull } from 'lucide-react';
 import { accountsInScope, useAccountStore } from '@/store/accountStore';
 import { COPY_CORRELATION, MIN_SHARED_DAYS, findCopyGroups } from '@/lib/copyRisk';
 import { signedUsd } from './accountUi';
+import { AskPilotLink } from '@/components/pilot/AskPilotLink';
 
 /** Accounts that trade as copies, and what one bad day does to all of them together. */
 export function CopyRiskPanel() {
@@ -87,6 +88,11 @@ export function CopyRiskPanel() {
                   <li key={s}>· {s}</li>
                 ))}
               </ul>
+              <AskPilotLink
+                className="mt-3"
+                question={`${g.members.map((m) => m.name).join(', ')} trade as copies. Their worst day together is ${signedUsd(g.combinedWorstDay)} and it would end ${g.blowCount} of them. How should I size and stagger them?`}
+                label="Ask Pilot how to size these"
+              />
             </div>
           ))}
         </div>

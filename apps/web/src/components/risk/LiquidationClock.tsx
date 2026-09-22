@@ -13,6 +13,7 @@ import {
 } from '@/lib/liquidation';
 import { SESSION_INSTRUMENTS } from '@/lib/sessionRisk';
 import { useDailyStop } from '@/hooks/useDailyStop';
+import { AskPilotLink } from '@/components/pilot/AskPilotLink';
 
 const money = (n: number) =>
   `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -328,6 +329,11 @@ export function LiquidationClock() {
                 aria-label="Contracts"
                 onChange={(e) => setContracts(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
                 className="w-16 rounded-md border border-white/[0.08] bg-tp-card px-2 py-1 text-xs tabular-nums text-white/80 outline-none focus:border-tp-blue/50"
+              />
+              <AskPilotLink
+                accountId={account.id}
+                label="Ask Pilot"
+                question={`I have ${money(roomToStop)} left to lose on ${account.name} (${pct}% of my buffer). What size should I trade today, and how many losers can I take?`}
               />
               <p className="flex-1 text-[11px] leading-snug text-white/40">
                 {state.estimated

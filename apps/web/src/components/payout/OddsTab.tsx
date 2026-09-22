@@ -16,6 +16,7 @@ import {
 } from '@/lib/passOdds';
 import type { FirmAccountTier, PropFirm } from './propFirmData';
 import { AdviceLine, SectionHeader, useThemeClasses } from './payoutPrimitives';
+import { AskPilotLink } from '@/components/pilot/AskPilotLink';
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 const usd = (n: number) => `$${Math.round(n).toLocaleString()}`;
@@ -124,6 +125,11 @@ export function OddsTab({ firm, tier, onPick }: OddsTabProps) {
             <p className={clsx('mt-4 text-xs', muted)}>
               From {samples.length} trading days: {pct(winDays / samples.length)} green, averaging {avg >= 0 ? '' : '−'}{usd(Math.abs(avg))} a day.
             </p>
+            <AskPilotLink
+              className="mt-3"
+              question={`My simulated odds at ${firm.name} ${firm.program} ${tier.label}: ${pct(odds.pass)} pass, ${pct(odds.blow)} blow. What in my trading drives the blow rate, and what would raise my odds most?`}
+              label="Ask Pilot how to raise these odds"
+            />
             {odds.optimistic && (
               <p className="mt-2 flex items-start gap-1.5 text-xs text-tp-yellow">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
