@@ -3,10 +3,13 @@
   "configurations": [
     {
       "name": "web",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "apps/web", "run", "dev"],
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && exec npx next dev -H 127.0.0.1"
+      ],
       "port": 4040,
-      "url": "http://127.0.0.1:4040"
+      "autoPort": true
     }
   ]
 }
