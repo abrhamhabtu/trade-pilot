@@ -23,6 +23,7 @@ import {
 } from '@/lib/propfirms';
 import { PropFirmsShell } from './PropFirmsShell';
 import { FirmCard } from './FirmCard';
+import { RulesThatBite } from './RulesThatBite';
 
 interface PropFirmDetailProps {
   brand: PropFirmBrand;
@@ -102,6 +103,7 @@ export function PropFirmDetail({ brand }: PropFirmDetailProps) {
           {primary && (
             <RulesAtAGlance firm={primary} className="mt-8" />
           )}
+          <RulesThatBite programs={programs} className="mt-10" />
         </section>
 
         {/* Programs */}

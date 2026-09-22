@@ -26,6 +26,7 @@ import {
 import { useRoutineStore, type TradingRule } from '@/store/routineStore';
 import { useAccountStore } from '@/store/accountStore';
 import { computeLiquidation } from '@/lib/liquidation';
+import { firmWarningsFor } from '@/lib/firmWarnings';
 import {
   evaluatePreflight,
   redDayStreak,
@@ -248,10 +249,12 @@ export const PreflightPage: React.FC = () => {
     };
   }, [checklistItems, plan, liquidation, account, date]);
 
-  const verdict: PreflightVerdict = useMemo(
-    () => evaluatePreflight(condition, signals),
-    [condition, signals],
-  );
+  // Firm fine print (news bans, last payouts, inactivity) rides along as warnings.
+  // They never change the size you earned; they tell you what to avoid today.
+  const verdict: PreflightVerdict = useMemo(() => {
+    const v = evaluatePreflight(condition, signals);
+    return { ...v, reasons: [...v.reasons, ...firmWarningsFor(account, date)] };
+  }, [condition, signals, account, date]);
 
   const tone = CLEARANCE_TONE[verdict.clearance];
   const ToneIcon = tone.icon;
