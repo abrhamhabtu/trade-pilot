@@ -7,6 +7,8 @@ import { useThemeStore } from '@/store/themeStore';
 import { useUIStore } from '@/store/uiStore';
 import dynamic from 'next/dynamic';
 import { PilotAutomation } from '@/components/pilot/PilotAutomation';
+import { SignalListener } from '@/components/pilot/flow/SignalListener';
+import { ProvingRunner } from '@/components/proving/ProvingRunner';
 import { LiquidationClock } from '@/components/risk/LiquidationClock';
 import { AutoSync } from '@/components/accounts/AutoSync';
 import { useCompactSidebar } from '@/hooks/useCompactSidebar';
@@ -39,6 +41,8 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <AutoSync />
       <PilotAutomation />
+      <SignalListener />
+      <ProvingRunner />
       <main className={clsx('h-full overflow-auto transition-all duration-300', sidebarCollapsed ? 'ml-20' : 'ml-64')}>
         {children}
       </main>

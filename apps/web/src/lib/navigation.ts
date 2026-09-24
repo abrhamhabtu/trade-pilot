@@ -11,12 +11,14 @@ import {
   Wallet,
   Building2,
   Sparkles,
+  FlaskConical,
 } from 'lucide-react';
 
 export const APP_ROUTES = {
   dashboard: '/app/dashboard',
   accounts: '/app/accounts',
   pilot: '/app/pilot',
+  proving: '/app/proving',
   journey: '/app/journey',
   routine: '/app/routine',
   setups: '/app/setups',
@@ -34,6 +36,7 @@ export const APP_NAVIGATION = [
   { name: 'Dashboard', icon: BarChart3, href: APP_ROUTES.dashboard },
   { name: 'Accounts', icon: Users, href: APP_ROUTES.accounts },
   { name: 'Pilot AI', icon: Sparkles, href: APP_ROUTES.pilot },
+  { name: 'Proving Ground', icon: FlaskConical, href: APP_ROUTES.proving },
   { name: 'Playbooks', icon: Target, href: APP_ROUTES.playbooks },
   { name: 'Journey', icon: Compass, href: APP_ROUTES.journey },
   { name: 'Routine', icon: ClipboardCheck, href: APP_ROUTES.routine },

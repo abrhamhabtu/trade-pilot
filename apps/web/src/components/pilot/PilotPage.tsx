@@ -37,10 +37,13 @@ import { ModelPanel } from "./ModelPanel";
 import { PilotCoach } from "./PilotCoach";
 import { TradeReview } from "./TradeReview";
 import { ManualTrade } from "./ManualTrade";
+import { TodayFlow } from "./flow/TodayFlow";
+import { pilotHref } from "@/lib/pilot/askPilot";
 import "./pilot.css";
 
-type View = "overview" | "reviews" | "playbook" | "settings";
+type View = "today" | "overview" | "reviews" | "playbook" | "settings";
 const tabs: { id: View; label: string }[] = [
+  { id: "today", label: "Today" },
   { id: "overview", label: "Ask Pilot" },
   { id: "reviews", label: "Trade reviews" },
   { id: "playbook", label: "Your edge" },
@@ -64,7 +67,7 @@ export function PilotPage() {
     showAllAccounts,
     initializeFromIDB,
   } = useAccountStore();
-  const [view, setView] = useState<View>("overview");
+  const [view, setView] = useState<View>("today");
   const { model, setModel: saveModel, hydrate, forgetKey } = useModelStore();
   useEffect(() => {
     initializeFromIDB();
@@ -76,6 +79,8 @@ export function PilotPage() {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
     if (tabs.some((t) => t.id === tab)) setView(tab as View);
+    // Arriving with a question means the trader wants the coach, not the day view.
+    else if (params.has("ask")) setView("overview");
     // Strip the account param even when the id is unknown, so a stale link
     // cannot leave the coach waiting for a switch that will never happen.
     const account = params.get("account");
@@ -387,7 +392,18 @@ function AccountWorkspace({
         </div>
       )}
 
-      {view === "settings" ? (
+      {view === "today" ? (
+        <TodayFlow
+          account={account}
+          onReviews={() => setView("reviews")}
+          onAsk={(question) => {
+            // The coach picks the question up from the URL when it mounts.
+            window.history.replaceState(null, "", pilotHref(question));
+            setView("overview");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
+      ) : view === "settings" ? (
         <div className="grid items-start gap-6 xl:grid-cols-2 [&_.pilot-settings]:max-w-none">
           <Settings account={account} settings={settings} />
           <ModelPanel config={model} onChange={saveModel} onForgetKey={forgetKey} />

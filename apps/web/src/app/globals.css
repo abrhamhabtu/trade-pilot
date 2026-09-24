@@ -81,3 +81,46 @@ body {
   from { transform: translateY(8px); opacity: 0; }
   to   { transform: translateY(0);   opacity: 1; }
 }
+
+/* ─── Pilot · Today flow ──────────────────────────────────────────────────── */
+@keyframes tpPingIn {
+  from { transform: translate(-50%, 16px) scale(0.98); opacity: 0; }
+  to   { transform: translate(-50%, 0) scale(1);      opacity: 1; }
+}
+@keyframes tpPingBar { from { width: 100%; } to { width: 0%; } }
+@keyframes tpPulse {
+  0%, 100% { transform: scale(1);   opacity: 0.55; }
+  50%      { transform: scale(1.9); opacity: 0; }
+}
+@keyframes tpScanIn {
+  from { transform: translateY(4px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+@keyframes tpShimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes tpGlowSpin { to { --tp-glow-angle: 360deg; } }
+@property --tp-glow-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+.tp-ping-in  { animation: tpPingIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.tp-ping-bar { animation: tpPingBar 14s linear both; }
+.tp-flow-pulse { transform-box: fill-box; transform-origin: center; animation: tpPulse 1.8s ease-out infinite; }
+.tp-flow-scan  { animation: tpScanIn 0.4s ease-out both; }
+.tp-flow-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(0, 214, 143, 0.12), transparent);
+  background-size: 200% 100%;
+  animation: tpShimmer 2.4s linear infinite;
+}
+/* A slow-turning gradient border: Pilot's own voice on the page. */
+.tp-flow-glow {
+  background:
+    linear-gradient(#172035, #172035) padding-box,
+    conic-gradient(from var(--tp-glow-angle), rgba(0, 214, 143, 0.55), rgba(79, 156, 249, 0.5), rgba(0, 214, 143, 0.08), rgba(79, 156, 249, 0.08), rgba(0, 214, 143, 0.55)) border-box;
+  animation: tpGlowSpin 9s linear infinite;
+  box-shadow: 0 0 40px -12px rgba(0, 214, 143, 0.25);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tp-ping-in, .tp-flow-scan { animation: none; }
+  .tp-ping-bar, .tp-flow-pulse, .tp-flow-shimmer, .tp-flow-glow { animation: none; }
+}
+@keyframes tpSheetIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.tp-sheet-in { animation: tpSheetIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) { .tp-sheet-in { animation: none; } }
