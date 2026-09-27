@@ -1099,7 +1099,18 @@ export const tradingStrategies: PlaybookStrategy[] = [
       'Taking a second attempt after VWAP failed - the trend is breaking down, stand aside',
       'Using too wide a stop that makes the R/R unfavorable (< 1:2)',
       'Ignoring the higher-timeframe context (daily trend, news events)'
-    ]
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-vwap-pullback-es-reel',
+          title: 'Pullback to VWAP — Evan Dyer (IG reel, ES)',
+          url: 'https://www.instagram.com/reel/Ddo5vCsKVFY/',
+          notes:
+            'Evan Dyer (itsevandyer) live example, made over $1,100 that day on ES. All sellers in control all morning, but do not FOMO a short off no level: wait for the pullback to New York VWAP, see sellers defend it with a break back below, then trade it back down toward the low of day. Second touch: after sellers held another lower high and reclaimed NY VWAP, he added more and exited near max profit. Base hit mentality: take the base hit, rinse and repeat, no need to hold all the way to the low of day — "see money and take money" because heavy open selling may not have gas for another low. Level is always clear: VWAP in a trend. He live streams mornings free on ASFX TV.',
+        },
+      ],
+    },
   },
   {
     id: 'failed-breakout',
