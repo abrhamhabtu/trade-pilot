@@ -56,6 +56,8 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'liquidity-sweep': 'Smart Money',
   'ict-fvg': 'Smart Money',
   'failed-auction': 'Auction',
+  'supply-demand-zones': 'Support/Resistance',
+  'law-of-10-risk': 'Risk',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -65,6 +67,8 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   breakout: { dir: 'Long', variant: 2 },
   'mean-reversion': { dir: 'Short', variant: 1 },
   'trend-following': { dir: 'Long', variant: 2 },
+  'supply-demand-zones': { dir: 'Long', variant: 0 },
+  'law-of-10-risk': { dir: 'Long', variant: 1 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -86,6 +90,8 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'liquidity-sweep': 'Fade the stop hunt',
   'ict-fvg': 'Let price fill the gap, then go',
   'failed-auction': 'Fade the failed extreme, magnet back to POC',
+  'supply-demand-zones': 'Short the supply, buy the demand',
+  'law-of-10-risk': 'Protect the cushion, scale the risk',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
@@ -360,6 +366,288 @@ export const tradingStrategies: PlaybookStrategy[] = [
       'Ignoring overall market trend direction',
       'Not waiting for proper risk/reward setups'
     ]
+  },
+  {
+    id: 'supply-demand-zones',
+    name: 'Supply & Demand Zones (Octavia)',
+    description:
+      'Short from fresh supply zones, long from fresh demand zones, drawn off the basing candle before the impulsive move. How Abe likes to trade S/R, from octavia.trades.',
+    difficulty: 'Intermediate',
+    timeframe: '1m - 5m',
+    winRate: 73,
+    riskReward: '1:2',
+    marketCondition: 'NQ & ES morning rush — trending and range-bound',
+    overview:
+      'Supply and demand zones are price areas where institutions loaded so much size that the move became a vertical impulse. The sellers left a supply zone above; the buyers left a demand zone below. When price returns to that zone, the same side steps in again, and the auction fails there — that is the setup.\n\nThe rule from octavia.trades (8 years on the same instrument): draw the zone from the small basing candle that sits RIGHT BEFORE the larger impulsive candle. For a demand zone, a small bullish basing candle before a larger bullish candle. For a supply zone, the mirror. Then you only trade fresh zones: short from supply, long from demand, on the first meaningful retest.\n\nAbe adaptation: her clean version runs on the 5-minute chart. The same logic works on 1m for tighter entries once the 5m zone and rejection are confirmed. Her chart background also shows FVG and CHoCH labels, so confluence is welcome but the zone is the edge.',
+    glossary: [
+      { term: 'Supply zone', meaning: 'An area where big selling overwhelmed buying and price launched downward. Sellers defend it on the retest. Shorts only.' },
+      { term: 'Demand zone', meaning: 'An area where big buying overwhelmed selling and price launched upward. Buyers defend it on the retest. Longs only.' },
+      { term: 'Fresh zone', meaning: 'A zone price has not yet returned to. The first retest is the highest probability; the second and third are weaker.' },
+      { term: 'Basing candle', meaning: 'The small consolidation candle right before the impulsive move. The zone is drawn from this base, not from the whole impulse.' },
+      { term: 'CHoCH', meaning: 'Change of character. A 1m/5m structure break that confirms the rejection is real and the retest is turning.' },
+    ],
+    anatomy: [
+      {
+        title: 'Mark the zones off the base, not the impulse',
+        points: [
+          'On the 5m chart, find vertical moves where price shot away from a small basing candle.',
+          'Demand zone = the base of an up-impulse. Supply zone = the base of a down-impulse.',
+          'Keep zones tight. A zone spanning the whole impulse is too wide and useless.',
+        ],
+      },
+      {
+        title: 'Price returns to the zone (the retest)',
+        points: [
+          'Only trade fresh zones. If price has already been back once, the edge drops fast.',
+          'Wait for price to trade INTO the zone. Do not enter halfway to it.',
+          'Supply zones only short. Demand zones only long. Never the other way around.',
+        ],
+      },
+      {
+        title: 'The rejection confirms the zone holds',
+        points: [
+          'Look for a long wick, an engulfing candle, or a clear 1m structure break (CHoCH) inside the zone.',
+          'Enter on the confirmation candle close, not the first wick.',
+          'On 1m, the entry candle is tighter and the stop is tighter — that is the Abe adaptation of her 5m style.',
+        ],
+      },
+      {
+        title: 'Stop beyond the zone, target the next one',
+        points: [
+          'Stop above/below the zone edge plus a small buffer for wick noise (e.g. 10-20 NQ points).',
+          'Target the next conflicting zone or a measured move of the original impulse.',
+          'Scale: 1:1 partial to breakeven, then trail the rest with 1m structure.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Only trade fresh zones — the first retest is the highest probability',
+      'Draw the zone from the small basing candle right before the larger impulsive candle (bullish basing candle for demand, bearish for supply)',
+      'Find the zone and the setup on the 5m chart (her clean level). Drop to 1m for the precise entry (Abe preference)',
+      'Wait for price to return INTO the zone, then look for rejection: long wick, engulfing, or a 1m CHoCH',
+      'Enter on the confirmation candle close in the zone direction — a wick poke through is not entry',
+      'Supply zones = shorts only. Demand zones = longs only.',
+    ],
+    exitRules: [
+      'Target the next opposite zone, or a measured move of the impulsive leg',
+      'Take partial profits at 1:1 and move the stop to breakeven',
+      'Trail the remainder along 1m structure once in profit',
+      'Exit if price closes back through the zone against you — the level failed',
+    ],
+    riskManagement: [
+      'Stop beyond the zone edge plus a buffer (e.g. 10-20 NQ points on micros) — never inside the zone where the wick will tag it',
+      'Risk 0.5-1% per trade and size with the sizer; a 20-point NQ stop with $200 risk = 5 micros',
+      'After a zone is retested once, demote it. Fresh is the whole game',
+      'Morning rush on NQ & ES has the cleanest zones; stale midday zones are chop traps',
+      'Journal every zone trade (she uses Tradezella) so the first-retest edge is measurable',
+    ],
+    examples: [
+      {
+        title: 'NQ long from a fresh demand zone',
+        description: 'Illustrative numbers on micro NQ.',
+        setup: '5m demand zone drawn off a bullish basing candle at 19,850 that preceded a 120-point up-impulse. Price rotates back into 19,845-19,860 on the 5m.',
+        entry: '1m CHoCH up inside the zone with a strong body close. Long 19,860. Stop 20 pts below zone → 19,825.',
+        exit: 'Target prior supply zone / measured move ~20,000. Partial at +40, breakeven, trail the rest.',
+        result: 'Illustrative: full script pays close to 1:2.5; partial+trail typical 1:2',
+      },
+      {
+        title: 'ES short from a fresh supply zone',
+        description: 'The mirror image on micro ES.',
+        setup: '5m supply zone at 6,075 from a bearish basing candle before a 60-point down-impulse. Price rallies back into the zone late session.',
+        entry: '1m CHoCH down with a rejection candle close. Short 6,074. Stop 12 pts above zone edge → 6,089.',
+        exit: 'Target the demand zone below at 6,020 / measured move. Partial at 1:1, trail the rest.',
+        result: 'Illustrative: zone rejects and price dumps to the measured target',
+      },
+      {
+        title: 'Daily tape replay from her reel',
+        description: 'From the octavia.trades IG reel.',
+        setup: 'She marks both SUPPLY and DEMAND zones on the chart, labels SELLING INTEREST on supply and BUYING PRESSURE on demand, and shows fresh demand drawn from a smaller bullish basing candle before a larger bullish candle.',
+        entry: 'Short from supply on the retest, long from demand on the retest — with the smaller basing candle as the zone origin',
+        exit: 'Next zone or structure target; trade the morning rush NQ & ES',
+        result: 'Her claim: 8 years on the same instrument, same strategy, journaled on Tradezella',
+      },
+    ],
+    tips: [
+      'The zone is the base candle, not the whole move — this is the single most important lesson from the reel',
+      '5m zone context with a 1m entry is the sweet spot on micros; pure 5m entries are also fine when the rejection is obvious',
+      'Confluence helps: her charts carry FVG and CHoCH labels alongside the zones',
+      'Fresh zones at the morning open of NQ & ES are the cleanest trades of the day',
+      'If you can mark zones on a clean chart with three lines, you can trade this — it is not an indicator, it is structure',
+    ],
+    commonMistakes: [
+      'Trading zones that have already been retested — old S/R gets picked over fast',
+      'Drawing the zone across the whole impulse instead of the basing candle',
+      'Entering mid-zone instead of waiting for price to reach it',
+      'Buying the wick instead of the confirmation candle close',
+      'Fighting the zone direction: shorting a demand zone or longing a supply zone',
+      'Zones too wide or drawn on a messy timeframe — 5m keeps them tight',
+    ],
+    source: {
+      url: 'https://www.instagram.com/reel/DdUGLpAv5V3/',
+      title: 'octavia.trades — super simple supply & demand explanation (IG reel)',
+    },
+    sourceClaims: [
+      'Same instrument and same strategy for 8 years',
+      'Demand zones drawn from a smaller bullish basing candle right before a larger bullish candle (mirror for supply)',
+      'Short from fresh supply zones, long from fresh demand zones',
+      'Journaled on Tradezella',
+    ],
+    openQuestions: [
+      'Exact stop placement relative to the zone in her version is inferred, not stated',
+      'Whether she enters on candle close or waits for a full retest candle is inferred from frames',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-octavia-sd',
+          title: 'Supply & Demand Zones — octavia.trades (IG reel)',
+          url: 'https://www.instagram.com/reel/DdUGLpAv5V3/',
+          notes:
+            'Text-overlay explanation reel. Short from fresh SUPPLY zones (selling interest), long from fresh DEMAND zones (buying pressure). Draw demand zones from a smaller bullish basing candle right before the larger bullish candle; mirror for supply. 5m execution, NQ & ES morning rush. Her chart background also shows FVG + CHoCH labels. 8 years same instrument, journaled on Tradezella. 582 likes, posted 2026-09-15.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'law-of-10-risk',
+    name: 'The Law of 10 (Risk Sizing)',
+    description:
+      'Prop-firm risk model: risk 1/10th of your max drawdown on every trade, recompiled after every trade. Protect payouts, scale as the cushion grows. From saiyan_trades.',
+    difficulty: 'Intermediate',
+    timeframe: 'Any timeframe',
+    winRate: 70,
+    riskReward: 'Risk model — not a fixed R',
+    marketCondition: 'Any — built for prop firm evals',
+    overview:
+      'The Law of 10 is a risk management framework, not an entry strategy. It answers one question: how much do I risk on the next trade? You take your max drawdown, divide it by 10, and that number is your per-trade risk. Then you recompile it after EVERY trade, so a loss shrinks your risk and a win grows it.\n\nThe reel walks a $50k account with a $2,000 max drawdown: trade one risks $200. A loss drops the cushion to $1,800, so trade two risks $180. A $400 win brings it to $2,200, so the next trade risks $220. You are always protecting the downside while scaling up as you build more drawdown to work with.\n\nThe math behind it: at a 50% win rate over 100 trades, the probability of hitting 10 straight losses is around 4.4% (exact computation: 4.37%), which is low enough to survive rough patches without blowing the account. saiyan_trades says it took him two years to land on this and that most consistently paying prop traders he knows use some form of it.\n\nAbe adaptation on $100k futures evals: a $3,000 drawdown means $300 risk per trade; a $4,000 drawdown means $400. On MNQ (about $2 per point) a 20-point stop fits $300 with 7 micros; on MES (about $5 per point) it fits 3 micros.',
+    glossary: [
+      { term: 'Max drawdown', meaning: 'The most your prop account can lose before failing the eval or payout eligibility. The denominator of the Law of 10.' },
+      { term: 'Cushion', meaning: 'The drawdown you still have left to work with after wins and losses. Risk is always 1/10th of the CURRENT cushion, not the original number.' },
+      { term: 'Dynamic risk', meaning: 'Per-trade risk that recompiles after every trade instead of staying fixed forever.' },
+      { term: 'Trailing drawdown', meaning: 'A max loss that follows your account balance up (common in futures evals). The cushion is measured from the trailing balance.' },
+      { term: 'Streak risk', meaning: 'The probability of a long losing streak in your sample. At 50/50 over 100 trades, 10 straight losses is about a 4.4% event.' },
+    ],
+    anatomy: [
+      {
+        title: 'Find your max drawdown',
+        points: [
+          'On a prop eval it is stated: $50k account, $2,000 max drawdown is the classic example.',
+          'For Abe on $100k futures evals: $3,000 to $4,000 drawdown.',
+          'If the drawdown is trailing, measure it from the live balance after each trade.',
+        ],
+      },
+      {
+        title: 'Divide by 10 — that is the per-trade risk',
+        points: [
+          '$2,000 / 10 = $200 risk on the first trade.',
+          '$3,000 / 10 = $300. $4,000 / 10 = $400.',
+          'This is the maximum you can lose on that single trade, stop included.',
+        ],
+      },
+      {
+        title: 'Recompile after every single trade',
+        points: [
+          'Loss: cushion $1,800 -> next risk $180. You risk LESS after a loss.',
+          'Win: cushion $2,200 -> next risk $220. You risk MORE after a win.',
+          'The engine is the recompile. Fixed risk forever is a different, worse game.',
+        ],
+      },
+      {
+        title: 'Protect payouts, scale as the cushion grows',
+        points: [
+          'The framework is built for prop firm economics: keep the account alive and paying.',
+          'As the account grows, the cushion grows, and your risk number grows with it.',
+          'Never over-leverage: size the micros so the stop distance equals the risk number exactly.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Risk = current cushion / 10 for the next trade, nothing else',
+      '$50k eval with $2,000 max drawdown -> $200 risk on trade one',
+      'After a loss, risk less ($1,800 cushion -> $180)',
+      'After a win, risk more ($2,200 cushion -> $220)',
+      'Size micros so the stop distance in points times point value equals the risk number: 20pt stop on MNQ at $2/pt with $300 risk = 7 micros; on MES at $5/pt = 3 micros',
+      'Pair with any entry playbook; this only decides size',
+    ],
+    exitRules: [
+      'The stop is always the risk number from the Law of 10, never wider',
+      'Cut losers at the stop; the next trade automatically risks less',
+      'Scale out at targets, then recompile risk for the next trade',
+      'If you hit the cushion limit, stop for the day — the account is the business',
+    ],
+    riskManagement: [
+      'Law of 10: max drawdown / 10 = per-trade risk, recompiled after every trade',
+      'Streak math: at 50% win rate over 100 trades, 10 straight losses is about a 4.4% event (exact: 4.37%), which is survivable',
+      'Adapt to your own data: his caption says if your journal shows 7-loss streaks are rare, you can tune the divisor; the key is managing from risk, not profits',
+      'Protect the payout first: risk off the cushion, never off hoped-for profits',
+      'No martingale: never double risk after a loss — the Law already shrinks you',
+      'Abe adaptation: $100k futures with $3,000 drawdown = $300 risk; $4,000 = $400 risk (MNQ ~$2/pt, MES ~$5/pt)',
+    ],
+    examples: [
+      {
+        title: 'The reel walkthrough: $50k eval, $2,000 drawdown',
+        description: 'Direct from saiyan_trades.',
+        setup: '$50,000 account, $2,000 max drawdown. First trade risks $200 (2,000 / 10).',
+        entry: 'Trade one loses -> balance cushion $1,800 -> next risk $180. Trade two wins $400 -> cushion $2,200 -> next risk $220.',
+        exit: 'Constants: divide the live cushion by 10 after every fill.',
+        result: 'Downside always protected, upside scaled as the cushion grows',
+      },
+      {
+        title: 'Abe adaptation: $100k futures, $3,000 drawdown',
+        description: 'Micro futures example.',
+        setup: '$100,000 eval with $3,000 max drawdown -> $300 risk on the first trade.',
+        entry: 'Trade plan with a 20-point stop on MNQ (~$2/pt): $300 / (20 x $2) = 7 micros. On MES (~$5/pt): $300 / (20 x $5) = 3 micros.',
+        exit: 'If the trade loses, cushion is $2,700 -> next risk $270. If it wins $600, cushion $3,600 -> next risk $360.',
+        result: 'Ten straight losses (a ~4.4% event at 50% win rate) costs roughly the eval before you adapt — survivable by design',
+      },
+      {
+        title: 'Why it beats fixed risk',
+        description: 'The edge is the recompile.',
+        setup: 'Fixed risk keeps risking the same amount after losses; Law of 10 de-risks after losses and compounds after wins.',
+        entry: 'Losses shrink exposure automatically, which is what actually protects the drawdown line.',
+        exit: 'Wins grow exposure only after the cushion is proven.',
+        result: 'Designed for prop firm payout economics, not max profit per trade',
+      },
+    ],
+    tips: [
+      'This is a risk engine, not an edge. Run it on top of any playbook you already trust',
+      'Recompile after EVERY trade. Skipping the recompile breaks the whole point',
+      'Journal to find YOUR streak data, then tune the divisor to it (his caption says exactly this)',
+      'Take payouts when earned — the cushion resets and the Law keeps protecting you',
+      'Write the risk number down BEFORE the trade; do not compute it while in the trade',
+    ],
+    commonMistakes: [
+      'Risking 1/10 of the ORIGINAL drawdown even after losses instead of the live cushion',
+      'Doubling risk after losses to chase (martingale) — the Law shrinks you on purpose',
+      'Never tuning the divisor because you have no streak data from a journal',
+      'Wide stops with oversized micros that break the risk number',
+      'Treating it as an entry signal — it is size only',
+    ],
+    source: {
+      url: 'https://www.instagram.com/reel/Db51M6lBdkX/',
+      title: 'saiyan_trades — the Law of 10 risk management for prop firms (IG reel)',
+    },
+    sourceClaims: [
+      'Took two years to figure out; most successful prop traders he knows use some form of it',
+      '$50k account, $2,000 max drawdown example: risk $200, then $180 after a loss, $220 after a win',
+      'At 50% win rate over 100 trades, 10 losses in a row is about a 4.41% event (exact computation: 4.37%)',
+      'He calls it the Law of 10',
+    ],
+    openQuestions: [
+      'Exact handling of trailing vs static drawdown in his version is inferred from the caption',
+      'His exact tuning rule for the divisor beyond the base example is not stated in the reel',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-law-of-10',
+          title: 'The Law of 10 — saiyan_trades (IG reel)',
+          url: 'https://www.instagram.com/reel/Db51M6lBdkX/',
+          notes:
+            'Risk management for prop firms. Divide your max drawdown by 10 = per-trade risk; recompile after every trade ($50k/$2k -> $200, then $180 after a loss, $220 after a win). At 50% win rate over 100 trades, 10 straight losses is ~4.4%. Protect payouts, never over-leverage, scale as the cushion grows. His caption adds: tune the divisor to your own streak data, manage the business from risk not profits. 2,024 likes, posted 2026-09-18 by saiyan_trades (SSJ).',
+        },
+      ],
+    },
   },
   {
     id: 'orb',
@@ -1152,6 +1440,13 @@ export const tradingStrategies: PlaybookStrategy[] = [
           url: 'https://www.youtube.com/watch?v=5Fd5ivtIEG0&t=1218s',
           notes:
             'Chanelle the Trader — Failed Auction. Worked example starts at 20:18. Paste your Pine in the Draft version below.',
+        },
+        {
+          id: 'vid-fam-session-reel',
+          title: 'Best prop firm strategy — failed auction (IG reel, any session)',
+          url: 'https://www.instagram.com/reel/DdahNv-RtKB/',
+          notes:
+            'Chanelle the Trader (chanellethetrader) short-form explainer of the same Failed Auction model. Frames it for non-NY-session traders (Australia/NZ): the FRVP works on ANY single session, find POC fair value, VAH expensive, VAL cheap, wait for price at an extreme, confirm the failed auction with an imbalance being mitigated, enter off the candle that mitigated it, target 1.5R or all the way to POC. Cites $59,890 last month in prop + payouts with the 16 Sep payout $1,200. Comment "FAM" for her full breakdown.',
         },
       ],
       revisions: [
