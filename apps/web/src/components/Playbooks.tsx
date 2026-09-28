@@ -1123,6 +1123,13 @@ export const tradingStrategies: PlaybookStrategy[] = [
           notes:
             'Evan Dyer applies the same pullback to VWAP on single stocks via a vanquishtrader options prop account. ES and NQ do not trend every day, so instead of forcing a long on NQ trading beneath VWAP, he found the asset in trend (Microsoft, his first MSFT trade ever) and took the standard setup: wait for the pullback, see buyers defend VWAP, trade it up toward previous structure. Day six on the options account, $2,300 profit, first payout. Lesson: trade what is moving cleanly that day, not the instrument you are used to; your VWAP read transfers to any asset. He also mentions his "double break" setup as an alternative. Ad: 20% off vanquishtrader with code ASFX.',
         },
+        {
+          id: 'vid-vwap-pullback-overnight-ny',
+          title: 'Using overnight and NY VWAP together — Evan Dyer (IG reel, NQ/ES)',
+          url: 'https://www.instagram.com/reel/DduksPZKjur/',
+          notes:
+            'Evan Dyer session read on NQ and ES combining BOTH VWAPs. Overnight context: pre-market was all sellers under the overnight VWAP (lower highs/lower lows), yet the open prints bullish. His first idea is a short off the overnight VWAP, but he does not fight the New York session: he waits for the 15-minute opening range to set, and only sells if price breaks the range AND breaks back below NY VWAP. No break below NY VWAP = no short, which avoids getting face ripped off by the move back higher. No long either right at VWAP because price just drifts away. Rule: once price is away from VWAP, only take entries at the VWAP pullback, particularly the New York VWAP. Bias note: even though buyers led since 8am pre-market, the overnight structure is what justified the short interest. Takeaway: overnight VWAP gives the bias, NY VWAP gives the execution level, the opening range is the filter.',
+        },
       ],
     },
   },
