@@ -1109,6 +1109,13 @@ export const tradingStrategies: PlaybookStrategy[] = [
           notes:
             'Evan Dyer (itsevandyer) live example, made over $1,100 that day on ES. All sellers in control all morning, but do not FOMO a short off no level: wait for the pullback to New York VWAP, see sellers defend it with a break back below, then trade it back down toward the low of day. Second touch: after sellers held another lower high and reclaimed NY VWAP, he added more and exited near max profit. Base hit mentality: take the base hit, rinse and repeat, no need to hold all the way to the low of day — "see money and take money" because heavy open selling may not have gas for another low. Level is always clear: VWAP in a trend. He live streams mornings free on ASFX TV.',
         },
+        {
+          id: 'vid-vwap-pullback-msft-options',
+          title: 'VWAP bounce on MSFT for first payout — Evan Dyer (IG reel, options)',
+          url: 'https://www.instagram.com/reel/Ddw5iz4io-k/',
+          notes:
+            'Evan Dyer applies the same pullback to VWAP on single stocks via a vanquishtrader options prop account. ES and NQ do not trend every day, so instead of forcing a long on NQ trading beneath VWAP, he found the asset in trend (Microsoft, his first MSFT trade ever) and took the standard setup: wait for the pullback, see buyers defend VWAP, trade it up toward previous structure. Day six on the options account, $2,300 profit, first payout. Lesson: trade what is moving cleanly that day, not the instrument you are used to; your VWAP read transfers to any asset. He also mentions his "double break" setup as an alternative. Ad: 20% off vanquishtrader with code ASFX.',
+        },
       ],
     },
   },
