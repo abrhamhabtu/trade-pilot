@@ -57,7 +57,8 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'ict-fvg': 'Smart Money',
   'failed-auction': 'Auction',
   'supply-demand-zones': 'Support/Resistance',
-  'law-of-10-risk': 'Risk',
+  'law-of-10-risk': 'Prop Firm',
+  'prop-firm-copy-trading': 'Prop Firm',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -69,6 +70,7 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'trend-following': { dir: 'Long', variant: 2 },
   'supply-demand-zones': { dir: 'Long', variant: 0 },
   'law-of-10-risk': { dir: 'Long', variant: 1 },
+  'prop-firm-copy-trading': { dir: 'Long', variant: 1 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -92,9 +94,13 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'failed-auction': 'Fade the failed extreme, magnet back to POC',
   'supply-demand-zones': 'Short the supply, buy the demand',
   'law-of-10-risk': 'Protect the cushion, scale the risk',
+  'prop-firm-copy-trading': 'Straight to funded, scale in, respect the risk',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
+// Category filters create their own browsable sections (e.g. Prop Firm Strategy).
+const CATEGORY_FILTERS = ['Prop Firm'];
+const ALL_FILTERS = [...RANK_FILTERS, ...CATEGORY_FILTERS];
 
 const MEDALS = [
   { label: 'Champion', color: '#FFB800', emoji: '🥇' },
@@ -652,6 +658,148 @@ export const tradingStrategies: PlaybookStrategy[] = [
           url: 'https://www.instagram.com/reel/Db51M6lBdkX/',
           notes:
             'Risk management for prop firms. Divide your max drawdown by 10 = per-trade risk; recompile after every trade ($50k/$2k -> $200, then $180 after a loss, $220 after a win). At 50% win rate over 100 trades, 10 straight losses is ~4.4%. Protect payouts, never over-leverage, scale as the cushion grows. His caption adds: tune the divisor to your own streak data, manage the business from risk not profits. 2,024 likes, posted 2026-09-18 by saiyan_trades (SSJ).',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prop-firm-copy-trading',
+    name: 'Prop Firm Copy Trading Blueprint',
+    description:
+      'Copy trade across prop firms: straight-to-funded 150K, fixed base size, scale into winners, risk as the only edge. A workflow and discipline model, not an entry signal. From thestrongtrader.',
+    difficulty: 'Intermediate',
+    timeframe: 'Any timeframe',
+    winRate: 60,
+    riskReward: 'Scaling — low win rate, high avg multiple',
+    marketCondition: 'Prop firm accounts — MNQ, YM',
+    overview:
+      'Tanner Owings (thestrongtrader) turnover earning $40,000 in payouts over two months copy trading multiple prop firms without blowing any account. The blueprint is three pillars. One, go straight to funded 150K accounts — the biggest size, with the 20% consistency rule, which stops home-run hunting and gives exact daily target and daily max loss. Two, scale into trades: every trade starts at the same base size (YM 1 contract, MNQ 3 contracts on a 150K), and only once you are on the right side of the move with higher expected value do you add, moving the original stop up to the next structure. Three, emotional regulation: risk is the only thing that matters, and if you lose sight of it for one day you are done. For copy trading he is explicit: do not copy trade until you can take a payout with one firm first, scale within a single firm before mixing firms, and respect risk day in and day out. He names Top 1 Futures for within-firm copy trading scaling with code STRONG.',
+    glossary: [
+      { term: 'Straight to funded', meaning: 'Skipping the eval grind and trading 150K funded accounts directly for payouts. He finds more breathing room there.' },
+      { term: '20% consistency rule', meaning: 'A prop rule capping how much any one day may contribute to profit. He treats it as protection that stops him hunting home runs.' },
+      { term: 'Copy trading', meaning: 'Running the same strategy across multiple funded accounts, often within one prop firm, to multiply payouts.' },
+      { term: 'Scale in', meaning: 'Starting a trade at a fixed base size and adding contracts only once the move is working in your favor, moving the stop up each time.' },
+      { term: 'Average multiple', meaning: 'The size of average winners relative to average losers. A lower win rate is fine when winners are larger.' },
+    ],
+    anatomy: [
+      {
+        title: 'Go straight to funded 150K',
+        points: [
+          'Skip the eval grind: trade the largest funded size directly.',
+          'The 20% consistency rule keeps you from chasing home runs.',
+          'You always know the daily target and the daily loss that could ruin you.',
+        ],
+      },
+      {
+        title: 'Fixed base size on every trade',
+        points: [
+          'YM: 1 contract on a 150K account. MNQ: 3 contracts.',
+          'The starting size never changes — consistency is the foundation.',
+          'A lower win rate is acceptable because the average winner is bigger.',
+        ],
+      },
+      {
+        title: 'Scale in on the right side of the V',
+        points: [
+          'Add size only once the move is working and expected value is higher.',
+          'Do not scale into losers — that is pyramiding the wrong way.',
+          'Move the original stop up to the next structure that could take you out.',
+        ],
+      },
+      {
+        title: 'Risk is the only thing that matters',
+        points: [
+          'One careless day can blow the accounts (his words).',
+          'Emotional regulation: if the market has you upset, walk away — that is a valid non-trade.',
+          'Scale within one firm before mixing firms in a copy trade.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Trade straight-to-funded 150K accounts with the 20% consistency rule for breathing room',
+      'Start EVERY trade at the same base size: YM 1 contract, MNQ 3 contracts on a 150K',
+      'Accept a lower win rate as long as the average winner multiple is higher',
+      'Scale in only once you are on the right side of the move, odds are in your favor, and expected value is higher',
+      'After scaling, move the original stop up to the next structure, never down',
+      'Do not copy trade until you can first take a payout with a single firm',
+    ],
+    exitRules: [
+      'Base stop stays where the single-contract plan put it; trail to structure after scaling',
+      'Do not go for home runs — the daily target and daily max loss are fixed commitments',
+      'If the market has you angry, step away: emotional regulation is part of the exit',
+      'Take payouts when available; this business is built on them',
+    ],
+    riskManagement: [
+      'Fixed base size per account: YM 1 contract / MNQ 3 contracts on 150K',
+      'Exposure grows only by scaling into confirmed winners (right side of the V), never into losers',
+      'Stops move up to structure after adding, never wider than the base plan',
+      'Risk is the only thing that matters — a single careless day can end the run',
+      'Copy trade within one firm first (5-10-20 accounts) before mixing firms',
+      'Daily consistency cap gives a hard target and a hard max loss',
+    ],
+    examples: [
+      {
+        title: 'The source run: $40k payouts, two months',
+        description: 'From thestrongtrader reel.',
+        setup: 'Copy trading multiple prop firms, straight-to-funded 150K accounts, MNQ and YM.',
+        entry: 'Same base size every trade, scale in on the right side of the V, stop moved up to structure.',
+        exit: 'Takes payouts as they come; knows his daily consistency number.',
+        result: '$40,000 in payouts, none of the accounts blown',
+      },
+      {
+        title: 'MNQ scale-in example',
+        description: 'Micro Nasdaq on a 150K funded account.',
+        setup: 'Short bias, three MNQ at the base entry, stop at the swing high.',
+        entry: 'Price confirms lower high / higher EV, close above the low: add more MNQ and trail the stop to the next structure.',
+        exit: 'Original stop moved up; risk is now carried by the winners, not the base entry.',
+        result: 'Base sized by the account, exposure scaled by evidence (illustrative mechanics)',
+      },
+      {
+        title: 'YM single-contract base',
+        description: 'Dow, one YM contract on a 150K.',
+        setup: 'Base position is a single YM contract; R is one contract worth.',
+        entry: 'Adds a second contract only after the move proves it is on the right side of the V.',
+        exit: 'Dollar risk stays the base contract plan because the stop tightens as you add.',
+        result: 'Scaling changes the R multiple without raising the plan risk',
+      },
+    ],
+    tips: [
+      'This is a blueprint, not a signal: sizing, scaling and discipline across funded accounts',
+      'Straight-to-funded skips the eval grind; the consistency rule is your friend, not a limit',
+      'Scaling in trades a lower win rate for a higher average multiple — test it against your own journal before trusting it',
+      'Emotional regulation is a valid exit rule: walk away the day the market tilts you',
+      'He runs the strategy on MNQ and YM (sometimes oil)',
+      'Top 1 Futures for within-firm copy trading scaling (3-5-10-20 accounts), code STRONG',
+    ],
+    commonMistakes: [
+      'Copy trading before you can take a payout with one firm — he calls that a waste of money',
+      'Scaling into losing trades, which inverts the whole method',
+      'Widening the stop after adding instead of tightening to structure',
+      'Chasing home runs and violating the daily consistency cap',
+      'Letting tilt override the risk plan for a single day',
+    ],
+    source: {
+      url: 'https://www.instagram.com/reel/DduBqiYOiAs/',
+      title: 'thestrongtrader — the exact blueprint to copy trading and 20k months from prop firms',
+    },
+    sourceClaims: [
+      '$40,000 in payouts in two months copy trading multiple prop firms, none blown',
+      'Straight-to-funded 150K accounts with a 20% consistency rule',
+      'Fixed base size (YM 1 contract, MNQ 3 contracts), scale in on the right side of the V',
+      'Risk is the only thing that matters; emotional regulation daily',
+    ],
+    openQuestions: [
+      'His exact 20% consistency daily number is not stated in the reel',
+      'The specific add-on contract counts and exact stop structure are implied, not spelled out',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-prop-firm-blueprint',
+          title: 'The exact blueprint for copy trading / 20k prop months — thestrongtrader (IG reel)',
+          url: 'https://www.instagram.com/reel/DduBqiYOiAs/',
+          notes:
+            'Tanner Owings (thestrongtrader). $40k payouts in 2 months copy trading multiple prop firms, none blown. Three pillars: (1) straight to funded 150K with the 20% consistency rule, (2) scale IN — fixed base size (YM 1 contract, MNQ 3 contracts), add on the right side of the V and move the stop up to structure, (3) emotional regulation — respect risk daily, walk away when tilted. Copy trade rules: prove one payout first, scale within a firm (5-10-20 accounts), then mix firms. Names Top 1 Futures, code STRONG. 290 likes. This is a prop firm gameplay/risk model, not an entry signal.',
         },
       ],
     },
@@ -1578,9 +1726,11 @@ export const Playbooks: React.FC = () => {
   const ranked = [...tradingStrategies].sort((a, b) => b.winRate - a.winRate);
   const rankOf = new Map(ranked.map((s, i) => [s.id, i]));
   const showPodium = filter === 'All' || filter === 'Futures';
+  const isCategoryFilter = CATEGORY_FILTERS.includes(filter);
   const visible = ranked.filter((s) => {
     if (filter === 'All' || filter === 'Futures') return true;
     if (filter === 'Options') return false;
+    if (isCategoryFilter) return CATEGORY_BY_ID[s.id] === filter;
     return s.difficulty === filter;
   });
 
@@ -1588,6 +1738,7 @@ export const Playbooks: React.FC = () => {
   const countFor = (f: string) =>
     f === 'All' || f === 'Futures' ? tradingStrategies.length
       : f === 'Options' ? 0
+      : CATEGORY_FILTERS.includes(f) ? tradingStrategies.filter((s) => CATEGORY_BY_ID[s.id] === f).length
       : tradingStrategies.filter((s) => s.difficulty === f).length;
 
   return (
@@ -1616,7 +1767,7 @@ export const Playbooks: React.FC = () => {
         {/* Filters — segmented control */}
         <div className="mt-6 max-w-full overflow-x-auto">
           <div className="inline-flex items-center gap-1 rounded-full bg-white/[0.03] p-1 ring-1 ring-inset ring-white/[0.07]">
-            {RANK_FILTERS.map((f) => {
+            {ALL_FILTERS.map((f) => {
               const soon = f === 'Options';
               const active = filter === f;
               return (
