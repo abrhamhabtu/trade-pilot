@@ -505,6 +505,13 @@ export const tradingStrategies: PlaybookStrategy[] = [
           notes:
             'Text-overlay explanation reel. Short from fresh SUPPLY zones (selling interest), long from fresh DEMAND zones (buying pressure). Draw demand zones from a smaller bullish basing candle right before the larger bullish candle; mirror for supply. 5m execution, NQ & ES morning rush. Her chart background also shows FVG + CHoCH labels. 8 years same instrument, journaled on Tradezella. 582 likes, posted 2026-09-15.',
         },
+        {
+          id: 'vid-octavia-consistency-post',
+          title: '8 years of consistency + Tradezella journaling — octavia.trades (IG post)',
+          url: 'https://www.instagram.com/p/DdtvDZIDo11/?img_index=10',
+          notes:
+            '15-image carousel from Octavia Grace on the same Supply & Demand zone style. Theme: "I have been trading the same instrument using the same strategy for the past 8 years and that consistency has led to my success." Slides also promote her Tradezella journaling setup: trade logs, detailed analytics, performance reports, replay, psychology tracking, 20% off via her bio link. The journaling point matters for this playbook: the first-retest edge has to be measured, and this is where she measures it. 1,437 likes.',
+        },
       ],
     },
   },
