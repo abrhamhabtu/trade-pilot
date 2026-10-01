@@ -16,24 +16,17 @@ interface RadarChartComponentProps {
   score: number;
 }
 
-export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, score }) => {
-  const hasMounted = useHasMounted();
-  const [hoveredPoint, setHoveredPoint] = useState<{ category: string; value: number } | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-
-  const tooltipContent = `Comprehensive performance score based on:\n\n• Win rate and consistency\n• Profit factor and risk management\n• Overall trading effectiveness\n\nScores above 80 indicate excellent performance.`;
-
-  // Custom dot component that handles hover - 50% smaller
+  // Generous hit areas support mouse, touch and keyboard inspection.
   const CustomDot = (props: any) => {
-    const { cx, cy, payload } = props;
+    const { cx, cy, payload, setTooltipPosition, setHoveredPoint } = props;
     
-    const handleMouseEnter = (e: React.MouseEvent) => {
+    const handlePointEnter = (e: React.MouseEvent | React.FocusEvent) => {
       const rect = e.currentTarget.getBoundingClientRect();
       const containerRect = e.currentTarget.closest('.recharts-wrapper')?.getBoundingClientRect();
       
       if (containerRect) {
         setTooltipPosition({
-          x: rect.left - containerRect.left + 3, // Adjusted for smaller dot
+          x: Math.max(90, Math.min(containerRect.width - 90, rect.left - containerRect.left + rect.width / 2)),
           y: rect.top - containerRect.top - 10
         });
       }
@@ -50,22 +43,24 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
     };
 
     return (
-      <circle
-        cx={cx}
-        cy={cy}
-        r={3} // Reduced from 6 to 3 (50% smaller)
-        fill="#00D68F"
-        stroke="#172035"
-        strokeWidth={1} // Reduced from 2 to 1
-        style={{ 
-          cursor: 'pointer',
-          filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
-        }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      />
+      <g role="button" tabIndex={0}
+        aria-label={`${payload.category}: ${payload.value.toFixed(0)} out of 100`}
+        className="cursor-pointer outline-none"
+        onMouseEnter={handlePointEnter} onMouseLeave={handleMouseLeave}
+        onFocus={handlePointEnter} onBlur={handleMouseLeave} onClick={handlePointEnter}>
+        <circle cx={cx} cy={cy} r={12} fill="transparent" />
+        <circle cx={cx} cy={cy} r={5} fill="#00D68F" stroke="#0D1628" strokeWidth={2} />
+      </g>
     );
   };
+
+export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, score }) => {
+  const hasMounted = useHasMounted();
+  const [chartWidth, setChartWidth] = useState(320);
+  const [hoveredPoint, setHoveredPoint] = useState<{ category: string; value: number } | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  const tooltipContent = `Comprehensive performance score based on:\n\n• Win rate and consistency\n• Profit factor and risk management\n• Overall trading effectiveness\n\nScores above 80 indicate excellent performance.`;
 
   // Small tooltip for individual points - shows category name above score
   const PointTooltip = () => {
@@ -82,7 +77,7 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
         }}
       >
         {/* Compact pill, matching the crosshair labels on the other dashboard charts */}
-        <div className="-translate-y-1 whitespace-nowrap rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-950 shadow-lg shadow-black/40">
+        <div className="-translate-y-1 whitespace-nowrap rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-950 shadow-lg shadow-black/40">
           {hoveredPoint.category} <span className="text-emerald-700 tabular-nums">{hoveredPoint.value.toFixed(0)}</span>
         </div>
       </div>
@@ -90,12 +85,12 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
   };
 
   if (!hasMounted) {
-    return <div className="h-full min-h-[22rem] rounded-xl border border-white/5 bg-[#0D1628]/40" />;
+    return <div className="h-full min-h-[25rem] lg:min-h-0 rounded-xl border border-white/5 bg-[#0D1628]/40" />;
   }
 
   return (
     <div 
-      className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 h-full flex flex-col relative overflow-hidden group p-4 sm:p-5"
+      className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 h-full min-h-[25rem] lg:min-h-0 flex flex-col relative overflow-hidden group p-4 sm:p-5"
       
     >
       {/* Gradient border on hover */}
@@ -118,12 +113,12 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
           </div>
         </div>
         
-        <div className="relative mb-2 min-h-0 flex-1">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="relative mb-3 min-h-[14rem] flex-1 lg:min-h-0">
+          <ResponsiveContainer width="100%" height="100%" onResize={(width) => setChartWidth(width)}>
             <RadarChart
               data={data}
-              margin={{ top: 14, right: 22, bottom: 14, left: 22 }}
-              outerRadius="72%"
+              margin={{ top: 18, right: chartWidth < 260 ? 40 : 64, bottom: 18, left: chartWidth < 260 ? 40 : 64 }}
+              outerRadius="90%"
               onMouseLeave={() => setHoveredPoint(null)}
             >
               <defs>
@@ -144,7 +139,18 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
               />
               <PolarAngleAxis
                 dataKey="category"
-                tick={{ fill: '#7B91B4', fontSize: 10 }}
+                tick={({ x, y, textAnchor, payload }: any) => {
+                  const labels: Record<string, string[]> = {
+                    'Drawdown Mgmt': ['Drawdown', 'management'],
+                    'Profit factor': ['Profit', 'factor'],
+                    'Sharpe Ratio': ['Sharpe', 'ratio'],
+                  };
+                  const lines = labels[payload.value] ?? [payload.value];
+                  const labelX = textAnchor === 'start' ? Math.min(x, chartWidth - 78) : textAnchor === 'end' ? Math.max(x, 78) : x;
+                  return <text x={labelX} y={y} textAnchor={textAnchor} fill="#A1B2CC" fontSize={12}>
+                    {lines.map((line, index) => <tspan key={line} x={labelX} dy={index === 0 ? (lines.length > 1 ? -3 : 4) : 14}>{line}</tspan>)}
+                  </text>;
+                }}
               />
               <PolarRadiusAxis
                 domain={[0, 100]}
@@ -157,9 +163,9 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
                 dataKey="value"
                 stroke="url(#radarStroke)"
                 fill="url(#radarGradient)"
-                fillOpacity={0.4}
+                fillOpacity={0.8}
                 strokeWidth={2}
-                dot={<CustomDot />}
+                dot={<CustomDot setTooltipPosition={setTooltipPosition} setHoveredPoint={setHoveredPoint} />}
               />
             </RadarChart>
           </ResponsiveContainer>
@@ -170,7 +176,7 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
         
         {/* Score Display */}
         <div className="shrink-0 space-y-1">
-          <div className="text-[10px] text-zinc-400 sm:text-xs">Your Trading Score</div>
+          <div className="flex items-center justify-between"><span className="text-[10px] text-zinc-400 sm:text-xs">Your Trading Score</span><span className="text-lg font-bold text-zinc-50">{score.toFixed(1)}</span></div>
           <div className="flex items-center justify-between text-[10px] text-zinc-400 sm:text-xs">
             <span>0</span>
             <span>50</span>
@@ -185,7 +191,6 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, 
               }}
             />
           </div>
-          <div className="text-center text-lg font-bold text-zinc-50 sm:text-xl">{score.toFixed(1)}</div>
         </div>
       </div>
     </div>

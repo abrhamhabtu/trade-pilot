@@ -201,9 +201,11 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
         <div className="col-span-12 min-w-0 lg:col-span-8">
           {nodeById.calendar}
         </div>
-        <div className="col-span-12 flex min-h-0 flex-col gap-4 lg:col-span-4 lg:gap-6">
-          <div className="min-h-0 flex-1 overflow-hidden rounded-xl">{nodeById['trading-score']}</div>
-          <div className="min-h-0 flex-1 overflow-hidden rounded-xl">{nodeById['cumulative-pl']}</div>
+        <div className="relative col-span-12 min-w-0 lg:col-span-4">
+          <div className="flex flex-col gap-4 lg:absolute lg:inset-0 lg:gap-6">
+            <div className="min-h-0 flex-1 rounded-xl">{nodeById['trading-score']}</div>
+            <div className="min-h-0 flex-1 overflow-hidden rounded-xl">{nodeById['cumulative-pl']}</div>
+          </div>
         </div>
       </div>
 
