@@ -59,6 +59,7 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'supply-demand-zones': 'Support/Resistance',
   'law-of-10-risk': 'Prop Firm',
   'prop-firm-copy-trading': 'Prop Firm',
+  'prop-firm-eval-first-mindset': 'Prop Firm',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -71,6 +72,7 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'supply-demand-zones': { dir: 'Long', variant: 0 },
   'law-of-10-risk': { dir: 'Long', variant: 1 },
   'prop-firm-copy-trading': { dir: 'Long', variant: 1 },
+  'prop-firm-eval-first-mindset': { dir: 'Long', variant: 0 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -95,6 +97,7 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'supply-demand-zones': 'Short the supply, buy the demand',
   'law-of-10-risk': 'Protect the cushion, scale the risk',
   'prop-firm-copy-trading': 'Straight to funded, scale in, respect the risk',
+  'prop-firm-eval-first-mindset': 'Learn on play money before your own funds',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
@@ -800,6 +803,118 @@ export const tradingStrategies: PlaybookStrategy[] = [
           url: 'https://www.instagram.com/reel/DduBqiYOiAs/',
           notes:
             'Tanner Owings (thestrongtrader). $40k payouts in 2 months copy trading multiple prop firms, none blown. Three pillars: (1) straight to funded 150K with the 20% consistency rule, (2) scale IN — fixed base size (YM 1 contract, MNQ 3 contracts), add on the right side of the V and move the stop up to structure, (3) emotional regulation — respect risk daily, walk away when tilted. Copy trade rules: prove one payout first, scale within a firm (5-10-20 accounts), then mix firms. Names Top 1 Futures, code STRONG. 290 likes. This is a prop firm gameplay/risk model, not an entry signal.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prop-firm-eval-first-mindset',
+    name: 'Eval-First Mindset (theerosee)',
+    description:
+      'Why some traders run evaluation accounts first: practice on play money, learn the charts and your own FOMO, before risking real funds. A mindset clip, not an entry strategy.',
+    difficulty: 'Beginner',
+    timeframe: 'Any timeframe',
+    winRate: 65,
+    riskReward: 'N/A — mindset only',
+    marketCondition: 'Prop firm evaluations',
+    overview:
+      'A personal reel from theerosee. on why she does evaluation accounts before trading funded or with her own money. Her logic is that she learns by doing under supervision first, the way she spent a year or two under a mentor in real estate before taking on her own deals. On an eval account she plays with play money, in the process learning herself (the FOMO, the impatience), learning the charts and candles, and learning to judge whether it is a smart time to move in or whether the setup favors a long or a short. Good days and bad days do not cost her real money on the eval, but every day teaches something. She is upfront that the trading world splits around 50-50 on evaluations: some appreciate doing evals first, some call it a waste of time, and she says you have to know yourself. This clip contains no mechanical setup and no entry rules; it is a process and mindset argument for using evaluations as a low-cost training ground.',
+    glossary: [
+      { term: 'Evaluation account', meaning: 'A prop firm practice account funded with virtual money that, if you pass the rules, leads to a funded account. Here she uses it as cheap tuition.' },
+      { term: 'Play money', meaning: 'Funds on an eval are simulation money, so losses do not touch your bankroll while you learn.' },
+      { term: 'Mindset learning', meaning: 'Using the eval to expose your own FOMO, impatience and discipline before the stakes are real.' },
+    ],
+    anatomy: [
+      {
+        title: 'Learn yourself first',
+        points: [
+          'Use the eval to experience and name your FOMO and impatience without paying for it.',
+          'She compares it to a year or two under a real-estate mentor before her own deals.',
+          'The point is self-knowledge before real capital.',
+        ],
+      },
+      {
+        title: 'Learn the charts second',
+        points: [
+          'Read candles and price action in real time on the eval.',
+          'Build the skill of judging whether a moment favors a long or a short.',
+          'Reps compound without risking your bankroll.',
+        ],
+      },
+      {
+        title: 'Zero real-money risk while learning',
+        points: [
+          'Bad days and good days on the eval are play money; the lesson is the return.',
+          'You progress to funded or live only after the process is second nature.',
+          'Acknowledge the other camp: many call evals a waste of time — know which learner you are.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Treat the evaluation as your sandbox: it costs play money, it pays in reps',
+      'Name what you feel (FOMO, impatience) on the eval before it can hurt you live',
+      'Practice reading candles and judging long vs short setups on every eval trade',
+      'Go funded or live only after the eval process feels routine',
+    ],
+    exitRules: [
+      'This is not a strategy, so there is no mechanical exit to run',
+      'The real exit rule is personal: walk away from evals when you are just gambling them for validation',
+      'Move to funded when your eval process is consistent, not when you feel lucky',
+    ],
+    riskManagement: [
+      'The eval caps your downside to practice money while the learning is real',
+      'Your own funds stay protected until you have reps on the process',
+      'Best used as cheap tuition for the FOMO, impatience and discipline you will face live',
+    ],
+    examples: [
+      {
+        title: 'The real estate analogy',
+        description: 'Her core argument.',
+        setup: 'Mentored in real estate for a year or two before her own deals.',
+        entry: 'Applied the same rule to trading: learn on evals before funded or own money.',
+        exit: 'Proceed when the process is second nature.',
+        result: 'Low-cost training before real stakes (perspective, not a mechanical trade)',
+      },
+      {
+        title: 'A bad week on the eval',
+        description: 'What an eval losing streak is for.',
+        setup: 'Multiple losing eval trades in a row, all play money.',
+        entry: 'She reviews the losses, watches her own reactions, notes the impatience.',
+        exit: 'No real capital lost; the lesson is banked.',
+        result: 'The downside is capped; the learning is the payoff',
+      },
+    ],
+    tips: [
+      'Use evals as tuition, not as a second job or a gambling fix',
+      'Watch your own tilt on the eval — that is the real data it produces',
+      'If you already trade funded cleanly, this mindset clip is not for you',
+      'Pair it with the Prop Firm Copy Trading and Law of 10 cards for the full prop-firm process picture',
+    ],
+    commonMistakes: [
+      'Treating eval losses as if they were real and refusing to take the lesson',
+      'Rushing straight to funded with no reps just because evals feel slow',
+      'Confusing this mindset clip with a mechanical strategy',
+    ],
+    source: {
+      url: 'https://www.instagram.com/reel/Dd5dmbrg9q5/',
+      title: 'theerosee. — why I do evaluation accounts before trading (mindset reel)',
+    },
+    sourceClaims: [
+      'She practices on evaluation accounts before funded or own funds',
+      'Compares it to a year or two under a real-estate mentor before her own deals',
+      'On evals she learns the charts, candles, FOMO and impatience with play money',
+    ],
+    openQuestions: [
+      'This is a personal perspective, not a strategy — there are no mechanical rules to apply',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-prop-firm-eval-first',
+          title: 'Why I do evaluation accounts first — theerosee. (IG reel)',
+          url: 'https://www.instagram.com/reel/Dd5dmbrg9q5/',
+          notes:
+            'Personal mindset take on prop firm eval accounts (752 likes, no caption). She prefers to learn before her own funds, like the mentor-first years in her real estate career. Evals = play money while you learn yourself (FOMO, impatience), read charts/candles, and judge long vs short timing with no real downside. She flags the 50-50 debate on evals and says you have to know yourself. Contains no mechanical strategy or entry rules.',
         },
       ],
     },
