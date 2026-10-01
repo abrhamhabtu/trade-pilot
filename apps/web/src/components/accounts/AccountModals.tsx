@@ -6,6 +6,8 @@ import { AlertTriangle, Check, Plus, Search, Trash2, Upload } from 'lucide-react
 import type { Account } from '@/store/accountStore';
 import { Segmented } from '@/components/routine/journeyUi';
 import { BROKER_OPTIONS, BrokerBadge, Field, Modal, btn, getBrokerOption, inputCls } from './accountUi';
+import { futuresEliteSelection } from '@/lib/accountProviderPlans';
+import { FuturesElitePlans } from './FuturesElitePlans';
 
 // ─── Broker picker ───────────────────────────────────────────────────────────
 
@@ -89,16 +91,19 @@ export function AddAccountModal({
 }: {
   defaultBroker?: string;
   onClose: () => void;
-  onCreate: (input: { name: string; broker: string; isFunded?: boolean }, thenImport: boolean) => void;
+  onCreate: (input: { name: string; broker: string; isFunded?: boolean; startingBalance?: number; providerPlanId?: string }, thenImport: boolean) => void;
 }) {
   const [name, setName] = useState('');
   const [broker, setBroker] = useState(() => (defaultBroker ? getBrokerOption(defaultBroker)?.label ?? defaultBroker : ''));
   const [stage, setStage] = useState<'evaluation' | 'funded' | 'unset'>('evaluation');
+  const [planId, setPlanId] = useState('');
+  const [planSize, setPlanSize] = useState(50000);
   const ready = name.trim() && broker.trim();
 
   const submit = (thenImport: boolean) => {
     if (!ready) return;
-    onCreate({ name: name.trim(), broker: broker.trim(), isFunded: stage === 'unset' ? undefined : stage === 'funded' }, thenImport);
+    const choice = broker === 'Futures Elite' ? futuresEliteSelection(planId, planSize) : null;
+    onCreate({ name: name.trim(), broker: broker.trim(), isFunded: choice?.plan.instant ? true : stage === 'unset' ? undefined : stage === 'funded', ...(choice ? { providerPlanId: choice.plan.id, startingBalance: choice.tier.size } : {}) }, thenImport);
   };
 
   return (
@@ -111,8 +116,13 @@ export function AddAccountModal({
         }}
       >
         <Field label="Firm or broker">
-          <BrokerPicker value={broker} onChange={setBroker} />
+          <BrokerPicker value={broker} onChange={(value) => { setBroker(value); setPlanId(''); setStage('evaluation'); }} />
         </Field>
+        {broker === 'Futures Elite' && <FuturesElitePlans planId={planId} size={planSize} onChange={(id, size) => {
+          setPlanId(id);
+          setPlanSize(size);
+          if (id) setStage(futuresEliteSelection(id, size)?.plan.instant ? 'funded' : 'evaluation');
+        }} />}
         <Field label="Account name" hint="Use something you’ll recognise at a glance, like the account number or size.">
           <input
             autoFocus

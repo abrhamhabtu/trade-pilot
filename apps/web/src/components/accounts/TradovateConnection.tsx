@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useAccountStore } from "@/store/accountStore";
 import { connectionRequest, syncAccount } from "@/lib/sync";
 import { useThemeClasses } from "../payout/payoutPrimitives";
+import { FuturesElitePlans } from './FuturesElitePlans';
+import { futuresEliteSelection } from '@/lib/accountProviderPlans';
 
 export function TradovateConnection({ firm }: { firm: string }) {
   const { inset, input, muted } = useThemeClasses();
@@ -20,6 +22,8 @@ export function TradovateConnection({ firm }: { firm: string }) {
   const [start, setStart] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [planId, setPlanId] = useState('');
+  const [planSize, setPlanSize] = useState(50000);
   const [authorizedProvider, setAuthorizedProvider] = useState(provider);
   const { accounts, addAccount, selectAccount } = useAccountStore();
   async function connect(restore = false) {
@@ -50,6 +54,7 @@ export function TradovateConnection({ firm }: { firm: string }) {
   return (
     <div className={`${inset} p-4 sm:p-5`}>
       <h3 className="font-semibold text-sm">{firm} · Tradovate connection</h3>
+      {firm === 'Futures Elite' && <div className="mt-4"><FuturesElitePlans planId={planId} size={planSize} onChange={(id, size) => { setPlanId(id); setPlanSize(size); }} /></div>}
       <p className={`${muted} text-sm mt-2`}>
         Also covers trades placed through TradingView or NinjaTrader when they
         use this Tradovate account.
@@ -99,6 +104,10 @@ export function TradovateConnection({ firm }: { firm: string }) {
             </a>
           </p>
         )}
+        {firm === 'Futures Elite' && <p className={`${muted} mt-3`}>
+          Select a Tradovate-based account and retrieve its credentials from the Futures Elite dashboard. Platform access does not confirm API access.{' '}
+          <a className="underline" href="https://faq.futureselite.com/en/articles/11949155-logging-into-tradovate-from-the-futureselite-dashboard" target="_blank" rel="noreferrer">Futures Elite setup guide ↗</a>
+        </p>}
         {firm === "Top One Futures" && (
           <p className={`${muted} mt-3`}>
             Top One’s Tradovate guide directs evaluation and funded accounts to
@@ -230,6 +239,11 @@ export function TradovateConnection({ firm }: { firm: string }) {
                     existing?.id ??
                     addAccount({
                       name: a.name,
+                      ...(firm === 'Futures Elite' && futuresEliteSelection(planId, planSize) ? {
+                        providerPlanId: planId,
+                        startingBalance: planSize,
+                        isFunded: futuresEliteSelection(planId, planSize)!.plan.instant ? true : undefined,
+                      } : {}),
                       broker: ["Other firms", "Personal brokerage"].includes(
                         firm,
                       )

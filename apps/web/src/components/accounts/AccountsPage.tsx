@@ -294,8 +294,9 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
         <AddAccountModal
           defaultBroker={initialBroker}
           onClose={() => setAdding(false)}
-          onCreate={({ name, broker, isFunded }, thenImport) => {
-            const id = addAccount({ name, broker, type: 'file_upload', isFunded });
+          onCreate={(input, thenImport) => {
+            const { name } = input;
+            const id = addAccount({ ...input, type: 'file_upload' });
             selectAccount(id);
             setAdding(false);
             setFilter('active');

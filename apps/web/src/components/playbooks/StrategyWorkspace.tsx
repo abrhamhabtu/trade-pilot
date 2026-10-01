@@ -26,6 +26,7 @@ import {
   emptyLibrary,
   Evidence,
   Library,
+  mergeSeedVideos,
   readLibrary,
   Revision,
   VideoReference,
@@ -107,6 +108,7 @@ export function StrategyWorkspace({
       .then(async (data) => {
         if (!active) return;
         const starter = seedRef.current;
+        let next = data;
         const empty =
           data.revisions.length === 0 &&
           data.videos.length === 0 &&
@@ -119,7 +121,7 @@ export function StrategyWorkspace({
             starter.revisions?.length ||
             starter.screenshots?.length)
         ) {
-          const next: Library = {
+          next = {
             ...emptyLibrary(),
             ...starter,
             revisions: starter.revisions ?? [],
@@ -127,12 +129,11 @@ export function StrategyWorkspace({
             videos: starter.videos ?? [],
             preferred: starter.preferred ?? null,
           };
-          await writeLibrary(strategyId, next);
-          if (!active) return;
-          setLibrary(next);
-        } else {
-          setLibrary(data);
         }
+        next = mergeSeedVideos(next, starter?.videos || []);
+        if (next !== data) await writeLibrary(strategyId, next);
+        if (!active) return;
+        setLibrary(next);
         setReady(true);
       })
       .catch(() => {

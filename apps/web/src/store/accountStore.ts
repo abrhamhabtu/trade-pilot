@@ -54,6 +54,8 @@ export interface Account {
   id: string;
   name: string;
   broker: string;
+  /** Chosen provider offering; separate from confirmed risk settings. */
+  providerPlanId?: string;
   balance: number;
   lastUpdate: string | null;
   type: 'file_upload' | 'demo' | 'manual';

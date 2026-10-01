@@ -131,12 +131,11 @@ export function VideoLibrary(props: Props) {
                       preload="metadata"
                     />
                   ) : (
-                    <iframe
-                      loading="lazy"
+                    <EmbeddedVideo
+                      key={source.src}
                       src={source.src}
                       title={`${v.title} preview`}
-                      allow="encrypted-media; fullscreen; picture-in-picture"
-                      allowFullScreen
+                      originalUrl={v.url}
                     />
                   )
                 ) : (
@@ -189,6 +188,49 @@ export function VideoLibrary(props: Props) {
     </>
   );
 }
+function EmbeddedVideo({ src, title, originalUrl }: {
+  src: string;
+  title: string;
+  originalUrl: string;
+}) {
+  const [attempt, setAttempt] = useState(0);
+  const [status, setStatus] = useState<"loading" | "slow" | "loaded">("loading");
+  useEffect(() => {
+    const timer = setTimeout(() => setStatus((current) => current === "loaded" ? current : "slow"), 10000);
+    return () => clearTimeout(timer);
+  }, [attempt]);
+  function retry() {
+    setStatus("loading");
+    setAttempt((current) => current + 1);
+  }
+  return (
+    <div className="pw-embed">
+      <iframe
+        key={attempt}
+        loading="eager"
+        src={src}
+        title={title}
+        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+        allowFullScreen
+        onLoad={() => setStatus("loaded")}
+        onError={() => setStatus("slow")}
+      />
+      {status !== "loaded" && (
+        <div className="pw-embed-status" role="status">
+          <Film size={24} />
+          <p>{status === "loading" ? "Loading player…" : "The player is taking longer than expected."}</p>
+          {status === "slow" && <button className="pw-button" onClick={retry}><RotateCw size={14} />Retry player</button>}
+          <a className="pw-button" href={originalUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} />Open original</a>
+        </div>
+      )}
+      <div className="pw-embed-actions">
+        <button onClick={retry} aria-label={`Reload ${title}`}><RotateCw size={12} />Reload player</button>
+        <a href={originalUrl} target="_blank" rel="noreferrer"><ExternalLink size={12} />Open original</a>
+      </div>
+    </div>
+  );
+}
+
 function VideoDialog({
   children,
   onClose,
@@ -271,12 +313,11 @@ function VideoStudy({
               {source.native ? (
                 <LocalVideo key={item.id} src={source.src} title={item.title} />
               ) : (
-                <iframe
-                  key={item.id}
+                <EmbeddedVideo
+                  key={source.src}
                   title={item.title}
                   src={source.src}
-                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-                  allowFullScreen
+                  originalUrl={item.url}
                 />
               )}
             </div>

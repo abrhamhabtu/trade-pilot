@@ -21,6 +21,7 @@ export type VideoReference = {
   notes: string;
 };
 export type Library = {
+  seededVideoIds?: string[];
   guideImageId?: string;
   revisions: Revision[];
   screenshots: Evidence[];
@@ -33,6 +34,30 @@ export const emptyLibrary = (): Library => ({
   videos: [],
   preferred: null,
 });
+
+// Remember supplied references so a later visit does not undo their removal.
+export function mergeSeedVideos(
+  library: Library,
+  videos: VideoReference[],
+): Library {
+  const seen = new Set(library.seededVideoIds || []);
+  const existing = new Set(library.videos.map((video) => video.id));
+  const added: VideoReference[] = [];
+  for (const video of videos) {
+    if (seen.has(video.id)) continue;
+    seen.add(video.id);
+    if (!existing.has(video.id)) {
+      added.push(video);
+      existing.add(video.id);
+    }
+  }
+  if (seen.size === (library.seededVideoIds?.length || 0)) return library;
+  return {
+    ...library,
+    videos: [...library.videos, ...added],
+    seededVideoIds: Array.from(seen),
+  };
+}
 
 export function videoSource(
   raw: string,

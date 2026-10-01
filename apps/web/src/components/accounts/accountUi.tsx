@@ -13,24 +13,26 @@ export type BrokerOption = {
   label: string;
   abbr: string;
   logoClass?: string;
+  logoBackground?: string;
   logoSrc?: string;
   aliases?: string[];
 };
 
 export const BROKER_OPTIONS: BrokerOption[] = [
-  { label: 'TopOne Futures', abbr: 'TO', logoSrc: '/logos/topone-futures.png', aliases: ['Topone Futures', 'Top One Futures'] },
-  { label: 'Lucid Trading', abbr: 'LT', logoClass: 'bg-gradient-to-br from-[#60A5FA] to-[#3B82F6]', aliases: ['Trading Lucid', 'Lucid'] },
-  { label: 'Topstep', abbr: 'TS', logoClass: 'bg-gradient-to-br from-[#F59E0B] to-[#F97316]' },
-  { label: 'Apex Trader Funding', abbr: 'AP', logoClass: 'bg-gradient-to-br from-[#F97316] to-[#EA580C]' },
-  { label: 'My Funded Futures', abbr: 'MF', logoClass: 'bg-gradient-to-br from-[#00D68F] to-[#059669]' },
-  { label: 'ProjectX', abbr: 'PX', logoClass: 'bg-[#26344F]' },
-  { label: 'Tradovate', abbr: 'TV', logoClass: 'bg-gradient-to-br from-[#38BDF8] to-[#2563EB]' },
-  { label: 'The Trading Pit', abbr: 'TP', logoClass: 'bg-gradient-to-br from-[#34D399] to-[#00D68F]' },
-  { label: 'FTMO', abbr: 'FT', logoClass: 'bg-gradient-to-br from-[#0EA5E9] to-[#0284C7]' },
-  { label: 'Funded Next', abbr: 'FN', logoClass: 'bg-gradient-to-br from-[#6366F1] to-[#4F46E5]' },
-  { label: 'True Forex Funds', abbr: 'TF', logoClass: 'bg-gradient-to-br from-[#14B8A6] to-[#0D9488]' },
-  { label: 'E8 Funding', abbr: 'E8', logoClass: 'bg-gradient-to-br from-[#EC4899] to-[#DB2777]' },
-  { label: 'The5ers', abbr: '5R', logoClass: 'bg-gradient-to-br from-[#FF4868] to-[#E11D48]' },
+  { label: 'Futures Elite', abbr: 'FE', logoSrc: '/logos/futures-elite.svg', logoBackground: '#172338', aliases: ['FuturesElite'] },
+  { label: 'TopOne Futures', abbr: 'TO', logoSrc: '/logos/topone-futures.png', logoBackground: '#14231b', aliases: ['Topone Futures', 'Top One Futures'] },
+  { label: 'Lucid Trading', abbr: 'LT', logoSrc: '/logos/lucid-trading.png', logoBackground: '#172338', aliases: ['Trading Lucid', 'Lucid'] },
+  { label: 'Topstep', abbr: 'TS', logoSrc: '/logos/topstep.png', logoBackground: '#000000' },
+  { label: 'Apex Trader Funding', abbr: 'AP', logoSrc: '/logos/apex.png', logoBackground: '#06124a' },
+  { label: 'My Funded Futures', abbr: 'MF', logoSrc: '/logos/my-funded-futures.png', logoBackground: '#172338' },
+  { label: 'ProjectX', abbr: 'PX', logoSrc: '/logos/projectx.png', logoBackground: '#172338' },
+  { label: 'Tradovate', abbr: 'TV', logoSrc: '/logos/tradovate.png', logoBackground: '#172338' },
+  { label: 'The Trading Pit', abbr: 'TP', logoSrc: '/logos/trading-pit.png', logoBackground: '#000000' },
+  { label: 'FTMO', abbr: 'FT', logoSrc: '/logos/ftmo.png', logoBackground: '#252525' },
+  { label: 'Funded Next', abbr: 'FN', logoSrc: '/logos/funded-next.png', logoBackground: '#ffffff' },
+  { label: 'True Forex Funds', abbr: 'TF', logoSrc: '/logos/true-forex-funds.png', logoBackground: '#172338' },
+  { label: 'E8 Funding', abbr: 'E8', logoSrc: '/logos/e8.svg', logoBackground: '#172338' },
+  { label: 'The5ers', abbr: '5R', logoSrc: '/logos/the5ers.png', logoBackground: '#ffffff' },
   { label: 'Generic Template', abbr: 'GT', logoClass: 'bg-[#334155]' },
   { label: 'Other', abbr: 'OT', logoClass: 'bg-[#475569]' },
 ];
@@ -54,8 +56,8 @@ export function BrokerBadge({ broker, size = 'md' }: { broker: string; size?: 's
   const img = { sm: 20, md: 28, lg: 34 }[size];
   if (option?.logoSrc) {
     return (
-      <div className={clsx('grid shrink-0 place-items-center overflow-hidden bg-white ring-1 ring-inset ring-white/10', box)}>
-        <Image src={option.logoSrc} alt={`${option.label} logo`} width={img} height={img} className="object-contain" />
+      <div className={clsx('grid shrink-0 place-items-center overflow-hidden ring-1 ring-inset ring-white/10', box)} style={{ backgroundColor: option.logoBackground ?? '#172338' }}>
+        <Image src={option.logoSrc} alt={`${option.label} logo`} width={img} height={img} className="object-contain" unoptimized />
       </div>
     );
   }

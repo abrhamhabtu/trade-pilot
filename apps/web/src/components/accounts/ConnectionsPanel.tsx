@@ -9,6 +9,7 @@ import {
   useSyncStatus,
 } from "@/lib/sync";
 import { TradovateConnection } from "./TradovateConnection";
+import { TRADOVATE_ACCOUNT_PROVIDERS } from '@/lib/accountProviderPlans';
 import { useThemeClasses } from "../payout/payoutPrimitives";
 
 export function ConnectionsPanel({ onImport }: { onImport?: () => void }) {
@@ -108,7 +109,7 @@ export function ConnectionsPanel({ onImport }: { onImport?: () => void }) {
                 id: "tradovate",
                 title: "Tradovate",
                 detail:
-                  "Default · Lucid, Top One, other firms & personal accounts",
+                  "Default · Futures Elite, Lucid, Top One & other accounts",
               },
               {
                 id: "projectx",
@@ -150,12 +151,7 @@ export function ConnectionsPanel({ onImport }: { onImport?: () => void }) {
                 onChange={(e) => setFirm(e.target.value)}
                 className={`${input} block border rounded-lg p-2.5 mt-1 w-full sm:max-w-sm`}
               >
-                {[
-                  "Lucid Trading",
-                  "Top One Futures",
-                  "Other firms",
-                  "Personal brokerage",
-                ].map((f) => (
+                {TRADOVATE_ACCOUNT_PROVIDERS.map((f) => (
                   <option key={f}>{f}</option>
                 ))}
               </select>

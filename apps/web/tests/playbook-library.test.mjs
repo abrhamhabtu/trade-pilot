@@ -3,7 +3,23 @@ import assert from 'node:assert/strict';
 import ts from 'typescript';
 import { readFileSync } from 'node:fs';
 const code = ts.transpileModule(readFileSync(new URL('../src/lib/playbookLibrary.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ES2022 } }).outputText;
-const { videoSource, moveItem, emptyLibrary } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
+const { videoSource, moveItem, emptyLibrary, mergeSeedVideos } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
+
+test('built-in videos reach existing libraries without replacing saved work', () => {
+  const library = { ...emptyLibrary(), screenshots: [{ id: 'chart' }], videos: [{ id: 'saved', notes: 'My notes' }] };
+  const merged = mergeSeedVideos(library, [{ id: 'saved', notes: 'Default notes' }, { id: 'new' }]);
+  assert.equal(merged.screenshots, library.screenshots);
+  assert.deepEqual(merged.videos, [{ id: 'saved', notes: 'My notes' }, { id: 'new' }]);
+  assert.deepEqual(library.videos, [{ id: 'saved', notes: 'My notes' }]);
+  assert.equal(mergeSeedVideos(merged, [{ id: 'new' }]), merged);
+});
+
+test('removed built-in videos stay removed while newly supplied videos are added', () => {
+  const seeded = mergeSeedVideos(emptyLibrary(), [{ id: 'first' }]);
+  const removed = { ...seeded, videos: [] };
+  assert.equal(mergeSeedVideos(removed, [{ id: 'first' }]), removed);
+  assert.deepEqual(mergeSeedVideos(removed, [{ id: 'first' }, { id: 'second' }]).videos, [{ id: 'second' }]);
+});
 test('video embeds accept supported providers and discard tracking parameters', () => {
   assert.equal(videoSource('https://www.instagram.com/reel/ABC_123/?igsh=tracking').src, 'https://www.instagram.com/p/ABC_123/embed/');
   assert.equal(videoSource('https://youtu.be/abcdefghijk?t=3').src, 'https://www.youtube-nocookie.com/embed/abcdefghijk?start=3');
