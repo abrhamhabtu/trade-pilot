@@ -60,6 +60,7 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'law-of-10-risk': 'Prop Firm',
   'prop-firm-copy-trading': 'Prop Firm',
   'prop-firm-eval-first-mindset': 'Prop Firm',
+  'london-prev-day-levels': 'London & Prev Day',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -73,6 +74,7 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'law-of-10-risk': { dir: 'Long', variant: 1 },
   'prop-firm-copy-trading': { dir: 'Long', variant: 1 },
   'prop-firm-eval-first-mindset': { dir: 'Long', variant: 0 },
+  'london-prev-day-levels': { dir: 'Long', variant: 2 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -98,11 +100,12 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'law-of-10-risk': 'Protect the cushion, scale the risk',
   'prop-firm-copy-trading': 'Straight to funded, scale in, respect the risk',
   'prop-firm-eval-first-mindset': 'Learn on play money before your own funds',
+  'london-prev-day-levels': 'Long or short off London and prior day levels',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
 // Category filters create their own browsable sections (e.g. Prop Firm Strategy).
-const CATEGORY_FILTERS = ['Prop Firm'];
+const CATEGORY_FILTERS = ['Prop Firm', 'London & Prev Day'];
 const ALL_FILTERS = [...RANK_FILTERS, ...CATEGORY_FILTERS];
 
 const MEDALS = [
@@ -915,6 +918,155 @@ export const tradingStrategies: PlaybookStrategy[] = [
           url: 'https://www.instagram.com/reel/Dd5dmbrg9q5/',
           notes:
             'Personal mindset take on prop firm eval accounts (752 likes, no caption). She prefers to learn before her own funds, like the mentor-first years in her real estate career. Evals = play money while you learn yourself (FOMO, impatience), read charts/candles, and judge long vs short timing with no real downside. She flags the 50-50 debate on evals and says you have to know yourself. Contains no mechanical strategy or entry rules.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'london-prev-day-levels',
+    name: 'London & Previous Day Levels (Jope)',
+    description:
+      'Long or short off the London open and previous day high/low: front-run price into a prior daily level, enter on the reaction or 50% retracement, target 2R+. From jopetrades.',
+    difficulty: 'Advanced',
+    timeframe: '5m - 15m / London and NY sessions',
+    winRate: 72,
+    riskReward: '1:2+',
+    marketCondition: 'London open + NY session, trending or reactive at PD levels',
+    overview:
+      'Jope (jopetrades) trades long or short off the London open and the previous day high and low (PDH / PDL). The core repeat is to wait until price drives INTO a prior daily level, then front-run it or enter on the reaction: the momentum push to the level, a 50% retracement of the push, or a retest confirmation. His Tuesday Sep 8 recap is the textbook example: he wanted the 50% retracement of the push up, did not get that exact fill, entered as price came back into the prior daily level around 10:15 AM Eastern, and banked a touch over 2R (2.23R, risking 45 points to make 98, $29,400 PNL) in about 45 minutes. His Friday Sep 25 clip shows the discipline side: a quick retest-based long that paid a modest scalp, then he stopped because he did not see a second set up he loved. Lesson: the edge is trading the level with a reaction and taking the base hit, not grinding for home runs.',
+    glossary: [
+      { term: 'PDH / PDL', meaning: 'Previous day high and previous day low. The prior session extremes that price routinely reacts to on the next day.' },
+      { term: 'London open', meaning: 'The 2-3am ET session high/low. Treasured as a source of levels and directional bias before New York.' },
+      { term: 'Front-run', meaning: 'Entering before price completes a move into a known level, riding the momentum push toward it (his style on the Tuesday trade).' },
+      { term: '50% retracement', meaning: 'Halfway back through the impulsive push. His preferred zone if price pulls back before resuming toward the level.' },
+      { term: 'Retest', meaning: 'Price returning to a level it just broke or tagged, confirming it holds before the continuation.' },
+      { term: 'Base hit', meaning: 'Taking a solid 2R+ target and moving on rather than forcing more trades.' },
+    ],
+    anatomy: [
+      {
+        title: 'Mark the London and prior day levels',
+        points: [
+          'Plot PDH and PDL from the previous session.',
+          'Add the London open high/low for the day as your session levels.',
+          'These are the prices that matter to you for the whole day.',
+        ],
+      },
+      {
+        title: 'Let price drive into a prior daily level',
+        points: [
+          'Do not chase; wait for the push toward PDH or PDL.',
+          'The trade happens at the level, not halfway to it.',
+          'His Tuesday trade: a momentum push up into a previous daily level.',
+        ],
+      },
+      {
+        title: 'Enter on the reaction, retracement, or retest',
+        points: [
+          'Preferred: the 50% retracement of the push (his first choice, when you get it).',
+          'Fallback: enter as price comes back into the level (what he did).',
+          'Or the retest confirm: price re-tags the level and instantly reacts.',
+        ],
+      },
+      {
+        title: 'Take the 2R+ base hit and stop',
+        points: [
+          'He banked around 2.18-2.23R in roughly 45 minutes.',
+          'After the win he is done unless a second clear setup appears.',
+          'On his Friday clip he stopped after the first scalp because nothing else looked clean.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Plot PDH, PDL and the London open high/low before the session',
+      'Long off PDL / London low in an up context, short off PDH / London high in a down context',
+      'Prefer the 50% retracement of the push; if it never comes, take the fill as price returns to the level',
+      'A retest that instantly reacts is a valid entry (his Friday long)',
+      'He front-runs price into a previous daily level when momentum is strong',
+      'After one clean trade, only take a second if it is obvious — otherwise call it',
+    ],
+    exitRules: [
+      'Target 2R+; his wins came in around 2.18-2.23R',
+      'Hold time is short — his textbook trade cleared in about 45 minutes',
+      'Take the base hit; do not sit for the full low-to-high move',
+      'When the market offers nothing else clean, close and move on (his Friday discipline)',
+    ],
+    riskManagement: [
+      'Risk per trade sized to the level and the point stop (his Tue: 45 points risk)',
+      'One clean trade a day is a good day — more asks for trouble',
+      'Level trading without a reaction is a coin flip; require the push/retest first',
+      'Do not add to a dead trade; if the level is not defending, it is not a trade',
+      'Both the winner and the call-it behavior matter, not just the PNL',
+    ],
+    examples: [
+      {
+        title: 'Tuesday Sep 8 — the 2.23R level front-run',
+        description: 'From the source recap.',
+        setup: 'Momentum push up developing. Wanted the 50% retracement of the push, did not get down that far.',
+        entry: 'Entered long as price came back into the previous daily level, filled around 10:15 AM Eastern.',
+        exit: 'Exit just over 2R: 98 points booked, 45 points risked.',
+        result: '+$29,400 PNL, ~2.23R in ~45 minutes',
+      },
+      {
+        title: 'Friday Sep 25 — the disciplined scalp',
+        description: 'From the second clip.',
+        setup: 'Retest forming at a level; he questions whether the retest is right, then commits.',
+        entry: 'Long filled, price reacts instantly, no threat below.',
+        exit: 'Quick close at a decent profit, then he stops because no second setup looks clean.',
+        result: '+$7,365 scalp, then a flat rest of day by choice',
+      },
+      {
+        title: 'The level thesis',
+        description: 'Why the level, not the trend, is the trade.',
+        setup: 'Price drives into PDH/PDL or the London range edge.',
+        entry: 'Front-run or enter the reaction/retest at the level.',
+        exit: 'Min 2R, short hold.',
+        result: 'Level + reaction is the edge; chasing is not',
+      },
+    ],
+    tips: [
+      'PDH/PDL and the London open are your daily map — mark them before price moves',
+      'The 50% retracement of the push is the zone he prefers; take the level fill if it does not come',
+      'Front-running a strong momentum push into a prior daily level is a repeatable pattern for him',
+      'A retest that instantly reacts is stronger than one that waffles',
+      'After one clean 2R+ trade, only a clear second setup earns another order',
+      'He does live trading streams (free) and has a premium room — verify the level reads against your own charts',
+    ],
+    commonMistakes: [
+      'Chasing price instead of waiting for it to reach the prior daily level',
+      'Entering halfway to the level instead of at it or at the 50% retracement',
+      'Taking a second trade just because the first one felt good',
+      'Holding for a maximum move instead of the 2R+ base hit',
+      'Ignoring the London open high/low as a level source',
+    ],
+    source: {
+      url: 'https://www.instagram.com/reel/DdDLIq0IRzZ/',
+      title: 'jopetrades — London & previous day level recaps (TUES Sep 8, 2026 / FRI Sep 25, 2026)',
+    },
+    sourceClaims: [
+      'Tuesday Sep 8: $29,400 PNL risking $13,500; 45 points risk to make 98 points (~2.18R), closed ~2.23R',
+      'Long entered ~10:15 AM Eastern, wanted the 50% retracement of the push, got the level fill instead',
+      'Friday Sep 25: +$7,365 quick scalp on a retest long, then stopped for the week',
+      'Strategy is long/short off London and previous day high and low',
+    ],
+    openQuestions: [
+      'His exact entry/level plotting rules beyond the two recaps are not fully stated',
+      'Exact stop placement relative to PDH/PDL is inferred from the 45-point risk number',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-london-pdh-1',
+          title: 'London & PD level trade — jopetrades (01, Tue Sep 8, 2026)',
+          url: 'https://www.instagram.com/reel/DdDLIq0IRzZ/',
+          notes:
+            'Recap: $29,400 PNL risking $13,500 (45pt risk to make 98pt, ~2.18R closed ~2.23R). 2nd trade of day, long entered 10:15 AM Eastern. Wanted a 50% retracement entry of the push up, did not get it, entered as price came back into a previous daily level. Front-ran the push into the level. About 45-minute hold. Thesis: long/short off London and previous day high/low.',
+        },
+        {
+          id: 'vid-london-pdh-2',
+          title: 'London & PD level trade — jopetrades (02, Fri Sep 25, 2026)',
+          url: 'https://www.instagram.com/reel/DduDIDsIjrm/',
+          notes:
+            'Recap: +$7,365 quick scalp. Friday end-of-week trade: questioned whether a retest was right, committed to a long, price reacted instantly, quick close. Then stopped because he did not see a second setup he loved, calling it for the week. Discipline: take one clean trade, respect the level, do not force a second. 108 likes.',
         },
       ],
     },
