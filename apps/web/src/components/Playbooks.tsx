@@ -62,6 +62,7 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'prop-firm-eval-first-mindset': 'Prop Firm',
   'london-prev-day-levels': 'London & Prev Day',
   'prop-firm-funding-scaling': 'Prop Firm',
+  'vwap-double-break': 'VWAP',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -77,6 +78,7 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'prop-firm-eval-first-mindset': { dir: 'Long', variant: 0 },
   'london-prev-day-levels': { dir: 'Long', variant: 2 },
   'prop-firm-funding-scaling': { dir: 'Long', variant: 0 },
+  'vwap-double-break': { dir: 'Long', variant: 2 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -104,6 +106,7 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'prop-firm-eval-first-mindset': 'Learn on play money before your own funds',
   'london-prev-day-levels': 'Long or short off London and prior day levels',
   'prop-firm-funding-scaling': 'Build the buffer, take the min payout, reinvest',
+  'vwap-double-break': 'Break the range AND VWAP, with VWAP inside the range',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
@@ -1689,6 +1692,147 @@ export const tradingStrategies: PlaybookStrategy[] = [
           url: 'https://www.instagram.com/reel/DduksPZKjur/',
           notes:
             'Evan Dyer session read on NQ and ES combining BOTH VWAPs. Overnight context: pre-market was all sellers under the overnight VWAP (lower highs/lower lows), yet the open prints bullish. His first idea is a short off the overnight VWAP, but he does not fight the New York session: he waits for the 15-minute opening range to set, and only sells if price breaks the range AND breaks back below NY VWAP. No break below NY VWAP = no short, which avoids getting face ripped off by the move back higher. No long either right at VWAP because price just drifts away. Rule: once price is away from VWAP, only take entries at the VWAP pullback, particularly the New York VWAP. Bias note: even though buyers led since 8am pre-market, the overnight structure is what justified the short interest. Takeaway: overnight VWAP gives the bias, NY VWAP gives the execution level, the opening range is the filter.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'vwap-double-break',
+    name: 'VWAP Double Break (Evan Dyer)',
+    description:
+      'True double break: price breaks the opening range AND takes New York VWAP in the same direction, with VWAP inside the range. If VWAP sits outside the range it is a false break. From Evan Dyer.',
+    difficulty: 'Advanced',
+    timeframe: '1m - 15m / NY open',
+    winRate: 72,
+    riskReward: '1:2',
+    marketCondition: 'NQ and ES, first hours after NY open',
+    overview:
+      'Evan Dyer explains the double break setup: a long requires price to break above the opening range high AND break above New York VWAP, with VWAP sitting inside the opening range. When VWAP is outside the range, the breakout is not a true double break, and the move tends to be short lived. His clip shows exactly why he skipped a live long signal: a long looked nice because price was overextended from the overnight VWAP, but on ES the New York VWAP had broken outside the opening range low, and that kills longs for him. The NQ break above VWAP was very short lived because ES held its overnight VWAP, making a lower high, and both rotated back down. With ES VWAP outside the range he is only looking for shorts: wait for sellers to retake control of the New York VWAP and play it down into previous structure. The other half of the lesson is discipline: he passed on taking his first trade of the day at 12:30 on a Monday, flat, so he could set the tone for the week, holding out for something better tomorrow. One trade does not define the week.',
+    glossary: [
+      { term: 'Double break', meaning: 'Price breaking out of the opening range AND through New York VWAP in the same direction, with VWAP inside the range. Long = break above range high + above VWAP; short = below range low + below VWAP.' },
+      { term: 'Opening range', meaning: 'The trading range established in the first 15 minutes of the NY session. Its high and low become the breakout triggers.' },
+      { term: 'NY VWAP inside the range', meaning: 'The key filter. If VWAP is inside the opening range the double break is valid; if it is outside, the break is false and often fails.' },
+      { term: 'Overnight VWAP', meaning: 'The session mean built outside NY hours. Price overextended from it can mean a mean-reversion pull, but that is not a trade by itself.' },
+      { term: 'False double break', meaning: 'A range break where VWAP is outside the range. Do not chase it; expect a short-lived move back.' },
+      { term: 'Set the tone', meaning: 'Discipline of not forcing the first trade of the day/week when the setup is not clean.' },
+    ],
+    anatomy: [
+      {
+        title: 'Mark the opening range and NY VWAP',
+        points: [
+          'The opening range is the first 15 minutes of New York.',
+          'Plot New York VWAP and note where it sits relative to the range.',
+          'VWAP must be INSIDE the range for a true double break.',
+        ],
+      },
+      {
+        title: 'Long: break the range high AND clear VWAP',
+        points: [
+          'Price pushes above the opening range high.',
+          'Buyers retake New York VWAP to the upside.',
+          'The two breaks together, VWAP inside the range, make it real.',
+        ],
+      },
+      {
+        title: 'Short: sellers retake VWAP and break the range low',
+        points: [
+          'If VWAP is outside the range, longs are dead.',
+          'Wait for sellers to retake control of New York VWAP.',
+          'Play it down into previous structure.',
+        ],
+      },
+      {
+        title: 'The false break is the trap',
+        points: [
+          'A break with VWAP outside the range is short lived, not a trend.',
+          'His example: NQ broke VWAP but ES held the overnight VWAP, made a lower high, and both fell.',
+          'When ES and NQ disagree, stand aside.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Require BOTH breaks to confirm: price out of the opening range AND through NY VWAP in the same direction',
+      'New York VWAP must sit INSIDE the opening range for a true setup',
+      'Long: push above the opening range high while buyers clear New York VWAP',
+      'Short: sellers retake New York VWAP, then price breaks the opening range low into previous structure',
+      'If ES shows VWAP outside the range, the NQ long is not worth it (his live walkthrough)',
+      'Signal can come hours into the session, not just at the open',
+    ],
+    exitRules: [
+      'With a true double break, target the range extension and prior structure',
+      'When it is a false break, longs may pay only to the overnight VWAP — do not expect the range high to hold',
+      'Take the clean trade and do not force a second',
+      'Discipline: no-trade is a result — he passed at 12:30 Monday to set the tone for the week',
+    ],
+    riskManagement: [
+      'The main risk is the false double break (VWAP outside the range) — skip it',
+      'Do not take your first trade of the day just because a signal prints; it must be clean',
+      'One trade does not define your week — keep size normal and wait for better setups',
+      'ES and NQ must agree; divergence is a reason to pass',
+    ],
+    examples: [
+      {
+        title: 'The live skip: NQ double break long he passed on',
+        description: 'From the source clip.',
+        setup: 'All sellers at the open, then a double break long signal two hours into the session. Price overextended from the overnight VWAP.',
+        entry: 'He wanted to see longs get back to the overnight VWAP but did not take the long.',
+        exit: 'Reason: ES New York VWAP broke outside the opening range low, which kills longs; NQ break above VWAP was short lived as ES held its overnight VWAP (lower high).',
+        result: 'No-trade. His plan from there: only shorts, sellers retake NY VWAP, into previous structure (illustrative)',
+      },
+      {
+        title: 'The true long double break',
+        description: 'The version he actually trades.',
+        setup: 'Opening range set, New York VWAP inside the range.',
+        entry: 'Price breaks above the opening range high and buyers clear New York VWAP.',
+        exit: 'Target the range extension / previous structure.',
+        result: 'The clean version of the setup (mechanics from the clip)',
+      },
+      {
+        title: 'The short re-entry after a false long',
+        description: 'Where the bias goes after a failed long.',
+        setup: 'NQ long failed because ES VWAP sat outside the range.',
+        entry: 'Wait for sellers to retake control of New York VWAP.',
+        exit: 'Play it down into previous structure.',
+        result: 'Sell the range break only when the short double break is true',
+      },
+    ],
+    tips: [
+      'The filter is everything: VWAP must be inside the opening range, or the break is not a double break',
+      'Watch both NQ and ES — if one shows VWAP outside the range, the other is suspect',
+      'Overextension from overnight VWAP is not a reason to enter a long by itself',
+      'A clean no-trade sets a better tone than a forced first trade',
+      'One trade does not define your week',
+      'He teaches this live on ASFX TV streams (free via his bio)',
+    ],
+    commonMistakes: [
+      'Chasing a range break when New York VWAP is outside the range (false double break)',
+      'Entering the first signal of the day at a bad time just to be in',
+      'Ignoring ES when trading NQ, or vice versa',
+      'Treating a short-lived VWAP break (price reverting) as a real breakout',
+      'Letting one poor or missed trade ruin the week',
+    ],
+    source: {
+      url: 'https://www.instagram.com/reel/DeZ4DRhiYox/',
+      title: 'Evan Dyer — the little things I look for with VWAP (double break)',
+    },
+    sourceClaims: [
+      'Double break long: opening range high AND above New York VWAP, with VWAP inside the range',
+      'ES VWAP outside the opening range low kills longs',
+      'NQ break above VWAP was short lived because ES held the overnight VWAP (lower high)',
+      'After a false setup he looks only for shorts and plays into previous structure',
+      'He skipped the first trade of the day at 12:30 Monday to set the tone for the week',
+    ],
+    openQuestions: [
+      'Exact stop placement and R target for the double break are not fully specified in this clip',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-vwap-double-break',
+          title: 'The little things I look for with VWAP — Evan Dyer double break (IG reel)',
+          url: 'https://www.instagram.com/reel/DeZ4DRhiYox/',
+          notes:
+            'Evan Dyer (itsevandyer). The double break long requires price to break the opening range high AND clear New York VWAP with VWAP inside the range. He passed on a live long because ES NY VWAP broke outside the opening range low; the NQ VWAP break was short lived (ES held overnight VWAP, lower high) and both came back down. With VWAP outside the range, only shorts: wait for sellers to retake NY VWAP and play down into previous structure. Discipline: he skipped the 12:30 Monday first trade to set the tone (one trade does not define your week). Teaches live on ASFX TV.',
         },
       ],
     },
