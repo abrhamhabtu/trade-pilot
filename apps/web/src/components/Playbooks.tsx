@@ -63,6 +63,7 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'london-prev-day-levels': 'London & Prev Day',
   'prop-firm-funding-scaling': 'Prop Firm',
   'vwap-double-break': 'VWAP',
+  'prop-firm-payout-discipline': 'Prop Firm',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -79,6 +80,7 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'london-prev-day-levels': { dir: 'Long', variant: 2 },
   'prop-firm-funding-scaling': { dir: 'Long', variant: 0 },
   'vwap-double-break': { dir: 'Long', variant: 2 },
+  'prop-firm-payout-discipline': { dir: 'Long', variant: 0 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -107,6 +109,7 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'london-prev-day-levels': 'Long or short off London and prior day levels',
   'prop-firm-funding-scaling': 'Build the buffer, take the min payout, reinvest',
   'vwap-double-break': 'Break the range AND VWAP, with VWAP inside the range',
+  'prop-firm-payout-discipline': 'Get payouts the right way, psychology first',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
@@ -1833,6 +1836,105 @@ export const tradingStrategies: PlaybookStrategy[] = [
           url: 'https://www.instagram.com/reel/DeZ4DRhiYox/',
           notes:
             'Evan Dyer (itsevandyer). The double break long requires price to break the opening range high AND clear New York VWAP with VWAP inside the range. He passed on a live long because ES NY VWAP broke outside the opening range low; the NQ VWAP break was short lived (ES held overnight VWAP, lower high) and both came back down. With VWAP outside the range, only shorts: wait for sellers to retake NY VWAP and play down into previous structure. Discipline: he skipped the 12:30 Monday first trade to set the tone (one trade does not define your week). Teaches live on ASFX TV.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prop-firm-payout-discipline',
+    name: 'Prop Firm Payout Discipline (fittraderdad)',
+    description:
+      'Mindset clip on getting prop firm payouts the right way. Persistent message: "This is how you rinse these prop firms." Trading psychology first. Not a mechanical method.',
+    difficulty: 'Beginner',
+    timeframe: 'Any timeframe',
+    winRate: 62,
+    riskReward: 'N/A — mindset only',
+    marketCondition: 'Prop firm payouts',
+    overview:
+      'A short TikTok from fittraderdad framed around getting prop firm payouts the right way. There is no audio narration and no detailed on-screen method; the persistent headline is "This is how you rinse these prop firms" over a payout result screen, and the caption leans hard on trading psychology (#tradingpsychology). Treat it as motivation and a process reminder, not a teachable entry or money system: the takeaways that survive are that payout consistency comes from discipline and psychology, not from chasing a single hit. Pair it with the mechanical prop firm systems in this section (Funding to Payout Scaling, Law of 10, Copy Trading Blueprint) which supply the actual numbers.',
+    glossary: [
+      { term: 'Payout', meaning: 'A withdrawal from a funded prop account. The unit of success in this clip.' },
+      { term: 'Trading psychology', meaning: 'The mental discipline side of trading he emphasizes — the real lever for repeated payouts.' },
+      { term: 'Rinse', meaning: 'Colloquial for repeatedly extracting payouts from prop firms by executing the process correctly.' },
+    ],
+    anatomy: [
+      {
+        title: 'The message is repeated, the visual is payouts',
+        points: [
+          'The whole clip hammers one line: this is how you rinse these prop firms.',
+          'The screens shown are payout results, not entry setups.',
+          'The teaching is psychological: get payouts right, not just get payouts.',
+        ],
+      },
+      {
+        title: 'Psychology is the stated edge',
+        points: [
+          'The caption is tagged trading psychology and the right way to take payouts.',
+          'Repeated payout consistency is a discipline outcome, not a luck outcome.',
+          'Watch it as a motivator between real prop firm systems.',
+        ],
+      },
+      {
+        title: 'Put the numbers on the next card over',
+        points: [
+          'This card has no money system of its own.',
+          'The Prop Firm section already has the systems: build a buffer, min payout loop, Law of 10, copy trading gates.',
+          'Use this clip as the why, use those cards as the how.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Treat repeated, clean payouts as the goal, not one big win',
+      'Reinforce the psychology: discipline over impulses on the way to a payout',
+      'Verify any concrete claim with the actual systems in the Prop Firm section',
+    ],
+    exitRules: [
+      'Close a day or week that keeps your process clean, payout or not',
+      'Do not chase a payout the creator on a clip claims — copy the discipline, not the hype',
+    ],
+    riskManagement: [
+      'The discipline to get payouts the right way IS the risk control here',
+      'No concrete sizing or stop guidance in the clip; apply the Law of 10 / funding systems for numbers',
+    ],
+    examples: [
+      {
+        title: 'The clip itself',
+        description: 'What the TikTok shows.',
+        setup: 'Payout result screen with the persistent headline this is how you rinse these prop firms.',
+        entry: 'No mechanical entry; the message is process and psychology.',
+        exit: 'Get payouts the right way.',
+        result: 'Motivational frame for prop firm discipline',
+      },
+    ],
+    tips: [
+      'Use it as motivation, not a method — it has no mechanical content',
+      'The psychology point is real: payouts compound from repeatable discipline',
+      'Pair it with the other Prop Firm cards for the actual numbers',
+    ],
+    commonMistakes: [
+      'Looking for an entry or money system in a motivation-only clip',
+      'Chasing a claimed payout number without your own process',
+    ],
+    source: {
+      url: 'https://www.tiktok.com/t/ZTytCYoGe/',
+      title: 'fittraderdad — get those payouts the right way (TikTok)',
+    },
+    sourceClaims: [
+      'Persistent on-screen message: this is how you rinse these prop firms',
+      'Caption and hashtags emphasize trading psychology for payouts',
+      'No audio narration or detailed mechanical method in the clip',
+    ],
+    openQuestions: [
+      'The clip contains no concrete entry, sizing, or payout-loop rules to apply',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-prop-firm-payout-discipline',
+          title: 'Get payouts the right way — fittraderdad (TikTok)',
+          url: 'https://www.tiktok.com/t/ZTytCYoGe/',
+          notes:
+            'TikTok by fittraderdad (523 likes, 138s, no audio narration). Persistent on-screen message: "This is how you rinse these prop firms" over a payout result screen. Caption: get those payouts the right way, tagged trading psychology. Motivational/process clip, not a mechanical method — pair with the Prop Firm systems (Funding to Payout Scaling, Law of 10, Copy Trading Blueprint) for the actual numbers.',
         },
       ],
     },
