@@ -61,6 +61,7 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'prop-firm-copy-trading': 'Prop Firm',
   'prop-firm-eval-first-mindset': 'Prop Firm',
   'london-prev-day-levels': 'London & Prev Day',
+  'prop-firm-funding-scaling': 'Prop Firm',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -75,6 +76,7 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'prop-firm-copy-trading': { dir: 'Long', variant: 1 },
   'prop-firm-eval-first-mindset': { dir: 'Long', variant: 0 },
   'london-prev-day-levels': { dir: 'Long', variant: 2 },
+  'prop-firm-funding-scaling': { dir: 'Long', variant: 0 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -101,6 +103,7 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'prop-firm-copy-trading': 'Straight to funded, scale in, respect the risk',
   'prop-firm-eval-first-mindset': 'Learn on play money before your own funds',
   'london-prev-day-levels': 'Long or short off London and prior day levels',
+  'prop-firm-funding-scaling': 'Build the buffer, take the min payout, reinvest',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
@@ -1067,6 +1070,148 @@ export const tradingStrategies: PlaybookStrategy[] = [
           url: 'https://www.instagram.com/reel/DduDIDsIjrm/',
           notes:
             'Recap: +$7,365 quick scalp. Friday end-of-week trade: questioned whether a retest was right, committed to a long, price reacted instantly, quick close. Then stopped because he did not see a second setup he loved, calling it for the week. Discipline: take one clean trade, respect the level, do not force a second. 108 likes.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prop-firm-funding-scaling',
+    name: 'Funding to Payout Scaling System (Trenlines)',
+    description:
+      'Get funded small, build a buffer, take only the minimum payout, reinvest into more accounts. 2% risk, 1:1 R/R, one trade a day. A prop firm money system, not an entry signal. From trenlines.',
+    difficulty: 'Intermediate',
+    timeframe: 'Any timeframe',
+    winRate: 65,
+    riskReward: '1:1 + minimum payout scaling',
+    marketCondition: 'Prop firm evals and funded accounts',
+    overview:
+      'Sam Gilkes (trenlines) lays out the exact prop firm system he says made over $31,000 in 28 days. Funding phase: he invested $1,000, used his shotgun method to run Topstep accounts up to 250K each, totaling $1M in funding, trading 2% risk at a 1:1 risk to reward. Funded phase: build a buffer first, then stay aggressive but smart, one trade per account per day, risking 1-2% (not full porting). As you approach the buffer the winning-day target is only $200. Scaling phase: he rides the minimum payout loop — on Topstep that is 5 winning days to a 2,000 balance, then request the minimum payout around $1,000, rebuild back to 2,000 using a $150 maximum winning day, and repeat. He kept withdrawing the minimum, did not blow any accounts, and reinvested the payouts into more funded accounts, now targeting $2M in funding. The point is that the number, the payout, is engineered: min withdrawal, buffer protection, and reinvestment beat chasing max draws.',
+    glossary: [
+      { term: 'Shotgun method', meaning: 'His way of spooling up many funded accounts cheaply (here $1,000 in, $1M in funding across Topstep) instead of one big eval.' },
+      { term: 'Buffer', meaning: 'The funded balance cushion you build before you feel safe taking payouts.' },
+      { term: 'Min payout', meaning: 'Requesting only the smallest withdrawable amount, over and over, instead of waiting for a max draw.' },
+      { term: '5 winning days', meaning: 'The Topstep rule a funded trader must hit to stay payout eligible.' },
+      { term: 'Max winning day', meaning: 'The cap on any single day\'s profit for payout purposes (his scale loop used $150), which he deliberately stays under.' },
+      { term: 'Reinvest', meaning: 'Folding payouts back into more funded accounts to compound total funding.' },
+    ],
+    anatomy: [
+      {
+        title: 'Get funded lean',
+        points: [
+          'Invest small (his example: $1,000), spread across accounts with the shotgun method.',
+          'Trade 2% risk at a 1:1 risk to reward through the eval.',
+          'Result: 250K on Topstep, $1M in total funding.',
+        ],
+      },
+      {
+        title: 'Build the buffer, stay aggressive but safe',
+        points: [
+          'Once funded, first job is a buffer of profit so a losing day cannot hurt.',
+          'He was aggressive early, but never full-porting — 1-2% risk.',
+          'One trade per account per day from then on.',
+        ],
+      },
+      {
+        title: 'Ride the minimum payout loop',
+        points: [
+          'Close to the buffer, a $200 winning day is all you need.',
+          'On Topstep: hit 5 winning days, build the 2,000 balance, request the minimum payout (~$1,000).',
+          'Rebuild back to 2,000 using a $150 max winning day, then request again.',
+        ],
+      },
+      {
+        title: 'Reinvest and compound',
+        points: [
+          'Payouts go back into more funded accounts rather than leaving the system.',
+          'None of his accounts blew on this run, he says.',
+          'Current target: $2M in total funding.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Fund through the eval trading 2% risk at a 1:1 risk to reward',
+      'After funding, one trade per account per day — no overtrading',
+      'Build the buffer before scaling, but stay aggressive within 1-2% risk (not full porting)',
+      'When approaching the buffer, a $200 winning day is the whole day',
+      'During scale, keep each winning day under the firm cap (Topstep: $150)',
+    ],
+    exitRules: [
+      'Take the minimum payout, not the max — repeatedly',
+      'On Topstep that is ~5 winning days to a 2,000 balance, then request ~$1,000 and rebuild to 2,000',
+      'Never withdraw so much that the buffer disappears',
+      'Reinvest payouts into more accounts instead of cashing the run out',
+    ],
+    riskManagement: [
+      '2% risk per trade, 1:1 target through the eval',
+      'Post-funded: 1-2% risk, no full porting, one trade per account per day',
+      'Build a profit buffer before withdrawing',
+      'The minimum payout loop protects the balance while still paying out',
+      'He did not blow any accounts on the run and is compounding toward $2M funding',
+    ],
+    examples: [
+      {
+        title: 'The source run: $31k in 28 days',
+        description: 'From the trenlines reel.',
+        setup: '$1,000 invested, shotgun method to 250K on Topstep, $1M total funding.',
+        entry: '2% risk, 1:1 R/R through the eval; one trade per account per day once funded.',
+        exit: 'Minimum payout loop: 5 winning days, 2,000 balance, ~$1,000 payout, rebuild, repeat.',
+        result: '$31,000 in 28 days, no blown accounts, reinvesting',
+      },
+      {
+        title: 'The min payout loop, step by step',
+        description: 'The engine that produces consistent payouts.',
+        setup: 'Funded Topstep account at 2,000.',
+        entry: '5 winning days logged, each capped within the firm limit.',
+        exit: 'Request the ~$1,000 minimum payout, withdraw, then rebuild to 2,000.',
+        result: 'Steady cash out without risking the buffer (mechanics from the reel)',
+      },
+      {
+        title: 'Compounding to $2M funding',
+        description: 'Where reinvestment leads.',
+        setup: 'Payouts from many accounts pooled back in.',
+        entry: 'Fund additional accounts with the payouts.',
+        exit: 'More funded size, more payout loops.',
+        result: 'Total funding target now $2M',
+      },
+    ],
+    tips: [
+      'This is a money and process system, not a trade signal — pair it with any entry playbook',
+      'The minimum payout loop is engineered so you cash out while protecting the buffer',
+      'Know your firm\'s exact numbers: winning-day count, balance target, payout minimum, max winning day',
+      'Aggressive early, then one trade a day — simplicity is what lets it scale',
+      'Reinvest rather than spend the whole run; that is how funding compounds',
+      'Verify the $31k / $1M claims against your own firms before mirroring the size',
+    ],
+    commonMistakes: [
+      'Full-porting the eval because the profits are tempting',
+      'Ignoring the 2% / 1:1 baseline',
+      'Requesting the max payout and destroying the buffer',
+      'Overtrading one account instead of one trade a day',
+      'Forgetting the reinvest step that compounds the funding',
+    ],
+    source: {
+      url: 'https://www.instagram.com/reel/DRrWP1uiG1U/',
+      title: 'trenlines (Sam Gilkes) — my $30k/mo. prop firm trading system',
+    },
+    sourceClaims: [
+      'Over $31,000 in 28 days trading prop firms',
+      'Invested $1,000, shotgun method to 250K on Topstep, $1M total funding',
+      '2% risk, 1:1 risk to reward, one trade per account per day after funding',
+      'Topstep scale loop: 5 winning days to a 2,000 balance, ~$1,000 minimum payout, $150 max winning day',
+      'Did not blow any accounts; reinvesting toward $2M funding',
+    ],
+    openQuestions: [
+      'The shotgun method mechanics are named but not fully explained on-screen',
+      'Exact firm rules (payout minimum, winning-day caps) are cited from Topstep and may vary by firm',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-prop-firm-funding-scaling',
+          title: 'My $30k/mo prop firm system — trenlines / Sam Gilkes (IG reel)',
+          url: 'https://www.instagram.com/reel/DRrWP1uiG1U/',
+          notes:
+            'Sam Gilkes (trenlines), 685 likes. $31k in 28 days trading prop firms. Funding: $1,000 in, shotgun method to 250K on Topstep, $1M total funding, 2% risk at 1:1 R/R. Funded: build a buffer, aggressive but not full porting (1-2%), one trade per account per day, $200 winning days near the buffer. Scale: minimum payout loop on Topstep (5 winning days to a 2,000 balance, request ~$1,000 min payout, rebuild using $150 max winning day, repeat). Reinvest payouts into more accounts, no blown accounts, now targeting $2M funding. This is a funding/payout system, not an entry strategy. CTA: comment "payout" for his free breakdown.',
         },
       ],
     },
