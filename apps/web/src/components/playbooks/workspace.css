@@ -1,7 +1,7 @@
 .pw {
   --line: #ffffff16;
   --muted: #929dab;
-  --accent: #69e4b5;
+  --accent: #7BE495;
   color: #edf1f5;
   min-width: 0;
 }
@@ -14,7 +14,7 @@
 .pw button:focus-visible,
 .pw a:focus-visible,
 .pw-modal :focus-visible {
-  outline: 2px solid #69e4b5;
+  outline: 2px solid #7BE495;
   outline-offset: 3px;
 }
 .pw button:disabled,
@@ -75,7 +75,7 @@
     10px ui-monospace,
     monospace;
   letter-spacing: 2px;
-  color: #69e4b5;
+  color: #7BE495;
 }
 .pw-intro h2 {
   font-size: 27px;
@@ -108,9 +108,9 @@
   background: #ffffff0b;
 }
 .pw-primary {
-  background: #69e4b5;
+  background: #7BE495;
   color: #0b2119;
-  border-color: #69e4b5;
+  border-color: #7BE495;
   font-weight: 650;
 }
 .pw-index {
@@ -203,8 +203,8 @@
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  border: 1px solid #69e4b522;
-  background: #69e4b506;
+  border: 1px solid #7BE49522;
+  background: #7BE49506;
   border-radius: 12px;
   color: #8aa99e;
 }
@@ -266,8 +266,8 @@
   margin-bottom: 5px;
 }
 .pw-version-list > button[aria-pressed="true"] {
-  border-color: #69e4b52a;
-  background: #69e4b509;
+  border-color: #7BE4952a;
+  background: #7BE49509;
 }
 .pw-version-list > button > div {
   display: flex;
@@ -298,11 +298,11 @@
   color: #d4ad50;
 }
 .pw-status-ready {
-  background: #69e4b515;
-  color: #69e4b5;
+  background: #7BE49515;
+  color: #7BE495;
 }
 .pw-star {
-  color: #69e4b5;
+  color: #7BE495;
   flex-shrink: 0;
 }
 .pw-code-toolbar {
@@ -336,7 +336,7 @@
 }
 .pw-code-toolbar button:hover,
 .pw-card-actions button:hover {
-  color: #69e4b5;
+  color: #7BE495;
 }
 .pw-code {
   font:
@@ -477,7 +477,7 @@
   gap: 10px;
   font-size: 12px;
   padding: 12px;
-  background: #69e4b509;
+  background: #7BE49509;
   color: #9ed7bc;
   margin-top: 12px;
 }
@@ -571,10 +571,10 @@
 }
 .pw-upload {
   align-items: center;
-  border: 1px dashed #69e4b53b;
+  border: 1px dashed #7BE4953b;
   border-radius: 8px;
   padding: 20px;
-  background: #69e4b503;
+  background: #7BE49503;
 }
 .pw-upload span {
   font-size: 10px;
@@ -600,7 +600,7 @@
   display: flex;
   gap: 7px;
   align-items: center;
-  color: #69e4b5;
+  color: #7BE495;
   margin: 10px 0 18px;
 }
 @media (max-width: 1100px) {
@@ -725,7 +725,7 @@
   border: 1px solid #ffffff18;
   border-radius: 16px;
   overflow: hidden;
-  background: #101b29;
+  background: rgb(var(--tp-panel));
   box-shadow: 0 16px 50px #00000016;
 }
 .pw-studio-header {
@@ -750,7 +750,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #69e4b5;
+  background: #7BE495;
 }
 .pw-studio-divider {
   height: 12px;
@@ -882,9 +882,9 @@
 .pw-study-meta > span:first-child {
   font-family: inherit;
   color: #9cbeae;
-  background: #69e4b509;
+  background: #7BE49509;
   padding: 6px 8px;
-  border: 1px solid #69e4b51a;
+  border: 1px solid #7BE4951a;
   border-radius: 4px;
 }
 .pw-study-notes h3 {
@@ -931,7 +931,7 @@
 }
 .pw-add-takeaway:hover {
   background: #ffffff03;
-  border-color: #69e4b530;
+  border-color: #7BE49530;
 }
 .pw-takeaway-text {
   font-size: 13px;
@@ -1014,8 +1014,8 @@
   min-width: 0;
 }
 .pw-queue-item.is-selected {
-  border-color: #69e4b554;
-  background: #69e4b506;
+  border-color: #7BE49554;
+  background: #7BE49506;
 }
 .pw-queue-item.is-dragging {
   opacity: 0.4;
@@ -1047,8 +1047,8 @@
     monospace;
 }
 .is-selected .pw-queue-thumb {
-  color: #69e4b5;
-  background: #69e4b510;
+  color: #7BE495;
+  background: #7BE49510;
 }
 .pw-queue-select > span:last-child {
   min-width: 0;
@@ -1108,7 +1108,7 @@
   justify-content: center;
   gap: 20px;
   padding: 10px;
-  background: #101b29;
+  background: rgb(var(--tp-panel));
 }
 .pw-playback-tools button {
   display: flex;
@@ -1212,9 +1212,9 @@
   gap: 14px;
   padding: 20px;
   margin-bottom: 16px;
-  border: 1px solid #69e4b548;
+  border: 1px solid #7BE49548;
   border-radius: 9px;
-  background: #69e4b50a;
+  background: #7BE4950a;
   color: #a9e4cc;
   text-align: left;
   font-size: 14px;
@@ -1253,7 +1253,7 @@
   border-radius: 5px;
 }
 .pw-video-filters button[aria-pressed="true"] {
-  background: #69e4b514;
+  background: #7BE49514;
   color: #a4e3ca;
 }
 .pw-video-filters > span {
@@ -1271,7 +1271,7 @@
 }
 .pw-reel-card {
   border: 1px solid #ffffff15;
-  background: #101b29;
+  background: rgb(var(--tp-panel));
   border-radius: 13px;
   overflow: hidden;
   min-width: 0;
@@ -1340,7 +1340,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 9px;
-  background: #101c2b;
+  background: rgb(var(--tp-panel));
 }
 .pw-embed-actions button, .pw-embed-actions a {
   display: inline-flex;
@@ -1420,7 +1420,7 @@
   border: 0;
 }
 .pw-video-dialog button:focus-visible {
-  outline: 2px solid #69e4b5;
+  outline: 2px solid #7BE495;
   outline-offset: 3px;
 }
 @media (max-width: 650px) {

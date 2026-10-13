@@ -79,7 +79,7 @@ export function AiModelGate() {
         />
       )}
       {ready && (
-        <button onClick={() => setEditing(false)} className="mt-3 rounded-lg bg-tp-green px-3 py-1.5 text-sm font-semibold text-[#0D1628]">
+        <button onClick={() => setEditing(false)} className="mt-3 rounded-lg bg-tp-green px-3 py-1.5 text-sm font-semibold text-tp-base">
           Done
         </button>
       )}

@@ -82,7 +82,7 @@ export function DisciplinePlanner({
     Math.max(1, Math.floor(micro.contracts / 2)),
   );
   const panel = dark
-    ? "bg-[#101c2b] border-white/10"
+    ? "bg-tp-panel border-white/10"
     : "bg-white border-gray-200";
   const smallLabel =
     smaller?.contracts === current?.contracts

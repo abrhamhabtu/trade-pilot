@@ -365,7 +365,7 @@ export function PilotCoach({
       className="relative overflow-hidden rounded-3xl border border-white/[0.07] bg-tp-card px-5 py-8 sm:px-10 sm:py-10"
       style={{
         backgroundImage:
-          "radial-gradient(70% 55% at 50% 0%, rgba(0,214,143,0.10) 0%, transparent 70%), radial-gradient(40% 40% at 90% 100%, rgba(79,156,249,0.07) 0%, transparent 70%)",
+          "radial-gradient(70% 55% at 50% 0%, rgb(var(--tp-green)/0.10) 0%, transparent 70%), radial-gradient(40% 40% at 90% 100%, rgb(var(--tp-blue)/0.07) 0%, transparent 70%)",
       }}
     >
       {!chatting ? (
@@ -527,7 +527,7 @@ export function PilotCoach({
               type="submit"
               disabled={!input.trim()}
               aria-label="Send message"
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-tp-green text-[#0D1628] hover:brightness-110 disabled:bg-white/[0.06] disabled:text-zinc-500"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-tp-green text-tp-base hover:brightness-110 disabled:bg-white/[0.06] disabled:text-zinc-500"
             >
               <ArrowUp className="h-5 w-5" />
             </button>

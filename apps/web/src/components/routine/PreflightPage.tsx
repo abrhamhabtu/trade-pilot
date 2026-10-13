@@ -56,16 +56,16 @@ const STAGES = [
 type StageId = (typeof STAGES)[number]['id'];
 
 const CLEARANCE_TONE = {
-  cleared: { color: '#00D68F', label: 'Cleared', icon: CheckCircle2 },
-  restricted: { color: '#FFB800', label: 'Restricted', icon: AlertTriangle },
-  grounded: { color: '#FF4868', label: 'Grounded', icon: Ban },
-  incomplete: { color: '#4F9CF9', label: 'Preflight incomplete', icon: Lock },
+  cleared: { color: '#30D158', label: 'Cleared', icon: CheckCircle2 },
+  restricted: { color: '#FFD60A', label: 'Restricted', icon: AlertTriangle },
+  grounded: { color: '#FF453A', label: 'Grounded', icon: Ban },
+  incomplete: { color: '#0A84FF', label: 'Preflight incomplete', icon: Lock },
 } as const;
 
 const RULE_COLORS: Record<TradingRule['category'], string> = {
-  entry: '#00D68F',
-  exit: '#4F9CF9',
-  risk: '#FF4868',
+  entry: '#30D158',
+  exit: '#0A84FF',
+  risk: '#FF453A',
   mindset: '#60A5FA',
   time: '#FBBF24',
 };
@@ -142,7 +142,7 @@ function Dial({
         onChange={(e) => onChange(Number(e.target.value))}
         className="preflight-range w-full"
         style={{
-          background: `linear-gradient(90deg, ${danger ? '#FF4868' : '#00D68F'} ${pct}%, rgba(255,255,255,0.08) ${pct}%)`,
+          background: `linear-gradient(90deg, ${danger ? '#FF453A' : '#30D158'} ${pct}%, rgba(255,255,255,0.08) ${pct}%)`,
         }}
       />
       {hint && <p className="mt-1.5 text-[11px] text-white/35">{hint}</p>}
@@ -161,12 +161,12 @@ function ReasonRow({
 }) {
   const tone =
     severity === 'gate'
-      ? { c: '#4F9CF9', Icon: Lock }
+      ? { c: '#0A84FF', Icon: Lock }
       : severity === 'stop'
-        ? { c: '#FF4868', Icon: Ban }
+        ? { c: '#FF453A', Icon: Ban }
         : severity === 'warn'
-          ? { c: '#FFB800', Icon: AlertTriangle }
-          : { c: '#00D68F', Icon: CheckCircle2 };
+          ? { c: '#FFD60A', Icon: AlertTriangle }
+          : { c: '#30D158', Icon: CheckCircle2 };
   const { c, Icon } = tone;
   return (
     <li className="flex gap-3 rounded-xl px-3 py-2.5" style={{ background: `${c}0F` }}>
@@ -338,7 +338,7 @@ export const PreflightPage: React.FC = () => {
         className="relative overflow-hidden rounded-2xl border p-6"
         style={{
           borderColor: `${tone.color}40`,
-          background: `linear-gradient(135deg, ${tone.color}14 0%, rgba(23,32,53,0.6) 55%)`,
+          background: `linear-gradient(135deg, ${tone.color}14 0%, rgb(var(--tp-card)/0.6) 55%)`,
         }}
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -431,7 +431,7 @@ export const PreflightPage: React.FC = () => {
                 {i < STAGES.length - 1 && (
                   <div
                     className="h-px w-4 shrink-0"
-                    style={{ background: done ? '#00D68F55' : 'rgba(255,255,255,0.08)' }}
+                    style={{ background: done ? '#30D15855' : 'rgba(255,255,255,0.08)' }}
                   />
                 )}
               </React.Fragment>
@@ -546,7 +546,7 @@ export const PreflightPage: React.FC = () => {
                   <div key={kind}>
                     <span
                       className="mb-2 block text-xs font-medium capitalize"
-                      style={{ color: kind === 'support' ? '#00D68F' : '#FF4868' }}
+                      style={{ color: kind === 'support' ? '#30D158' : '#FF453A' }}
                     >
                       {kind}
                     </span>
@@ -642,9 +642,9 @@ export const PreflightPage: React.FC = () => {
             >
               <div className="grid gap-4 sm:grid-cols-3">
                 {[
-                  { key: 'maxLoss' as const, label: 'Max loss', prefix: '$', tone: '#FF4868' },
-                  { key: 'maxProfit' as const, label: 'Target', prefix: '$', tone: '#00D68F' },
-                  { key: 'maxTrades' as const, label: 'Max trades', prefix: '', tone: '#4F9CF9' },
+                  { key: 'maxLoss' as const, label: 'Max loss', prefix: '$', tone: '#FF453A' },
+                  { key: 'maxProfit' as const, label: 'Target', prefix: '$', tone: '#30D158' },
+                  { key: 'maxTrades' as const, label: 'Max trades', prefix: '', tone: '#0A84FF' },
                 ].map((f) => (
                   <div key={f.key}>
                     <span className="mb-2 block text-xs font-medium text-white/70">{f.label}</span>

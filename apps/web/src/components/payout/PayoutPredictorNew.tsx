@@ -451,7 +451,7 @@ export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId 
             </button>
           );
         })}
-        <select aria-label="More payout tools" value={ADVANCED_TABS.some(t=>t.id===tab)?tab:''} onChange={e=>setTab((e.target.value || 'path') as PayoutTab)} className={clsx('rounded-lg border border-zinc-500/20 text-xs px-3 py-2 max-w-full',dark?'bg-[#101c2b] text-zinc-300':'bg-white text-gray-700')}><option value="">More tools</option>{ADVANCED_TABS.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select>
+        <select aria-label="More payout tools" value={ADVANCED_TABS.some(t=>t.id===tab)?tab:''} onChange={e=>setTab((e.target.value || 'path') as PayoutTab)} className={clsx('rounded-lg border border-zinc-500/20 text-xs px-3 py-2 max-w-full',dark?'bg-tp-panel text-zinc-300':'bg-white text-gray-700')}><option value="">More tools</option>{ADVANCED_TABS.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select>
       </div>
 
       {tab === 'ledger' && <LedgerTab />}

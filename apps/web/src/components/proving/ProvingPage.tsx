@@ -55,7 +55,7 @@ export function ProvingPage() {
     <div className="space-y-6">
       {/* ── Header ─────────────────────────────────────────────── */}
       <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-tp-card/60 px-6 py-6 sm:px-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_120%_at_0%_0%,rgba(0,214,143,0.12),transparent_50%),radial-gradient(80%_120%_at_100%_0%,rgba(177,140,255,0.12),transparent_50%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_120%_at_0%_0%,rgb(var(--tp-green)/0.12),transparent_50%),radial-gradient(80%_120%_at_100%_0%,rgba(177,140,255,0.12),transparent_50%)]" />
         <div className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(rgba(255,255,255,.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.6)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(70%_80%_at_70%_0%,black,transparent)]" />
         <div className="relative flex flex-wrap items-end justify-between gap-5">
           <div>
@@ -82,7 +82,7 @@ export function ProvingPage() {
             </div>
             <button
               onClick={() => setCreating(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-tp-green to-emerald-400 px-4 py-2.5 text-sm font-semibold text-[#0D1628] shadow-[0_10px_30px_-12px_rgba(0,214,143,0.8)] hover:brightness-110"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-tp-green to-emerald-400 px-4 py-2.5 text-sm font-semibold text-tp-base shadow-[0_10px_30px_-12px_rgb(var(--tp-green)/0.8)] hover:brightness-110"
             >
               <Plus className="h-4 w-4" /> New test
             </button>

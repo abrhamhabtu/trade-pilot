@@ -1,11 +1,12 @@
 "use client";
 /* Browser-local reference images are kept at their native aspect ratio. */
 /* eslint-disable @next/next/no-img-element */
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import clsx from "clsx";
-import { ArrowRight, ChevronDown, ImagePlus, Maximize2, ScanLine } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, ImagePlus, Maximize2, Pause, Play, ScanLine } from "lucide-react";
 import type { PlaybookStrategy } from "../Playbooks";
 import type { Evidence } from "@/lib/playbookLibrary";
+import { parseR } from "@/lib/futuresSpecs";
 
 type Profile = {
   level: string;
@@ -156,12 +157,20 @@ const profiles: Record<string, Profile> = {
   },
 };
 
+// Options playbooks reuse the price paths of the futures setup they are built on.
+profiles["opt-vwap-double-break"] = { ...profiles.orb, level: "Opening range high, VWAP inside", context: "Range and VWAP line up", trigger: "Both breaks confirm" };
+profiles["opt-orb-0dte"] = { ...profiles.orb, level: "Opening range high", context: "Let the first 15 minutes print", trigger: "Close outside the range" };
+profiles["opt-trend-pullback-spread"] = { ...profiles["vwap-pullback"] };
+profiles["opt-failed-break-reversal"] = { ...profiles["failed-breakout"], level: "Opening range low", context: "A break that fails", trigger: "Close back inside the range" };
+
 const STAGE_META = [
-  { name: "Context", hint: "Is this even my setup?", color: "#91bdf1" },
-  { name: "Confirmation", hint: "What makes me click buy/sell", color: "#00D68F" },
-  { name: "Invalidation", hint: "Where I'm wrong — the stop", color: "#FF4868" },
-  { name: "Objective", hint: "Where I get paid — the target", color: "#c9c2f7" },
+  { name: "Context", hint: "Is this even my setup?", color: "#64D2FF" },
+  { name: "Confirmation", hint: "What makes me click buy or sell?", color: "#30D158" },
+  { name: "Invalidation", hint: "Where am I wrong?", color: "#FF453A" },
+  { name: "Objective", hint: "Where do I get paid?", color: "#FFD60A" },
 ];
+/** How long each stage holds while the walkthrough plays. */
+const STAGE_MS = 4200;
 
 const isTrigger = (r: string) =>
   /^enter|enter on|enter only|enter when|entry trigger|enter immediately/i.test(r);
@@ -210,32 +219,55 @@ export function SetupAnatomy({
   ready: boolean;
 }) {
   const [step, setStep] = useState(0);
+  const [playing, setPlaying] = useState(false);
   const profile = profiles[strategy.id] || profiles["support-resistance"];
   const reference = screenshots.find((s) => s.id === selectedImage);
   const stages = buildStages(strategy, profile);
+  const meta = STAGE_META[step];
+  const stage = stages[step];
+
+  // The walkthrough advances itself, then rests on the last stage.
+  useEffect(() => {
+    if (!playing) return;
+    const t = setTimeout(() => {
+      if (step >= 3) setPlaying(false);
+      else setStep(step + 1);
+    }, STAGE_MS);
+    return () => clearTimeout(t);
+  }, [playing, step]);
+
+  const go = (i: number) => {
+    setPlaying(false);
+    setStep(Math.min(3, Math.max(0, i)));
+  };
+  const togglePlay = () => {
+    if (!playing && step === 3) setStep(0);
+    setPlaying(!playing);
+  };
 
   return (
     <section
       id="anatomy"
       aria-label="Setup anatomy"
-      className="scroll-mt-36 overflow-hidden rounded-2xl border border-white/[0.06] bg-tp-card"
+      className="scroll-mt-36 overflow-hidden rounded-3xl bg-tp-card shadow-lift ring-1 ring-inset ring-white/[0.07] [overflow-anchor:none]"
     >
       {/* Header */}
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/[0.06] p-5 sm:p-7">
+      <header className="flex flex-wrap items-end justify-between gap-4 p-5 sm:p-8 sm:pb-6">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-tp-green">The visual playbook</div>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-50 sm:text-[28px]">Anatomy of the setup</h2>
-          <p className="mt-1 text-[15px] text-zinc-400">Four decisions, in order. Click a step to see it on the chart.</p>
+          <h2 className="text-[28px] font-bold leading-tight tracking-[-0.03em] text-white">Anatomy of the setup</h2>
+          <p className="mt-1 text-[17px] text-zinc-400">Four decisions, in the order you make them.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-xl bg-black/25 p-1 ring-1 ring-inset ring-white/[0.07]">
+          <div className="inline-flex rounded-[11px] bg-tp-fill p-[3px]">
             <button
               aria-pressed={!reference}
               disabled={!ready}
               onClick={() => selectImage("")}
               className={clsx(
-                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium",
-                !reference ? "bg-white/[0.09] text-zinc-50" : "text-zinc-400 hover:text-zinc-100",
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-semibold",
+                !reference
+                  ? "bg-[#5B6478]/70 text-white shadow-[0_1px_3px_rgba(0,0,0,0.35),inset_0_0.5px_0_rgba(255,255,255,0.14)]"
+                  : "text-zinc-400 hover:text-zinc-100",
               )}
             >
               <ScanLine className="h-4 w-4" />
@@ -249,8 +281,8 @@ export function SetupAnatomy({
                 value={reference?.id || ""}
                 onChange={(e) => selectImage(e.target.value)}
                 className={clsx(
-                  "cursor-pointer appearance-none rounded-lg bg-transparent py-1.5 pl-3 pr-7 text-sm font-medium focus:outline-none disabled:cursor-not-allowed",
-                  reference ? "bg-white/[0.09] text-zinc-50" : "text-zinc-400",
+                  "cursor-pointer appearance-none rounded-lg bg-transparent py-1.5 pl-3 pr-7 text-[13px] font-semibold focus:outline-none disabled:cursor-not-allowed",
+                  reference ? "bg-[#5B6478]/70 text-white" : "text-zinc-400",
                 )}
               >
                 <option value="">{screenshots.length ? "My charts" : "My charts (none yet)"}</option>
@@ -266,7 +298,7 @@ export function SetupAnatomy({
           <button
             disabled={!ready}
             onClick={addImage}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-zinc-100 hover:bg-white/[0.08] disabled:opacity-40"
+            className="tp-press inline-flex items-center gap-2 rounded-full bg-tp-fill px-3.5 py-[7px] text-[13px] font-semibold text-zinc-100 hover:bg-white/[0.14] disabled:opacity-40"
           >
             <ImagePlus className="h-4 w-4" />
             Add your chart
@@ -275,127 +307,186 @@ export function SetupAnatomy({
       </header>
 
       {reference ? (
-        <div className="grid gap-0 lg:grid-cols-[1.6fr_1fr]">
+        <div className="grid gap-0 border-t border-white/[0.06] lg:grid-cols-[1.6fr_1fr]">
           <button
             className="group relative block bg-black/30"
             onClick={() => openImage(reference)}
             aria-label={`Enlarge ${reference.title}`}
           >
             <img src={reference.image} alt={reference.title} className="mx-auto max-h-[560px] w-auto" />
-            <span className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1.5 text-xs text-zinc-100 opacity-0 transition-opacity group-hover:opacity-100">
+            <span className="tp-material-thin absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] text-zinc-100 opacity-0 transition-opacity group-hover:opacity-100">
               <Maximize2 className="h-3.5 w-3.5" />
               View full size
             </span>
           </button>
           <div className="border-t border-white/[0.06] p-6 lg:border-l lg:border-t-0">
-            <h3 className="text-lg font-semibold text-zinc-50">{reference.title}</h3>
+            <h3 className="text-[20px] font-bold tracking-tight text-white">{reference.title}</h3>
             <p className="mt-2 text-[15px] leading-relaxed text-zinc-300">
               {reference.notes || "Add your observations in Workspace → Chart screenshots."}
             </p>
-            <p className="mt-4 text-xs text-zinc-500">{reference.source || "Your chart"} · Saved on this device</p>
+            <p className="mt-4 text-[13px] text-zinc-500">{reference.source || "Your chart"} · Saved on this device</p>
           </div>
         </div>
       ) : (
-        <div className="grid gap-0 2xl:grid-cols-[1.55fr_1fr]">
-          {/* Chart */}
-          <div className="border-b border-white/[0.06] bg-[#101c2c] 2xl:border-b-0 2xl:border-r">
-            <AnatomyChart profile={profile} step={step} />
-            <p className="px-5 pb-4 text-xs text-zinc-500">
-              Schematic long example, not a historical trade. Shorts are the mirror image.
-            </p>
+        <div
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight") go(step + 1);
+            if (e.key === "ArrowLeft") go(step - 1);
+          }}
+          className="focus:outline-none"
+        >
+          {/* Chart stage */}
+          <div className="relative mx-3 overflow-hidden rounded-[22px] bg-tp-base/80 ring-1 ring-inset ring-white/[0.06] sm:mx-5">
+            <AnatomyChart profile={profile} step={step} onStep={go} targetR={parseR(strategy.riskReward)} />
+            <button
+              onClick={togglePlay}
+              aria-label={playing ? "Pause walkthrough" : "Play walkthrough"}
+              className="tp-press tp-material-thin absolute left-4 top-4 inline-flex items-center gap-2 rounded-full py-2 pl-3 pr-4 text-[14px] font-semibold text-white ring-1 ring-inset ring-white/[0.1] hover:bg-white/[0.16]"
+            >
+              {playing ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
+              {playing ? "Pause" : step === 3 ? "Replay" : "Play the trade"}
+            </button>
+            <span className="absolute right-4 top-5 hidden text-[12px] text-zinc-500 sm:block">
+              Schematic long, not to scale · shorts mirror it
+            </span>
           </div>
 
-          {/* Stepper */}
-          <ol className="grid gap-2 p-4 sm:p-5 md:grid-cols-2 2xl:flex 2xl:flex-col" aria-label="Setup stages">
+          {/* Stage tabs: each carries its own progress bar */}
+          <ol className="grid grid-cols-4 gap-2 px-3 pt-4 sm:gap-3 sm:px-5" aria-label="Setup stages">
             {stages.map((s, i) => {
-              const meta = STAGE_META[i];
+              const m = STAGE_META[i];
               const active = step === i;
+              const done = i < step;
               return (
-                <li key={meta.name}>
+                <li key={m.name} className="min-w-0">
                   <button
                     aria-pressed={active}
-                    onClick={() => setStep(i)}
+                    onClick={() => go(i)}
                     className={clsx(
-                      "w-full rounded-xl border p-4 text-left transition-colors",
-                      active ? "border-white/[0.14] bg-white/[0.04]" : "border-transparent hover:bg-white/[0.025]",
+                      "tp-press group w-full rounded-2xl px-3 pb-3 pt-2.5 text-left sm:px-4",
+                      active ? "bg-white/[0.07]" : "hover:bg-white/[0.04]",
                     )}
                   >
-                    <div className="flex items-center gap-3">
+                    <span className="block h-[3px] overflow-hidden rounded-full bg-white/[0.1]">
                       <span
-                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold"
+                        key={`${i}-${step}-${playing}`}
+                        className={clsx("block h-full rounded-full", active && playing && "tp-stage-fill")}
+                        style={{
+                          background: m.color,
+                          width: done || (active && !playing) ? "100%" : active ? undefined : "0%",
+                          animationDuration: `${STAGE_MS}ms`,
+                        }}
+                      />
+                    </span>
+                    <span className="mt-2.5 flex items-center gap-2">
+                      <span
+                        className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold tabular-nums"
                         style={
-                          active
-                            ? { background: meta.color, color: "#0D1628" }
-                            : { boxShadow: `inset 0 0 0 1.5px ${meta.color}`, color: meta.color }
+                          active || done
+                            ? { background: m.color, color: "#0A0D14" }
+                            : { background: "rgba(255,255,255,0.1)", color: "#A1A1AA" }
                         }
                       >
                         {i + 1}
                       </span>
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: meta.color }}>
-                          {meta.name}
-                          <span className="ml-2 font-normal normal-case tracking-normal text-zinc-500">{meta.hint}</span>
-                        </div>
-                        <div className="text-base font-semibold text-zinc-50">{s.title}</div>
-                      </div>
-                    </div>
-                    {active && (
-                      <ul className="mt-3 space-y-2 pl-11">
-                        {s.points.map((p) => (
-                          <li key={p} className="flex gap-2 text-[15px] leading-relaxed text-zinc-300">
-                            <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meta.color }} />
-                            {p}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                      <span className={clsx("truncate text-[14px] font-semibold", active ? "text-white" : "text-zinc-400 group-hover:text-zinc-200")}>
+                        {m.name}
+                      </span>
+                    </span>
+                    <span className="mt-1 hidden truncate text-[13px] text-zinc-500 md:block">{s.title}</span>
                   </button>
                 </li>
               );
             })}
-            <div className="mt-auto flex items-center justify-between gap-2 px-1 pt-2 md:col-span-2">
-              <button
-                onClick={() => setStep((s) => Math.max(0, s - 1))}
-                disabled={step === 0}
-                className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100 disabled:opacity-30"
-              >
-                ← Back
-              </button>
-              <span className="text-xs tabular-nums text-zinc-500">Step {step + 1} of 4</span>
-              <button
-                onClick={() => setStep((s) => Math.min(3, s + 1))}
-                disabled={step === 3}
-                className="inline-flex items-center gap-1 rounded-lg bg-white/[0.06] px-3 py-1.5 text-sm font-medium text-zinc-100 hover:bg-white/[0.1] disabled:opacity-30"
-              >
-                Next <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
           </ol>
+
+          {/* The active decision */}
+          <div key={step} className="tp-rise grid gap-6 p-5 sm:p-8 lg:min-h-[260px] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-12">
+            <div>
+              <div className="text-[13px] font-semibold" style={{ color: meta.color }}>
+                Decision {step + 1} of 4 · {meta.name}
+              </div>
+              <div className="mt-2 text-[30px] font-bold leading-[1.1] tracking-[-0.03em] text-white">{meta.hint}</div>
+              <div className="mt-2 text-[17px] leading-snug text-zinc-400">{stage.title}</div>
+              <div className="mt-6 flex items-center gap-2">
+                <button
+                  onClick={() => go(step - 1)}
+                  disabled={step === 0}
+                  aria-label="Previous decision"
+                  className="tp-press grid h-10 w-10 place-items-center rounded-full bg-tp-fill text-zinc-200 hover:bg-white/[0.14] disabled:opacity-30"
+                >
+                  <ArrowLeft className="h-4 w-4" strokeWidth={2.4} />
+                </button>
+                <button
+                  onClick={() => go(step + 1)}
+                  disabled={step === 3}
+                  className="tp-press inline-flex h-10 items-center gap-1.5 rounded-full bg-white px-5 text-[15px] font-semibold text-black hover:bg-zinc-200 disabled:opacity-30"
+                >
+                  {step === 3 ? "That's the trade" : `Next: ${STAGE_META[step + 1].name}`}
+                  {step < 3 && <ArrowRight className="h-4 w-4" strokeWidth={2.4} />}
+                </button>
+              </div>
+            </div>
+            <ul className="overflow-hidden rounded-2xl bg-white/[0.04]">
+              {stage.points.map((p, i) => (
+                <li key={p} className="relative flex gap-3.5 px-5 py-4 text-[16px] leading-relaxed text-zinc-200">
+                  {i > 0 && <span className="absolute left-[3.25rem] right-0 top-0 h-px bg-white/[0.06]" aria-hidden />}
+                  <span
+                    className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-bold tabular-nums"
+                    style={{ background: `${meta.color}26`, color: meta.color }}
+                  >
+                    {i + 1}
+                  </span>
+                  {p}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
     </section>
   );
 }
 
-function AnatomyChart({ profile, step }: { profile: Profile; step: number }) {
-  const y = (price: number) => 370 - price * 2.1;
-  const x = (index: number) => 65 + index * 27;
+/** Candles revealed at each stage: you only ever see what you would have seen. */
+const REVEAL = [11, 13, 17, 23];
+
+function AnatomyChart({ profile, step, onStep, targetR }: { profile: Profile; step: number; onStep: (i: number) => void; targetR: number }) {
+  const W = 920, H = 356;
+  const y = (price: number) => 334 - price * 2.1;
+  const x = (index: number) => 58 + index * 27;
   const level = profile.kind === "trend" ? 68 : 60;
   const entryIndex = 12;
   const entry = profile.path[entryIndex];
-  const stop =
-    profile.kind === "trend" ? 57 : profile.kind === "reversal" ? 44 : 35;
+  const stop = profile.kind === "trend" ? 57 : profile.kind === "reversal" ? 44 : 35;
   const target = profile.path[23] - 5;
-  const colors = ["#91bdf1", "#b8e6d5", "#e6a2a8", "#c9c2f7"];
+  // The label is the playbook's own target; the drawing is not to scale.
+  const rr = `${targetR}R`;
+  const colors = STAGE_META.map((m) => m.color);
+  const reveal = REVEAL[step];
+  const from = step ? REVEAL[step - 1] : 0;
+  const ease = "cubic-bezier(0.32, 0.72, 0, 1)";
+  const fade = (on: boolean, delay = 0): React.CSSProperties => ({
+    opacity: on ? 1 : 0,
+    transition: `opacity 0.5s ${ease} ${on ? delay : 0}ms`,
+  });
+  const zoneLeft = x(entryIndex) - 9;
+  const zoneW = x(23) + 14 - zoneLeft;
   const markers = [
     { x: x(7), y: y(profile.path[7]) - 34 },
-    { x: x(entryIndex), y: y(entry) - 27 },
-    { x: x(16), y: y(stop) },
-    { x: x(22), y: y(target) },
+    { x: x(entryIndex), y: y(entry) - 30 },
+    { x: x(15), y: y(stop) },
+    { x: x(21), y: y(target) },
+  ];
+  const tags = [
+    { price: target, label: "Target", sub: `+${rr}`, color: colors[3], stage: 3 },
+    { price: entry, label: "Entry", sub: "Confirmed", color: colors[1], stage: 1 },
+    { price: stop, label: "Stop", sub: "−1R", color: colors[2], stage: 2 },
   ];
   return (
     <svg
-      viewBox="0 0 920 410"
+      viewBox={`0 0 ${W} ${H}`}
       className="block h-auto w-full"
       role="img"
       aria-label={`${profile.context}; ${profile.trigger}. Entry, invalidation and objective are illustrated.`}
@@ -403,213 +494,130 @@ function AnatomyChart({ profile, step }: { profile: Profile; step: number }) {
       <title>
         {profile.context} — {profile.trigger}
       </title>
-      <rect width="920" height="410" fill="#101c2c" />
-      {[85, 140, 195, 250, 305, 360].map((v) => (
-        <line
-          key={v}
-          x1="35"
-          x2="882"
-          y1={v}
-          y2={v}
-          stroke="#a9bad2"
-          strokeOpacity=".065"
-        />
+      {[59, 118, 177, 236, 295].map((v) => (
+        <line key={v} x1="0" x2={W} y1={v} y2={v} stroke="#fff" strokeOpacity=".04" />
       ))}
-      {[90, 225, 360, 495, 630, 765].map((v) => (
-        <line
-          key={v}
-          x1={v}
-          x2={v}
-          y1="50"
-          y2="365"
-          stroke="#a9bad2"
-          strokeOpacity=".05"
-        />
-      ))}
-      <text x="35" y="29" fill="#b6c3d6" fontSize="12" letterSpacing="2">
-        PRICE ACTION / EXECUTION MAP
-      </text>
-      <text x="883" y="29" textAnchor="end" fill="#8294aa" fontSize="12">
-        CONCEPTUAL · NOT TO SCALE
-      </text>
+
+      {/* Opening range box for breakouts */}
       {profile.kind === "break" && (
-        <rect
-          x="48"
-          y={y(59)}
-          width="265"
-          height={y(45) - y(59)}
-          fill="#91bdf1"
-          fillOpacity=".08"
-          stroke="#91bdf1"
-          strokeOpacity=".2"
-        />
+        <rect x="44" y={y(59)} width="270" height={y(45) - y(59)} rx="6" fill={colors[0]} fillOpacity=".07" stroke={colors[0]} strokeOpacity=".25" />
       )}
+
+      {/* The level the whole idea hangs on */}
       <rect
-        x="42"
+        x="0"
         y={y(level + 4)}
-        width="658"
-        height="19"
-        fill="#91bdf1"
-        fillOpacity={step === 0 ? ".14" : ".06"}
+        width="716"
+        height="18"
+        fill={colors[0]}
+        style={{ fillOpacity: step === 0 ? 0.16 : 0.05, transition: `fill-opacity 0.5s ${ease}` }}
       />
       <path
-        d={
-          profile.kind === "trend"
-            ? `M42 ${y(44)} Q240 ${y(55)},700 ${y(95)}`
-            : `M42 ${y(level)} H700`
-        }
+        d={profile.kind === "trend" ? `M0 ${y(42)} Q240 ${y(55)},716 ${y(96)}` : `M0 ${y(level)} H716`}
         fill="none"
-        stroke="#91bdf1"
+        stroke={colors[0]}
         strokeWidth="1.5"
         strokeDasharray={profile.kind === "trend" ? "" : "5 5"}
+        style={{ strokeOpacity: step === 0 ? 1 : 0.55, transition: `stroke-opacity 0.5s ${ease}` }}
       />
+      <text x="20" y={y(level) - 16} fontSize="13" fontWeight="600" fill={colors[0]}>
+        {profile.level}
+      </text>
       {profile.zone && (
-        <text x="50" y={y(level) + 34} fill="#8cadd6" fontSize="13">
+        <text x="20" y={y(level) + 34} fill={colors[0]} fillOpacity=".7" fontSize="12">
           {profile.zone}
         </text>
       )}
-      <rect
-        x={x(entryIndex) - 9}
-        y={y(target)}
-        width="294"
-        height={y(entry) - y(target)}
-        fill="#b8e6d5"
-        fillOpacity={step === 3 ? ".13" : ".055"}
-      />
-      <rect
-        x={x(entryIndex) - 9}
-        y={y(entry)}
-        width="294"
-        height={y(stop) - y(entry)}
-        fill="#e6a2a8"
-        fillOpacity={step === 2 ? ".13" : ".055"}
-      />
+      {profile.levels?.map((l) => (
+        <g key={l.label} opacity=".8">
+          <line x1="0" x2="716" y1={y(l.price)} y2={y(l.price)} stroke="#fff" strokeOpacity=".35" strokeDasharray="2 6" />
+          <text x="20" y={y(l.price) - 8} fontSize="12" fill="#fff" fillOpacity=".6">
+            {l.label}
+          </text>
+        </g>
+      ))}
+
+      {/* Reward and risk, sized against each other */}
+      <g style={fade(step >= 3, 250)}>
+        <rect x={zoneLeft} y={y(target)} width={zoneW} height={y(entry) - y(target)} rx="6" fill={colors[3]} fillOpacity=".1" />
+        <text x={zoneLeft + 14} y={y(target) + 32} fontSize="24" fontWeight="700" fill={colors[3]} style={{ fontFamily: "ui-rounded, 'SF Pro Rounded', system-ui" }}>
+          +{rr}
+        </text>
+      </g>
+      <g style={fade(step >= 2, 200)}>
+        <rect x={zoneLeft} y={y(entry)} width={zoneW} height={y(stop) - y(entry)} rx="6" fill={colors[2]} fillOpacity={step === 2 ? ".16" : ".08"} />
+        <text x={zoneLeft + zoneW - 12} y={y(stop) - 10} textAnchor="end" fontSize="15" fontWeight="700" fill={colors[2]} style={{ fontFamily: "ui-rounded, 'SF Pro Rounded', system-ui" }}>
+          −1R
+        </text>
+      </g>
+
+      {/* Candles: the future stays a ghost until its stage */}
       {profile.path.map((close, i) => {
         const open = i ? profile.path[i - 1] : close - 3;
         const up = close >= open;
+        const shown = i <= reveal;
+        const fill = up ? "#30D158" : "#8E94A3";
         return (
-          <g key={i} opacity={step === 0 && i > 11 ? ".4" : "1"}>
+          <g
+            key={i}
+            style={{
+              opacity: shown ? 1 : 0.07,
+              transition: `opacity 0.45s ${ease} ${shown ? Math.max(0, i - from) * 55 : 0}ms`,
+            }}
+          >
             <line
               x1={x(i)}
               x2={x(i)}
               y1={y(Math.max(open, close) + 3 + (i % 3))}
               y2={y(Math.min(open, close) - 3 - (i % 2))}
-              stroke={up ? "#b5ddce" : "#ad8191"}
-              strokeWidth="1.3"
+              stroke={fill}
+              strokeWidth="1.5"
+              strokeLinecap="round"
             />
-            <rect
-              x={x(i) - 5}
-              width="10"
-              y={y(Math.max(open, close))}
-              height={Math.max(2, Math.abs(close - open) * 2.1)}
-              rx="1"
-              fill={up ? "#b5ddce" : "#ad8191"}
-            />
+            <rect x={x(i) - 6} width="12" y={y(Math.max(open, close))} height={Math.max(2.5, Math.abs(close - open) * 2.1)} rx="2.5" fill={fill} />
           </g>
         );
       })}
-      {[
-        {
-          price: target,
-          label: "Planned objective",
-          color: colors[3],
-          active: step === 3,
-        },
-        {
-          price: entry,
-          label: "Confirmed entry",
-          color: colors[1],
-          active: step === 1,
-        },
-        {
-          price: stop,
-          label: "Invalidation",
-          color: colors[2],
-          active: step === 2,
-        },
-      ].map((line) => (
-        <g key={line.label}>
-          <line
-            x1={x(entryIndex) - 9}
-            x2="722"
-            y1={y(line.price)}
-            y2={y(line.price)}
-            stroke={line.color}
-            strokeOpacity={line.active ? 1 : 0.5}
-            strokeWidth={line.active ? 2 : 1}
-            strokeDasharray="4 4"
-          />
-          <rect
-            x="726"
-            y={y(line.price) - 14}
-            width="176"
-            height="28"
-            rx="5"
-            fill={line.active ? line.color : "#192a3f"}
-          />
-          <text
-            x="738"
-            y={y(line.price) + 4}
-            fontSize="13"
-            fill={line.active ? "#111e2d" : line.color}
-          >
-            {line.label}
-          </text>
-        </g>
-      ))}
-      {profile.levels?.map((l) => (
-        <g key={l.label}>
-          <line
-            x1="42"
-            x2="700"
-            y1={y(l.price)}
-            y2={y(l.price)}
-            stroke={l.label.startsWith("POC") ? "#FFB800" : "#91bdf1"}
-            strokeOpacity=".7"
-            strokeDasharray="6 5"
-          />
-          <text
-            x="52"
-            y={y(l.price) - 8}
-            fontSize="13"
-            fill={l.label.startsWith("POC") ? "#FFB800" : "#91bdf1"}
-          >
-            {l.label}
-          </text>
-        </g>
-      ))}
-      <text x="52" y={y(level) - 17} fontSize="13" fill="#91bdf1">
-        {profile.level}
-      </text>
-      {markers.map((m, i) => (
-        <g key={i}>
-          <circle
-            cx={m.x}
-            cy={m.y}
-            r={step === i ? 17 : 13}
-            fill={step === i ? colors[i] : "#14263b"}
-            stroke={colors[i]}
-            strokeWidth="1.5"
-          />
-          <text
-            x={m.x}
-            y={m.y + 4}
-            textAnchor="middle"
-            fill={step === i ? "#112030" : colors[i]}
-            fontSize="13"
-            fontWeight="600"
-          >
-            {i + 1}
-          </text>
-        </g>
-      ))}
-      <text x="52" y="394" fill="#8294aa" fontSize="12">
-        OBSERVE THE CONTEXT
-      </text>
-      <path d="M240 390 H550 l-6 -4 m6 4 l-6 4" stroke="#536a85" fill="none" />
-      <text x="581" y="394" fill="#8294aa" fontSize="12">
-        WAIT FOR CONFIRMATION
-      </text>
+
+      {/* Price tags */}
+      {tags.map((t) => {
+        const active = step === t.stage;
+        return (
+          <g key={t.label} style={fade(step >= t.stage, 300)}>
+            <line
+              x1={zoneLeft}
+              x2="736"
+              y1={y(t.price)}
+              y2={y(t.price)}
+              stroke={t.color}
+              strokeOpacity={active ? 1 : 0.55}
+              strokeWidth={active ? 2 : 1.25}
+              strokeDasharray={active ? "" : "4 4"}
+            />
+            <rect x="736" y={y(t.price) - 15} width="166" height="30" rx="15" fill={active ? t.color : "rgb(var(--tp-raised))"} />
+            <text x="752" y={y(t.price) + 4.5} fontSize="13" fontWeight="700" fill={active ? "#0A0D14" : t.color}>
+              {t.label}
+            </text>
+            <text x="888" y={y(t.price) + 4.5} fontSize="12" fontWeight="600" textAnchor="end" fill={active ? "#0A0D14" : "#98A1B3"} fillOpacity={active ? 0.7 : 1}>
+              {t.sub}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Numbered decisions, tappable on the chart itself */}
+      {markers.map((m, i) => {
+        const active = step === i;
+        return (
+          <g key={i} style={{ ...fade(step >= i, 350), cursor: "pointer" }} onClick={() => onStep(i)}>
+            {active && <circle cx={m.x} cy={m.y} r="15" fill={colors[i]} className="tp-flow-pulse" />}
+            <circle cx={m.x} cy={m.y} r={active ? 15 : 11} fill={active ? colors[i] : "rgb(var(--tp-panel))"} stroke={colors[i]} strokeWidth="1.75" style={{ transition: `r 0.4s ${ease}` }} />
+            <text x={m.x} y={m.y + 4.5} textAnchor="middle" fill={active ? "#0A0D14" : colors[i]} fontSize="13" fontWeight="700">
+              {i + 1}
+            </text>
+          </g>
+        );
+      })}
     </svg>
   );
 }

@@ -54,11 +54,11 @@ export function HelpTooltip({ content }: { content: string }) {
         >
           <div
             style={{
-              background: 'rgba(17, 31, 53, 0.97)',
+              background: 'rgb(var(--tp-panel)/0.97)',
               backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(79,156,249,0.25)',
+              border: '1px solid rgb(var(--tp-blue)/0.25)',
               borderRadius: 10,
-              boxShadow: '0 16px 32px rgba(0,0,0,0.7), 0 0 0 1px rgba(79,156,249,0.08)',
+              boxShadow: '0 16px 32px rgba(0,0,0,0.7), 0 0 0 1px rgb(var(--tp-blue)/0.08)',
               padding: '10px 14px',
               width: 240,
               fontSize: 12,
@@ -78,7 +78,7 @@ export function HelpTooltip({ content }: { content: string }) {
               height: 0,
               borderLeft: '5px solid transparent',
               borderRight: '5px solid transparent',
-              borderTop: '5px solid rgba(17,31,53,0.97)',
+              borderTop: '5px solid rgb(var(--tp-panel)/0.97)',
             }} />
           </div>
         </div>,

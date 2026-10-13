@@ -110,7 +110,7 @@ export function DebriefView({
           <div className="mt-5 flex flex-wrap gap-2 border-t border-white/[0.06] pt-4">
             <button
               onClick={() => onAsk(`Review my session on ${date}. What did I do well, what cost me the most, and what's the one change for tomorrow?`)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-tp-green px-3 py-1.5 text-[13px] font-semibold text-[#0D1628] hover:brightness-110"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-tp-green px-3 py-1.5 text-[13px] font-semibold text-tp-base hover:brightness-110"
             >
               <Sparkles className="h-3.5 w-3.5" /> Go deeper with Pilot
             </button>
@@ -135,7 +135,7 @@ export function DebriefView({
             disabled={!focus.trim() || carried}
             className={clsx(
               "mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition",
-              carried ? "bg-tp-green/10 text-tp-green" : "bg-gradient-to-r from-tp-green to-emerald-400 text-[#0D1628] hover:brightness-110",
+              carried ? "bg-tp-green/10 text-tp-green" : "bg-gradient-to-r from-tp-green to-emerald-400 text-tp-base hover:brightness-110",
             )}
           >
             {carried ? <Check className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}

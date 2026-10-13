@@ -216,7 +216,7 @@ export function TradeScatterCard({ title, icon: Icon, points, buckets, scale = '
                 return (
                   <g key={i} pointerEvents="none">
                     {on && <circle cx={sx(p.x)} cy={sy(p.pnl)} r={11} fill={color} opacity={0.2} />}
-                    <circle cx={sx(p.x)} cy={sy(p.pnl)} r={on ? 6 : 4.5} fill={color} fillOpacity={dim ? 0.16 : 0.92} stroke={on ? '#fff' : '#172035'} strokeWidth={1.5} style={{ transition: 'fill-opacity .15s' }} />
+                    <circle cx={sx(p.x)} cy={sy(p.pnl)} r={on ? 6 : 4.5} fill={color} fillOpacity={dim ? 0.16 : 0.92} stroke={on ? '#fff' : 'rgb(var(--tp-card))'} strokeWidth={1.5} style={{ transition: 'fill-opacity .15s' }} />
                   </g>
                 );
               })}

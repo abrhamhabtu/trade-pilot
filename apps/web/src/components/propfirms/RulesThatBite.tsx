@@ -92,14 +92,14 @@ export function RulesThatBite({ programs, className }: { programs: PropFirm[]; c
       <div className="mt-4 space-y-5">
         {withPrint.map(({ program, fp }) => (
           <div key={program.id} className="overflow-hidden rounded-xl border border-white/[0.08]">
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0A1220] px-4 py-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#07090E] px-4 py-2.5">
               <span className="text-sm font-semibold text-white/80">{program.program}</span>
               <span className="text-[11px] text-white/35">Checked {fp.checked}</span>
             </div>
             <table className="w-full text-sm">
               <tbody>
                 {rowsFor(program, fp).map((row, i) => (
-                  <tr key={`${row.label}-${i}`} className={clsx(i % 2 === 0 ? 'bg-[#111F35]' : 'bg-[#0D1628]')}>
+                  <tr key={`${row.label}-${i}`} className={clsx(i % 2 === 0 ? 'bg-tp-panel' : 'bg-tp-base')}>
                     <td className="w-40 px-4 py-3 align-top font-medium text-white/45">{row.label}</td>
                     <td className="px-4 py-3 text-white/80">
                       <span>{row.value}</span>
@@ -111,7 +111,7 @@ export function RulesThatBite({ programs, className }: { programs: PropFirm[]; c
               </tbody>
             </table>
             {fp.sources.length > 0 && (
-              <div className="flex flex-wrap gap-x-4 gap-y-1 bg-[#0A1220] px-4 py-2.5">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 bg-[#07090E] px-4 py-2.5">
                 {fp.sources.map((url) => (
                   <a
                     key={url}

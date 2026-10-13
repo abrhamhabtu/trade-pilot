@@ -4,6 +4,7 @@ import Image from "next/image";
 import { SetupAnatomy } from "./playbooks/SetupAnatomy";
 import { StrategyWorkspace } from "./playbooks/StrategyWorkspace";
 import { PositionSizer } from "./playbooks/PositionSizer";
+import { OptionsSizer } from "./playbooks/OptionsSizer";
 import { Callout, PlaybookAI } from "./playbooks/PlaybookAI";
 import React, { useState } from "react";
 import {
@@ -36,9 +37,9 @@ import { parseR } from "@/lib/futuresSpecs";
 import { SIZING_DEFAULT, TV_SETUP } from "@/lib/tradingviewSetup";
 
 const DIFF_STYLE: Record<PlaybookStrategy["difficulty"], string> = {
-  Beginner: "bg-tp-green/15 text-tp-green border-tp-green/30",
-  Intermediate: "bg-tp-yellow/15 text-tp-yellow border-tp-yellow/30",
-  Advanced: "bg-tp-red/15 text-tp-red border-tp-red/30",
+  Beginner: "bg-tp-green/15 text-tp-green",
+  Intermediate: "bg-tp-orange/15 text-tp-orange",
+  Advanced: "bg-tp-red/15 text-tp-red",
 };
 
 const JUMPS = [
@@ -73,10 +74,10 @@ export const PlaybookStrategyView: React.FC<{
       <div className="flex items-center justify-between gap-3">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 transition-colors hover:text-zinc-100"
+          className="tp-press -ml-1 inline-flex items-center gap-1 rounded-full px-1 text-[15px] font-medium text-tp-green hover:brightness-125"
         >
-          <ArrowLeft className="h-4 w-4" />
-          All strategies
+          <ArrowLeft className="h-4 w-4" strokeWidth={2.4} />
+          Playbooks
         </button>
         {onOpenToolkit && (
           <button
@@ -91,43 +92,53 @@ export const PlaybookStrategyView: React.FC<{
 
       {/* Hero */}
       <div
-        className="relative overflow-hidden rounded-3xl border border-white/[0.07] p-6 sm:p-8"
-        style={{
-          background:
-            "radial-gradient(60% 90% at 0% 0%, rgba(0,214,143,0.14) 0%, transparent 60%), radial-gradient(50% 80% at 100% 100%, rgba(79,156,249,0.10) 0%, transparent 60%), #111c2e",
-        }}
+        className="tp-rise relative overflow-hidden rounded-3xl bg-tp-card p-6 shadow-lift ring-1 ring-inset ring-white/[0.07] sm:p-9"
       >
         <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
           <div className="max-w-2xl">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className={clsx("rounded-full border px-2.5 py-1 text-xs font-semibold", DIFF_STYLE[strategy.difficulty])}>
+              <span className={clsx("rounded-full px-2.5 py-1 text-[13px] font-semibold", DIFF_STYLE[strategy.difficulty])}>
                 {strategy.difficulty}
               </span>
               <Chip icon={<Clock className="h-3.5 w-3.5" />}>{strategy.timeframe}</Chip>
               <Chip icon={<TrendingUp className="h-3.5 w-3.5" />}>{strategy.marketCondition}</Chip>
             </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-zinc-50 sm:text-[40px] sm:leading-[1.1]">
+            <h1 className="text-[34px] font-bold leading-[1.05] tracking-[-0.035em] text-white sm:text-[44px]">
               {strategy.name}
             </h1>
-            <p className="mt-4 text-[17px] leading-relaxed text-zinc-300">{strategy.description}</p>
+            <p className="mt-4 text-[19px] leading-[1.45] text-zinc-400">{strategy.description}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5 sm:min-w-[340px]">
-            {strategy.custom ? (
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-white/[0.08] ring-1 ring-white/[0.08] sm:min-w-[360px]">
+            {strategy.custom || strategy.untested ? (
               <Kpi label="Backtest" value="—" sub="not tested yet" />
             ) : (
               <Kpi label="AI backtest" value={`${strategy.winRate}%`} sub="win rate" accent />
             )}
             <Kpi label="Target" value={`${targetR}R`} sub={strategy.riskReward} />
             <Kpi label="Timeframe" value={strategy.timeframe} />
-            <Kpi
-              label="Default micro"
-              value={sizing?.symbol ?? "MNQ"}
-              sub={sizing ? `${sizing.stopPoints}-pt stop` : "set your stop"}
-            />
+            {strategy.optionsPlan ? (
+              <Kpi label="Contract" value={strategy.optionsPlan.short} sub={strategy.optionsPlan.underlying} />
+            ) : (
+              <Kpi
+                label="Default micro"
+                value={sizing?.symbol ?? "MNQ"}
+                sub={sizing ? `${sizing.stopPoints}-pt stop` : "set your stop"}
+              />
+            )}
           </div>
         </div>
       </div>
+
+      {strategy.untested && (
+        <div className="flex items-start gap-3 rounded-2xl bg-tp-blue/[0.1] px-4 py-3 text-[15px] text-zinc-300">
+          <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-tp-blue" />
+          <span>
+            <span className="font-semibold text-white">Starter template, not backtested.</span> The rules are a sensible place to begin, not proven
+            numbers. Paper trade it, log every trade against this playbook, and let your own results decide.
+          </span>
+        </div>
+      )}
 
       {strategy.custom && (
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-tp-green/20 bg-tp-green/[0.05] px-4 py-3 text-sm">
@@ -162,13 +173,13 @@ export const PlaybookStrategyView: React.FC<{
             {/* Jump links */}
             <nav
               aria-label="Jump to section"
-              className="sticky top-16 z-20 -mx-1 flex gap-1 overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#0f1a2b]/90 p-1.5 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className="tp-material sticky top-16 z-20 -mx-1 flex gap-0.5 overflow-x-auto rounded-full p-1 shadow-sheet [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {JUMPS.map((j) => (
                 <button
                   key={j.id}
                   onClick={() => jump(j.id)}
-                  className="shrink-0 rounded-xl px-3.5 py-2 text-sm font-medium text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-50"
+                  className="tp-press shrink-0 rounded-full px-3.5 py-1.5 text-[14px] font-medium text-zinc-300 hover:bg-white/[0.1] hover:text-white"
                 >
                   {j.label}
                 </button>
@@ -215,6 +226,17 @@ export const PlaybookStrategyView: React.FC<{
             </div>
 
             {/* Sizer */}
+            {strategy.optionsPlan ? (
+              <Section
+                id="size-it"
+                title="Size it for options"
+                icon={Calculator}
+                subtitle="How many contracts to buy so a stopped trade costs what you planned, and no more."
+              >
+                <OptionsSizer plan={strategy.optionsPlan} />
+              </Section>
+            ) : (
+            <>
             <Section
               id="size-it"
               title="Size it for micros"
@@ -229,6 +251,9 @@ export const PlaybookStrategyView: React.FC<{
                 note={sizing?.note}
               />
             </Section>
+
+            </>
+            )}
 
             {/* TradingView */}
             <Section
@@ -368,17 +393,17 @@ export const PlaybookStrategyView: React.FC<{
 // ─── Bits ────────────────────────────────────────────────────────────────────
 
 const Chip: React.FC<{ icon: React.ReactNode; children: React.ReactNode }> = ({ icon, children }) => (
-  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-zinc-300">
+  <span className="inline-flex items-center gap-1.5 rounded-full bg-tp-fill px-2.5 py-1 text-[13px] font-medium text-zinc-300">
     {icon}
     {children}
   </span>
 );
 
 const Kpi: React.FC<{ label: string; value: string; sub?: string; accent?: boolean }> = ({ label, value, sub, accent }) => (
-  <div className="rounded-2xl border border-white/[0.07] bg-black/20 px-4 py-3">
-    <div className="text-xs font-medium text-zinc-500">{label}</div>
-    <div className={clsx("mt-0.5 text-xl font-semibold tabular-nums", accent ? "text-tp-green" : "text-zinc-50")}>{value}</div>
-    {sub && <div className="text-xs text-zinc-500">{sub}</div>}
+  <div className="bg-tp-panel px-5 py-4">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">{label}</div>
+    <div className={clsx("mt-1 text-[26px] font-bold leading-none tracking-tight tabular-nums", accent ? "text-tp-green" : "text-white")}>{value}</div>
+    {sub && <div className="mt-1.5 text-[13px] text-zinc-500">{sub}</div>}
   </div>
 );
 
@@ -390,14 +415,14 @@ const Section: React.FC<{
   action?: React.ReactNode;
   children: React.ReactNode;
 }> = ({ id, title, icon: Icon, subtitle, action, children }) => (
-  <section id={id} className="scroll-mt-36 rounded-2xl border border-white/[0.06] bg-tp-card p-5 sm:p-7">
+  <section id={id} className="scroll-mt-36 rounded-3xl bg-tp-card p-5 shadow-lift ring-1 ring-inset ring-white/[0.07] sm:p-8">
     <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <div className="flex items-start gap-3">
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-tp-green/10 ring-1 ring-inset ring-tp-green/20">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white/[0.07]">
           <Icon className="h-[18px] w-[18px] text-tp-green" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold tracking-tight text-zinc-50">{title}</h2>
+          <h2 className="text-[22px] font-bold tracking-tight text-white">{title}</h2>
           {subtitle && <p className="mt-0.5 text-[15px] text-zinc-400">{subtitle}</p>}
         </div>
       </div>
@@ -418,14 +443,14 @@ function Checklist({ rules }: { rules: string[] }) {
       return next;
     });
   return (
-    <section className="rounded-2xl border border-tp-green/20 bg-tp-card p-5 sm:p-7">
+    <section className="rounded-3xl bg-tp-card p-5 shadow-lift ring-1 ring-inset ring-white/[0.07] sm:p-8">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-tp-green/10 ring-1 ring-inset ring-tp-green/20">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white/[0.07]">
             <ListChecks className="h-[18px] w-[18px] text-tp-green" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold tracking-tight text-zinc-50">Pre-trade checklist</h2>
+            <h2 className="text-[22px] font-bold tracking-tight text-white">Pre-trade checklist</h2>
             <p className="mt-0.5 text-[15px] text-zinc-400">Tick every box before you enter. Any box empty = no trade.</p>
           </div>
         </div>
@@ -453,8 +478,8 @@ function Checklist({ rules }: { rules: string[] }) {
                 onClick={() => toggle(i)}
                 aria-pressed={on}
                 className={clsx(
-                  "flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
-                  on ? "border-tp-green/25 bg-tp-green/[0.06]" : "border-white/[0.06] bg-black/10 hover:border-white/[0.12]",
+                  "tp-press flex w-full items-start gap-3 rounded-xl px-4 py-3 text-left",
+                  on ? "bg-tp-green/[0.1]" : "bg-white/[0.04] hover:bg-white/[0.07]",
                 )}
               >
                 {on ? (
@@ -500,7 +525,7 @@ const RuleList: React.FC<{
 }> = ({ title, tone, icon: Icon, rules }) => {
   const t = TONE[tone];
   return (
-    <div className={clsx("rounded-2xl border bg-tp-card p-5", t.border)}>
+    <div className="rounded-3xl bg-tp-card p-6 shadow-lift ring-1 ring-inset ring-white/[0.07]">
       <div className="mb-3 flex items-center gap-2">
         <span className={clsx("grid h-8 w-8 place-items-center rounded-lg", t.bg, t.text)}>
           <Icon className="h-4 w-4" />

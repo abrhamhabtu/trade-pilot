@@ -4,9 +4,9 @@ import React, { useId, useState } from 'react';
 import clsx from 'clsx';
 import { HelpTooltip } from '@/components/ui';
 
-const GREEN = '#00D68F';
-const RED = '#FF4868';
-const BLUE = '#4F9CF9';
+const GREEN = 'rgb(var(--tp-green))';
+const RED = 'rgb(var(--tp-red))';
+const BLUE = 'rgb(var(--tp-blue))';
 const TRACK = 'rgba(255,255,255,0.07)';
 
 export type Tone = 'green' | 'red' | 'blue' | 'neutral';
@@ -331,7 +331,9 @@ export function WinGauge({ wins, breakeven, losses, breakEvenRate, peek }: { win
               });
             }}
           >
-            <line x1={tx - nx * 7} y1={ty - ny * 7} x2={tx + nx * 7} y2={ty + ny * 7} stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+            {/* A notch seated in the arc: card-coloured halo first, so it reads as a marker rather than a stray line */}
+            <line x1={tx - nx * (sw / 2 + 1.5)} y1={ty - ny * (sw / 2 + 1.5)} x2={tx + nx * (sw / 2 + 1.5)} y2={ty + ny * (sw / 2 + 1.5)} stroke="rgb(var(--tp-card))" strokeWidth="7" strokeLinecap="round" />
+            <line x1={tx - nx * (sw / 2 + 1.5)} y1={ty - ny * (sw / 2 + 1.5)} x2={tx + nx * (sw / 2 + 1.5)} y2={ty + ny * (sw / 2 + 1.5)} stroke="#fff" strokeWidth="3" strokeLinecap="round" />
             <circle cx={tx} cy={ty} r="9" fill="transparent" />
           </g>
         )}
@@ -404,10 +406,10 @@ export function WinLossBar({
       </div>
       <div className="mc-anim -my-1.5 flex h-6 origin-left items-center gap-0.5 [animation:mcGrow_.8s_cubic-bezier(.3,.7,.3,1)]">
         <div onMouseEnter={() => enter('win')} className="flex h-full cursor-pointer items-center" style={{ width: `${winPct}%` }}>
-          <div className={clsx('w-full rounded-l-full bg-tp-green transition-all duration-200', on === 'win' ? 'h-3 shadow-[0_0_12px_rgba(0,214,143,0.5)]' : 'h-2', on === 'loss' && 'opacity-35')} />
+          <div className={clsx('w-full rounded-l-full bg-tp-green transition-all duration-200', on === 'win' ? 'h-3 shadow-[0_0_12px_rgb(var(--tp-green)/0.5)]' : 'h-2', on === 'loss' && 'opacity-35')} />
         </div>
         <div onMouseEnter={() => enter('loss')} className="flex h-full flex-1 cursor-pointer items-center">
-          <div className={clsx('w-full rounded-r-full bg-tp-red transition-all duration-200', on === 'loss' ? 'h-3 shadow-[0_0_12px_rgba(255,72,104,0.5)]' : 'h-2', on === 'win' && 'opacity-35')} />
+          <div className={clsx('w-full rounded-r-full bg-tp-red transition-all duration-200', on === 'loss' ? 'h-3 shadow-[0_0_12px_rgb(var(--tp-red)/0.5)]' : 'h-2', on === 'win' && 'opacity-35')} />
         </div>
       </div>
       <div className="mt-1.5 flex justify-between text-[10px] text-zinc-600">

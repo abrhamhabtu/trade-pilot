@@ -22,7 +22,7 @@ function NetChart({ months }: { months: LedgerMonth[] }) {
   const grid = dark ? 'rgba(255,255,255,0.06)' : '#E5E7EB';
   const axis = dark ? '#71717A' : '#6B7280';
   const last = months.at(-1)?.cumulative ?? 0;
-  const line = last >= 0 ? '#00D68F' : '#FF4868';
+  const line = last >= 0 ? 'rgb(var(--tp-green))' : 'rgb(var(--tp-red))';
 
   return (
     <div className="h-56 w-full">
@@ -50,7 +50,7 @@ function NetChart({ months }: { months: LedgerMonth[] }) {
               const m = active && payload?.[0]?.payload as LedgerMonth | undefined;
               if (!m) return null;
               return (
-                <div className={clsx('rounded-lg border px-3 py-2 text-xs shadow-xl', dark ? 'border-white/10 bg-[#0D1628] text-zinc-200' : 'border-gray-200 bg-white text-gray-800')}>
+                <div className={clsx('rounded-lg border px-3 py-2 text-xs shadow-xl', dark ? 'border-white/10 bg-tp-base text-zinc-200' : 'border-gray-200 bg-white text-gray-800')}>
                   <div className="font-semibold">{monthLabel(m.month)}</div>
                   <div className={muted}>Received {usd(m.received)} · spent {usd(m.spent)}</div>
                   <div className="mt-0.5 font-semibold">Running net {signed(m.cumulative)}</div>
@@ -187,7 +187,7 @@ export function LedgerTab() {
               </p>
             </div>
           </div>
-          <Link href={APP_ROUTES.accounts} className="rounded-lg bg-tp-green px-3 py-2 text-xs font-semibold text-[#0D1628] hover:bg-tp-green/90">
+          <Link href={APP_ROUTES.accounts} className="rounded-lg bg-tp-green px-3 py-2 text-xs font-semibold text-tp-base hover:bg-tp-green/90">
             Log fees in Accounts
           </Link>
         </section>

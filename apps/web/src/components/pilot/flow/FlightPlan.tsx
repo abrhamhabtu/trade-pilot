@@ -257,7 +257,7 @@ export function FlightPlan({
                   `Here's my plan for today: ${game.headline} ${game.lines.map((l) => l.text).join(" ")} Using my own trades, what's the one thing most likely to break this plan, and how do I stop it?`,
                 )
               }
-              className="inline-flex items-center gap-1.5 rounded-lg bg-tp-green px-3 py-1.5 text-[13px] font-semibold text-[#0D1628] hover:brightness-110"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-tp-green px-3 py-1.5 text-[13px] font-semibold text-tp-base hover:brightness-110"
             >
               <Sparkles className="h-3.5 w-3.5" /> Pressure-test with Pilot
             </button>
@@ -299,7 +299,7 @@ export function FlightPlan({
                   type="checkbox"
                   checked={!!plan.checks[c.id]}
                   onChange={(e) => setPlan({ checks: { ...plan.checks, [c.id]: e.target.checked } })}
-                  className="h-4 w-4 accent-[#00D68F]"
+                  className="h-4 w-4 accent-tp-green"
                 />
                 <span className={clsx("text-[13px]", plan.checks[c.id] ? "text-zinc-500 line-through" : "text-zinc-200")}>{c.label}</span>
               </label>
@@ -309,7 +309,7 @@ export function FlightPlan({
             onClick={onNext}
             className={clsx(
               "mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition",
-              cleared ? "bg-gradient-to-r from-tp-green to-emerald-400 text-[#0D1628] shadow-[0_8px_30px_-10px_rgba(0,214,143,0.7)]" : "border border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:text-zinc-50",
+              cleared ? "bg-gradient-to-r from-tp-green to-emerald-400 text-tp-base shadow-[0_8px_30px_-10px_rgb(var(--tp-green)/0.7)]" : "border border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:text-zinc-50",
             )}
           >
             {cleared ? "Cleared for takeoff" : "Go to In flight"} <ArrowRight className="h-4 w-4" />

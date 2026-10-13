@@ -33,12 +33,12 @@ export const ScatterChartComponent: React.FC<ScatterChartComponentProps> = ({
   };
 
   return (
-    <div className="bg-[#0D1628]/80 backdrop-blur-md rounded-xl p-6 border border-white/5 hover:border-emerald-500/30/20 transition-all duration-200">
+    <div className="bg-tp-base/80 backdrop-blur-md rounded-xl p-6 border border-white/5 hover:border-emerald-500/30/20 transition-all duration-200">
       <h3 className="text-zinc-100 text-lg font-semibold mb-4">{title}</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1E2F4A" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--tp-border))" />
             <XAxis 
               type="number"
               dataKey="x"
@@ -58,8 +58,8 @@ export const ScatterChartComponent: React.FC<ScatterChartComponentProps> = ({
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#111F35',
-                border: '1px solid #1E2F4A',
+                backgroundColor: 'rgb(var(--tp-panel))',
+                border: '1px solid rgb(var(--tp-border))',
                 borderRadius: '8px'
               }}
               labelStyle={{ color: '#E0EAF8' }}
@@ -71,9 +71,9 @@ export const ScatterChartComponent: React.FC<ScatterChartComponentProps> = ({
                 ];
               }}
             />
-            <Scatter name="Trades" fill="#00D68F">
+            <Scatter name="Trades" fill="rgb(var(--tp-green))">
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.outcome === 'win' ? '#00D68F' : '#FF4868'} />
+                <Cell key={`cell-${index}`} fill={entry.outcome === 'win' ? 'rgb(var(--tp-green))' : 'rgb(var(--tp-red))'} />
               ))}
             </Scatter>
           </ScatterChart>

@@ -1,10 +1,11 @@
 'use client';
 
 import { create } from 'zustand';
+import { DEFAULT_JOURNAL_ID, getActiveJournalId } from './journalStore';
 import type { Trade } from './tradingStore';
 import { persistence } from '@/lib/persistence';
 import type { RiskSnapshot } from '@/lib/sessionRisk';
-import { buildDemoAccounts, hasTraderEdits, nowCutoff, refreshDemoAccounts } from '@/lib/demo/demoData';
+import { buildAllDemoAccounts, hasTraderEdits, nowCutoff, refreshDemoAccounts } from '@/lib/demo/demoData';
 
 // Import history entry
 export interface ImportHistoryEntry {
@@ -87,6 +88,8 @@ export interface Account {
   liquidationRules?: import('@/lib/liquidation').LiquidationRules;
   /** The trader's own daily stop, tighter than the firm's. */
   personalDailyLimit?: number | null;
+  /** The journal this account lives in. Unset means the first journal. */
+  journalId?: string;
   syncSource?: { provider: 'projectx' | 'tradovate-demo' | 'tradovate-live'; remoteId: number; start: string; automatic: boolean; lastSynced?: string };
 }
 
@@ -119,6 +122,10 @@ interface AccountState {
   initializeFromIDB: () => Promise<void>;
   /** Bring the sample accounts up to the current moment (new demo trades appear as the day goes on). */
   refreshDemo: () => void;
+  /** Show a different journal: its accounts come into view, the rest are parked. */
+  switchJournal: (journalId: string) => void;
+  /** Move one account into another journal. */
+  moveAccountToJournal: (accountId: string, journalId: string) => void;
   saveToStorage: () => void;
 }
 
@@ -126,9 +133,23 @@ const ACCOUNTS_STORAGE_KEY = 'tradepilot_accounts';
 const SELECTED_ACCOUNT_KEY = 'tradepilot_selected_account';
 
 // ─── Sync helper to persist accounts (IDB primary, localStorage fallback) ─────
+// Accounts that belong to journals other than the one on screen. The store's
+// `accounts` only ever holds the active journal, so every page and total stays
+// inside it; these are kept here and written back with every save.
+let parkedAccounts: Account[] = [];
+const journalOf = (a: Account) => a.journalId ?? DEFAULT_JOURNAL_ID;
+const selectedKey = (journalId: string) => `tradepilot_selected_account_${journalId}`;
+
+/** How many accounts each journal holds, including the ones not on screen. */
+export function journalAccountCounts(visible: Account[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const a of [...visible, ...parkedAccounts]) counts[journalOf(a)] = (counts[journalOf(a)] ?? 0) + 1;
+  return counts;
+}
+
 function persistAccounts(accounts: Account[], selectedId?: string | null): void {
   // Fire-and-forget async save to IndexedDB
-  persistence.saveAccounts(accounts as unknown[]).catch(e =>
+  persistence.saveAccounts([...accounts, ...parkedAccounts] as unknown[]).catch(e =>
     console.error('Failed to persist accounts to IDB:', e)
   );
   // selectedAccountId stays in localStorage (tiny value, always safe)
@@ -148,7 +169,10 @@ export const accountsInScope = (accounts: Account[]) => {
 // Always start from the same placeholder state and hydrate from persistence
 // in initializeFromIDB() after mount. This prevents SSR/client mismatches.
 const createInitialAccountsState = (): { accounts: Account[]; selectedId: string | null } => {
-  const demoAccounts = buildDemoAccounts();
+  // The server cannot know which journal is open, so the first paint is always the first journal.
+  const everything = buildAllDemoAccounts();
+  const demoAccounts = everything.filter((a) => journalOf(a) === DEFAULT_JOURNAL_ID);
+  parkedAccounts = everything.filter((a) => journalOf(a) !== DEFAULT_JOURNAL_ID);
   return { accounts: demoAccounts, selectedId: demoAccounts[0]?.id ?? null };
 };
 
@@ -163,6 +187,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     const id = `account-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newAccount: Account = {
       ...accountData,
+      journalId: getActiveJournalId(),
       id,
       balance: 0,
       lastUpdate: null,
@@ -490,7 +515,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
   initializeFromIDB: async () => {
     // Bring the samples up to now straight away; don't make them wait on storage.
-    set((state) => ({ accounts: refreshDemoAccounts(state.accounts) }));
+    get().refreshDemo();
     try {
       // loadAccountsFromIDB already handles IDB → localStorage fallback internally
       const rawAccounts = await persistence.loadAccounts();
@@ -507,7 +532,10 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       // and edits on the samples carry over. With nothing worth keeping, start from fresh samples.
       const hasRealAccounts = saved.some(a => a.type !== 'demo');
       const hasOwnWork = saved.some(hasTraderEdits);
-      const accounts = hasRealAccounts || hasOwnWork ? refreshDemoAccounts(saved) : buildDemoAccounts(nowCutoff());
+      const everything = hasRealAccounts || hasOwnWork ? refreshDemoAccounts(saved) : buildAllDemoAccounts(nowCutoff());
+      const journalId = getActiveJournalId();
+      const accounts = everything.filter(a => journalOf(a) === journalId);
+      parkedAccounts = everything.filter(a => journalOf(a) !== journalId);
       const selectedId = persistence.loadSelectedAccountId();
       set({
         accounts,
@@ -519,7 +547,44 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   },
 
   refreshDemo: () => {
-    set((state) => ({ accounts: refreshDemoAccounts(state.accounts) }));
+    set((state) => {
+      const everything = refreshDemoAccounts([...state.accounts, ...parkedAccounts]);
+      const journalId = getActiveJournalId();
+      parkedAccounts = everything.filter((a) => journalOf(a) !== journalId);
+      const accounts = everything.filter((a) => journalOf(a) === journalId);
+      const selectedAccountId = accounts.some((a) => a.id === state.selectedAccountId) ? state.selectedAccountId : accounts[0]?.id ?? null;
+      return { accounts, selectedAccountId };
+    });
+  },
+
+  switchJournal: (journalId) => {
+    const { accounts, selectedAccountId } = get();
+    // Called before the journal store flips, so this is still the journal being left.
+    const leaving = getActiveJournalId();
+    try {
+      if (leaving && selectedAccountId) localStorage.setItem(selectedKey(leaving), selectedAccountId);
+    } catch {}
+    const everything = [...accounts, ...parkedAccounts];
+    const visible = everything.filter(a => journalOf(a) === journalId);
+    parkedAccounts = everything.filter(a => journalOf(a) !== journalId);
+    let remembered: string | null = null;
+    try {
+      remembered = localStorage.getItem(selectedKey(journalId));
+    } catch {}
+    const nextSelected = remembered && visible.some(a => a.id === remembered) ? remembered : visible[0]?.id ?? null;
+    set({ accounts: visible, selectedAccountId: nextSelected, showAllAccounts: false });
+    persistence.saveSelectedAccountId(nextSelected);
+  },
+
+  moveAccountToJournal: (accountId, journalId) => {
+    const active = getActiveJournalId();
+    const { accounts, selectedAccountId } = get();
+    const everything = [...accounts, ...parkedAccounts].map(a => (a.id === accountId ? { ...a, journalId } : a));
+    const visible = everything.filter(a => journalOf(a) === active);
+    parkedAccounts = everything.filter(a => journalOf(a) !== active);
+    const nextSelected = visible.some(a => a.id === selectedAccountId) ? selectedAccountId : visible[0]?.id ?? null;
+    set({ accounts: visible, selectedAccountId: nextSelected });
+    persistAccounts(visible, nextSelected);
   },
 
   saveToStorage: () => {

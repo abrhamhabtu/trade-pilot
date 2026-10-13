@@ -110,6 +110,8 @@ interface ScriptedTrade {
   duration: number;
   strategy: string;
   quantity: number;
+  /** Options only: what one contract cost, per share. */
+  premium?: number;
 }
 
 interface Profile {
@@ -117,11 +119,16 @@ interface Profile {
   name: string;
   broker: string;
   status: Account['status'];
-  isFunded: boolean;
+  /** Prop accounts only; a personal account is neither funded nor in evaluation. */
+  isFunded?: boolean;
+  /** 'options' trades option contracts on stocks and ETFs instead of futures. */
+  kind?: 'options';
+  /** Which journal the sample belongs to; unset = the first (prop) journal. */
+  journalId?: string;
   start: string;
   /** Last trading day; omitted = still trading today. */
   end?: string;
-  profitTarget: number;
+  profitTarget?: number;
   startingBalance: number;
   winBase: number;
   lossScale: number;
@@ -263,11 +270,116 @@ const PROFILES: Profile[] = [
   },
 ];
 
+// ─── Options sample account ──────────────────────────────────────────────────
+// A personal options account for the Options journal: long calls and puts on
+// liquid names, mostly same-day expiries, traded off the same intraday setups.
+
+export const OPTIONS_JOURNAL_ID = 'options';
+
+const OPTION_UNDERLYING: Record<string, number> = { SPY: 672, QQQ: 608, IWM: 246, NVDA: 182, TSLA: 412 };
+const OPTION_SETUPS_AM: [string, number][] = [
+  ['VWAP Double Break (Options)', 6],
+  ['0DTE Opening Range Break', 4],
+  ['VWAP Trend Pullback (Options)', 3],
+];
+const OPTION_SETUPS_PM: [string, number][] = [
+  ['VWAP Trend Pullback (Options)', 3],
+  ['Failed Break Reversal (Options)', 3],
+  ['VWAP Double Break (Options)', 2],
+];
+
+const OPTIONS_PROFILES: Profile[] = [
+  {
+    id: 'demo-options',
+    name: 'Options · Cash account',
+    broker: 'Tastytrade',
+    status: 'active',
+    kind: 'options',
+    journalId: OPTIONS_JOURNAL_ID,
+    start: '2026-07-06',
+    startingBalance: 10_000,
+    winBase: 0.5,
+    lossScale: 1,
+    gainScale: 1,
+    skip: 0.3,
+    payouts: [],
+    costs: [],
+  },
+];
+
+function generateOptionsDay(p: Profile, date: string): ScriptedTrade[] {
+  const r = rng(`${p.id}:${date}`);
+  if (r() < p.skip) return [];
+  const count = pick(r, [
+    [1, 50],
+    [2, 35],
+    [3, 15],
+  ]);
+  const out: ScriptedTrade[] = [];
+  let minutes = 9 * 60 + 36 + Math.floor(r() * 45);
+  let lossStreak = 0;
+  for (let k = 0; k < count && minutes < 15 * 60 + 15; k++) {
+    const afternoon = minutes >= 12 * 60 + 30;
+    const strategy = pick(r, afternoon ? OPTION_SETUPS_PM : OPTION_SETUPS_AM);
+    // The double break is the setup being proven out, so it carries the edge.
+    const edge = strategy.startsWith('VWAP Double Break') ? 0.08 : 0;
+    const win = r() < p.winBase + edge - (afternoon ? 0.12 : 0) - (lossStreak >= 2 ? 0.2 : 0);
+    const underlying = pick(r, [
+      ['SPY', 40],
+      ['QQQ', 35],
+      ['NVDA', 10],
+      ['TSLA', 8],
+      ['IWM', 7],
+    ]);
+    const call = r() < 0.58;
+    const base = OPTION_UNDERLYING[underlying];
+    const strike = Math.round(base + (r() - 0.5) * base * 0.012);
+    const expiry = underlying === 'SPY' || underlying === 'QQQ' ? '0DTE' : 'Fri';
+    const quantity = 1 + Math.floor(r() * 4);
+    const premium = round2(0.9 + r() * 2.6);
+    // Winners run 25% to 120% of premium; losers are cut near half, and a few go to zero.
+    const pct = win ? 0.25 + r() * 0.95 : r() < 0.12 ? -0.95 : -(0.22 + r() * 0.33);
+    out.push({
+      minutes,
+      symbol: `${underlying} ${strike}${call ? 'C' : 'P'} ${expiry}`,
+      side: 'Long',
+      netPL: Math.round(premium * pct * 100 * quantity),
+      duration: win ? 9 + Math.floor(r() * 46) : 4 + Math.floor(r() * 22),
+      strategy,
+      quantity,
+      premium,
+    });
+    lossStreak = win ? 0 : lossStreak + 1;
+    minutes += 25 + Math.floor(r() * 95);
+  }
+  return out;
+}
+
 // ─── Generation ──────────────────────────────────────────────────────────────
 
 function dayTrades(p: Profile, date: string): Trade[] {
-  const specs: ScriptedTrade[] = p.scripted?.[date] ?? generateDay(p, date);
+  const specs: ScriptedTrade[] = p.scripted?.[date] ?? (p.kind === 'options' ? generateOptionsDay(p, date) : generateDay(p, date));
   return specs.map((s, k) => {
+    if (p.kind === 'options') {
+      const entry = s.premium ?? 1.5;
+      return {
+        id: `${p.id}-${date}-${k + 1}`,
+        date,
+        time: clock(s.minutes),
+        symbol: s.symbol,
+        side: s.side,
+        entryPrice: round2(entry),
+        exitPrice: round2(Math.max(0.01, entry + s.netPL / (100 * s.quantity))),
+        quantity: s.quantity,
+        netPL: round2(s.netPL),
+        duration: s.duration,
+        outcome: s.netPL >= 0 ? 'win' : 'loss',
+        commission: round2(0.65 * 2 * s.quantity),
+        // Risk is half the premium paid: the stop on every long option here.
+        rMultiple: round2(s.netPL / (entry * 0.5 * 100 * s.quantity)),
+        strategy: s.strategy,
+      } satisfies Trade;
+    }
     const pv = POINT_VALUE[s.symbol] ?? 5;
     const pts = s.netPL / (pv * s.quantity);
     const entry = BASE_PRICE[s.symbol] ?? 5000;
@@ -390,10 +502,10 @@ function buildAccount(p: Profile, cutoff: DemoCutoff): Account {
     importHistory: [],
     balanceAdjustments,
     costs,
-    isFunded: p.isFunded,
-    profitTarget: p.profitTarget,
     startingBalance: p.startingBalance,
-    consistencyRulePercentage: 40,
+    ...(p.kind === 'options'
+      ? { journalId: p.journalId }
+      : { isFunded: p.isFunded, profitTarget: p.profitTarget, consistencyRulePercentage: 40 }),
   };
 }
 
@@ -408,6 +520,11 @@ function toMinutes(t: string) {
 /** All sample accounts, with trades up to `cutoff`. */
 export function buildDemoAccounts(cutoff: DemoCutoff = DEMO_SNAPSHOT): Account[] {
   return PROFILES.map((p) => buildAccount(p, cutoff));
+}
+
+/** The sample accounts of every journal: the prop accounts plus the options account. */
+export function buildAllDemoAccounts(cutoff: DemoCutoff = DEMO_SNAPSHOT): Account[] {
+  return [...PROFILES, ...OPTIONS_PROFILES].map((p) => buildAccount(p, cutoff));
 }
 
 export const isDemoAccount = (a: Pick<Account, 'type'>) => a.type === 'demo';
@@ -447,7 +564,7 @@ export function hasTraderEdits(account: Account): boolean {
  */
 export function refreshDemoAccounts(current: Account[], cutoff: DemoCutoff = nowCutoff()): Account[] {
   const previous = new Map(current.filter(isDemoAccount).map((a) => [a.id, a]));
-  const demos = buildDemoAccounts(cutoff).map((fresh) => {
+  const demos = buildAllDemoAccounts(cutoff).map((fresh) => {
     const old = previous.get(fresh.id);
     if (!old) return fresh;
     const oldTrades = new Map(old.trades.map((t) => [t.id, t]));
@@ -461,7 +578,8 @@ export function refreshDemoAccounts(current: Account[], cutoff: DemoCutoff = now
     const costs = [...(fresh.costs ?? []), ...userCosts];
     const kept = Object.fromEntries(USER_KEYS.filter((k) => old[k] !== undefined).map((k) => [k, old[k]]));
     const balance = round2(trades.reduce((n, t) => n + t.netPL, 0) + balanceAdjustments.reduce((n, a) => n + a.amount, 0));
-    return { ...fresh, ...kept, trades, balanceAdjustments, costs, balance };
+    // A sample the trader moved to another journal stays where they put it.
+    return { ...fresh, ...kept, journalId: old.journalId ?? fresh.journalId, trades, balanceAdjustments, costs, balance };
   });
   return [...current.filter((a) => !isDemoAccount(a)), ...demos];
 }

@@ -85,13 +85,13 @@ export function PlaybookPicker({ plan, setPlan, history }: { plan: DayPlan; setP
             >
               <span className="flex items-center justify-between">
                 {id === lead ? (
-                  <span className="rounded bg-tp-green px-1.5 py-px font-mono text-[9px] font-bold uppercase tracking-wider text-[#0D1628]">A setup</span>
+                  <span className="rounded bg-tp-green px-1.5 py-px font-mono text-[9px] font-bold uppercase tracking-wider text-tp-base">A setup</span>
                 ) : on ? (
                   <span className="rounded bg-tp-green/15 px-1.5 py-px font-mono text-[9px] font-semibold uppercase tracking-wider text-tp-green">In play</span>
                 ) : (
                   <span />
                 )}
-                <span className={clsx("grid h-4 w-4 place-items-center rounded border", on ? "border-tp-green bg-tp-green text-[#0D1628]" : "border-white/20")}>
+                <span className={clsx("grid h-4 w-4 place-items-center rounded border", on ? "border-tp-green bg-tp-green text-tp-base" : "border-white/20")}>
                   {on && <Check className="h-3 w-3" strokeWidth={3} />}
                 </span>
               </span>
@@ -109,7 +109,7 @@ export function PlaybookPicker({ plan, setPlan, history }: { plan: DayPlan; setP
                   )}
                 </span>
                 {pv ? (
-                  <span className="flex items-center gap-1 truncate" style={{ color: pv.verdict === "passed" ? "#00D68F" : pv.verdict === "failed" ? "#FF4868" : pv.color }}>
+                  <span className="flex items-center gap-1 truncate" style={{ color: pv.verdict === "passed" ? "rgb(var(--tp-green))" : pv.verdict === "failed" ? "rgb(var(--tp-red))" : pv.color }}>
                     <FlaskConical className="h-3 w-3 shrink-0" />
                     {pv.verdict === "passed" ? "Passed" : pv.verdict === "failed" ? "Failed" : "Testing"} · {pv.label}
                   </span>

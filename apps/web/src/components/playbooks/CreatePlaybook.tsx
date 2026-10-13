@@ -95,7 +95,7 @@ export function CreatePlaybook({ onClose, onCreated }: { onClose: () => void; on
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:p-8" role="dialog" aria-modal="true" aria-label="Create a playbook with AI">
-      <div className="w-full max-w-4xl overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0f1a2b] shadow-2xl">
+      <div className="w-full max-w-4xl overflow-hidden rounded-3xl border border-white/[0.08] bg-tp-panel shadow-2xl">
         <header className="flex items-start justify-between gap-4 border-b border-white/[0.06] p-5 sm:p-7">
           <div className="flex items-start gap-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-tp-green/25 to-tp-blue/20 ring-1 ring-inset ring-white/10">
@@ -149,7 +149,7 @@ export function CreatePlaybook({ onClose, onCreated }: { onClose: () => void; on
             <button
               onClick={build}
               disabled={!modelReady(model) || !hasMaterial || busy}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-tp-green px-4 py-3 text-[15px] font-semibold text-[#0D1628] hover:brightness-110 disabled:opacity-40"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-tp-green px-4 py-3 text-[15px] font-semibold text-tp-base hover:brightness-110 disabled:opacity-40"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {busy ? 'Reverse-engineering the strategy… (up to a minute)' : 'Build my playbook'}
@@ -168,7 +168,7 @@ export function CreatePlaybook({ onClose, onCreated }: { onClose: () => void; on
               <button onClick={build} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.1] px-4 py-2.5 text-sm font-medium text-zinc-200 hover:bg-white/[0.05] disabled:opacity-40">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />} Regenerate
               </button>
-              <button onClick={save} className="inline-flex items-center gap-1.5 rounded-xl bg-tp-green px-4 py-2.5 text-sm font-semibold text-[#0D1628] hover:brightness-110">
+              <button onClick={save} className="inline-flex items-center gap-1.5 rounded-xl bg-tp-green px-4 py-2.5 text-sm font-semibold text-tp-base hover:brightness-110">
                 <Save className="h-4 w-4" /> Save playbook
               </button>
             </div>

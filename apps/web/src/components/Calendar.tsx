@@ -370,7 +370,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                   'rounded-md border px-2.5 py-1 text-xs font-medium transition-all sm:text-sm',
                   hasDataForMonth
                     ? 'border-white/10 bg-white/5 text-zinc-200'
-                    : 'border-white/5 bg-[#172035] text-zinc-400 hover:bg-white/5 hover:text-zinc-100'
+                    : 'border-white/5 bg-tp-card text-zinc-400 hover:bg-white/5 hover:text-zinc-100'
                 )}
               >
                 {getCurrentMonthLabel()}
@@ -433,9 +433,9 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                             : isFuture && payoutEligible
                               ? 'border-amber-400/40 bg-amber-400/[0.06]'
                             : isFuture
-                              ? 'border-white/5 bg-[#172035]/20 opacity-50' // Future dates styling
+                              ? 'border-white/5 bg-tp-card/20 opacity-50' // Future dates styling
                               : isWeekendDay
-                                ? 'border-white/5 bg-[#172035]/30' // Weekend styling
+                                ? 'border-white/5 bg-tp-card/30' // Weekend styling
                                 : dayData && dayData.pnl > 0 
                                   ? 'border-emerald-500/30 bg-emerald-500/10' 
                                   : dayData && dayData.pnl < 0 
@@ -466,7 +466,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                                   ? "bg-rose-500/30" 
                                   : dayAdjustment?.type === 'deposit'
                                     ? "bg-emerald-500/30"
-                                    : "bg-[#1E2F4A]"
+                                    : "bg-tp-border"
                               )}
                               title={`${dayAdjustment?.type}: ${dayAdjustment?.amount && dayAdjustment.amount < 0 ? '-' : '+'}$${Math.abs(dayAdjustment?.amount || 0).toLocaleString()}`}
                             >
@@ -483,7 +483,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                           
                           {/* Notes indicator */}
                           {dayHasNote && (
-                            <div className="rounded-full bg-[#172035]/80 p-1">
+                            <div className="rounded-full bg-tp-card/80 p-1">
                               <FileText className="h-3 w-3 text-zinc-400" />
                             </div>
                           )}
