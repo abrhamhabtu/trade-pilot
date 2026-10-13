@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useHistoryTab } from '@/hooks/useHistoryParam';
 import clsx from 'clsx';
 import { AlertTriangle, ArrowRight, Check, FlaskConical, HardDrive, Layers, Plus, PlugZap, Search, ShieldCheck, Upload, Wallet } from 'lucide-react';
 import { accountsInScope, useAccountStore, type Account, type AccountStatus } from '@/store/accountStore';
@@ -18,7 +19,8 @@ import { NextPayouts } from './NextPayouts';
 import { CopyRiskPanel } from './CopyRiskPanel';
 import { STATUS_META, STATUS_ORDER, btn, signedUsd } from './accountUi';
 
-type PageTab = 'accounts' | 'connections' | 'health' | 'data';
+const PAGE_TABS = ['accounts', 'connections', 'health', 'data'] as const;
+type PageTab = (typeof PAGE_TABS)[number];
 type Filter = AccountStatus | 'all';
 
 interface AccountsPageProps {
@@ -28,7 +30,7 @@ interface AccountsPageProps {
 
 export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, initialBroker }) => {
   const { accounts, addAccount, updateAccount, deleteAccount, selectAccount, selectedAccountId } = useAccountStore();
-  const [tab, setTab] = useState<PageTab>('accounts');
+  const [tab, setTab] = useHistoryTab('tab', PAGE_TABS);
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
@@ -41,9 +43,9 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ onImportForAccount, 
 
   useEffect(() => {
     const fromHash = window.location.hash.replace('#', '');
-    if (fromHash === 'account-health') setTab('health');
-    else if (['connections', 'data'].includes(fromHash)) setTab(fromHash as PageTab);
-  }, []);
+    if (fromHash === 'account-health') setTab('health', { replace: true });
+    else if (['connections', 'data'].includes(fromHash)) setTab(fromHash as PageTab, { replace: true });
+  }, [setTab]);
 
   const real = accounts.filter((a) => a.type !== 'demo');
   const sample = real.length === 0;

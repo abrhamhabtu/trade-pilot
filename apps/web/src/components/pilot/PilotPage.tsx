@@ -38,10 +38,11 @@ import { PilotCoach } from "./PilotCoach";
 import { TradeReview } from "./TradeReview";
 import { ManualTrade } from "./ManualTrade";
 import { TodayFlow } from "./flow/TodayFlow";
-import { pilotHref } from "@/lib/pilot/askPilot";
+import { setHistoryParams, useHistoryTab } from "@/hooks/useHistoryParam";
 import "./pilot.css";
 
 type View = "today" | "overview" | "reviews" | "playbook" | "settings";
+const TAB_IDS = ["today", "overview", "reviews", "playbook", "settings"] as const;
 const tabs: { id: View; label: string }[] = [
   { id: "today", label: "Today" },
   { id: "overview", label: "Ask Pilot" },
@@ -67,7 +68,8 @@ export function PilotPage() {
     showAllAccounts,
     initializeFromIDB,
   } = useAccountStore();
-  const [view, setView] = useState<View>("today");
+  // The tab lives in the URL so Back steps through tabs, not out of Pilot.
+  const [view, setView] = useHistoryTab("tab", TAB_IDS);
   const { model, setModel: saveModel, hydrate, forgetKey } = useModelStore();
   useEffect(() => {
     initializeFromIDB();
@@ -78,15 +80,16 @@ export function PilotPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tabs.some((t) => t.id === tab)) setView(tab as View);
     // Arriving with a question means the trader wants the coach, not the day view.
-    else if (params.has("ask")) setView("overview");
+    if (!tabs.some((t) => t.id === tab) && params.has("ask")) {
+      setView("overview", { replace: true });
+      params.set("tab", "overview");
+    }
     // Strip the account param even when the id is unknown, so a stale link
     // cannot leave the coach waiting for a switch that will never happen.
     const account = params.get("account");
     if (account) selectAccount(account);
-    if (!tab && !account) return;
-    params.delete("tab");
+    if (!account) return;
     params.delete("account");
     const rest = params.toString();
     window.history.replaceState(
@@ -398,8 +401,7 @@ function AccountWorkspace({
           onReviews={() => setView("reviews")}
           onAsk={(question) => {
             // The coach picks the question up from the URL when it mounts.
-            window.history.replaceState(null, "", pilotHref(question));
-            setView("overview");
+            setHistoryParams({ ask: question.slice(0, 500), tab: "overview" });
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
         />

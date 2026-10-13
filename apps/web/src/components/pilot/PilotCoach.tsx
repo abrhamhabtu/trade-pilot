@@ -220,8 +220,10 @@ export function PilotCoach({
       // aborted attempt leaves it in place so the next mount can retry it —
       // Strict Mode aborts the first attempt on every mount in development.
       if (mine?.signal.aborted) return;
-      params.delete("ask");
-      const rest = params.toString();
+      // Read the URL again: the trader may have changed tab while Pilot answered.
+      const now = new URLSearchParams(window.location.search);
+      now.delete("ask");
+      const rest = now.toString();
       window.history.replaceState(
         null,
         "",

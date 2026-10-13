@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useHistoryParam } from '@/hooks/useHistoryParam';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -96,8 +97,9 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
   };
 
   const [currentDate, setCurrentDate] = useState(getInitialDate());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [showTradePreview, setShowTradePreview] = useState(false);
+  // The open day lives in the URL so Back closes the review.
+  const [dayParam, setSelectedDate] = useHistoryParam('day');
+  const selectedDate = dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam) ? dayParam : null;
   
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -217,7 +219,6 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
     if (dayData && dayData.trades > 0 && !isWeekend(day) && !isFutureDate(day)) {
       const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       setSelectedDate(dateString);
-      setShowTradePreview(true);
     }
   };
   
@@ -560,14 +561,14 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
 
       {/* Trade Preview Modal */}
       <DayReviewModal
-        isOpen={showTradePreview}
-        onClose={() => setShowTradePreview(false)}
+        isOpen={selectedDate !== null}
+        onClose={() => setSelectedDate(null)}
         date={selectedDate || ''}
         trades={selectedDateTrades}
         accountId={accountId}
         tradingDays={tradeDates}
         onNavigate={(d) => {
-          setSelectedDate(d);
+          setSelectedDate(d, { replace: true });
           const [y, m] = d.split('-').map(Number);
           setCurrentDate(new Date(y, m - 1, 1));
         }}

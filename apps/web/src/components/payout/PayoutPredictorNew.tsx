@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useHistoryTab } from '@/hooks/useHistoryParam';
 import { Wallet, TrendingUp, Route, Calculator, Layers, Building2, ShieldCheck, ShieldAlert, Swords, BookOpenCheck, Dices } from 'lucide-react';
 import clsx from 'clsx';
 import { accountsInScope, useAccountStore, Account } from '@/store/accountStore';
@@ -132,7 +133,8 @@ const tradesAfterPayout = (account: Account): Trade[] => {
   return account.trades.filter((t) => (t.date ? t.date.split('T')[0] : '') > last);
 };
 
-type PayoutTab = 'ledger' | 'odds' | 'path' | 'stress' | 'withdraw' | 'sizing' | 'eval' | 'scale' | 'firm';
+const PAYOUT_TABS = ['ledger', 'odds', 'path', 'stress', 'withdraw', 'sizing', 'eval', 'scale', 'firm'] as const;
+type PayoutTab = (typeof PAYOUT_TABS)[number];
 
 const TABS: { id: PayoutTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'ledger', label: 'Ledger', icon: BookOpenCheck },
@@ -154,7 +156,7 @@ interface PayoutPredictorProps {
 
 export const PayoutPredictor: React.FC<PayoutPredictorProps> = ({ initialFirmId }) => {
   const { text, muted, card, dark } = useThemeClasses();
-  const [tab, setTab] = useState<PayoutTab>('ledger');
+  const [tab, setTab] = useHistoryTab('tab', PAYOUT_TABS);
   const { showAllAccounts, getSelectedAccount, initializeFromIDB } = useAccountStore();
   const selectedAccount = getSelectedAccount();
   const hasLinkedAccount = Boolean(selectedAccount && !showAllAccounts);

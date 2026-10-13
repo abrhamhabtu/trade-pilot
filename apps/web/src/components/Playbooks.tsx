@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { setHistoryParams, useHistoryParam, useHistoryTab } from '@/hooks/useHistoryParam';
 import { 
   ArrowLeft,
   TrendingUp,
@@ -2899,9 +2900,11 @@ indicator("Failed Auction", overlay=true)
 ];
 
 export const Playbooks: React.FC = () => {
-  const [selectedStrategy, setSelectedStrategy] = useState<string | null>(null);
+  // The open playbook and the section live in the URL, so Back returns to
+  // the library instead of leaving Playbooks altogether.
+  const [selectedStrategy, setSelectedStrategy] = useHistoryParam('playbook');
   const [filter, setFilter] = useState('All');
-  const [section, setSection] = useState<'strategies' | 'toolkit'>('strategies');
+  const [section, setSection] = useHistoryTab('section', ['strategies', 'toolkit'] as const);
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState('');
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
@@ -2919,14 +2922,25 @@ export const Playbooks: React.FC = () => {
   const { custom, edits, hydrate, removeCustom } = usePlaybookStore();
   useEffect(() => hydrate(), [hydrate]);
   const openToolkit = () => {
-    setSelectedStrategy(null);
-    setSection('toolkit');
+    setHistoryParams({ playbook: null, section: 'toolkit' });
     document.querySelector('main')?.scrollTo({ top: 0 });
   };
 
-  if (selectedStrategy) {
-    const base = [...tradingStrategies, ...custom].find(s => s.id === selectedStrategy);
-    if (!base) return null;
+  // A stale or mistyped link falls back to the library.
+  const base = selectedStrategy ? [...tradingStrategies, ...custom].find(s => s.id === selectedStrategy) : undefined;
+  const openId = base?.id ?? null;
+  // Opening a playbook starts at its top; coming back lands where the trader left the library.
+  const libraryScroll = useRef(0);
+  const lastOpen = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const main = document.querySelector('main');
+    if (!main || lastOpen.current === openId) return;
+    if (openId && !lastOpen.current) libraryScroll.current = main.scrollTop;
+    main.scrollTo({ top: openId ? 0 : libraryScroll.current });
+    lastOpen.current = openId;
+  }, [openId]);
+
+  if (base) {
     return (
       <PlaybookStrategyView
         strategy={withEdits(base, edits)}

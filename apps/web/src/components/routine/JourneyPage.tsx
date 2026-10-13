@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useHistoryTab } from '@/hooks/useHistoryParam';
 import Link from 'next/link';
 import clsx from 'clsx';
 import {
@@ -66,7 +67,7 @@ export const JourneyPage: React.FC = () => {
   const [customPace, setCustomPace] = useState(account?.customDailyPace || 250);
   const [consistencyRule, setConsistencyRule] = useState(account?.consistencyRulePercentage || 30);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [activeTab, setActiveTab] = useState<'overview' | 'consistency'>('overview');
+  const [activeTab, setActiveTab] = useHistoryTab('tab', ['overview', 'consistency'] as const);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   useEffect(() => {
