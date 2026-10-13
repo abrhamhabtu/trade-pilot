@@ -194,15 +194,15 @@ if fireSr
     alert(f_payload(srSetup, srSide, srLevel, srName), alert.freq_once_per_bar_close)
 
 // ─── Drawing ─────────────────────────────────────────────
-plot(vw, "VWAP", color = color.new(#4F9CF9, 0), linewidth = 2)
-plot(usePrior ? pdh : na, "PDH", color = color.new(#FF4868, 30), style = plot.style_linebr)
-plot(usePrior ? pdl : na, "PDL", color = color.new(#00D68F, 30), style = plot.style_linebr)
-plot(useOn ? onh : na, "ONH", color = color.new(#FFB800, 40), style = plot.style_linebr)
-plot(useOn ? onl : na, "ONL", color = color.new(#FFB800, 40), style = plot.style_linebr)
-plotshape(fireDbL, "DB-VWAP long", shape.triangleup, location.belowbar, color.new(#00D68F, 0), text = "DB", textcolor = color.new(#00D68F, 0), size = size.small)
-plotshape(fireDbS, "DB-VWAP short", shape.triangledown, location.abovebar, color.new(#FF4868, 0), text = "DB", textcolor = color.new(#FF4868, 0), size = size.small)
-plotshape(fireSr and srSide == "long", "S/R long", shape.circle, location.belowbar, color.new(#00D68F, 0), text = "SR", textcolor = color.new(#00D68F, 0), size = size.tiny)
-plotshape(fireSr and srSide == "short", "S/R short", shape.circle, location.abovebar, color.new(#FF4868, 0), text = "SR", textcolor = color.new(#FF4868, 0), size = size.tiny)
+plot(vw, "VWAP", color = color.new(#0A84FF, 0), linewidth = 2)
+plot(usePrior ? pdh : na, "PDH", color = color.new(#FF453A, 30), style = plot.style_linebr)
+plot(usePrior ? pdl : na, "PDL", color = color.new(#30D158, 30), style = plot.style_linebr)
+plot(useOn ? onh : na, "ONH", color = color.new(#FFD60A, 40), style = plot.style_linebr)
+plot(useOn ? onl : na, "ONL", color = color.new(#FFD60A, 40), style = plot.style_linebr)
+plotshape(fireDbL, "DB-VWAP long", shape.triangleup, location.belowbar, color.new(#30D158, 0), text = "DB", textcolor = color.new(#30D158, 0), size = size.small)
+plotshape(fireDbS, "DB-VWAP short", shape.triangledown, location.abovebar, color.new(#FF453A, 0), text = "DB", textcolor = color.new(#FF453A, 0), size = size.small)
+plotshape(fireSr and srSide == "long", "S/R long", shape.circle, location.belowbar, color.new(#30D158, 0), text = "SR", textcolor = color.new(#30D158, 0), size = size.tiny)
+plotshape(fireSr and srSide == "short", "S/R short", shape.circle, location.abovebar, color.new(#FF453A, 0), text = "SR", textcolor = color.new(#FF453A, 0), size = size.tiny)
 `;
 }
 

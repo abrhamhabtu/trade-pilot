@@ -30,7 +30,7 @@ export function AccountCard({ account, current, onMakeCurrent, onOpen, onImport,
       className={clsx(
         'group relative flex flex-col rounded-2xl border bg-tp-card p-5 transition-all duration-200',
         current
-          ? 'border-tp-green/30 shadow-[0_0_0_1px_rgba(0,214,143,0.12),0_12px_40px_-20px_rgba(0,214,143,0.35)]'
+          ? 'border-tp-green/30 shadow-[0_0_0_1px_rgb(var(--tp-green)/0.12),0_12px_40px_-20px_rgb(var(--tp-green)/0.35)]'
           : 'border-white/[0.06] hover:border-white/[0.12] hover:shadow-[0_12px_40px_-24px_rgba(0,0,0,0.8)]',
       )}
     >

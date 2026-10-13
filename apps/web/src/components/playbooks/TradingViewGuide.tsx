@@ -304,7 +304,7 @@ function OrderTicketMock() {
   return (
     <figure className="self-start rounded-2xl border border-white/[0.08] bg-[#0b1320] p-4 text-sm">
       <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg bg-white/[0.04] p-1 text-center text-xs font-semibold">
-        <span className="rounded-md bg-tp-green/90 py-1.5 text-[#0D1628]">Buy</span>
+        <span className="rounded-md bg-tp-green/90 py-1.5 text-tp-base">Buy</span>
         <span className="py-1.5 text-zinc-500">Sell</span>
       </div>
       <MockRow label="Quantity" value="5" />
@@ -312,7 +312,7 @@ function OrderTicketMock() {
       <div className="my-3 h-px bg-white/[0.06]" />
       <MockCheck label="Take Profit" value="120 ticks" tone="green" />
       <MockCheck label="Stop Loss" value="80 ticks" tone="red" />
-      <div className="mt-3 rounded-lg bg-tp-green/90 py-2 text-center text-xs font-semibold text-[#0D1628]">Buy 5 MNQ</div>
+      <div className="mt-3 rounded-lg bg-tp-green/90 py-2 text-center text-xs font-semibold text-tp-base">Buy 5 MNQ</div>
       <figcaption className="mt-3 text-center text-[11px] text-zinc-500">Illustration · labels vary by broker</figcaption>
     </figure>
   );
@@ -326,7 +326,7 @@ const MockRow = ({ label, value }: { label: string; value: string }) => (
 const MockCheck = ({ label, value, tone }: { label: string; value: string; tone: 'green' | 'red' }) => (
   <div className="flex items-center justify-between py-1.5">
     <span className="flex items-center gap-2 text-zinc-200">
-      <span className={clsx('grid h-4 w-4 place-items-center rounded text-[10px] text-[#0D1628]', tone === 'green' ? 'bg-tp-green' : 'bg-tp-red')}>✓</span>
+      <span className={clsx('grid h-4 w-4 place-items-center rounded text-[10px] text-tp-base', tone === 'green' ? 'bg-tp-green' : 'bg-tp-red')}>✓</span>
       {label}
     </span>
     <span className={clsx('rounded-md px-2 py-0.5', tone === 'green' ? 'bg-tp-green/10 text-tp-green' : 'bg-tp-red/10 text-tp-red')}>{value}</span>

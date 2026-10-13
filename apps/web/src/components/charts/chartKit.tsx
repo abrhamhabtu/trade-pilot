@@ -7,8 +7,8 @@ import React, { useEffect, useRef, useState } from 'react';
  * a crosshair plus axis "pills" (TradingView-style) instead of a floating box over the data.
  */
 
-export const GREEN = '#00D68F';
-export const RED = '#FF4868';
+export const GREEN = 'rgb(var(--tp-green))';
+export const RED = 'rgb(var(--tp-red))';
 
 export const compactUsd = (v: number, sign = false) => {
   const a = Math.abs(v);

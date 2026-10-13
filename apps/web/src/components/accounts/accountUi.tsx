@@ -19,19 +19,19 @@ export type BrokerOption = {
 };
 
 export const BROKER_OPTIONS: BrokerOption[] = [
-  { label: 'Futures Elite', abbr: 'FE', logoSrc: '/logos/futures-elite.svg', logoBackground: '#172338', aliases: ['FuturesElite'] },
+  { label: 'Futures Elite', abbr: 'FE', logoSrc: '/logos/futures-elite.svg', logoBackground: 'rgb(var(--tp-card))', aliases: ['FuturesElite'] },
   { label: 'TopOne Futures', abbr: 'TO', logoSrc: '/logos/topone-futures.png', logoBackground: '#14231b', aliases: ['Topone Futures', 'Top One Futures'] },
-  { label: 'Lucid Trading', abbr: 'LT', logoSrc: '/logos/lucid-trading.png', logoBackground: '#172338', aliases: ['Trading Lucid', 'Lucid'] },
+  { label: 'Lucid Trading', abbr: 'LT', logoSrc: '/logos/lucid-trading.png', logoBackground: 'rgb(var(--tp-card))', aliases: ['Trading Lucid', 'Lucid'] },
   { label: 'Topstep', abbr: 'TS', logoSrc: '/logos/topstep.png', logoBackground: '#000000' },
   { label: 'Apex Trader Funding', abbr: 'AP', logoSrc: '/logos/apex.png', logoBackground: '#06124a' },
-  { label: 'My Funded Futures', abbr: 'MF', logoSrc: '/logos/my-funded-futures.png', logoBackground: '#172338' },
-  { label: 'ProjectX', abbr: 'PX', logoSrc: '/logos/projectx.png', logoBackground: '#172338' },
-  { label: 'Tradovate', abbr: 'TV', logoSrc: '/logos/tradovate.png', logoBackground: '#172338' },
+  { label: 'My Funded Futures', abbr: 'MF', logoSrc: '/logos/my-funded-futures.png', logoBackground: 'rgb(var(--tp-card))' },
+  { label: 'ProjectX', abbr: 'PX', logoSrc: '/logos/projectx.png', logoBackground: 'rgb(var(--tp-card))' },
+  { label: 'Tradovate', abbr: 'TV', logoSrc: '/logos/tradovate.png', logoBackground: 'rgb(var(--tp-card))' },
   { label: 'The Trading Pit', abbr: 'TP', logoSrc: '/logos/trading-pit.png', logoBackground: '#000000' },
   { label: 'FTMO', abbr: 'FT', logoSrc: '/logos/ftmo.png', logoBackground: '#252525' },
   { label: 'Funded Next', abbr: 'FN', logoSrc: '/logos/funded-next.png', logoBackground: '#ffffff' },
-  { label: 'True Forex Funds', abbr: 'TF', logoSrc: '/logos/true-forex-funds.png', logoBackground: '#172338' },
-  { label: 'E8 Funding', abbr: 'E8', logoSrc: '/logos/e8.svg', logoBackground: '#172338' },
+  { label: 'True Forex Funds', abbr: 'TF', logoSrc: '/logos/true-forex-funds.png', logoBackground: 'rgb(var(--tp-card))' },
+  { label: 'E8 Funding', abbr: 'E8', logoSrc: '/logos/e8.svg', logoBackground: 'rgb(var(--tp-card))' },
   { label: 'The5ers', abbr: '5R', logoSrc: '/logos/the5ers.png', logoBackground: '#ffffff' },
   { label: 'Generic Template', abbr: 'GT', logoClass: 'bg-[#334155]' },
   { label: 'Other', abbr: 'OT', logoClass: 'bg-[#475569]' },
@@ -56,7 +56,7 @@ export function BrokerBadge({ broker, size = 'md' }: { broker: string; size?: 's
   const img = { sm: 20, md: 28, lg: 34 }[size];
   if (option?.logoSrc) {
     return (
-      <div className={clsx('grid shrink-0 place-items-center overflow-hidden ring-1 ring-inset ring-white/10', box)} style={{ backgroundColor: option.logoBackground ?? '#172338' }}>
+      <div className={clsx('grid shrink-0 place-items-center overflow-hidden ring-1 ring-inset ring-white/10', box)} style={{ backgroundColor: option.logoBackground ?? 'rgb(var(--tp-card))' }}>
         <Image src={option.logoSrc} alt={`${option.label} logo`} width={img} height={img} className="object-contain" unoptimized />
       </div>
     );
@@ -165,7 +165,7 @@ export function Sparkline({ points, className }: { points: number[]; className?:
   const xy = series.map((v, i) => [(i / (series.length - 1)) * w, h - 3 - ((v - min) / span) * (h - 6)] as const);
   const line = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
   const up = series.at(-1)! >= 0;
-  const color = up ? '#00D68F' : '#FF4868';
+  const color = up ? 'rgb(var(--tp-green))' : 'rgb(var(--tp-red))';
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className={className} aria-hidden>
       <defs>

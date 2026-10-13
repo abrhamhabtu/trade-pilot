@@ -91,7 +91,7 @@ export function PositionSizer({
                 className={clsx(
                   'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
                   symbol === f.symbol
-                    ? 'bg-tp-green text-[#0D1628]'
+                    ? 'bg-tp-green text-tp-base'
                     : f.micro
                       ? 'bg-white/[0.05] text-zinc-200 hover:bg-white/[0.09]'
                       : 'bg-white/[0.02] text-zinc-500 hover:bg-white/[0.06] hover:text-zinc-300',

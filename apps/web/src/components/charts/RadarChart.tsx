@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import React, { useEffect, useRef, useState } from 'react';
 import { Tooltip } from '../Tooltip';
 import { useHasMounted } from '@/hooks/useHasMounted';
 
@@ -16,180 +15,190 @@ interface RadarChartComponentProps {
   score: number;
 }
 
-  // Generous hit areas support mouse, touch and keyboard inspection.
-  const CustomDot = (props: any) => {
-    const { cx, cy, payload, setTooltipPosition, setHoveredPoint } = props;
-    
-    const handlePointEnter = (e: React.MouseEvent | React.FocusEvent) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const containerRect = e.currentTarget.closest('.recharts-wrapper')?.getBoundingClientRect();
-      
-      if (containerRect) {
-        setTooltipPosition({
-          x: Math.max(90, Math.min(containerRect.width - 90, rect.left - containerRect.left + rect.width / 2)),
-          y: rect.top - containerRect.top - 10
-        });
-      }
-      
-      setHoveredPoint({
-        category: payload.category,
-        value: payload.value
-      });
-    };
+const SHORT_LABEL: Record<string, string> = {
+  'Drawdown Mgmt': 'Drawdown',
+  'Sharpe Ratio': 'Sharpe',
+};
 
-    const handleMouseLeave = () => {
-      // Immediately clear the hovered point to hide tooltip
-      setHoveredPoint(null);
-    };
+const SPECTRUM = 'linear-gradient(90deg, rgb(var(--tp-red)) 0%, #FF9F0A 38%, rgb(var(--tp-yellow)) 62%, rgb(var(--tp-green)) 100%)';
 
-    return (
-      <g role="button" tabIndex={0}
-        aria-label={`${payload.category}: ${payload.value.toFixed(0)} out of 100`}
-        className="cursor-pointer outline-none"
-        onMouseEnter={handlePointEnter} onMouseLeave={handleMouseLeave}
-        onFocus={handlePointEnter} onBlur={handleMouseLeave} onClick={handlePointEnter}>
-        <circle cx={cx} cy={cy} r={12} fill="transparent" />
-        <circle cx={cx} cy={cy} r={5} fill="#00D68F" stroke="#0D1628" strokeWidth={2} />
+function gradeFor(score: number) {
+  if (score >= 80) return 'Excellent';
+  if (score >= 65) return 'Strong';
+  if (score >= 50) return 'Building';
+  return 'Needs work';
+}
+
+/** The radar is drawn in real pixels so labels stay crisp at any card size. */
+function ScoreRadar({ data, width, height }: { data: PerformanceData[]; width: number; height: number }) {
+  const [active, setActive] = useState<number | null>(null);
+  const n = data.length;
+  const cx = width / 2;
+  const cy = height / 2;
+  // Narrow cards trade label room for radar size.
+  const narrow = width < 300;
+  const R = Math.max(24, Math.min(height / 2 - 22, width / 2 - (narrow ? 60 : 92)));
+  const angle = (i: number) => (-90 + (360 / n) * i) * (Math.PI / 180);
+  const point = (i: number, r: number) => [cx + Math.cos(angle(i)) * r, cy + Math.sin(angle(i)) * r] as const;
+  const ring = (f: number) => data.map((_, i) => point(i, R * f).map((v) => v.toFixed(1)).join(',')).join(' ');
+  const shape = data
+    .map((d, i) => point(i, R * Math.max(0.06, Math.min(1, d.value / 100))).map((v) => v.toFixed(1)).join(','))
+    .join(' ');
+
+  return (
+    <svg width={width} height={height} role="img" aria-label="Trading score by category" className="block overflow-visible">
+      <defs>
+        <radialGradient id="tpRadarFill" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="rgb(var(--tp-green))" stopOpacity="0.1" />
+          <stop offset="100%" stopColor="rgb(var(--tp-green))" stopOpacity="0.42" />
+        </radialGradient>
+      </defs>
+
+      {/* Rings step up in brightness toward the edge, so "further out is better" reads at a glance */}
+      {[1, 0.75, 0.5, 0.25].map((f, i) => (
+        <polygon
+          key={f}
+          points={ring(f)}
+          fill={i % 2 === 0 ? 'rgba(255,255,255,0.028)' : 'rgb(var(--tp-card))'}
+          stroke="rgba(255,255,255,0.09)"
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
+      ))}
+      {data.map((_, i) => {
+        const [x, y] = point(i, R);
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,0.06)" />;
+      })}
+
+      <g className="tp-radar-in" style={{ transformOrigin: `${cx}px ${cy}px` }}>
+        <polygon points={shape} fill="url(#tpRadarFill)" stroke="rgb(var(--tp-green))" strokeWidth="2" strokeLinejoin="round" />
+        {data.map((d, i) => {
+          const [x, y] = point(i, R * Math.max(0.06, Math.min(1, d.value / 100)));
+          const on = active === i;
+          return (
+            <g
+              key={d.category}
+              role="button"
+              tabIndex={0}
+              aria-label={`${d.category}: ${d.value.toFixed(0)} out of 100`}
+              className="cursor-pointer outline-none"
+              onMouseEnter={() => setActive(i)}
+              onMouseLeave={() => setActive(null)}
+              onFocus={() => setActive(i)}
+              onBlur={() => setActive(null)}
+            >
+              <circle cx={x} cy={y} r={12} fill="transparent" />
+              {on && <circle cx={x} cy={y} r={9} fill="rgb(var(--tp-green))" fillOpacity="0.25" />}
+              <circle cx={x} cy={y} r={on ? 5 : 3.5} fill="rgb(var(--tp-green))" stroke="rgb(var(--tp-card))" strokeWidth="2" />
+            </g>
+          );
+        })}
       </g>
-    );
-  };
+
+      {/* Every axis carries its own number: no hovering needed to read the card */}
+      {data.map((d, i) => {
+        const cos = Math.cos(angle(i));
+        const sin = Math.sin(angle(i));
+        const [x, y] = point(i, R + (narrow ? 7 : 10));
+        const side = Math.abs(cos) > 0.3;
+        const anchor = !side ? 'middle' : cos > 0 ? 'start' : 'end';
+        const on = active === i;
+        const label = SHORT_LABEL[d.category] ?? d.category;
+        const value = d.value.toFixed(0);
+        const dim = active !== null && !on;
+        return (
+          <text
+            key={d.category}
+            x={x}
+            y={side ? y - 3 : sin < 0 ? y - 2 : y + 11}
+            textAnchor={anchor}
+            fontSize={narrow ? 11 : 12}
+            style={{ opacity: dim ? 0.45 : 1, transition: 'opacity 0.2s ease' }}
+            onMouseEnter={() => setActive(i)}
+            onMouseLeave={() => setActive(null)}
+          >
+            <tspan fill={on ? '#F2F4F8' : '#98A1B3'}>{label}</tspan>
+            <tspan
+              x={side ? x : undefined}
+              dx={side ? undefined : 6}
+              dy={side ? 15 : undefined}
+              fill="#F2F4F8"
+              fontSize={narrow ? 12 : 13}
+              fontWeight="700"
+              style={{ fontFamily: "ui-rounded, 'SF Pro Rounded', -apple-system, system-ui, sans-serif" }}
+            >
+              {value}
+            </tspan>
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
 
 export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({ data, score }) => {
   const hasMounted = useHasMounted();
-  const [chartWidth, setChartWidth] = useState(320);
-  const [hoveredPoint, setHoveredPoint] = useState<{ category: string; value: number } | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setSize({ width: Math.round(width), height: Math.round(height) });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [hasMounted]);
 
   const tooltipContent = `Comprehensive performance score based on:\n\n• Win rate and consistency\n• Profit factor and risk management\n• Overall trading effectiveness\n\nScores above 80 indicate excellent performance.`;
 
-  // Small tooltip for individual points - shows category name above score
-  const PointTooltip = () => {
-    if (!hoveredPoint) return null;
-
-    return (
-      <div 
-        className="absolute pointer-events-none z-30 transition-opacity duration-150"
-        style={{
-          left: `${tooltipPosition.x}px`,
-          top: `${tooltipPosition.y}px`,
-          transform: 'translate(-50%, -100%)',
-          opacity: hoveredPoint ? 1 : 0
-        }}
-      >
-        {/* Compact pill, matching the crosshair labels on the other dashboard charts */}
-        <div className="-translate-y-1 whitespace-nowrap rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-950 shadow-lg shadow-black/40">
-          {hoveredPoint.category} <span className="text-emerald-700 tabular-nums">{hoveredPoint.value.toFixed(0)}</span>
-        </div>
-      </div>
-    );
-  };
-
   if (!hasMounted) {
-    return <div className="h-full min-h-[25rem] lg:min-h-0 rounded-xl border border-white/5 bg-[#0D1628]/40" />;
+    return <div className="h-full min-h-[25rem] rounded-xl border border-white/5 bg-tp-base/40 lg:min-h-0" />;
   }
 
-  return (
-    <div 
-      className="rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 h-full min-h-[25rem] lg:min-h-0 flex flex-col relative overflow-hidden group p-4 sm:p-5"
-      
-    >
-      {/* Gradient border on hover */}
-      <div className="absolute inset-0 rounded-xl border border-white/0 group-hover:border-white/10 pointer-events-none transition-colors duration-300">
-        <div 
-          className="w-full h-full rounded-xl"
-          
-        />
-      </div>
-      
-      <div className="relative z-10 flex flex-col flex-1 min-h-0">
-        <div className="flex shrink-0 items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <h3 className="text-zinc-100 text-sm font-semibold sm:text-base">Trading score</h3>
-            <Tooltip content={tooltipContent} position="top">
-              <div className="w-4 h-4 rounded-full bg-[#172035] flex items-center justify-center cursor-help hover:bg-white/10 transition-all">
-                <span className="text-zinc-400 text-xs">?</span>
-              </div>
-            </Tooltip>
-          </div>
-        </div>
-        
-        <div className="relative mb-3 min-h-[14rem] flex-1 lg:min-h-0">
-          <ResponsiveContainer width="100%" height="100%" onResize={(width) => setChartWidth(width)}>
-            <RadarChart
-              data={data}
-              margin={{ top: 18, right: chartWidth < 260 ? 40 : 64, bottom: 18, left: chartWidth < 260 ? 40 : 64 }}
-              outerRadius="90%"
-              onMouseLeave={() => setHoveredPoint(null)}
-            >
-              <defs>
-                <linearGradient id="radarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#00D68F" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#71717A" stopOpacity={0.3} />
-                </linearGradient>
-                <linearGradient id="radarStroke" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#00D68F" />
-                  <stop offset="100%" stopColor="#71717A" />
-                </linearGradient>
-              </defs>
-              <PolarGrid
-                gridType="polygon"
-                stroke="#1E2F4A"
-                strokeWidth={1}
-                radialLines={false}
-              />
-              <PolarAngleAxis
-                dataKey="category"
-                tick={({ x, y, textAnchor, payload }: any) => {
-                  const labels: Record<string, string[]> = {
-                    'Drawdown Mgmt': ['Drawdown', 'management'],
-                    'Profit factor': ['Profit', 'factor'],
-                    'Sharpe Ratio': ['Sharpe', 'ratio'],
-                  };
-                  const lines = labels[payload.value] ?? [payload.value];
-                  const labelX = textAnchor === 'start' ? Math.min(x, chartWidth - 78) : textAnchor === 'end' ? Math.max(x, 78) : x;
-                  return <text x={labelX} y={y} textAnchor={textAnchor} fill="#A1B2CC" fontSize={12}>
-                    {lines.map((line, index) => <tspan key={line} x={labelX} dy={index === 0 ? (lines.length > 1 ? -3 : 4) : 14}>{line}</tspan>)}
-                  </text>;
-                }}
-              />
-              <PolarRadiusAxis
-                domain={[0, 100]}
-                tick={false}
-                tickCount={5}
-                axisLine={false}
-              />
-              <Radar
-                name="Performance"
-                dataKey="value"
-                stroke="url(#radarStroke)"
-                fill="url(#radarGradient)"
-                fillOpacity={0.8}
-                strokeWidth={2}
-                dot={<CustomDot setTooltipPosition={setTooltipPosition} setHoveredPoint={setHoveredPoint} />}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
+  const pct = Math.max(0, Math.min(100, score));
 
-          {/* Point-specific tooltip */}
-          <PointTooltip />
+  return (
+    <div className="relative flex h-full min-h-[25rem] flex-col overflow-hidden rounded-xl border border-white/5 p-4 sm:p-5 lg:min-h-0">
+      <div className="flex shrink-0 items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <h3 className="text-sm font-semibold text-zinc-100 sm:text-base">Trading score</h3>
+          <Tooltip content={tooltipContent} position="top">
+            <div className="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-tp-card transition-all hover:bg-white/10">
+              <span className="text-xs text-zinc-400">?</span>
+            </div>
+          </Tooltip>
         </div>
-        
-        {/* Score Display */}
-        <div className="shrink-0 space-y-1">
-          <div className="flex items-center justify-between"><span className="text-[10px] text-zinc-400 sm:text-xs">Your Trading Score</span><span className="text-lg font-bold text-zinc-50">{score.toFixed(1)}</span></div>
-          <div className="flex items-center justify-between text-[10px] text-zinc-400 sm:text-xs">
-            <span>0</span>
-            <span>50</span>
-            <span>100</span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#172035]">
-            <div
-              className="h-full rounded-full transition-all duration-1000"
-              style={{
-                width: `${score}%`,
-                background: 'linear-gradient(to right, #00D68F, #4F9CF9)',
-              }}
+        <span className="rounded-full bg-tp-fill px-2.5 py-0.5 text-xs font-semibold text-zinc-200">{gradeFor(pct)}</span>
+      </div>
+
+      <div ref={boxRef} className="relative mb-3 mt-2 min-h-[14rem] flex-1 lg:min-h-0">
+        {size.width > 0 && size.height > 0 && <ScoreRadar data={data} width={size.width} height={size.height} />}
+      </div>
+
+      {/* Score + where it sits on the scale */}
+      <div className="flex shrink-0 items-center gap-4" aria-label={`Trading score ${pct.toFixed(0)} out of 100`}>
+        <div className="flex items-baseline gap-1">
+          <span className="text-[30px] font-bold leading-none tracking-tight tabular-nums text-white">{pct.toFixed(0)}</span>
+          <span className="text-xs font-medium tabular-nums text-zinc-500">/ 100</span>
+        </div>
+        <div className="min-w-0 flex-1 pt-1">
+          <div className="relative h-1.5">
+            <div className="absolute inset-0 rounded-full opacity-25" style={{ background: SPECTRUM }} />
+            <div className="absolute inset-y-0 left-0 overflow-hidden rounded-full transition-[width] duration-1000 ease-spring" style={{ width: `${pct}%` }}>
+              <div className="h-full" style={{ background: SPECTRUM, width: `${pct ? 10000 / pct : 100}%` }} />
+            </div>
+            <span
+              className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_3px_rgb(var(--tp-base)),0_2px_6px_rgba(0,0,0,0.5)] transition-[left] duration-1000 ease-spring"
+              style={{ left: `${pct}%` }}
             />
+          </div>
+          <div className="mt-1.5 flex justify-between text-[10px] font-medium tabular-nums text-zinc-500">
+            {[0, 20, 40, 60, 80, 100].map((t) => (
+              <span key={t}>{t}</span>
+            ))}
           </div>
         </div>
       </div>

@@ -366,8 +366,8 @@ export const JourneyPage: React.FC = () => {
                   const active = selectedDay === day.dateStr;
                   const tint = hasTrades
                     ? day.pnl > 0
-                      ? `rgba(0,214,143,${0.08 + day.intensity * 0.32})`
-                      : `rgba(255,72,104,${0.08 + day.intensity * 0.32})`
+                      ? `rgba(48, 209, 88,${0.08 + day.intensity * 0.32})`
+                      : `rgba(255, 69, 58,${0.08 + day.intensity * 0.32})`
                     : undefined;
                   return (
                     <button
@@ -381,7 +381,7 @@ export const JourneyPage: React.FC = () => {
                         'relative flex h-[74px] flex-col justify-between rounded-xl p-2 text-left transition-all',
                         !day.isCurrentMonth && 'opacity-30',
                         day.isWeekend && !hasTrades && 'bg-white/[0.015]',
-                        day.isGoalDay && 'bg-gradient-to-br from-tp-green to-[#3fe0b0] text-[#0D1628] shadow-[0_0_30px_-6px_rgba(0,214,143,0.7)]',
+                        day.isGoalDay && 'bg-gradient-to-br from-tp-green to-[#3fe0b0] text-tp-base shadow-[0_0_30px_-6px_rgb(var(--tp-green)/0.7)]',
                         day.isProjected && !day.isGoalDay && 'border border-dashed border-white/[0.1]',
                         !day.isProjected && !hasTrades && !day.isWeekend && !day.isGoalDay && 'bg-white/[0.03]',
                         day.isToday && 'ring-2 ring-tp-blue/70',
@@ -389,7 +389,7 @@ export const JourneyPage: React.FC = () => {
                         hasTrades && 'cursor-pointer hover:brightness-125',
                       )}
                     >
-                      <span className={clsx('text-xs font-medium tabular-nums', day.isGoalDay ? 'text-[#0D1628]' : day.isToday ? 'text-tp-blue' : 'text-zinc-500')}>
+                      <span className={clsx('text-xs font-medium tabular-nums', day.isGoalDay ? 'text-tp-base' : day.isToday ? 'text-tp-blue' : 'text-zinc-500')}>
                         {day.date.getDate()}
                       </span>
                       {day.isGoalDay ? (
@@ -581,7 +581,7 @@ function MissionHero(p: {
       className="overflow-hidden rounded-3xl border border-white/[0.07] p-6 sm:p-8"
       style={{
         background:
-          'radial-gradient(50% 90% at 0% 0%, rgba(0,214,143,0.13) 0%, transparent 60%), radial-gradient(40% 80% at 100% 100%, rgba(79,156,249,0.10) 0%, transparent 60%), #111c2e',
+          'radial-gradient(50% 90% at 0% 0%, rgb(var(--tp-green)/0.13) 0%, transparent 60%), radial-gradient(40% 80% at 100% 100%, rgb(var(--tp-blue)/0.10) 0%, transparent 60%), #111c2e',
       }}
     >
       <div className="grid items-center gap-8 lg:grid-cols-[auto_1fr_minmax(280px,340px)]">
@@ -595,7 +595,7 @@ function MissionHero(p: {
                 cy="50"
                 r="44"
                 fill="none"
-                stroke={p.balanceMet ? '#00D68F' : '#e4e9f0'}
+                stroke={p.balanceMet ? 'rgb(var(--tp-green))' : '#e4e9f0'}
                 strokeWidth="6"
                 strokeLinecap="round"
                 strokeDasharray={outer}
@@ -608,7 +608,7 @@ function MissionHero(p: {
                 cy="50"
                 r="34"
                 fill="none"
-                stroke={p.consistencyMet ? '#00D68F' : '#FFB800'}
+                stroke={p.consistencyMet ? 'rgb(var(--tp-green))' : 'rgb(var(--tp-yellow))'}
                 strokeWidth="6"
                 strokeLinecap="round"
                 strokeDasharray={inner}
@@ -703,7 +703,7 @@ function MissionHero(p: {
               <span
                 className={clsx(
                   'grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold',
-                  s.done ? 'bg-tp-green text-[#0D1628]' : i === nextIdx ? 'bg-white text-[#0D1628]' : 'bg-white/[0.07] text-zinc-400',
+                  s.done ? 'bg-tp-green text-tp-base' : i === nextIdx ? 'bg-white text-tp-base' : 'bg-white/[0.07] text-zinc-400',
                 )}
               >
                 {s.done ? <Check className="h-3.5 w-3.5" /> : i + 1}
@@ -933,7 +933,7 @@ function FocusList({ account, save }: { account: Account; save: (p: Partial<Acco
                   on ? 'border-tp-green/25 bg-tp-green/[0.06] text-zinc-100' : 'border-white/[0.06] text-zinc-300 hover:border-white/[0.12]',
                 )}
               >
-                <span className={clsx('grid h-5 w-5 shrink-0 place-items-center rounded-md', on ? 'bg-tp-green text-[#0D1628]' : 'ring-1 ring-inset ring-white/20')}>
+                <span className={clsx('grid h-5 w-5 shrink-0 place-items-center rounded-md', on ? 'bg-tp-green text-tp-base' : 'ring-1 ring-inset ring-white/20')}>
                   {on && <Check className="h-3.5 w-3.5" />}
                 </span>
                 {item}

@@ -5,7 +5,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { DaySim, StrategyConfig } from '@/lib/proving/engine';
 
 export const MAX_RUNNING = 5;
-export const TEST_COLORS = ['#00D68F', '#4F9CF9', '#B18CFF', '#FFB800', '#FF6B9A', '#3DD9D6'];
+export const TEST_COLORS = ['#30D158', '#0A84FF', '#B18CFF', '#FFD60A', '#FF6B9A', '#3DD9D6'];
 
 export interface ProvingNote {
   id: string;

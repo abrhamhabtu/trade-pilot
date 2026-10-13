@@ -117,7 +117,7 @@ export function TodayFlow({
   return (
     <div className="space-y-6">
       {/* ── Flight path ─────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-[radial-gradient(120%_140%_at_0%_0%,rgba(0,214,143,0.10),transparent_45%),radial-gradient(120%_140%_at_100%_0%,rgba(79,156,249,0.10),transparent_45%)] bg-tp-card/60 px-5 pb-5 pt-5 sm:px-7">
+      <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-[radial-gradient(120%_140%_at_0%_0%,rgb(var(--tp-green)/0.10),transparent_45%),radial-gradient(120%_140%_at_100%_0%,rgb(var(--tp-blue)/0.10),transparent_45%)] bg-tp-card/60 px-5 pb-5 pt-5 sm:px-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-tp-green">
@@ -158,7 +158,7 @@ export function TodayFlow({
             />
             {!weekend && clock.minute > TRACK_FROM && clock.minute < TRACK_TO && (
               <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ left: `${pos(clock.minute)}%` }}>
-                <div className="grid h-7 w-7 place-items-center rounded-full bg-tp-base ring-2 ring-tp-green/60 shadow-[0_0_18px_rgba(0,214,143,0.45)]">
+                <div className="grid h-7 w-7 place-items-center rounded-full bg-tp-base ring-2 ring-tp-green/60 shadow-[0_0_18px_rgb(var(--tp-green)/0.45)]">
                   <Plane className="h-3.5 w-3.5 rotate-45 text-tp-green" />
                 </div>
               </div>
@@ -182,7 +182,7 @@ export function TodayFlow({
                     className={clsx(
                       "grid h-8 w-8 place-items-center rounded-full border text-xs font-semibold transition",
                       active
-                        ? "border-tp-green bg-tp-green/15 text-tp-green shadow-[0_0_20px_rgba(0,214,143,0.35)]"
+                        ? "border-tp-green bg-tp-green/15 text-tp-green shadow-[0_0_20px_rgb(var(--tp-green)/0.35)]"
                         : passed
                           ? "border-white/20 bg-white/[0.06] text-zinc-200 group-hover:border-white/40"
                           : "border-white/10 bg-tp-base text-zinc-500 group-hover:border-white/30",

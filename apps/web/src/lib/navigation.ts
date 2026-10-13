@@ -28,6 +28,7 @@ export const APP_ROUTES = {
   journal: '/app/journal',
   payout: '/app/payout',
   propfirms: '/propfirms',
+  settings: '/app/settings',
 } as const;
 
 export type AppRouteKey = keyof typeof APP_ROUTES;

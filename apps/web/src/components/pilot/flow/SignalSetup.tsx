@@ -170,7 +170,7 @@ export function SignalSetup({ plan, primary, compact }: { plan: DayPlan; primary
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <button
                 onClick={() => copy("pine", script)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-tp-blue px-3 py-1.5 text-[12.5px] font-semibold text-[#0D1628] hover:brightness-110"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-tp-blue px-3 py-1.5 text-[12.5px] font-semibold text-tp-base hover:brightness-110"
               >
                 {copied === "pine" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 {copied === "pine" ? "Copied Pine script" : "Copy Pine script"}

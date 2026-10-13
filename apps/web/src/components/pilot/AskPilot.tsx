@@ -32,7 +32,7 @@ export function AskPilot({
   };
 
   return (
-    <div className="flex h-full min-h-[420px] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0A1220]">
+    <div className="flex h-full min-h-[420px] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#07090E]">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-tp-green">Ask Pilot</p>
@@ -84,7 +84,7 @@ export function AskPilot({
           />
           <button
             type="submit"
-            className="inline-flex items-center justify-center rounded-xl bg-tp-green px-3 py-2 text-[#0D1628]"
+            className="inline-flex items-center justify-center rounded-xl bg-tp-green px-3 py-2 text-tp-base"
             aria-label="Send"
           >
             <Send className="h-4 w-4" />

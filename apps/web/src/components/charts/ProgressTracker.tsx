@@ -37,7 +37,7 @@ const CELL_TONE = {
   poor: 'bg-tp-red',
 } as const;
 const TEXT_TONE = { good: 'text-tp-green', mixed: 'text-tp-yellow', poor: 'text-tp-red' } as const;
-const STROKE = { good: '#00D68F', mixed: '#FFB800', poor: '#FF4868' } as const;
+const STROKE = { good: 'rgb(var(--tp-green))', mixed: 'rgb(var(--tp-yellow))', poor: 'rgb(var(--tp-red))' } as const;
 
 export const ProgressTracker: React.FC<ProgressTrackerProps> = ({ onViewMore }) => {
   const { gamePlans, tradingRules } = useRoutineStore();

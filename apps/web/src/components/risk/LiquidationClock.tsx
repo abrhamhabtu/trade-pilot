@@ -19,10 +19,10 @@ const money = (n: number) =>
   `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
 const TONES = {
-  breached: { ring: 'rgba(255,72,104,0.55)', text: 'text-tp-red', bar: '#FF4868', glow: 'rgba(255,72,104,0.20)' },
-  danger:   { ring: 'rgba(255,72,104,0.40)', text: 'text-tp-red', bar: '#FF4868', glow: 'rgba(255,72,104,0.16)' },
-  caution:  { ring: 'rgba(255,184,0,0.35)',  text: 'text-tp-yellow', bar: '#FFB800', glow: 'rgba(255,184,0,0.12)' },
-  safe:     { ring: 'rgba(255,255,255,0.10)', text: 'text-tp-green', bar: '#00D68F', glow: 'rgba(0,214,143,0.10)' },
+  breached: { ring: 'rgb(var(--tp-red)/0.55)', text: 'text-tp-red', bar: 'rgb(var(--tp-red))', glow: 'rgb(var(--tp-red)/0.20)' },
+  danger:   { ring: 'rgb(var(--tp-red)/0.40)', text: 'text-tp-red', bar: 'rgb(var(--tp-red))', glow: 'rgb(var(--tp-red)/0.16)' },
+  caution:  { ring: 'rgb(var(--tp-yellow)/0.35)',  text: 'text-tp-yellow', bar: 'rgb(var(--tp-yellow))', glow: 'rgb(var(--tp-yellow)/0.12)' },
+  safe:     { ring: 'rgba(255,255,255,0.10)', text: 'text-tp-green', bar: 'rgb(var(--tp-green))', glow: 'rgb(var(--tp-green)/0.10)' },
 } as const;
 
 const OPEN_KEY = 'tradepilot_clock_open';
@@ -156,7 +156,7 @@ export function LiquidationClock() {
           className="pointer-events-auto w-[min(92vw,30rem)] overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl"
           style={{
             borderColor: tone.ring,
-            background: 'linear-gradient(180deg, rgba(17,31,53,0.96) 0%, rgba(13,22,40,0.98) 100%)',
+            background: 'linear-gradient(180deg, rgb(var(--tp-panel)/0.96) 0%, rgb(var(--tp-base)/0.98) 100%)',
           }}
         >
           <div className="h-[3px] w-full bg-white/[0.06]">
@@ -233,7 +233,7 @@ export function LiquidationClock() {
                 left={dayLimit === null ? 'None set' : money(state.dailyRemaining ?? 0)}
                 of={dayLimit === null ? '' : money(dayLimit)}
                 ratio={dayLimit ? (state.dailyRemaining ?? 0) / dayLimit : 0}
-                color={dayLimit === null ? 'rgba(255,255,255,0.25)' : '#4F9CF9'}
+                color={dayLimit === null ? 'rgba(255,255,255,0.25)' : 'rgb(var(--tp-blue))'}
                 binds={!dead && state.bindingConstraint === 'daily'}
                 note={
                   dayLimit === null
@@ -359,7 +359,7 @@ export function LiquidationClock() {
         )}
         style={{
           borderColor: tone.ring,
-          background: 'rgba(13,22,40,0.92)',
+          background: 'rgb(var(--tp-base)/0.92)',
           boxShadow: urgent ? `0 6px 28px ${tone.glow}` : '0 6px 20px rgba(0,0,0,0.35)',
         }}
       >

@@ -113,7 +113,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({ accoun
   const isPayoutReady = balanceTargetMet && consistencyMet;
 
   const usage = Math.min(100, (metrics.currentConsistencyPercent / consistencyRule) * 100);
-  const gaugeColor = usage <= 70 ? '#00D68F' : usage <= 90 ? '#FFB800' : '#FF4868';
+  const gaugeColor = usage <= 70 ? 'rgb(var(--tp-green))' : usage <= 90 ? 'rgb(var(--tp-yellow))' : 'rgb(var(--tp-red))';
 
   const verdict = sim.wouldIncreaseTarget
     ? { tone: 'red' as const, icon: XCircle, text: `New best day — your payout target jumps by ${usd(sim.targetIncrease)}` }
@@ -247,7 +247,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({ accoun
             value={Math.min(whatIf, sliderMax)}
             onChange={(e) => setWhatIf(Number(e.target.value))}
             aria-label="Tomorrow's profit"
-            className="mt-4 w-full accent-[#4F9CF9]"
+            className="mt-4 w-full accent-tp-blue"
           />
           <ZoneBar value={whatIf} max={sliderMax} warn={metrics.warningThreshold} best={metrics.highestDay} />
 
@@ -344,7 +344,7 @@ export const ConsistencyGuardian: React.FC<ConsistencyGuardianProps> = ({ accoun
               value={dailyRate}
               onChange={(e) => setDailyRate(Number(e.target.value))}
               aria-label="Daily pace"
-              className="mt-2 w-full accent-[#00D68F]"
+              className="mt-2 w-full accent-tp-green"
             />
             <div className="mt-3 flex flex-wrap gap-1.5">
               {[100, 200, 300, 500, 750, 1000].map((r) => {
@@ -488,7 +488,7 @@ function DailyChart({ daily, cap, best }: { daily: Record<string, number>; cap: 
           <line x1={pad.l} x2={W - pad.r} y1={y(0)} y2={y(0)} stroke="rgba(255,255,255,0.12)" />
           {rows.map(([d, v], i) => {
             const x = pad.l + i * slot + (slot - bw) / 2;
-            const color = v === best && v > 0 ? '#FFB800' : v > cap ? '#FF4868' : v >= 0 ? '#00D68F' : '#FF4868';
+            const color = v === best && v > 0 ? 'rgb(var(--tp-yellow))' : v > cap ? 'rgb(var(--tp-red))' : v >= 0 ? 'rgb(var(--tp-green))' : 'rgb(var(--tp-red))';
             const top = Math.min(y(v), y(0));
             return (
               <g key={d}>

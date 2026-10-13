@@ -28,22 +28,17 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={clsx(
-        'h-screen overflow-hidden transition-colors duration-300',
+        'tp-backdrop h-screen overflow-hidden transition-colors duration-300',
         theme === 'dark' ? 'dark' : ''
       )}
-      style={{
-        background: theme === 'dark'
-          ? 'radial-gradient(ellipse 140% 65% at 50% -5%, rgba(20,60,140,0.22) 0%, transparent 65%), #0D1628'
-          : 'radial-gradient(ellipse 140% 65% at 50% -5%, rgba(100,160,255,0.08) 0%, transparent 65%), #F0F4FC',
-        color: theme === 'dark' ? '#E0EAF8' : '#1A2A42',
-      }}
+      style={theme === 'dark' ? { color: '#F2F4F8' } : { background: '#F2F2F7', color: '#11141A' }}
     >
       <Sidebar />
       <AutoSync />
       <PilotAutomation />
       <SignalListener />
       <ProvingRunner />
-      <main className={clsx('h-full overflow-auto transition-all duration-300', sidebarCollapsed ? 'ml-20' : 'ml-64')}>
+      <main className={clsx('h-full overflow-auto transition-[margin] duration-500 ease-spring', sidebarCollapsed ? 'ml-20' : 'ml-64')}>
         {children}
       </main>
       <LiquidationClock />

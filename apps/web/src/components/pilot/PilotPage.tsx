@@ -219,7 +219,7 @@ export function PilotPage() {
             Create or connect an account to give Pilot your trading context.
           </p>
           <Link
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-tp-green px-4 py-2.5 text-sm font-semibold text-[#0D1628]"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-tp-green px-4 py-2.5 text-sm font-semibold text-tp-base"
             href="/app/accounts"
           >
             Set up an account <ArrowRight className="h-4 w-4" />
@@ -427,7 +427,7 @@ function AccountWorkspace({
               <button
                 disabled={!account.trades.length}
                 onClick={run}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-tp-green px-3 py-1.5 text-[13px] font-semibold text-[#0D1628] hover:brightness-110 disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-tp-green px-3 py-1.5 text-[13px] font-semibold text-tp-base hover:brightness-110 disabled:opacity-40"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 Draft reviews

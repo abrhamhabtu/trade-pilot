@@ -151,7 +151,7 @@ export function PlaybookAI({
     <section
       id="pilot-ai"
       className="scroll-mt-36 overflow-hidden rounded-2xl border border-tp-green/20 bg-tp-card"
-      style={{ backgroundImage: 'radial-gradient(60% 50% at 100% 0%, rgba(0,214,143,0.08) 0%, transparent 70%)' }}
+      style={{ backgroundImage: 'radial-gradient(60% 50% at 100% 0%, rgb(var(--tp-green)/0.08) 0%, transparent 70%)' }}
     >
       <header className="flex flex-wrap items-start justify-between gap-4 border-b border-white/[0.06] p-5 sm:p-7">
         <div className="flex items-start gap-3">
@@ -258,7 +258,7 @@ export function PlaybookAI({
           <button
             onClick={run}
             disabled={!ready || !hasMaterial || busy}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-tp-green px-4 py-3 text-[15px] font-semibold text-[#0D1628] hover:brightness-110 disabled:opacity-40"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-tp-green px-4 py-3 text-[15px] font-semibold text-tp-base hover:brightness-110 disabled:opacity-40"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
             {busy ? 'Pilot is studying the material…' : 'Suggest improvements'}
@@ -353,7 +353,7 @@ function Proposals({
           <button
             onClick={onApply}
             disabled={!accepted.size}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-tp-green px-4 py-3 text-[15px] font-semibold text-[#0D1628] hover:brightness-110 disabled:opacity-40"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-tp-green px-4 py-3 text-[15px] font-semibold text-tp-base hover:brightness-110 disabled:opacity-40"
           >
             <Check className="h-4 w-4" />
             Apply {accepted.size || ''} selected change{accepted.size === 1 ? '' : 's'}
@@ -400,7 +400,7 @@ function ChangeCard({ change: c, strategy, on, toggle }: { change: ProposedChang
           <span className={clsx('rounded-md px-2 py-0.5 text-xs font-semibold', badge.cls)}>{badge.label}</span>
           <span className="flex items-center gap-2">
             <span className="text-xs text-zinc-500">{c.confidence} confidence</span>
-            <span className={clsx('grid h-5 w-5 place-items-center rounded-md', on ? 'bg-tp-green text-[#0D1628]' : 'ring-1 ring-inset ring-white/20')}>
+            <span className={clsx('grid h-5 w-5 place-items-center rounded-md', on ? 'bg-tp-green text-tp-base' : 'ring-1 ring-inset ring-white/20')}>
               {on && <Check className="h-3.5 w-3.5" />}
             </span>
           </span>

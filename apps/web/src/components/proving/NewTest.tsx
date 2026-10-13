@@ -132,7 +132,7 @@ export function NewTest({
                       onClick={() => choose(id)}
                       className={clsx(
                         "group relative flex flex-col gap-2 rounded-xl border p-3 text-left transition",
-                        on ? "border-tp-green/40 bg-tp-green/[0.06] shadow-[0_0_0_1px_rgba(0,214,143,0.15)]" : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14]",
+                        on ? "border-tp-green/40 bg-tp-green/[0.06] shadow-[0_0_0_1px_rgb(var(--tp-green)/0.15)]" : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14]",
                       )}
                     >
                       <StrategyGlyph id={id} active={on} />
@@ -238,7 +238,7 @@ export function NewTest({
                 <Field label="Target">
                   <Seg value={String(cfg.targetR)} onChange={(v) => set({ targetR: Number(v) })} options={["1", "1.5", "2", "3"].map((v) => ({ value: v, label: `${v}R` }))} />
                   <label className="mt-2 flex items-center gap-2 text-[12px] text-zinc-400">
-                    <input type="checkbox" checked={cfg.breakEvenR > 0} onChange={(e) => set({ breakEvenR: e.target.checked ? 1 : 0 })} className="accent-[#00D68F]" />
+                    <input type="checkbox" checked={cfg.breakEvenR > 0} onChange={(e) => set({ breakEvenR: e.target.checked ? 1 : 0 })} className="accent-tp-green" />
                     Move stop to break-even at +1R
                   </label>
                 </Field>
@@ -274,7 +274,7 @@ export function NewTest({
                   </span>
                   <span className="font-mono text-[11px] text-zinc-500">{maxReplay} available on {cfg.timeframe}</span>
                 </div>
-                <input type="range" min={0} max={maxReplay} value={days} onChange={(e) => setReplayDays(Number(e.target.value))} className="mt-3 w-full accent-[#00D68F]" />
+                <input type="range" min={0} max={maxReplay} value={days} onChange={(e) => setReplayDays(Number(e.target.value))} className="mt-3 w-full accent-tp-green" />
               </div>
               <input
                 value={name}
@@ -327,7 +327,7 @@ export function NewTest({
             <div className="border-t border-white/[0.06] p-5">
               <button
                 onClick={() => onCreate({ name: name.trim() || autoName, cfg, programKey, startDate })}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-tp-green to-emerald-400 px-4 py-3 text-sm font-semibold text-[#0D1628] shadow-[0_10px_30px_-12px_rgba(0,214,143,0.8)] hover:brightness-110"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-tp-green to-emerald-400 px-4 py-3 text-sm font-semibold text-tp-base shadow-[0_10px_30px_-12px_rgb(var(--tp-green)/0.8)] hover:brightness-110"
               >
                 <Rocket className="h-4 w-4" /> {cta} <ArrowRight className="h-4 w-4" />
               </button>

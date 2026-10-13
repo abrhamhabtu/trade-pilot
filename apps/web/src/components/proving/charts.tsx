@@ -104,7 +104,7 @@ export function EquityChart({
             </g>
           ))}
           {/* Target and start */}
-          <line x1={pad.l} x2={w - pad.r} y1={y(start + target)} y2={y(start + target)} stroke="#00D68F" strokeOpacity="0.55" strokeDasharray="5 4" />
+          <line x1={pad.l} x2={w - pad.r} y1={y(start + target)} y2={y(start + target)} stroke="rgb(var(--tp-green))" strokeOpacity="0.55" strokeDasharray="5 4" />
           <text x={w - pad.r} y={y(start + target) - 5} textAnchor="end" className="fill-tp-green font-mono text-[10px]">
             TARGET {usd(start + target)}
           </text>
@@ -114,7 +114,7 @@ export function EquityChart({
             <line key={m.date} x1={x(i)} x2={x(i)} y1={y(m.high)} y2={y(m.low)} stroke={color} strokeOpacity={hover === i ? 0.9 : 0.35} strokeWidth={Math.max(2, Math.min(6, (w - pad.l) / n / 3))} strokeLinecap="round" />
           ))}
           <path d={area} fill={`url(#${gid})`} />
-          <path d={thr} fill="none" stroke="#FF4868" strokeWidth="1.5" strokeDasharray="4 3" />
+          <path d={thr} fill="none" stroke="rgb(var(--tp-red))" strokeWidth="1.5" strokeDasharray="4 3" />
           {vis.length > 0 && (
             <text x={x(vis.length - 1)} y={y(vis[vis.length - 1].threshold) + 13} textAnchor="end" className="fill-tp-red font-mono text-[10px]">
               DRAWDOWN {usd(vis[vis.length - 1].threshold)}
@@ -122,12 +122,12 @@ export function EquityChart({
           )}
           <path d={line} fill="none" stroke={color} strokeWidth="2.2" strokeLinejoin="round" />
           {vis.map((m, i) => (
-            <circle key={m.date} cx={x(i)} cy={y(m.balance)} r={hover === i ? 4.5 : m.partial ? 3.5 : 2.2} fill={m.partial ? "#0D1628" : color} stroke={color} strokeWidth={m.partial ? 2 : 0} className={m.partial ? "tp-flow-pulse" : undefined} />
+            <circle key={m.date} cx={x(i)} cy={y(m.balance)} r={hover === i ? 4.5 : m.partial ? 3.5 : 2.2} fill={m.partial ? "rgb(var(--tp-base))" : color} stroke={color} strokeWidth={m.partial ? 2 : 0} className={m.partial ? "tp-flow-pulse" : undefined} />
           ))}
           {progress === 1 && verdict !== "active" && verdict !== "pending" && marks.length > 0 && (
             <g transform={`translate(${x(marks.length - 1)},${y(marks[marks.length - 1].balance)})`}>
-              <circle r="9" fill={verdict === "passed" ? "#00D68F" : "#FF4868"} fillOpacity="0.2" className="tp-flow-pulse" />
-              <circle r="5" fill={verdict === "passed" ? "#00D68F" : "#FF4868"} />
+              <circle r="9" fill={verdict === "passed" ? "rgb(var(--tp-green))" : "rgb(var(--tp-red))"} fillOpacity="0.2" className="tp-flow-pulse" />
+              <circle r="5" fill={verdict === "passed" ? "rgb(var(--tp-green))" : "rgb(var(--tp-red))"} />
             </g>
           )}
           {marks.length > 1 &&
@@ -177,7 +177,7 @@ export function Sparkline({ marks, start, color, width = 220, height = 54 }: { m
         </linearGradient>
       </defs>
       <path d={`${p} L${width},${height} L0,${height} Z`} fill={`url(#${gid})`} />
-      {thr.length > 0 && <path d={t} fill="none" stroke="#FF4868" strokeOpacity="0.6" strokeDasharray="3 3" strokeWidth="1" vectorEffect="non-scaling-stroke" />}
+      {thr.length > 0 && <path d={t} fill="none" stroke="rgb(var(--tp-red))" strokeOpacity="0.6" strokeDasharray="3 3" strokeWidth="1" vectorEffect="non-scaling-stroke" />}
       <path d={p} fill="none" stroke={color} strokeWidth="1.8" vectorEffect="non-scaling-stroke" />
     </svg>
   );
@@ -206,7 +206,7 @@ export function CompareChart({ series, height = 220 }: { series: { id: string; n
             </g>
           ))}
           {targets.map((t) => (
-            <line key={t} x1={pad.l} x2={w - pad.r} y1={y(t)} y2={y(t)} stroke="#00D68F" strokeOpacity="0.35" strokeDasharray="5 4" />
+            <line key={t} x1={pad.l} x2={w - pad.r} y1={y(t)} y2={y(t)} stroke="rgb(var(--tp-green))" strokeOpacity="0.35" strokeDasharray="5 4" />
           ))}
           {series.map((s) => {
             const pts = [0, ...s.points];
@@ -257,7 +257,7 @@ export function SessionChart({ bars, trades, levels, height = 300 }: { bars: Bar
         <svg width={w} height={height}>
           {inView.map((l) => (
             <g key={l.label}>
-              <line x1={pad.l} x2={w - pad.r} y1={y(l.px)} y2={y(l.px)} stroke="#FFB800" strokeOpacity="0.45" strokeDasharray="3 4" />
+              <line x1={pad.l} x2={w - pad.r} y1={y(l.px)} y2={y(l.px)} stroke="rgb(var(--tp-yellow))" strokeOpacity="0.45" strokeDasharray="3 4" />
               <text x={w - pad.r + 4} y={y(l.px) + 3} className="fill-tp-yellow font-mono text-[9.5px]">{l.label}</text>
             </g>
           ))}
@@ -266,24 +266,24 @@ export function SessionChart({ bars, trades, levels, height = 300 }: { bars: Bar
             return (
               <g key={b.t} onMouseEnter={() => setHover(i)}>
                 <rect x={x(i) - cw / 2} y={pad.t} width={cw} height={height - pad.t - pad.b} fill={hover === i ? "rgba(255,255,255,0.04)" : "transparent"} />
-                <line x1={x(i)} x2={x(i)} y1={y(b.h)} y2={y(b.l)} stroke={up ? "#00D68F" : "#FF4868"} strokeOpacity="0.8" />
-                <rect x={x(i) - Math.max(1, cw * 0.32)} y={y(Math.max(b.o, b.c))} width={Math.max(2, cw * 0.64)} height={Math.max(1, Math.abs(y(b.o) - y(b.c)))} fill={up ? "#00D68F" : "#FF4868"} fillOpacity={up ? 0.85 : 0.75} rx="0.5" />
+                <line x1={x(i)} x2={x(i)} y1={y(b.h)} y2={y(b.l)} stroke={up ? "rgb(var(--tp-green))" : "rgb(var(--tp-red))"} strokeOpacity="0.8" />
+                <rect x={x(i) - Math.max(1, cw * 0.32)} y={y(Math.max(b.o, b.c))} width={Math.max(2, cw * 0.64)} height={Math.max(1, Math.abs(y(b.o) - y(b.c)))} fill={up ? "rgb(var(--tp-green))" : "rgb(var(--tp-red))"} fillOpacity={up ? 0.85 : 0.75} rx="0.5" />
               </g>
             );
           })}
-          <path d={vwap.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join(" ")} fill="none" stroke="#4F9CF9" strokeWidth="1.6" />
+          <path d={vwap.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join(" ")} fill="none" stroke="rgb(var(--tp-blue))" strokeWidth="1.6" />
           <text x={w - pad.r + 4} y={y(vwap[vwap.length - 1]) + 3} className="fill-tp-blue font-mono text-[9.5px]">VWAP</text>
           {trades.map((t) => {
             const a = idx(t.entryT);
             const z = idx(t.exitT);
-            const c = t.pnl >= 0 ? "#00D68F" : "#FF4868";
+            const c = t.pnl >= 0 ? "rgb(var(--tp-green))" : "rgb(var(--tp-red))";
             return (
               <g key={t.id}>
-                <line x1={x(a)} x2={x(z)} y1={y(t.stopPx)} y2={y(t.stopPx)} stroke="#FF4868" strokeOpacity="0.6" strokeWidth="1.5" />
-                <line x1={x(a)} x2={x(z)} y1={y(t.targetPx)} y2={y(t.targetPx)} stroke="#00D68F" strokeOpacity="0.6" strokeWidth="1.5" />
+                <line x1={x(a)} x2={x(z)} y1={y(t.stopPx)} y2={y(t.stopPx)} stroke="rgb(var(--tp-red))" strokeOpacity="0.6" strokeWidth="1.5" />
+                <line x1={x(a)} x2={x(z)} y1={y(t.targetPx)} y2={y(t.targetPx)} stroke="rgb(var(--tp-green))" strokeOpacity="0.6" strokeWidth="1.5" />
                 <line x1={x(a)} x2={x(z)} y1={y(t.entryPx)} y2={y(t.exitPx)} stroke={c} strokeDasharray="3 2" strokeWidth="1.4" />
-                <path d={t.side === "long" ? `M${x(a)},${y(t.entryPx) + 3} l-5,8 h10 Z` : `M${x(a)},${y(t.entryPx) - 3} l-5,-8 h10 Z`} fill={t.side === "long" ? "#00D68F" : "#FF4868"} />
-                {t.exit !== "open" && <circle cx={x(z)} cy={y(t.exitPx)} r="3.5" fill="#0D1628" stroke={c} strokeWidth="2" />}
+                <path d={t.side === "long" ? `M${x(a)},${y(t.entryPx) + 3} l-5,8 h10 Z` : `M${x(a)},${y(t.entryPx) - 3} l-5,-8 h10 Z`} fill={t.side === "long" ? "rgb(var(--tp-green))" : "rgb(var(--tp-red))"} />
+                {t.exit !== "open" && <circle cx={x(z)} cy={y(t.exitPx)} r="3.5" fill="rgb(var(--tp-base))" stroke={c} strokeWidth="2" />}
                 <text x={x(z) + 6} y={y(t.exitPx) + 3} className="font-mono text-[10px] font-semibold" fill={c}>
                   {t.pnl >= 0 ? "+" : "-"}${Math.abs(Math.round(t.pnl))}
                 </text>

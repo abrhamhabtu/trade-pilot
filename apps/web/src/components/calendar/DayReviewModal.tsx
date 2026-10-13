@@ -33,10 +33,10 @@ import { DEFAULT_SETTINGS, inspectTrade, orderedTrades } from '@/lib/pilot/works
 
 const GENERIC_SETUPS = ['Breakout', 'Breakdown', 'Trend Following', 'Mean Reversion', 'Scalp', 'Momentum', 'Range Trade', 'News Play', 'Reversal', 'Other'];
 const GRADES = [
-  { g: 'A', hint: 'Followed the plan perfectly', cls: 'bg-tp-green text-[#0D1628]' },
-  { g: 'B', hint: 'Small slips', cls: 'bg-[#7ee0b8] text-[#0D1628]' },
-  { g: 'C', hint: 'Mixed', cls: 'bg-tp-yellow text-[#0D1628]' },
-  { g: 'D', hint: 'Broke rules', cls: 'bg-orange-400 text-[#0D1628]' },
+  { g: 'A', hint: 'Followed the plan perfectly', cls: 'bg-tp-green text-tp-base' },
+  { g: 'B', hint: 'Small slips', cls: 'bg-[#7ee0b8] text-tp-base' },
+  { g: 'C', hint: 'Mixed', cls: 'bg-tp-yellow text-tp-base' },
+  { g: 'D', hint: 'Broke rules', cls: 'bg-orange-400 text-tp-base' },
   { g: 'F', hint: 'Tilted', cls: 'bg-tp-red text-white' },
 ];
 const MOODS = ['Focused', 'Patient', 'Confident', 'FOMO', 'Revenge', 'Hesitant', 'Tired', 'Overtraded'];
@@ -144,11 +144,11 @@ export function DayReviewModal({ isOpen, onClose, date, trades, accountId, tradi
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:p-6" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-modal="true" aria-label={`Review of ${d.toDateString()}`} className="w-full max-w-6xl overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0f1a2b] shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-label={`Review of ${d.toDateString()}`} className="w-full max-w-6xl overflow-hidden rounded-3xl border border-white/[0.08] bg-tp-panel shadow-2xl">
         {/* Header */}
         <header
           className="relative border-b border-white/[0.06] px-5 py-5 sm:px-7"
-          style={{ background: `radial-gradient(60% 140% at 0% 0%, ${green ? 'rgba(0,214,143,0.14)' : 'rgba(255,72,104,0.14)'} 0%, transparent 60%)` }}
+          style={{ background: `radial-gradient(60% 140% at 0% 0%, ${green ? 'rgb(var(--tp-green)/0.14)' : 'rgb(var(--tp-red)/0.14)'} 0%, transparent 60%)` }}
         >
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-1">
@@ -282,7 +282,7 @@ export function DayReviewModal({ isOpen, onClose, date, trades, accountId, tradi
             <Link href={pilotHref} className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.09] px-3.5 py-2 text-sm font-medium text-zinc-200 hover:bg-white/[0.05]">
               <Sparkles className="h-4 w-4 text-tp-green" /> Review with Pilot AI
             </Link>
-            <Link href="/app/journal" className="inline-flex items-center gap-1.5 rounded-xl bg-tp-green px-3.5 py-2 text-sm font-semibold text-[#0D1628] hover:brightness-110">
+            <Link href="/app/journal" className="inline-flex items-center gap-1.5 rounded-xl bg-tp-green px-3.5 py-2 text-sm font-semibold text-tp-base hover:brightness-110">
               Open journal <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -355,7 +355,7 @@ function DayCurve({ trades }: { trades: Trade[] }) {
   const y = (v: number) => pad.t + ((max - v) / span) * (H - pad.t - pad.b);
   const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.y)}`).join(' ');
   const green = run >= 0;
-  const color = green ? '#00D68F' : '#FF4868';
+  const color = green ? 'rgb(var(--tp-green))' : 'rgb(var(--tp-red))';
 
   return (
     <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3">
@@ -379,7 +379,7 @@ function DayCurve({ trades }: { trades: Trade[] }) {
         {pts.map((p, i) =>
           p.t ? (
             <g key={i}>
-              <circle cx={x(i)} cy={y(p.y)} r="5" fill="#0f1a2b" stroke={p.t.netPL >= 0 ? '#00D68F' : '#FF4868'} strokeWidth="2.5">
+              <circle cx={x(i)} cy={y(p.y)} r="5" fill="rgb(var(--tp-panel))" stroke={p.t.netPL >= 0 ? 'rgb(var(--tp-green))' : 'rgb(var(--tp-red))'} strokeWidth="2.5">
                 <title>{`${p.t.time || ''} ${p.t.symbol} ${p.t.side || ''}: ${signed(p.t.netPL)} → ${signed(p.y)} on the day`}</title>
               </circle>
               {pts.length <= 12 && (

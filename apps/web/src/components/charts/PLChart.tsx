@@ -133,7 +133,7 @@ export const PLChart: React.FC<PLChartProps> = ({ data }) => {
               {hover === null && last && (
                 <g>
                   <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="7" fill={last.cumulative >= 0 ? GREEN : RED} opacity="0.18" className="animate-pulse" />
-                  <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="3.5" fill={last.cumulative >= 0 ? GREEN : RED} stroke="#172035" strokeWidth="1.5" />
+                  <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="3.5" fill={last.cumulative >= 0 ? GREEN : RED} stroke="rgb(var(--tp-card))" strokeWidth="1.5" />
                 </g>
               )}
 

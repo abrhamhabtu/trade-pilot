@@ -17,13 +17,13 @@ export function StrategyGlyph({ id, active }: { id: StrategyId; active?: boolean
   const path = (v: number[]) => v.map((y, i) => `${i ? "L" : "M"}${x(i)},${y}`).join(" ");
   return (
     <svg viewBox="0 0 118 34" className="h-9 w-full" aria-hidden>
-      {s.range && <rect x="4" y={s.range[0]} width="30" height={s.range[1] - s.range[0]} fill="#FFB800" fillOpacity="0.12" stroke="#FFB800" strokeOpacity="0.5" strokeDasharray="2 2" />}
-      {s.level != null && <line x1="0" x2="118" y1={s.level} y2={s.level} stroke="#FFB800" strokeOpacity="0.7" strokeDasharray="3 3" />}
-      {s.vwap && <path d={path(s.vwap)} fill="none" stroke="#4F9CF9" strokeWidth="1.5" />}
+      {s.range && <rect x="4" y={s.range[0]} width="30" height={s.range[1] - s.range[0]} fill="rgb(var(--tp-yellow))" fillOpacity="0.12" stroke="rgb(var(--tp-yellow))" strokeOpacity="0.5" strokeDasharray="2 2" />}
+      {s.level != null && <line x1="0" x2="118" y1={s.level} y2={s.level} stroke="rgb(var(--tp-yellow))" strokeOpacity="0.7" strokeDasharray="3 3" />}
+      {s.vwap && <path d={path(s.vwap)} fill="none" stroke="rgb(var(--tp-blue))" strokeWidth="1.5" />}
       <path d={path(s.price)} fill="none" stroke={active ? "#E4E4E7" : "#A1A1AA"} strokeWidth="1.6" strokeLinejoin="round" />
-      {id === "tv-signals" && <path d={`M${x(s.entry)},2 v28`} stroke="#4F9CF9" strokeDasharray="2 2" />}
-      <circle cx={x(s.entry)} cy={s.price[s.entry]} r="3" fill="#00D68F" />
-      <circle cx={x(s.entry)} cy={s.price[s.entry]} r="6" fill="#00D68F" fillOpacity="0.2" />
+      {id === "tv-signals" && <path d={`M${x(s.entry)},2 v28`} stroke="rgb(var(--tp-blue))" strokeDasharray="2 2" />}
+      <circle cx={x(s.entry)} cy={s.price[s.entry]} r="3" fill="rgb(var(--tp-green))" />
+      <circle cx={x(s.entry)} cy={s.price[s.entry]} r="6" fill="rgb(var(--tp-green))" fillOpacity="0.2" />
     </svg>
   );
 }

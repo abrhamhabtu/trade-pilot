@@ -103,7 +103,7 @@ export function AppShell({
           style={{
             background:
               theme === 'dark'
-                ? 'linear-gradient(180deg, rgba(13,22,40,0.97) 0%, rgba(13,22,40,0) 100%)'
+                ? 'linear-gradient(180deg, rgb(var(--tp-base)/0.97) 0%, rgb(var(--tp-base)/0) 100%)'
                 : 'linear-gradient(180deg, rgba(240,244,252,0.97) 0%, rgba(240,244,252,0) 100%)',
           }}
         >

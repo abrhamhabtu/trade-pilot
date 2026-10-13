@@ -30,7 +30,9 @@ import {
   Users,
   MonitorPlay,
   Wand2,
-  Plus
+  Plus,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import clsx from 'clsx';
 import Image from 'next/image';
@@ -64,6 +66,10 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'prop-firm-funding-scaling': 'Prop Firm',
   'vwap-double-break': 'VWAP',
   'prop-firm-payout-discipline': 'Prop Firm',
+  'opt-vwap-double-break': 'VWAP',
+  'opt-orb-0dte': 'Breakout',
+  'opt-trend-pullback-spread': 'VWAP',
+  'opt-failed-break-reversal': 'Reversal',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -81,6 +87,10 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'prop-firm-funding-scaling': { dir: 'Long', variant: 0 },
   'vwap-double-break': { dir: 'Long', variant: 2 },
   'prop-firm-payout-discipline': { dir: 'Long', variant: 0 },
+  'opt-vwap-double-break': { dir: 'Long', variant: 2 },
+  'opt-orb-0dte': { dir: 'Short', variant: 1 },
+  'opt-trend-pullback-spread': { dir: 'Long', variant: 0 },
+  'opt-failed-break-reversal': { dir: 'Short', variant: 1 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -110,6 +120,10 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'prop-firm-funding-scaling': 'Build the buffer, take the min payout, reinvest',
   'vwap-double-break': 'Break the range AND VWAP, with VWAP inside the range',
   'prop-firm-payout-discipline': 'Get payouts the right way, psychology first',
+  'opt-vwap-double-break': 'Both breaks, then buy the same-day contract',
+  'opt-orb-0dte': 'Close outside the range, one range height out',
+  'opt-trend-pullback-spread': 'Pullback to VWAP, defined risk both ways',
+  'opt-failed-break-reversal': 'Back inside the range, target the far side',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
@@ -118,7 +132,7 @@ const CATEGORY_FILTERS = ['Prop Firm', 'London & Prev Day'];
 const ALL_FILTERS = [...RANK_FILTERS, ...CATEGORY_FILTERS];
 
 const MEDALS = [
-  { label: 'Champion', color: '#FFB800', emoji: '🥇' },
+  { label: 'Champion', color: 'rgb(var(--tp-yellow))', emoji: '🥇' },
   { label: 'Silver', color: '#C7CDD6', emoji: '🥈' },
   { label: 'Bronze', color: '#CD7F46', emoji: '🥉' },
 ];
@@ -149,128 +163,281 @@ function communityStats(s: PlaybookStrategy) {
   };
 }
 
-const RankStat: React.FC<{ label: string; value: string; accent?: boolean }> = ({ label, value, accent }) => (
-  <div className="min-w-0 px-3 py-2.5">
-    <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{label}</div>
-    <div className={clsx('mt-0.5 text-base font-semibold tabular-nums', accent ? 'text-tp-green' : 'text-zinc-100')}>{value}</div>
-  </div>
+const DIFFICULTY_LEVEL: Record<string, number> = { Beginner: 1, Intermediate: 2, Advanced: 3 };
+
+// Three bars, filled to the level — reads like a signal meter instead of a traffic light.
+const DifficultyMeter: React.FC<{ difficulty: string; label?: boolean }> = ({ difficulty, label = true }) => {
+  const level = DIFFICULTY_LEVEL[difficulty] ?? 1;
+  return (
+    <span className="inline-flex items-center gap-2 text-[13px] text-zinc-400">
+      <span className="flex items-end gap-[2px]" aria-hidden>
+        {[1, 2, 3].map((n) => (
+          <span
+            key={n}
+            className={clsx('w-[3px] rounded-full', n <= level ? 'bg-zinc-200' : 'bg-white/[0.14]')}
+            style={{ height: 4 + n * 3 }}
+          />
+        ))}
+      </span>
+      {label && difficulty}
+    </span>
+  );
+};
+
+// Win rate as a closing ring. The arc draws itself in on mount.
+const WinRing: React.FC<{ value: number; size: number; stroke: number; children?: React.ReactNode }> = ({ value, size, stroke, children }) => {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="rgb(var(--tp-green))"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c.toFixed(2)}
+          strokeDashoffset={(c * (1 - value / 100)).toFixed(2)}
+          className="tp-ring"
+          style={{ ['--c' as string]: c.toFixed(2) }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
+    </div>
+  );
+};
+
+// An illustrative price path for the setup — seeded by id so it never changes between renders.
+const SetupSketch: React.FC<{ id: string; className?: string }> = ({ id, className }) => {
+  const short = CHART_DIR_BY_ID[id]?.dir === 'Short';
+  let h = seedFor(id) || 1;
+  const rnd = () => {
+    h ^= h << 13; h ^= h >>> 17; h ^= h << 5;
+    return ((h >>> 0) % 10000) / 10000;
+  };
+  const n = 38;
+  let price = 50;
+  const candles = Array.from({ length: n }, (_, i) => {
+    const pullback = i > 11 && i < 18;
+    const drift = (short ? -1 : 1) * (pullback ? -1.5 : 1.15);
+    const move = (rnd() - 0.5) * 6 + drift;
+    const o = price;
+    const c = price + move;
+    const hi = Math.max(o, c) + rnd() * 2.4;
+    const lo = Math.min(o, c) - rnd() * 2.4;
+    price = c;
+    return { o, c, hi, lo };
+  });
+  const max = Math.max(...candles.map((k) => k.hi));
+  const min = Math.min(...candles.map((k) => k.lo));
+  const W = 420, H = 200;
+  const y = (p: number) => 8 + ((max - p) / (max - min || 1)) * (H - 16);
+  const slot = W / n;
+  const level = candles[17].c;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className={className} aria-hidden>
+      <line x1="0" x2={W} y1={y(level).toFixed(1)} y2={y(level).toFixed(1)} stroke="rgba(255,255,255,0.22)" strokeDasharray="2 5" />
+      {candles.map((k, i) => {
+        const up = k.c >= k.o;
+        const x = i * slot + slot / 2;
+        const top = y(Math.max(k.o, k.c));
+        const bodyH = Math.max(1.5, Math.abs(y(k.o) - y(k.c)));
+        const fill = up ? 'rgb(var(--tp-green))' : 'rgba(255,255,255,0.3)';
+        return (
+          <g key={i}>
+            <line x1={x.toFixed(1)} x2={x.toFixed(1)} y1={y(k.hi).toFixed(1)} y2={y(k.lo).toFixed(1)} stroke={fill} strokeWidth="1" />
+            <rect x={(x - slot * 0.28).toFixed(1)} y={top.toFixed(1)} width={(slot * 0.56).toFixed(1)} height={bodyH.toFixed(1)} rx="1.2" fill={fill} />
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+const shortFrame = (tf: string) => tf.split(' / ')[0];
+
+const Eyebrow: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+  <div className={clsx('text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500', className)}>{children}</div>
 );
 
 const SectionHeader: React.FC<{ title: string; hint?: string; count?: number }> = ({ title, hint, count }) => (
-  <div className="mb-3 flex items-baseline justify-between gap-4">
+  <div className="mb-3 flex items-baseline justify-between gap-4 px-1">
     <div className="flex items-baseline gap-2">
-      <h2 className="text-sm font-semibold text-zinc-100">{title}</h2>
-      {count !== undefined && <span className="text-xs tabular-nums text-zinc-500">{count}</span>}
+      <h2 className="text-[20px] font-bold tracking-tight text-white">{title}</h2>
+      {count !== undefined && <span className="text-[15px] tabular-nums text-zinc-500">{count}</span>}
     </div>
-    {hint && <span className="hidden text-xs text-zinc-500 sm:block">{hint}</span>}
+    {hint && <span className="hidden text-[13px] text-zinc-500 sm:block">{hint}</span>}
   </div>
 );
 
-const RankCard: React.FC<{ strategy: PlaybookStrategy; rank: number; onSelect: () => void }> = ({ strategy, rank, onSelect }) => {
-  const medal = MEDALS[rank];
+const Fact: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="min-w-0">
+    <Eyebrow>{label}</Eyebrow>
+    <div className="mt-1 truncate text-[17px] font-semibold tabular-nums text-white">{value}</div>
+  </div>
+);
+
+// The number-one playbook gets the room: the win rate ring, the setup sketch, and the facts that matter.
+const FeatureCard: React.FC<{ strategy: PlaybookStrategy; onSelect: () => void }> = ({ strategy, onSelect }) => {
   const cs = communityStats(strategy);
   const rec = recommendationFor(strategy.winRate);
-  const cat = CATEGORY_BY_ID[strategy.id] ?? 'Strategy';
-  const champion = rank === 0;
-  const MedalIcon = champion ? Trophy : Medal;
   return (
     <button
       onClick={onSelect}
-      className={clsx(
-        'group relative flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-tp-card p-5 text-left transition-all duration-200',
-        'hover:-translate-y-0.5 hover:border-white/[0.14] hover:shadow-[0_16px_40px_-16px_rgba(0,0,0,0.7)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tp-green/50',
-        champion ? 'border-tp-yellow/30' : 'border-white/[0.06]'
-      )}
-      style={medal ? { backgroundImage: `radial-gradient(120% 70% at 0% 0%, ${medal.color}17 0%, transparent 55%)` } : undefined}
+      className="tp-press tp-rise group relative flex h-full min-h-[340px] w-full flex-col overflow-hidden rounded-3xl bg-tp-card text-left shadow-lift ring-1 ring-inset ring-white/[0.07] hover:bg-tp-raised/60"
     >
-      {medal && (
-        <div
-          className="absolute inset-x-0 top-0 h-px"
-          style={{ background: `linear-gradient(90deg, transparent, ${medal.color}, transparent)` }}
-        />
-      )}
-
-      {/* Rank + recommendation */}
-      <div className="flex items-center justify-between gap-3">
-        {medal ? (
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
-            style={{ color: medal.color, background: `${medal.color}1A`, boxShadow: `inset 0 0 0 1px ${medal.color}33` }}
-          >
-            <MedalIcon className="h-3.5 w-3.5" />
-            {medal.label}
+      <div className="relative flex items-start justify-between gap-6 p-7 pb-0">
+        <div className="min-w-0">
+          <div className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-tp-orange">
+            <Trophy className="h-4 w-4" />
+            No. 1 by win rate
+          </div>
+          <h3 className="mt-3 text-balance text-[26px] font-bold leading-[1.12] tracking-[-0.03em] text-white xl:text-[30px]">{strategy.name}</h3>
+          <p className="mt-2 text-[17px] leading-snug text-zinc-400">{TAGLINE_BY_ID[strategy.id] ?? strategy.marketCondition}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-zinc-400">
+            <DifficultyMeter difficulty={strategy.difficulty} />
+            <span>{CATEGORY_BY_ID[strategy.id] ?? 'Strategy'}</span>
+            <span className="tabular-nums">{shortFrame(strategy.timeframe)}</span>
+          </div>
+        </div>
+        <WinRing value={strategy.winRate} size={108} stroke={9}>
+          <span className="text-[28px] font-bold leading-none tracking-tight tabular-nums text-white">{strategy.winRate}<span className="text-[16px] text-zinc-400">%</span></span>
+          <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Backtest</span>
+        </WinRing>
+      </div>
+      <SetupSketch
+        id={strategy.id}
+        className="pointer-events-none mt-2 min-h-[96px] w-full flex-1 opacity-70 transition-opacity duration-500 group-hover:opacity-100 [mask-image:linear-gradient(90deg,transparent,black_45%)]"
+      />
+      <div className="relative grid grid-cols-2 gap-x-6 gap-y-4 border-t border-white/[0.07] bg-black/25 px-7 py-5 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center">
+        <Fact label="Community" value={`${cs.communityWR}%`} />
+        <Fact label="Avg R" value={`${cs.avgR}R`} />
+        <Fact label="Risk : reward" value={strategy.riskReward} />
+        <span className="col-span-2 inline-flex items-center justify-between gap-3 sm:col-span-1 sm:justify-end">
+          <span className="text-[13px] text-zinc-500 sm:hidden">{rec.label}</span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-white px-4 py-2 text-[15px] font-semibold text-black transition-transform duration-500 ease-spring group-hover:translate-x-0.5">
+            Open
+            <ChevronRight className="h-4 w-4" strokeWidth={2.6} />
           </span>
-        ) : (
-          <span className="inline-flex h-6 min-w-[2rem] items-center justify-center rounded-full bg-white/[0.04] px-2 text-xs font-semibold tabular-nums text-zinc-400 ring-1 ring-inset ring-white/[0.06]">
-            #{rank + 1}
-          </span>
-        )}
-        <span className={clsx('inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold', rec.cls)}>
-          {rec.star && <Star className="h-3 w-3 fill-current" />}
-          {rec.label}
-        </span>
-      </div>
-
-      {/* Title + tagline */}
-      <h3 className="mt-4 line-clamp-2 text-[17px] font-semibold leading-6 tracking-tight text-zinc-50">
-        {strategy.name}
-      </h3>
-      <p className="mt-1 line-clamp-1 text-sm text-zinc-400">{TAGLINE_BY_ID[strategy.id] ?? strategy.marketCondition}</p>
-
-      <div className="mb-5 mt-3 flex flex-wrap gap-1.5">
-        <span className="rounded-md bg-tp-blue/10 px-2 py-0.5 text-[11px] font-medium text-tp-blue">Futures</span>
-        <span className={clsx('rounded-md px-2 py-0.5 text-[11px] font-medium', DIFFICULTY_STYLE[strategy.difficulty])}>{strategy.difficulty}</span>
-        <span className="rounded-md bg-white/[0.05] px-2 py-0.5 text-[11px] font-medium text-zinc-400">{cat}</span>
-        <span className="rounded-md bg-white/[0.05] px-2 py-0.5 text-[11px] font-medium text-zinc-400">{strategy.timeframe}</span>
-      </div>
-
-      {/* Key stats — pinned to the bottom so every card in a row lines up */}
-      <div className="mt-auto grid grid-cols-3 divide-x divide-white/[0.06] rounded-xl bg-black/20 ring-1 ring-inset ring-white/[0.05]">
-        <RankStat label="Backtest" value={`${strategy.winRate}%`} />
-        <RankStat label="Community" value={`${cs.communityWR}%`} accent />
-        <RankStat label="Avg R" value={`${cs.avgR}R`} />
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between gap-3 pt-4 text-xs text-zinc-500">
-        <span className="inline-flex items-center gap-1.5 tabular-nums">
-          <Users className="h-3.5 w-3.5" />
-          {cs.traders} traders · {cs.trades} trades
-        </span>
-        <span className="inline-flex items-center gap-0.5 font-medium text-zinc-300 transition-colors group-hover:text-tp-green">
-          Open
-          <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </span>
       </div>
     </button>
   );
 };
 
+const RunnerUpCard: React.FC<{ strategy: PlaybookStrategy; rank: number; delay: number; onSelect: () => void }> = ({ strategy, rank, delay, onSelect }) => (
+  <button
+    onClick={onSelect}
+    style={{ animationDelay: `${delay}ms` }}
+    className="tp-press tp-rise group flex w-full flex-1 items-center gap-5 rounded-3xl bg-tp-card p-6 text-left shadow-lift ring-1 ring-inset ring-white/[0.07] hover:bg-tp-raised/60"
+  >
+    <div className="min-w-0 flex-1">
+      <div className="text-[13px] font-semibold text-zinc-500">No. {rank + 1}</div>
+      <h3 className="mt-1.5 line-clamp-2 text-[20px] font-bold leading-tight tracking-tight text-white">{strategy.name}</h3>
+      <p className="mt-1 line-clamp-1 text-[15px] text-zinc-400">{TAGLINE_BY_ID[strategy.id] ?? strategy.marketCondition}</p>
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-zinc-400">
+        <DifficultyMeter difficulty={strategy.difficulty} />
+        <span className="tabular-nums">{shortFrame(strategy.timeframe)}</span>
+      </div>
+    </div>
+    <WinRing value={strategy.winRate} size={72} stroke={7}>
+      <span className="text-[19px] font-bold leading-none tabular-nums text-white">{strategy.winRate}<span className="text-[11px] text-zinc-400">%</span></span>
+    </WinRing>
+  </button>
+);
+
+const LIST_GRID =
+  'grid items-center gap-x-4 grid-cols-[1.75rem_minmax(0,1fr)_4.5rem_1rem] md:grid-cols-[1.75rem_minmax(0,1fr)_8rem_6.5rem_3.5rem_8.5rem_1rem] xl:grid-cols-[1.75rem_minmax(0,1.5fr)_9rem_8rem_7.5rem_3.5rem_9rem_1rem]';
+
+const PlaybookRow: React.FC<{ strategy: PlaybookStrategy; rank: number; first: boolean; onSelect: () => void }> = ({ strategy, rank, first, onSelect }) => {
+  const cs = communityStats(strategy);
+  return (
+    <button
+      onClick={onSelect}
+      className={clsx(LIST_GRID, 'group relative w-full px-5 py-3.5 text-left hover:bg-white/[0.04] active:bg-white/[0.07]')}
+    >
+      {!first && <span className="absolute left-[4rem] right-0 top-0 h-px bg-white/[0.06]" aria-hidden />}
+      <span className={clsx('text-[15px] font-semibold tabular-nums', rank < 3 ? 'text-tp-orange' : 'text-zinc-500')}>{rank + 1}</span>
+      <span className="min-w-0">
+        <span className="block truncate text-[16px] font-semibold tracking-tight text-white">{strategy.name}</span>
+        <span className="mt-0.5 block truncate text-[13px] text-zinc-500">{TAGLINE_BY_ID[strategy.id] ?? strategy.marketCondition}</span>
+      </span>
+      <span className="hidden truncate text-[13px] text-zinc-400 xl:block">{CATEGORY_BY_ID[strategy.id] ?? 'Strategy'}</span>
+      <span className="hidden md:block"><DifficultyMeter difficulty={strategy.difficulty} /></span>
+      <span className="hidden truncate text-[13px] tabular-nums text-zinc-400 md:block">{shortFrame(strategy.timeframe)}</span>
+      <span className="hidden text-[15px] font-medium tabular-nums text-zinc-300 md:block">{cs.avgR}R</span>
+      <span className="flex items-center justify-end gap-3 md:justify-start">
+        <span className="w-10 text-right text-[16px] font-semibold tabular-nums text-white md:text-left">{strategy.winRate}%</span>
+        <span className="hidden h-1 flex-1 overflow-hidden rounded-full bg-white/[0.08] md:block" aria-hidden>
+          <span className="block h-full rounded-full bg-tp-green" style={{ width: `${strategy.winRate}%` }} />
+        </span>
+      </span>
+      <ChevronRight className="h-4 w-4 text-zinc-600 transition-transform duration-500 ease-spring group-hover:translate-x-0.5 group-hover:text-zinc-300" />
+    </button>
+  );
+};
+
+// Gallery view: every playbook leads with its setup sketch.
+const GalleryCard: React.FC<{ strategy: PlaybookStrategy; rank: number; onSelect: () => void }> = ({ strategy, rank, onSelect }) => (
+  <button
+    onClick={onSelect}
+    className="tp-press group flex h-full w-full flex-col overflow-hidden rounded-3xl bg-tp-card text-left shadow-lift ring-1 ring-inset ring-white/[0.07] hover:bg-tp-raised/60"
+  >
+    <div className="relative h-[136px] w-full overflow-hidden bg-tp-base/70">
+      <SetupSketch
+        id={strategy.id}
+        className="absolute inset-x-0 bottom-0 h-[78%] w-full opacity-60 transition-[opacity,transform] duration-700 ease-spring group-hover:scale-[1.04] group-hover:opacity-100 [mask-image:linear-gradient(180deg,black_55%,transparent)]"
+      />
+      <span className={clsx('absolute left-5 top-4 text-[13px] font-semibold tabular-nums', strategy.untested ? 'text-tp-blue' : rank < 3 ? 'text-tp-orange' : 'text-zinc-400')}>
+        {strategy.untested ? 'Options' : `No. ${rank + 1}`}
+      </span>
+      <span className="tp-material-thin absolute right-4 top-3.5 rounded-full px-2.5 py-1 text-[12px] font-medium text-zinc-200">
+        {CATEGORY_BY_ID[strategy.id] ?? 'Strategy'}
+      </span>
+    </div>
+    <div className="flex flex-1 items-center gap-4 p-5">
+      <div className="min-w-0 flex-1">
+        <h3 className="line-clamp-2 text-[18px] font-bold leading-tight tracking-tight text-white">{strategy.name}</h3>
+        <p className="mt-1 line-clamp-1 text-[14px] text-zinc-400">{TAGLINE_BY_ID[strategy.id] ?? strategy.marketCondition}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-zinc-400">
+          <DifficultyMeter difficulty={strategy.difficulty} />
+          <span className="tabular-nums">{shortFrame(strategy.timeframe)}</span>
+        </div>
+      </div>
+      {strategy.untested ? (
+        <span className="shrink-0 rounded-full bg-tp-fill px-2.5 py-1 text-[12px] font-semibold text-zinc-300">Not tested</span>
+      ) : (
+        <WinRing value={strategy.winRate} size={60} stroke={6}>
+          <span className="text-[16px] font-bold leading-none tabular-nums text-white">{strategy.winRate}<span className="text-[10px] text-zinc-400">%</span></span>
+        </WinRing>
+      )}
+    </div>
+  </button>
+);
+
 const CustomCard: React.FC<{ strategy: PlaybookStrategy; onSelect: () => void }> = ({ strategy, onSelect }) => (
   <button
     onClick={onSelect}
-    className="group flex h-full w-full flex-col rounded-2xl border border-tp-green/20 bg-tp-card p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-tp-green/40"
-    style={{ backgroundImage: 'radial-gradient(120% 70% at 0% 0%, rgba(0,214,143,0.08) 0%, transparent 55%)' }}
+    className="tp-press group flex h-full min-h-[168px] w-full flex-col rounded-3xl bg-tp-card p-6 text-left shadow-lift ring-1 ring-inset ring-white/[0.07] hover:bg-tp-raised/60"
   >
     <div className="flex items-center justify-between gap-3">
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-tp-green/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-tp-green">
-        <Wand2 className="h-3.5 w-3.5" /> Your playbook
+      <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-tp-green">
+        <Wand2 className="h-3.5 w-3.5" /> Yours
       </span>
-      <span className="text-xs text-zinc-500">Not backtested</span>
+      <span className="text-[13px] text-zinc-500">Not backtested</span>
     </div>
-    <h3 className="mt-4 line-clamp-2 text-[17px] font-semibold leading-6 tracking-tight text-zinc-50">{strategy.name}</h3>
-    <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{strategy.tagline || strategy.description}</p>
-    <div className="mb-4 mt-3 flex flex-wrap gap-1.5">
-      <span className={clsx('rounded-md px-2 py-0.5 text-[11px] font-medium', DIFFICULTY_STYLE[strategy.difficulty])}>{strategy.difficulty}</span>
-      <span className="rounded-md bg-white/[0.05] px-2 py-0.5 text-[11px] font-medium text-zinc-400">{strategy.timeframe}</span>
-      <span className="rounded-md bg-white/[0.05] px-2 py-0.5 text-[11px] font-medium text-zinc-400">{strategy.riskReward}</span>
-    </div>
-    <div className="mt-auto flex items-center justify-between gap-3 text-xs text-zinc-500">
-      <span className="truncate">{strategy.source?.title ? `From: ${strategy.source.title}` : 'From your notes'}</span>
-      <span className="inline-flex shrink-0 items-center gap-0.5 font-medium text-zinc-300 group-hover:text-tp-green">
-        Open <ChevronRight className="h-4 w-4" />
+    <h3 className="mt-3 line-clamp-2 text-[20px] font-bold leading-tight tracking-tight text-white">{strategy.name}</h3>
+    <p className="mt-1 line-clamp-2 text-[15px] text-zinc-400">{strategy.tagline || strategy.description}</p>
+    <div className="mt-auto flex items-center justify-between gap-3 pt-4 text-[13px] text-zinc-500">
+      <span className="flex min-w-0 items-center gap-4">
+        <DifficultyMeter difficulty={strategy.difficulty} />
+        <span className="truncate tabular-nums">{strategy.timeframe} · {strategy.riskReward}</span>
       </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-zinc-600 group-hover:text-zinc-300" />
     </div>
   </button>
 );
@@ -305,6 +472,12 @@ export interface PlaybookStrategy {
   /** Per-playbook overrides for the sizer / TradingView card (custom playbooks carry their own). */
   sizing?: SizingDefault;
   tvSetup?: TvSetup;
+  /** Options playbooks trade contracts on stocks and ETFs; everything else is futures. */
+  market?: 'options';
+  /** A starter template with no backtest behind it. Kept out of the win-rate ranking. */
+  untested?: boolean;
+  /** How an options playbook is traded: what to buy and where it is wrong. */
+  optionsPlan?: { underlying: string; contract: string; short: string; stop: string; target: string; stopPct: number };
   // AI-created playbooks
   custom?: boolean;
   createdAt?: string;
@@ -2303,6 +2476,316 @@ indicator("Failed Auction", overlay=true)
       ],
     },
   },
+  // ─── Options starters ───────────────────────────────────────────────────────
+  // Templates to paper trade and tune, not backtested results. Win rate is left
+  // at 0 and `untested` keeps them out of the win-rate ranking.
+  {
+    id: 'opt-vwap-double-break',
+    market: 'options',
+    untested: true,
+    name: 'VWAP Double Break (Options)',
+    description:
+      'The double break traded with options: when SPY or QQQ breaks its opening range AND takes New York VWAP in the same direction, with VWAP inside the range, buy a same-day call or put instead of the future.',
+    difficulty: 'Advanced',
+    timeframe: '1m - 5m / NY open',
+    winRate: 0,
+    riskReward: '1:2',
+    marketCondition: 'SPY and QQQ, first two hours after the open',
+    optionsPlan: {
+      underlying: 'SPY or QQQ',
+      contract: '0DTE, near the money (about 0.45 to 0.55 delta)',
+      short: '0DTE ATM',
+      stop: 'Premium down 50%, or the underlying closes back inside the range or through VWAP',
+      target: 'One opening-range height beyond the break; sell half around +60% premium',
+      stopPct: 50,
+    },
+    overview:
+      'Same read as the futures double break, different instrument. You mark the first 15 minutes of New York on SPY or QQQ and plot VWAP. A long needs price above the opening range high AND above VWAP, with VWAP sitting inside the range; a short is the mirror. When both breaks line up you buy a near-the-money call (long) or put (short) that expires the same day.\n\nTwo things change with options. First, your risk is the premium, so size comes from what you pay, not from a stop in points. Second, time works against you: a same-day option loses value every minute the move stalls, so a break that goes nowhere is a losing trade even if price never reverses. That is why this playbook has a time stop as well as a price stop.',
+    glossary: [
+      { term: 'Double break', meaning: 'Price out of the opening range AND through New York VWAP in the same direction, with VWAP inside the range.' },
+      { term: '0DTE', meaning: 'An option that expires today. Cheap and fast, but it decays quickly and can go to zero.' },
+      { term: 'Delta', meaning: 'Roughly how much the option moves per $1 in the underlying. About 0.50 is at the money.' },
+      { term: 'Premium', meaning: 'What you pay per share for the option. One contract costs premium x 100.' },
+      { term: 'Theta', meaning: 'Time decay. On a 0DTE it is the reason a stalled trade bleeds.' },
+      { term: 'Time stop', meaning: 'Exiting because the move has not happened within a set time, even though price has not hit your stop.' },
+    ],
+    anatomy: [
+      {
+        title: 'Mark the opening range and VWAP on the underlying',
+        points: [
+          'Opening range is the first 15 minutes of New York on SPY or QQQ.',
+          'VWAP must sit INSIDE that range. Outside means no trade.',
+          'Check the option you would buy: tight spread, real volume.',
+        ],
+      },
+      {
+        title: 'Both breaks confirm, then buy the contract',
+        points: [
+          'Long: a 5-minute close above the range high with price above VWAP. Buy the near-the-money call.',
+          'Short: a 5-minute close below the range low with price below VWAP. Buy the near-the-money put.',
+          'Enter with a limit order at the mid, not a market order.',
+        ],
+      },
+      {
+        title: 'Three ways out when it is wrong',
+        points: [
+          'Premium is down 50% from your fill.',
+          'The underlying closes back inside the range or through VWAP.',
+          'Thirty minutes pass with no follow-through.',
+        ],
+      },
+      {
+        title: 'Pay yourself on the range extension',
+        points: [
+          'First target is one opening-range height beyond the break.',
+          'Sell half around +60% premium and move the stop to your entry price.',
+          'Flat by 3:00 PM ET. Never hold a 0DTE into the last hour.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Opening range (first 15 minutes of New York) is marked on SPY or QQQ',
+      'VWAP sits INSIDE the opening range',
+      'Price has closed a 5-minute candle outside the range in the trade direction',
+      'Price is on the same side of VWAP as the break',
+      'SPY and QQQ agree on direction',
+      'The option spread is tight (a few cents) and you are entering with a limit order',
+      'It is before 2:00 PM ET, so the option still has time to work',
+    ],
+    exitRules: [
+      'Exit if premium is down 50% from your fill',
+      'Exit immediately if the underlying closes back inside the opening range or through VWAP',
+      'Exit if 30 minutes pass without follow-through',
+      'Sell half at about +60% premium or when price reaches one range height beyond the break',
+      'Trail the rest under each 5-minute higher low (above each lower high for puts)',
+      'Be flat by 3:00 PM ET',
+    ],
+    riskManagement: [
+      'Decide the dollars you can lose first; contracts come from that, not from how cheap the option looks',
+      'Risk per trade is half the premium you pay, because the stop is 50%',
+      'One double break per day. A second entry after a stop is usually revenge',
+      'Skip days with a major release in the first hour (CPI, FOMC, jobs) until the first reaction is over',
+      'A 0DTE can gap to near zero. Never size as if the 50% stop is guaranteed to fill',
+    ],
+    examples: [
+      {
+        title: 'QQQ long double break (illustrative)',
+        description: 'A made-up walk-through to show the mechanics. Not a real trade.',
+        setup: 'QQQ builds a 15-minute range with VWAP in the middle of it. SPY looks the same.',
+        entry: 'A 5-minute candle closes above the range high with price above VWAP. Buy two same-day at-the-money calls at 1.80 with a limit at the mid.',
+        exit: 'Stop is 0.90 on the premium, or a close back inside the range. At +60% (about 2.90) sell one; trail the other under 5-minute lows.',
+        result: 'Risk was $180 on two contracts. Illustrative only.',
+      },
+    ],
+    tips: [
+      'Trade the chart of the underlying, not the option chart',
+      'Slightly in the money holds value better when the move is slow',
+      'If the spread is wider than about 5% of the premium, pick a different strike',
+      'Paper trade it for twenty trades before using real money',
+    ],
+    commonMistakes: [
+      'Buying far out-of-the-money options because they are cheap',
+      'Holding a stalled trade and letting time decay do the damage',
+      'Taking the break when VWAP is outside the range',
+      'Sizing by number of contracts instead of dollars at risk',
+      'Adding to a loser because the option is "on sale"',
+    ],
+  },
+  {
+    id: 'opt-orb-0dte',
+    market: 'options',
+    untested: true,
+    name: '0DTE Opening Range Break',
+    description:
+      'A simpler first options setup: wait for the 15-minute opening range on SPY or QQQ, buy a same-day call or put when price closes outside it, and take profit at one range height.',
+    difficulty: 'Intermediate',
+    timeframe: '5m / first 90 minutes',
+    winRate: 0,
+    riskReward: '1:1.5',
+    marketCondition: 'SPY and QQQ on days with a clear open',
+    optionsPlan: {
+      underlying: 'SPY or QQQ',
+      contract: '0DTE, at the money',
+      short: '0DTE ATM',
+      stop: 'Premium down 40%, or a 5-minute close back past the middle of the range',
+      target: 'One opening-range height from the break',
+      stopPct: 40,
+    },
+    overview:
+      'The opening range break without the VWAP filter. It triggers more often than the double break and is easier to learn, at the cost of more false starts. Use it to get used to option fills, spreads and time decay before layering on the VWAP rule.\n\nThe range sets everything: the trigger (a close outside it), the stop (back past its midpoint) and the target (its height projected from the break). If the range is unusually wide, the target is far and the option is expensive; skip those days.',
+    glossary: [
+      { term: 'Opening range', meaning: 'The high and low of the first 15 minutes of the New York session.' },
+      { term: 'Range height', meaning: 'Range high minus range low. Projected from the break, it is the target.' },
+      { term: 'At the money', meaning: 'The strike closest to the current price, about 0.50 delta.' },
+    ],
+    anatomy: [
+      { title: 'Let the first 15 minutes print', points: ['Mark the high, low and midpoint of the opening range.', 'No trades inside the range.', 'Skip the day if the range is more than about twice its usual size.'] },
+      { title: 'Buy on the close outside', points: ['A 5-minute candle closes above the high: buy the at-the-money call.', 'A 5-minute candle closes below the low: buy the at-the-money put.', 'Volume on the break candle should be above the candles before it.'] },
+      { title: 'Back through the middle is wrong', points: ['Exit on a 5-minute close back past the range midpoint.', 'Exit if premium is down 40%.', 'Exit if nothing happens in 30 minutes.'] },
+      { title: 'One range height, then done', points: ['Target is the range height added to the break level.', 'Take the whole position off there while you are learning.', 'One attempt per direction per day.'] },
+    ],
+    entryRules: [
+      'The 15-minute opening range is marked, with its midpoint',
+      'A 5-minute candle has closed outside the range',
+      'The break candle has above-average volume',
+      'The range is not unusually wide for this ticker',
+      'The option spread is tight and you are using a limit order',
+      'It is within the first 90 minutes of the session',
+    ],
+    exitRules: [
+      'Exit if premium is down 40% from your fill',
+      'Exit on a 5-minute close back past the range midpoint',
+      'Exit if 30 minutes pass without follow-through',
+      'Take profit at one range height from the break',
+    ],
+    riskManagement: [
+      'Risk per trade is 40% of the premium paid; size from that',
+      'One attempt per direction per day',
+      'No trades in the first 15 minutes, and none on major-release mornings until the first move settles',
+    ],
+    examples: [
+      {
+        title: 'SPY break lower (illustrative)',
+        description: 'A made-up walk-through to show the mechanics. Not a real trade.',
+        setup: 'SPY sets a $2.40 opening range. Sellers hold the midpoint on two tests.',
+        entry: 'A 5-minute candle closes under the range low on rising volume. Buy one at-the-money put at 1.50.',
+        exit: 'Stop at 0.90 premium or a close back above the midpoint. Target is $2.40 below the range low.',
+        result: 'Risk was $60 on one contract. Illustrative only.',
+      },
+    ],
+    tips: ['Start with one contract', 'Write down the range high, low and midpoint before the bell', 'If you miss the break candle, wait for the retest instead of chasing'],
+    commonMistakes: ['Buying the wick instead of waiting for the close', 'Trading a range that is too wide', 'Re-entering the same direction after a stop'],
+  },
+  {
+    id: 'opt-trend-pullback-spread',
+    market: 'options',
+    untested: true,
+    name: 'VWAP Trend Pullback (Debit Spread)',
+    description:
+      'On a trending day, wait for the pullback to VWAP and buy a call or put debit spread instead of a single option. The spread costs less and time decay hurts less, in exchange for a capped profit.',
+    difficulty: 'Intermediate',
+    timeframe: '5m / mid-morning on',
+    winRate: 0,
+    riskReward: '1:1.5',
+    marketCondition: 'SPY, QQQ or liquid large caps on a clear trend day',
+    optionsPlan: {
+      underlying: 'SPY, QQQ or a liquid large cap',
+      contract: '1 to 5 days out, buy near the money and sell the strike at your target',
+      short: 'Debit spread',
+      stop: 'Spread worth half of what you paid, or a 5-minute close through VWAP',
+      target: 'Close at about 70% of the spread width',
+      stopPct: 50,
+    },
+    overview:
+      'A debit spread is one option bought and a further-out one sold against it. You pay less than for the single option, and because you are also short an option, time decay roughly cancels. The trade-off is a ceiling: the most it can be worth is the distance between the strikes.\n\nThat fits a pullback trade well. You have a defined target (the prior high or low of the trend), so you sell the strike near it. The entry is the same as the futures VWAP pullback: an established trend, a drift back to VWAP, and a candle that rejects it.',
+    glossary: [
+      { term: 'Debit spread', meaning: 'Buy one option and sell another further out, same expiry. Max loss is what you paid.' },
+      { term: 'Spread width', meaning: 'The distance between the two strikes. It is the most the spread can be worth.' },
+      { term: 'Debit', meaning: 'What you pay to open the spread. Try to pay under half the width.' },
+    ],
+    anatomy: [
+      { title: 'A trend that is already working', points: ['Higher highs and higher lows on the 5-minute (or the mirror for shorts).', 'Price has stayed on one side of VWAP since the open.', 'No trade if VWAP is flat and price is chopping across it.'] },
+      { title: 'The pullback holds VWAP', points: ['Price drifts back to VWAP on lighter volume.', 'A 5-minute candle rejects VWAP and closes back with the trend.', 'Buy the near-the-money option and sell the strike at the prior swing.'] },
+      { title: 'A close through VWAP ends it', points: ['Exit on a 5-minute close through VWAP against you.', 'Exit if the spread is worth half of what you paid.', 'Your loss can never be more than the debit.'] },
+      { title: 'Close early, not at expiry', points: ['Take it off at about 70% of the spread width.', 'Do not wait for the last 30%; it takes the longest and risks the most.', 'Close before the day you are assigned, never hold through expiry.'] },
+    ],
+    entryRules: [
+      'A clear trend on the 5-minute chart, on one side of VWAP since the open',
+      'Price has pulled back to VWAP on lighter volume',
+      'A 5-minute candle has rejected VWAP and closed with the trend',
+      'The short strike sits at or just before the prior swing high or low',
+      'The debit is under half of the spread width',
+      'Both legs have tight spreads; enter as a single spread order with a limit',
+    ],
+    exitRules: [
+      'Exit if the spread is worth half of what you paid',
+      'Exit on a 5-minute close through VWAP against the trade',
+      'Take profit at about 70% of the spread width',
+      'Close before expiry day; do not hold to expiry',
+    ],
+    riskManagement: [
+      'Max loss is the debit paid; plan to lose half of it at the stop',
+      'Enter and exit both legs together as one order',
+      'Avoid names with earnings before your expiry',
+    ],
+    examples: [
+      {
+        title: 'QQQ call spread on a trend day (illustrative)',
+        description: 'A made-up walk-through to show the mechanics. Not a real trade.',
+        setup: 'QQQ trends up all morning and pulls back to VWAP at 11:10 on light volume.',
+        entry: 'A 5-minute candle rejects VWAP. Buy the at-the-money call and sell the call $4 higher, two days out, for a 1.70 debit.',
+        exit: 'Stop if the spread is worth 0.85 or QQQ closes under VWAP. Take profit at 2.80 (70% of the $4 width).',
+        result: 'Risk was $85 per spread. Illustrative only.',
+      },
+    ],
+    tips: ['Paying under half the width keeps reward bigger than risk', 'Use this on days when single options feel too expensive', 'Check for earnings before picking an expiry'],
+    commonMistakes: ['Legging in one side at a time', 'Holding for the full width', 'Buying a spread in chop because it is cheap'],
+  },
+  {
+    id: 'opt-failed-break-reversal',
+    market: 'options',
+    untested: true,
+    name: 'Failed Break Reversal (Options)',
+    description:
+      'When a break of the opening range fails and price snaps back inside, buy the option in the opposite direction and target the other side of the range.',
+    difficulty: 'Advanced',
+    timeframe: '5m / first half of the session',
+    winRate: 0,
+    riskReward: '1:2',
+    marketCondition: 'SPY and QQQ on range-bound or indecisive days',
+    optionsPlan: {
+      underlying: 'SPY or QQQ',
+      contract: '0DTE or next day, at the money',
+      short: '0-1DTE ATM',
+      stop: 'Premium down 50%, or price makes a new extreme beyond the failed break',
+      target: 'VWAP first, then the opposite side of the opening range',
+      stopPct: 50,
+    },
+    overview:
+      'This is the other side of the double break. When price breaks the opening range but VWAP is outside it, or the break has no volume, the move often fails: traders who chased are trapped, and their exits push price back through the range.\n\nYou do not guess the failure. You wait for price to close back inside the range, then buy the option pointing at the other side. The stop is clear (a new extreme beyond the failed break) and the path is short, which suits an option.',
+    glossary: [
+      { term: 'Failed break', meaning: 'Price leaves the opening range, cannot hold, and closes back inside it.' },
+      { term: 'Trapped traders', meaning: 'Those who bought the breakout and now have to sell as it reverses, adding fuel.' },
+      { term: 'Next-day expiry', meaning: 'An option expiring tomorrow. Slower decay than 0DTE if the reversal takes time.' },
+    ],
+    anatomy: [
+      { title: 'A break that should not be trusted', points: ['Price breaks the range with VWAP outside the range, or on weak volume.', 'SPY and QQQ disagree.', 'Do nothing yet: this is only the setup.'] },
+      { title: 'The close back inside is the trigger', points: ['A 5-minute candle closes back inside the opening range.', 'Buy the option against the failed break: puts after a failed upside break, calls after a failed downside break.', 'Use next-day expiry if it is past 12:30 PM ET.'] },
+      { title: 'A new extreme means you are wrong', points: ['Exit if price trades beyond the high or low of the failed break.', 'Exit if premium is down 50%.', 'Exit if 30 minutes pass and price is still stuck at the range edge.'] },
+      { title: 'VWAP, then the far side', points: ['Sell half at VWAP.', 'Sell the rest at the opposite side of the opening range.', 'Do not hold for a breakout the other way; that is a different trade.'] },
+    ],
+    entryRules: [
+      'Price broke the opening range and failed to hold',
+      'The break had a warning sign: VWAP outside the range, weak volume, or SPY and QQQ disagreeing',
+      'A 5-minute candle has closed back inside the range',
+      'There is room to VWAP and the far side of the range',
+      'The option spread is tight and you are using a limit order',
+    ],
+    exitRules: [
+      'Exit if price makes a new extreme beyond the failed break',
+      'Exit if premium is down 50% from your fill',
+      'Exit if 30 minutes pass without progress',
+      'Sell half at VWAP',
+      'Sell the rest at the opposite side of the opening range',
+    ],
+    riskManagement: [
+      'Risk per trade is half the premium paid',
+      'Never fade a break that has VWAP inside the range and both indexes agreeing; that is the double break',
+      'One reversal attempt per day',
+    ],
+    examples: [
+      {
+        title: 'SPY failed upside break (illustrative)',
+        description: 'A made-up walk-through to show the mechanics. Not a real trade.',
+        setup: 'SPY pokes above its opening range high on light volume while QQQ stays inside its own range.',
+        entry: 'A 5-minute candle closes back under the range high. Buy two at-the-money puts at 1.40.',
+        exit: 'Stop at 0.70 premium or a new high above the failed break. Sell one at VWAP, the other at the range low.',
+        result: 'Risk was $140 on two contracts. Illustrative only.',
+      },
+    ],
+    tips: ['The best failures are fast: out and back inside within two or three candles', 'If you would have taken the breakout, do not fade it', 'Keep the double break and this playbook side by side; one is the filter for the other'],
+    commonMistakes: ['Fading before the close back inside', 'Fading a true double break', 'Holding past the far side of the range'],
+  },
 ];
 
 export const Playbooks: React.FC = () => {
@@ -2310,6 +2793,19 @@ export const Playbooks: React.FC = () => {
   const [filter, setFilter] = useState('All');
   const [section, setSection] = useState<'strategies' | 'toolkit'>('strategies');
   const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState('');
+  const [view, setView] = useState<'gallery' | 'list'>('gallery');
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('tp.playbooks.view') === 'list') setView('list');
+    } catch {}
+  }, []);
+  const chooseView = (v: 'gallery' | 'list') => {
+    setView(v);
+    try {
+      localStorage.setItem('tp.playbooks.view', v);
+    } catch {}
+  };
   const { custom, edits, hydrate, removeCustom } = usePlaybookStore();
   useEffect(() => hydrate(), [hydrate]);
   const openToolkit = () => {
@@ -2332,173 +2828,206 @@ export const Playbooks: React.FC = () => {
     );
   }
 
-  const pageTabs = (
-    <nav aria-label="Playbook sections" className="flex gap-1 border-b border-white/[0.06]">
-      {([
-        { id: 'strategies', label: 'Strategies', icon: BookOpen, count: tradingStrategies.length },
-        { id: 'toolkit', label: 'TradingView toolkit', icon: MonitorPlay },
-      ] as const).map((t) => {
-        const active = section === t.id;
-        return (
-          <button
-            key={t.id}
-            aria-current={active ? 'page' : undefined}
-            onClick={() => setSection(t.id)}
-            className={clsx(
-              '-mb-px inline-flex items-center gap-2 border-b-2 px-3 pb-3 pt-1 text-sm font-medium',
-              active ? 'border-tp-green text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-200'
-            )}
-          >
-            <t.icon className="h-4 w-4" />
-            {t.label}
-            {'count' in t && <span className="text-xs tabular-nums text-zinc-500">{t.count}</span>}
-          </button>
-        );
-      })}
+  const sections = [
+    { id: 'strategies', label: 'Library' },
+    { id: 'toolkit', label: 'TradingView toolkit' },
+  ] as const;
+  const sectionSwitch = (
+    <nav aria-label="Playbook sections" className="relative grid grid-cols-2 rounded-[11px] bg-tp-fill p-[3px]">
+      <span
+        aria-hidden
+        className="absolute bottom-[3px] left-[3px] top-[3px] w-[calc(50%-3px)] rounded-lg bg-[#5B6478]/70 shadow-[0_1px_3px_rgba(0,0,0,0.35),inset_0_0.5px_0_rgba(255,255,255,0.14)] transition-transform duration-500 ease-spring"
+        style={{ transform: section === 'toolkit' ? 'translateX(100%)' : 'translateX(0)' }}
+      />
+      {sections.map((t) => (
+        <button
+          key={t.id}
+          aria-current={section === t.id ? 'page' : undefined}
+          onClick={() => setSection(t.id)}
+          className={clsx(
+            'relative whitespace-nowrap rounded-lg px-4 py-1.5 text-[13px] font-semibold',
+            section === t.id ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+          )}
+        >
+          {t.label}
+        </button>
+      ))}
     </nav>
+  );
+
+  const pageHeader = (title: string, blurb: string) => (
+    <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pt-1">
+      <div className="min-w-0">
+        <h1 className="text-[34px] font-bold leading-[1.05] tracking-[-0.035em] text-white sm:text-[40px]">{title}</h1>
+        <p className="mt-1.5 max-w-xl text-pretty text-[17px] leading-snug text-zinc-400">{blurb}</p>
+      </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        {sectionSwitch}
+        <button
+          onClick={() => setCreating(true)}
+          className="tp-press inline-flex items-center gap-1.5 rounded-full bg-tp-accent px-4 py-2 text-[15px] font-semibold text-tp-ink hover:brightness-110"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.8} />
+          New from a video
+        </button>
+      </div>
+    </header>
+  );
+
+  const createSheet = creating && (
+    <CreatePlaybook
+      onClose={() => setCreating(false)}
+      onCreated={(id) => {
+        setCreating(false);
+        setSelectedStrategy(id);
+        document.querySelector('main')?.scrollTo({ top: 0 });
+      }}
+    />
   );
 
   if (section === 'toolkit') {
     return (
       <div className="mx-auto max-w-7xl space-y-8">
-        {pageTabs}
-        <header className="max-w-3xl">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-xs text-zinc-400">
-            <MonitorPlay className="h-3.5 w-3.5 text-tp-green" />
-            Tips & tricks
-          </span>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-50 sm:text-4xl">
-            TradingView <span className="text-tp-green">toolkit</span>
-          </h1>
-          <p className="mt-3 text-base leading-relaxed text-zinc-400">
-            Everything you need to run these playbooks on TradingView with micros: automatic take profit and stop loss,
-            how many contracts to trade, chart setup, alerts and practice.
-          </p>
-        </header>
+        {pageHeader(
+          'TradingView toolkit',
+          'Run these playbooks on TradingView with micros: automatic targets and stops, contract sizing, chart setup, alerts and practice.'
+        )}
         <TradingViewGuide />
+        {createSheet}
       </div>
     );
   }
 
-  // Rank every strategy by win rate; medals go to the global top 3.
-  const ranked = [...tradingStrategies].sort((a, b) => b.winRate - a.winRate);
+  // Rank every strategy by win rate; the top 3 are featured.
+  const futures = tradingStrategies.filter((s) => s.market !== 'options');
+  const options = tradingStrategies.filter((s) => s.market === 'options');
+  const ranked = [...futures].sort((a, b) => b.winRate - a.winRate);
   const rankOf = new Map(ranked.map((s, i) => [s.id, i]));
-  const showPodium = filter === 'All' || filter === 'Futures';
+  const q = query.trim().toLowerCase();
+  const matches = (s: PlaybookStrategy) =>
+    !q ||
+    s.name.toLowerCase().includes(q) ||
+    (TAGLINE_BY_ID[s.id] ?? '').toLowerCase().includes(q) ||
+    (CATEGORY_BY_ID[s.id] ?? '').toLowerCase().includes(q);
   const isCategoryFilter = CATEGORY_FILTERS.includes(filter);
   const visible = ranked.filter((s) => {
+    if (!matches(s)) return false;
     if (filter === 'All' || filter === 'Futures') return true;
     if (filter === 'Options') return false;
     if (isCategoryFilter) return CATEGORY_BY_ID[s.id] === filter;
     return s.difficulty === filter;
   });
 
+  const showPodium = (filter === 'All' || filter === 'Futures') && !q;
   const rest = showPodium ? visible.slice(3) : visible;
+  // Options starters sit in their own section: they have no backtest to rank by.
+  const visibleOptions = options.filter((s) => {
+    if (!matches(s)) return false;
+    if (filter === 'All' || filter === 'Options') return true;
+    if (filter === 'Futures' || isCategoryFilter) return false;
+    return s.difficulty === filter;
+  });
   const countFor = (f: string) =>
-    f === 'All' || f === 'Futures' ? tradingStrategies.length
-      : f === 'Options' ? 0
-      : CATEGORY_FILTERS.includes(f) ? tradingStrategies.filter((s) => CATEGORY_BY_ID[s.id] === f).length
+    f === 'All' ? tradingStrategies.length
+      : f === 'Futures' ? futures.length
+      : f === 'Options' ? options.length
+      : CATEGORY_FILTERS.includes(f) ? futures.filter((s) => CATEGORY_BY_ID[s.id] === f).length
       : tradingStrategies.filter((s) => s.difficulty === f).length;
+  const mine = custom.filter((c) => (filter === 'All' || filter === 'Futures' || c.difficulty === filter) && matches(c));
 
   return (
-    <div className="mx-auto max-w-7xl space-y-10">
-      {pageTabs}
-      {/* Hero */}
-      <header className="flex flex-col items-center pt-2 text-center">
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-xs text-zinc-400">
-          <BookOpen className="h-3.5 w-3.5 text-tp-green" />
-          {tradingStrategies.length} playbooks · ranked by win rate
-        </span>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-50 sm:text-4xl">
-          Your trading <span className="text-tp-green">playbooks</span>
-        </h1>
-        <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400">
-          A home for every setup. Study the rules, evolve your Pine Script, collect chart examples, and build your own video library.
-        </p>
-        <button
-          onClick={() => setCreating(true)}
-          className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-tp-green to-[#3fe0b0] px-4 py-2 text-sm font-semibold text-[#0D1628] shadow-[0_8px_24px_-8px_rgba(0,214,143,0.6)] hover:brightness-110"
-        >
-          <Wand2 className="h-4 w-4" />
-          Create a playbook from a video
-        </button>
+    <div className="mx-auto max-w-7xl space-y-9 pb-24">
+      {pageHeader(
+        'Playbooks',
+        `${futures.length} futures setups ranked by backtested win rate, plus ${options.length} options starters.`
+      )}
 
-        {/* Filters — segmented control */}
-        <div className="mt-6 max-w-full overflow-x-auto">
-          <div className="inline-flex items-center gap-1 rounded-full bg-white/[0.03] p-1 ring-1 ring-inset ring-white/[0.07]">
-            {ALL_FILTERS.map((f) => {
-              const soon = f === 'Options';
-              const active = filter === f;
-              return (
-                <button
-                  key={f}
-                  onClick={() => !soon && setFilter(f)}
-                  disabled={soon}
-                  className={clsx(
-                    'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-white/[0.09] text-zinc-50 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
-                      : soon
-                        ? 'cursor-not-allowed text-zinc-600'
-                        : 'text-zinc-400 hover:text-zinc-100'
-                  )}
-                >
-                  {f}
-                  {soon ? (
-                    <span className="rounded bg-white/[0.06] px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide">Soon</span>
-                  ) : (
-                    <span className={clsx('text-xs tabular-nums', active ? 'text-tp-green' : 'text-zinc-600')}>{countFor(f)}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+      {/* Search + filters */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+        <label className="relative block md:w-72 md:shrink-0">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search playbooks"
+            className="w-full rounded-xl bg-tp-fill py-2 pl-9 pr-3 text-[15px] text-white placeholder-zinc-500 focus:bg-white/[0.12] focus:outline-none focus:ring-2 focus:ring-tp-blue/50"
+          />
+        </label>
+        <div className="tp-no-scrollbar -mx-1 flex min-w-0 items-center gap-2 overflow-x-auto px-1 py-1 pr-10 [mask-image:linear-gradient(90deg,black_calc(100%-48px),transparent)]">
+          {ALL_FILTERS.map((f) => {
+            const soon = false;
+            const active = filter === f;
+            return (
+              <button
+                key={f}
+                onClick={() => !soon && setFilter(f)}
+                disabled={soon}
+                aria-pressed={active}
+                className={clsx(
+                  'tp-press inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[14px] font-medium',
+                  active
+                    ? 'bg-white text-black'
+                    : soon
+                      ? 'cursor-not-allowed bg-white/[0.04] text-zinc-500'
+                      : 'bg-tp-fill text-zinc-300 hover:bg-white/[0.14] hover:text-white'
+                )}
+              >
+                {f}
+                <span className={clsx('text-[12px] tabular-nums', active ? 'text-black/50' : 'text-zinc-500')}>
+                  {soon ? 'Soon' : countFor(f)}
+                </span>
+              </button>
+            );
+          })}
         </div>
-      </header>
+      </div>
 
-      {filter === 'Options' ? (
-        <div className="rounded-2xl border border-dashed border-white/[0.08] bg-tp-card/60 p-12 text-center text-sm text-zinc-400">
-          Options strategies are coming soon. For now, every playbook here is futures.
-        </div>
-      ) : (
+      {(
         <>
           {/* Your AI-built playbooks */}
-          {(() => {
-            const mine = custom.filter((c) => filter === 'All' || filter === 'Futures' || c.difficulty === filter);
-            return mine.length > 0 ? (
-              <section>
-                <SectionHeader title="My playbooks" count={mine.length} hint="Built with Pilot AI · saved on this device" />
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {mine.map((c) => (
-                    <CustomCard key={c.id} strategy={withEdits(c, edits)} onSelect={() => setSelectedStrategy(c.id)} />
-                  ))}
-                  <button
-                    onClick={() => setCreating(true)}
-                    className="flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/[0.1] text-sm text-zinc-400 hover:border-tp-green/40 hover:text-tp-green"
-                  >
-                    <Plus className="h-5 w-5" />
-                    New from a video or idea
-                  </button>
-                </div>
-              </section>
-            ) : null;
-          })()}
+          {mine.length > 0 && (
+            <section>
+              <SectionHeader title="My playbooks" count={mine.length} hint="Built with Pilot AI · saved on this device" />
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {mine.map((c) => (
+                  <CustomCard key={c.id} strategy={withEdits(c, edits)} onSelect={() => setSelectedStrategy(c.id)} />
+                ))}
+                <button
+                  onClick={() => setCreating(true)}
+                  className="tp-press flex min-h-[168px] flex-col items-center justify-center gap-2 rounded-3xl bg-tp-fill/40 text-[15px] font-medium text-zinc-400 hover:bg-tp-fill hover:text-white"
+                >
+                  <Plus className="h-5 w-5" />
+                  New from a video or idea
+                </button>
+              </div>
+            </section>
+          )}
 
-          {/* Podium — global top 3 */}
+          {/* Featured — global top 3 */}
           {showPodium && visible.length > 0 && (
             <section>
               <SectionHeader title="Top performers" hint="Highest AI-backtest win rate" />
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {[0, 1, 2].map((idx) => {
-                  const s = visible[idx];
-                  if (!s) return null;
-                  // Mobile: champion first (DOM order). Desktop: champion centered.
-                  const orderCls = idx === 0 ? 'lg:order-2' : idx === 1 ? 'lg:order-1' : 'lg:order-3';
-                  return (
-                    <div key={s.id} className={orderCls}>
-                      <RankCard strategy={s} rank={rankOf.get(s.id)!} onSelect={() => setSelectedStrategy(s.id)} />
-                    </div>
-                  );
-                })}
+              <div className="grid gap-4 lg:grid-cols-5">
+                <div className="lg:col-span-3">
+                  <FeatureCard strategy={visible[0]} onSelect={() => setSelectedStrategy(visible[0].id)} />
+                </div>
+                <div className="flex flex-col gap-4 lg:col-span-2">
+                  {visible.slice(1, 3).map((s, i) => (
+                    <RunnerUpCard key={s.id} strategy={s} rank={rankOf.get(s.id)!} delay={80 * (i + 1)} onSelect={() => setSelectedStrategy(s.id)} />
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Options starters */}
+          {visibleOptions.length > 0 && (
+            <section>
+              <SectionHeader title="Options playbooks" count={visibleOptions.length} hint="Starter templates · paper trade before going live" />
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {visibleOptions.map((s) => (
+                  <GalleryCard key={s.id} strategy={s} rank={-1} onSelect={() => setSelectedStrategy(s.id)} />
+                ))}
               </div>
             </section>
           )}
@@ -2506,36 +3035,75 @@ export const Playbooks: React.FC = () => {
           {/* The rest (or the full filtered list) */}
           {rest.length > 0 && (
             <section>
-              <SectionHeader
-                title={showPodium ? 'All playbooks' : `${filter} playbooks`}
-                count={rest.length}
-                hint="Click any playbook to open its guide and workspace"
-              />
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {rest.map((s) => (
-                  <RankCard key={s.id} strategy={s} rank={rankOf.get(s.id)!} onSelect={() => setSelectedStrategy(s.id)} />
+              <div className="mb-3 flex items-center justify-between gap-4 px-1">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-[20px] font-bold tracking-tight text-white">
+                    {q ? 'Results' : showPodium ? 'All playbooks' : `${filter} playbooks`}
+                  </h2>
+                  <span className="text-[15px] tabular-nums text-zinc-500">{rest.length}</span>
+                </div>
+                <div className="relative grid grid-cols-2 rounded-[11px] bg-tp-fill p-[3px]" role="group" aria-label="Layout">
+                  <span
+                    aria-hidden
+                    className="absolute bottom-[3px] left-[3px] top-[3px] w-[calc(50%-3px)] rounded-lg bg-[#5B6478]/70 shadow-[0_1px_3px_rgba(0,0,0,0.35),inset_0_0.5px_0_rgba(255,255,255,0.14)] transition-transform duration-500 ease-spring"
+                    style={{ transform: view === 'list' ? 'translateX(100%)' : 'translateX(0)' }}
+                  />
+                  {([
+                    { id: 'gallery', label: 'Gallery', icon: LayoutGrid },
+                    { id: 'list', label: 'List', icon: List },
+                  ] as const).map((v) => (
+                    <button
+                      key={v.id}
+                      aria-pressed={view === v.id}
+                      onClick={() => chooseView(v.id)}
+                      className={clsx(
+                        'relative inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-semibold',
+                        view === v.id ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+                      )}
+                    >
+                      <v.icon className="h-3.5 w-3.5" />
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {view === 'gallery' ? (
+                <div key="gallery" className="tp-rise grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {rest.map((s) => (
+                    <GalleryCard key={s.id} strategy={s} rank={rankOf.get(s.id)!} onSelect={() => setSelectedStrategy(s.id)} />
+                  ))}
+                </div>
+              ) : (
+              <div key="list" className="tp-rise overflow-hidden rounded-3xl bg-tp-card shadow-lift ring-1 ring-inset ring-white/[0.07]">
+                <div className={clsx(LIST_GRID, 'hidden border-b border-white/[0.06] px-5 py-2.5 md:grid')}>
+                  <Eyebrow>#</Eyebrow>
+                  <Eyebrow>Playbook</Eyebrow>
+                  <Eyebrow className="hidden xl:block">Style</Eyebrow>
+                  <Eyebrow>Level</Eyebrow>
+                  <Eyebrow>Chart</Eyebrow>
+                  <Eyebrow>Avg R</Eyebrow>
+                  <Eyebrow>Win rate</Eyebrow>
+                  <span />
+                </div>
+                {rest.map((s, i) => (
+                  <PlaybookRow key={s.id} strategy={s} rank={rankOf.get(s.id)!} first={i === 0} onSelect={() => setSelectedStrategy(s.id)} />
                 ))}
               </div>
+              )}
             </section>
           )}
 
-          {visible.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-white/[0.08] bg-tp-card/60 p-12 text-center text-sm text-zinc-400">
-              No {filter.toLowerCase()} strategies yet.
+          {visible.length === 0 && mine.length === 0 && visibleOptions.length === 0 && (
+            <div className="rounded-3xl bg-tp-card px-6 py-16 text-center ring-1 ring-inset ring-white/[0.07]">
+              <div className="text-[20px] font-bold tracking-tight text-white">No matches</div>
+              <p className="mt-1 text-[15px] text-zinc-400">
+                {q ? `Nothing matches “${query.trim()}”.` : `No ${filter.toLowerCase()} playbooks yet.`}
+              </p>
             </div>
           )}
         </>
       )}
-      {creating && (
-        <CreatePlaybook
-          onClose={() => setCreating(false)}
-          onCreated={(id) => {
-            setCreating(false);
-            setSelectedStrategy(id);
-            document.querySelector('main')?.scrollTo({ top: 0 });
-          }}
-        />
-      )}
+      {createSheet}
     </div>
   );
 };

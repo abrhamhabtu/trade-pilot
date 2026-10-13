@@ -121,7 +121,7 @@ export function Snapshot({
   const x = (i: number, n: number) => 4 + (i / Math.max(n - 1, 1)) * (width - 8);
   const path = (vals: number[]) => vals.map((v, i) => `${i ? "L" : "M"}${x(i, vals.length).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   const last = closes[closes.length - 1];
-  const color = side === "short" ? "#FF4868" : "#00D68F";
+  const color = side === "short" ? "rgb(var(--tp-red))" : "rgb(var(--tp-green))";
   const id = `snap-${closes.length}-${Math.round(last * 100)}`;
   return (
     <svg
@@ -139,10 +139,10 @@ export function Snapshot({
         </linearGradient>
       </defs>
       {level != null && (
-        <line x1="0" x2={width} y1={y(level)} y2={y(level)} stroke="#FFB800" strokeOpacity="0.7" strokeDasharray="3 3" strokeWidth="1" />
+        <line x1="0" x2={width} y1={y(level)} y2={y(level)} stroke="rgb(var(--tp-yellow))" strokeOpacity="0.7" strokeDasharray="3 3" strokeWidth="1" />
       )}
       <path d={`${path(closes)} L${x(closes.length - 1, closes.length)},${height} L${x(0, closes.length)},${height} Z`} fill={`url(#${id})`} />
-      {vw.length > 1 && <path d={path(vw)} fill="none" stroke="#4F9CF9" strokeWidth="1.4" strokeOpacity="0.9" />}
+      {vw.length > 1 && <path d={path(vw)} fill="none" stroke="rgb(var(--tp-blue))" strokeWidth="1.4" strokeOpacity="0.9" />}
       <path d={path(closes)} fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" />
       <circle cx={x(closes.length - 1, closes.length)} cy={y(last)} r="3.2" fill={color} />
       <circle cx={x(closes.length - 1, closes.length)} cy={y(last)} r="6" fill={color} fillOpacity="0.2" className="tp-flow-pulse" />
@@ -154,7 +154,7 @@ export function ScoreRing({ value, size = 64 }: { value: number | null; size?: n
   const r = size / 2 - 5;
   const c = 2 * Math.PI * r;
   const v = value ?? 0;
-  const color = value == null ? "#52525b" : v >= 80 ? "#00D68F" : v >= 50 ? "#FFB800" : "#FF4868";
+  const color = value == null ? "#52525b" : v >= 80 ? "rgb(var(--tp-green))" : v >= 50 ? "rgb(var(--tp-yellow))" : "rgb(var(--tp-red))";
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="5" />

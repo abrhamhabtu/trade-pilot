@@ -27,8 +27,8 @@ const days = (o: OddsResult) =>
 function OutcomeBar({ odds }: { odds: OddsResult }) {
   const { dark, muted } = useThemeClasses();
   const parts = [
-    { label: 'Pass', v: odds.pass, color: '#00D68F' },
-    { label: 'Blow', v: odds.blow, color: '#FF4868' },
+    { label: 'Pass', v: odds.pass, color: 'rgb(var(--tp-green))' },
+    { label: 'Blow', v: odds.blow, color: 'rgb(var(--tp-red))' },
     { label: 'Out of time', v: odds.timeout, color: dark ? '#52525B' : '#D4D4D8' },
   ];
   return (

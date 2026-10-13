@@ -36,6 +36,8 @@ const shortDate = (d: string) => local(d).toLocaleDateString('en-US', { weekday:
 
 export const DayPerformancePanel: React.FC<DayPerformancePanelProps> = ({ dailyPLData, calendarData }) => {
   const [view, setView] = useState<ViewMode>('weekday');
+  // Same hover language as the Net daily P&L bars: the row under the pointer stays lit, the rest step back.
+  const [hover, setHover] = useState<string | null>(null);
 
   const tradesByDate = useMemo(() => new Map(calendarData.map((d) => [d.date.slice(0, 10), d.trades])), [calendarData]);
 
@@ -74,6 +76,8 @@ export const DayPerformancePanel: React.FC<DayPerformancePanelProps> = ({ dailyP
   }, [dailyPLData, tradesByDate]);
 
   const empty = dailyPLData.length === 0;
+  const hoverRow = hover?.startsWith('w') ? weekdays.rows.find((r) => `w${r.idx}` === hover) : undefined;
+  const hoverDate = hover?.startsWith('d') ? [...dates.best, ...dates.worst].find((d) => `d${d.date}` === hover) : undefined;
   const anyNegative = weekdays.traded.some((r) => r.average < 0);
 
   return (
@@ -85,7 +89,29 @@ export const DayPerformancePanel: React.FC<DayPerformancePanelProps> = ({ dailyP
               <CalendarDays className="h-4 w-4 text-tp-blue" />
               <h3 className="text-sm font-semibold text-zinc-100">Best &amp; worst days</h3>
             </div>
-            <p className="mt-1 text-xs text-zinc-500">{view === 'weekday' ? 'Average P&L per day you traded.' : 'Your biggest single days, green and red.'}</p>
+            <p className="mt-1 truncate text-xs text-zinc-500">
+              {hoverRow ? (
+                hoverRow.days ? (
+                  <>
+                    <span className="font-medium text-zinc-200">{hoverRow.name}</span> · {hoverRow.days} {hoverRow.days === 1 ? 'day' : 'days'} · {hoverRow.trades} trades ·{' '}
+                    <span className={clsx('font-semibold tabular-nums', hoverRow.total < 0 ? 'text-tp-red' : 'text-tp-green')}>{signed(hoverRow.total)}</span> total · {Math.round((hoverRow.greenDays / hoverRow.days) * 100)}% green
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium text-zinc-200">{hoverRow.name}</span> · no trades
+                  </>
+                )
+              ) : hoverDate ? (
+                <>
+                  <span className="font-medium text-zinc-200">{shortDate(hoverDate.date)}</span> · {hoverDate.trades} {hoverDate.trades === 1 ? 'trade' : 'trades'} ·{' '}
+                  <span className={clsx('font-semibold tabular-nums', hoverDate.value < 0 ? 'text-tp-red' : 'text-tp-green')}>{signed(hoverDate.value)}</span>
+                </>
+              ) : view === 'weekday' ? (
+                'Average P&L per day you traded.'
+              ) : (
+                'Your biggest single days, green and red.'
+              )}
+            </p>
           </div>
           <div className="flex shrink-0 rounded-lg bg-black/25 p-0.5 text-[11px] font-medium ring-1 ring-inset ring-white/[0.07]">
             {(['weekday', 'date'] as ViewMode[]).map((m) => (
@@ -122,14 +148,19 @@ export const DayPerformancePanel: React.FC<DayPerformancePanelProps> = ({ dailyP
             )}
 
             {/* Weekday bars */}
-            <ul className="flex min-h-0 flex-1 flex-col justify-between gap-1">
+            <ul className="flex min-h-0 flex-1 flex-col justify-between" onMouseLeave={() => setHover(null)}>
               {weekdays.rows.map((r) => {
                 const pct = r.days ? (Math.abs(r.average) / weekdays.maxAbs) * 100 : 0;
                 const neg = r.average < 0;
                 const isBest = r.idx === weekdays.best?.idx;
                 const isWorst = r.idx === weekdays.worst?.idx;
                 return (
-                  <li key={r.idx} className="flex items-center gap-3" title={r.days ? `${r.name}: ${r.days} days · ${r.trades} trades · ${usd(r.total)} total · ${Math.round((r.greenDays / r.days) * 100)}% green days` : `${r.name}: no trades`}>
+                  <li
+                    key={r.idx}
+                    onMouseEnter={() => setHover(`w${r.idx}`)}
+                    className={clsx('-mx-2 flex items-center gap-3 rounded-lg px-2 py-0.5', hover === `w${r.idx}` && 'bg-white/[0.045]')}
+                    style={{ opacity: hover !== null && hover !== `w${r.idx}` ? 0.35 : 1, transition: 'opacity .15s, background-color .15s' }}
+                  >
                     <span className={clsx('w-8 shrink-0 text-xs font-medium', isBest ? 'text-tp-green' : isWorst ? (neg ? 'text-tp-red' : 'text-zinc-200') : r.days ? 'text-zinc-300' : 'text-zinc-600')}>{r.short}</span>
                     <div className={clsx('relative h-5 flex-1', anyNegative && 'grid grid-cols-2')}>
                       {anyNegative ? (
@@ -137,11 +168,11 @@ export const DayPerformancePanel: React.FC<DayPerformancePanelProps> = ({ dailyP
                           <div className="flex justify-end border-r border-white/10 pr-px">
                             {neg && <div className="h-full rounded-l-[4px] bg-tp-red/80" style={{ width: `${pct}%` }} />}
                           </div>
-                          <div className="flex pl-px">{!neg && r.days > 0 && <div className={clsx('h-full rounded-r-[4px]', isBest ? 'bg-tp-green' : 'bg-tp-green/45')} style={{ width: `${pct}%` }} />}</div>
+                          <div className="flex pl-px">{!neg && r.days > 0 && <div className={clsx('h-full rounded-r-[4px]', isBest || hover === `w${r.idx}` ? 'bg-tp-green' : 'bg-tp-green/45')} style={{ width: `${pct}%` }} />}</div>
                         </>
                       ) : (
                         <div className="h-full overflow-hidden rounded-[4px] bg-white/[0.04]">
-                          {r.days > 0 && <div className={clsx('h-full rounded-[4px]', isBest ? 'bg-tp-green' : 'bg-tp-green/45')} style={{ width: `${Math.max(pct, 3)}%` }} />}
+                          {r.days > 0 && <div className={clsx('h-full rounded-[4px]', isBest || hover === `w${r.idx}` ? 'bg-tp-green' : 'bg-tp-green/45')} style={{ width: `${Math.max(pct, 3)}%` }} />}
                         </div>
                       )}
                     </div>
@@ -152,16 +183,16 @@ export const DayPerformancePanel: React.FC<DayPerformancePanelProps> = ({ dailyP
             </ul>
             <div className="mt-3 flex items-center justify-between border-t border-white/[0.05] pt-2 text-[11px] text-zinc-500">
               <span>
-                {weekdays.traded.length} weekday{weekdays.traded.length === 1 ? '' : 's'} traded · hover for totals
+                {weekdays.traded.length} weekday{weekdays.traded.length === 1 ? '' : 's'} traded · hover a day for totals
               </span>
               {!anyNegative && weekdays.traded.length > 1 && <span className="text-tp-green">All net green</span>}
             </div>
           </>
         ) : (
           <>
-            <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
-              <DateList title="Best days" icon={TrendingUp} tone="good" items={dates.best} maxAbs={dates.maxAbs} emptyText="No green days in this range yet." />
-              <DateList title="Worst days" icon={TrendingDown} tone="bad" items={dates.worst} maxAbs={dates.maxAbs} emptyText="No red days in this range. Keep it that way." />
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-2" onMouseLeave={() => setHover(null)}>
+              <DateList title="Best days" icon={TrendingUp} tone="good" items={dates.best} maxAbs={dates.maxAbs} hover={hover} setHover={setHover} emptyText="No green days in this range yet." />
+              <DateList title="Worst days" icon={TrendingDown} tone="bad" items={dates.worst} maxAbs={dates.maxAbs} hover={hover} setHover={setHover} emptyText="No red days in this range. Keep it that way." />
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-white/[0.05] pt-2 text-[11px] text-zinc-500">
               <span>
@@ -197,6 +228,8 @@ function DateList({
   tone,
   items,
   maxAbs,
+  hover,
+  setHover,
   emptyText,
 }: {
   title: string;
@@ -204,6 +237,8 @@ function DateList({
   tone: 'good' | 'bad';
   items: { date: string; value: number; trades: number }[];
   maxAbs: number;
+  hover: string | null;
+  setHover: (key: string | null) => void;
   emptyText: string;
 }) {
   const good = tone === 'good';
@@ -216,9 +251,14 @@ function DateList({
       {items.length === 0 ? (
         <p className="rounded-lg border border-dashed border-white/[0.07] p-4 text-center text-xs text-zinc-500">{emptyText}</p>
       ) : (
-        <ul className="space-y-2.5">
+        <ul className="space-y-0.5">
           {items.map((d) => (
-            <li key={d.date}>
+            <li
+              key={d.date}
+              onMouseEnter={() => setHover(`d${d.date}`)}
+              className={clsx('-mx-2 rounded-lg px-2 py-1.5', hover === `d${d.date}` && 'bg-white/[0.045]')}
+              style={{ opacity: hover !== null && hover !== `d${d.date}` ? 0.35 : 1, transition: 'opacity .15s, background-color .15s' }}
+            >
               <div className="flex items-baseline justify-between gap-2 text-xs">
                 <span className="text-zinc-300">
                   {shortDate(d.date)}
@@ -227,7 +267,7 @@ function DateList({
                 <span className={clsx('font-semibold tabular-nums', good ? 'text-tp-green' : 'text-tp-red')}>{signed(d.value)}</span>
               </div>
               <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
-                <div className={clsx('h-full rounded-full', good ? 'bg-tp-green/70' : 'bg-tp-red/70')} style={{ width: `${Math.max(6, (Math.abs(d.value) / maxAbs) * 100)}%` }} />
+                <div className={clsx('h-full rounded-full', good ? (hover === `d${d.date}` ? 'bg-tp-green' : 'bg-tp-green/70') : hover === `d${d.date}` ? 'bg-tp-red' : 'bg-tp-red/70')} style={{ width: `${Math.max(6, (Math.abs(d.value) / maxAbs) * 100)}%` }} />
               </div>
             </li>
           ))}

@@ -799,11 +799,11 @@
   transition: transform 0.15s;
 }
 .pilot-switches input:checked {
-  background: #00d68f;
+  background: rgb(var(--tp-green));
 }
 .pilot-switches input:checked::after {
   transform: translateX(16px);
-  background: #0d1628;
+  background: rgb(var(--tp-base));
 }
 .pilot-rule-fields {
   display: grid;
