@@ -70,6 +70,7 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'opt-orb-0dte': 'Breakout',
   'opt-trend-pullback-spread': 'VWAP',
   'opt-failed-break-reversal': 'Reversal',
+  'prop-firm-platform-tradeify': 'Prop Firm',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -91,6 +92,7 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'opt-orb-0dte': { dir: 'Short', variant: 1 },
   'opt-trend-pullback-spread': { dir: 'Long', variant: 0 },
   'opt-failed-break-reversal': { dir: 'Short', variant: 1 },
+  'prop-firm-platform-tradeify': { dir: 'Long', variant: 1 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -124,6 +126,7 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'opt-orb-0dte': 'Close outside the range, one range height out',
   'opt-trend-pullback-spread': 'Pullback to VWAP, defined risk both ways',
   'opt-failed-break-reversal': 'Back inside the range, target the far side',
+  'prop-firm-platform-tradeify': 'Scale capital on a futures prop platform, no eval',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
@@ -2108,6 +2111,113 @@ export const tradingStrategies: PlaybookStrategy[] = [
           url: 'https://www.tiktok.com/t/ZTytCYoGe/',
           notes:
             'TikTok by fittraderdad (523 likes, 138s, no audio narration). Persistent on-screen message: "This is how you rinse these prop firms" over a payout result screen. Caption: get those payouts the right way, tagged trading psychology. Motivational/process clip, not a mechanical method — pair with the Prop Firm systems (Funding to Payout Scaling, Law of 10, Copy Trading Blueprint) for the actual numbers.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prop-firm-platform-tradeify',
+    name: 'Tradeify Platform (smithy.christine)',
+    description:
+      'Influencer promo for the Tradeify futures prop platform: up to $750k capital with no evaluation, plus a free A-to-Z trading education. A platform lead to vet, not a strategy.',
+    difficulty: 'Beginner',
+    timeframe: 'Any timeframe',
+    winRate: 60,
+    riskReward: 'N/A — platform recommendation',
+    marketCondition: 'Prop firm platforms (futures)',
+    overview:
+      'A 30-second influencer clip (smithy.christine) recommending Tradeify as the best futures trading platform she has used. The claims: a free education system with videos to learn trading from A to Z, up to $750,000 in capital, and no evaluation required. The pitch frames the goal not just as learning to trade but as having a path to scale your trading capital, with a call to action to comment for starter links. Treat this as an ad and a platform lead, not a strategy: there is no entry, sizing, or money system here. Tradeify is a real futures prop platform with an instant-funding, evaluation-free model, but the $750k figure and no-eval framing are promotional, so verify the actual terms on the official site before committing. Pair it with the mechanical prop firm systems in this section for the trading side.',
+    glossary: [
+      { term: 'Tradeify', meaning: 'A futures prop firm platform positioned as instant-funded and evaluation-free.' },
+      { term: 'No evaluation', meaning: 'The promo claim that you can trade firm capital without passing a funded eval stage (promotional, verify).' },
+      { term: '$750k capital', meaning: 'The promo figure for available capital; treat it as marketing until the terms confirm it.' },
+      { term: 'Education system', meaning: 'Tradeify\'s library of A-to-Z trading videos advertised as free.' },
+      { term: 'Affiliate CTA', meaning: 'The comment-for-links call to action typical of paid/affiliate promos.' },
+    ],
+    anatomy: [
+      {
+        title: 'The platform pitch',
+        points: [
+          'Tradeify is framed as an instant-funded futures prop platform.',
+          'Claimed capital up to $750,000 with no evaluation to pass.',
+          'The promise is fast access to firm capital for a beginner.',
+        ],
+      },
+      {
+        title: 'The education angle',
+        points: [
+          'A free A-to-Z video library to learn trading fundamentals.',
+          'The hook: you learn and trade the same product.',
+          'Useful intent even if the numbers are marketing.',
+        ],
+      },
+      {
+        title: 'The scale path',
+        points: [
+          'The stated goal is a path to scale trading capital, not just to trade.',
+          'That fits the broader prop firm strategy: get capital, protect the buffer, scale.',
+          'This clip only names the platform; the how lives in the Prop Firm systems cards.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Treat this as a platform lead to vet, not a trade entry system',
+      'Verify Tradeify terms (instant funding / no eval / $750k) on the official site before signing up',
+      'If you do trade it, apply your usual risk and payout rules from the Prop Firm systems',
+    ],
+    exitRules: [
+      'No mechanical exits in this clip',
+      'Protect the buffer and use minimum payouts once funded (see the funding system card)',
+    ],
+    riskManagement: [
+      'The no-evaluation / big-capital claim is promotional; authenticate it',
+      'Affiliate promos overstate ease — expect rules and drawdown limits in the real platform',
+      'Never risk more than your live rules allow just because a promo sounds easy',
+    ],
+    examples: [
+      {
+        title: 'The promo itself',
+        description: 'What the clip promises.',
+        setup: 'Beginner looking to start futures prop trading.',
+        entry: 'Use the education library, get up to $750k capital without an eval (claimed).',
+        exit: 'Scale trading capital via the platform.',
+        result: 'A platform lead to verify, not a validated strategy',
+      },
+    ],
+    tips: [
+      'Use it as a lead on a futures prop platform name, not as proof',
+      'Confirm the instant-funding / no-eval model on tradeify.com before depositing anything',
+      'The $750k and no-eval numbers are marketing, not guarantees',
+      'An affiliate CTA (comment for links) signals the creator is paid to say this',
+      'Pair with the Funding to Payout Scaling / Law of 10 cards for the trading side',
+    ],
+    commonMistakes: [
+      'Treating an influencer promo as a validated strategy',
+      'Believing the no-evaluation / $750k cap at face value',
+      'Signing up through an affiliate link without reading the firm rules',
+      'Gambling on a big-capital platform without a money system',
+    ],
+    source: {
+      url: 'https://www.tiktok.com/t/ZTynGuesA/',
+      title: 'smithy.christine — Tradeify is the best trading platform I\u2019ve used (TikTok promo)',
+    },
+    sourceClaims: [
+      'Tradeify gives up to $750,000 in capital with no evaluation (promotional claim)',
+      'Free education system with videos to learn trading from A to Z',
+      'Goal is a path to scale your trading capital',
+      'Call to action: comment for starter links (affiliate-style)',
+    ],
+    openQuestions: [
+      'The exact Tradeify rules (drawdown, payout timing, instant-funding terms) are not verified in this promo',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-prop-firm-platform-tradeify',
+          title: 'Tradeify is the best trading platform I\u2019ve used — smithy.christine (TikTok promo)',
+          url: 'https://www.tiktok.com/t/ZTynGuesA/',
+          notes:
+            'TikTok by smithy.christine (30s, 432 views). An influencer promo for Tradeify, a futures prop platform: up to $750,000 in capital with no evaluation, a free A-to-Z education video library, and a pitch to scale your trading capital. CTA to comment for starter links. Promotional content; verify actual terms on the official site. No entry, sizing, or payout method in the clip.',
         },
       ],
     },
