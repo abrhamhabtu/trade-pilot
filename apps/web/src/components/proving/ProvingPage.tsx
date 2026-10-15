@@ -7,7 +7,7 @@ import { useHistoryTab } from "@/hooks/useHistoryParam";
 import { MAX_RUNNING, useProvingStore, type ProvingTest } from "@/store/provingStore";
 import { STRATEGIES, defaultConfig, type StrategyId } from "@/lib/proving/engine";
 import { programByKey, type Evaluation } from "@/lib/proving/firms";
-import { testEvaluation } from "@/lib/proving/runner";
+import { testCareer, testEvaluation } from "@/lib/proving/runner";
 import { RTH_CLOSE, RTH_OPEN, nyClock } from "@/lib/pilot/market";
 import { CompareChart, Sparkline } from "./charts";
 import { StrategyGlyph } from "./glyphs";
@@ -222,7 +222,7 @@ function TestCard({ test, e, active, onClick }: { test: ProvingTest; e: Evaluati
             {STRATEGIES[test.cfg.strategy].label} · {test.cfg.contracts} {test.cfg.instrument} · {p.firm} {p.sizeLabel}
           </p>
         </div>
-        <Badge v={v} state={test.state} replaying={replaying} live={!!today} />
+        <Badge v={v} state={test.state} replaying={replaying} live={!!today} life={test.state === "running" ? testCareer(test)?.status : undefined} />
       </div>
       <div className="mt-3 h-14">{e && e.marks.length > 0 ? <Sparkline marks={e.marks} start={p.size} color={test.color} /> : <div className="tp-flow-shimmer h-full rounded-lg" />}</div>
       <div className="mt-3 space-y-1.5">
@@ -252,9 +252,18 @@ function Bar({ label, pct, color, text }: { label: string; pct: number; color: s
   );
 }
 
-function Badge({ v, state, replaying, live }: { v: Evaluation["verdict"]; state: ProvingTest["state"]; replaying: boolean; live: boolean }) {
+function Badge({ v, state, replaying, live, life }: { v: Evaluation["verdict"]; state: ProvingTest["state"]; replaying: boolean; live: boolean; life?: string }) {
+  // A running test is an account for life: its first eval's verdict is history,
+  // so show where the account stands now.
+  if (life === "funded" || life === "reset") v = "active";
   const [label, cls] =
-    v === "passed"
+    life === "funded"
+      ? ["Funded", "bg-tp-green/15 text-tp-green"]
+      : life === "reset"
+        ? ["Rebuying", "bg-tp-red/15 text-tp-red"]
+        : life === "eval" && (v === "passed" || v === "failed")
+          ? [live ? "Live" : "New eval", live ? "bg-tp-red/15 text-tp-red" : "bg-tp-blue/15 text-tp-blue"]
+          : v === "passed"
       ? ["Passed", "bg-tp-green/15 text-tp-green"]
       : v === "failed"
         ? ["Failed", "bg-tp-red/15 text-tp-red"]

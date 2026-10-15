@@ -10,9 +10,11 @@ import { DD_LABEL, FIRM_PROGRAMS, evaluate, programByKey, type Evaluation } from
 import { feedFor, loadFeed } from "@/lib/proving/runner";
 import { pilotHref } from "@/lib/pilot/askPilot";
 import type { Bar } from "@/lib/pilot/market";
-import { EquityChart, SessionChart, sessionBars } from "./charts";
+import { EquityChart, sessionBars } from "./charts";
+import { TvSessionChart } from "./TvSessionChart";
 import { NewTest } from "./NewTest";
 
+const EMPTY: SimTrade[] = [];
 const usd = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
 const signed = (n: number) => `${n >= 0 ? "+" : "-"}$${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
 const shortDate = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -178,7 +180,7 @@ export function TestDetail({ test, evaluation }: { test: ProvingTest; evaluation
             ))}
           </div>
         </div>
-        <SessionChart bars={session} trades={focusDay?.trades ?? []} levels={ctx} />
+        <TvSessionChart bars={session} trades={focusDay?.trades ?? EMPTY} levels={ctx} instrument={test.cfg.instrument} />
         {focusDay && (
           <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-zinc-400">
             <span className={clsx("font-semibold", focusDay.pnl >= 0 ? "text-tp-green" : "text-tp-red")}>{signed(focusDay.pnl)}</span>
