@@ -42,6 +42,8 @@ export interface Career {
   status: "eval" | "funded" | "reset" | "over-size";
   /** Live balance above (or below) the start of the account in play now. */
   openProfit: number;
+  /** The account in play now, or null between accounts. */
+  account: { start: number; balance: number; threshold: number; traded: number } | null;
 }
 
 export interface CareerOptions {
@@ -78,6 +80,7 @@ export function career(
     sessions: sorted.length,
     status: p.model === "instant" ? "funded" : "eval",
     openProfit: 0,
+    account: null,
   };
   const limit = size.micro ? p.maxMicros : p.maxMinis;
   if (size.contracts > limit || !sorted.length) {
@@ -176,6 +179,7 @@ export function career(
   const last = out.events[out.events.length - 1]?.kind;
   out.status = !live && (last === "eval-failed" || last === "blown") ? "reset" : phase;
   out.openProfit = live ? live.balance - live.start : 0;
+  out.account = live ? { start: live.start, balance: live.balance, threshold: live.threshold, traded } : null;
   return out;
 }
 

@@ -7,7 +7,9 @@ import { useProvingStore } from "@/store/provingStore";
 import { INSTRUMENTS, STRATEGIES } from "@/lib/proving/engine";
 import { programByKey } from "@/lib/proving/firms";
 import type { BotRun, LiveBot, LogEntry } from "@/lib/server/live/bots";
-import type { PxAccount } from "@/lib/server/live/projectx";
+import { FirmMark, Segmented } from "./QuickStart";
+
+type Account = { id: number; name: string; broker: "projectx" | "tradovate"; balance?: number; canTrade?: boolean };
 
 type NotifyView = {
   telegram: { configured: boolean; chatId: string; enabled: boolean };
@@ -16,15 +18,14 @@ type NotifyView = {
 };
 type LiveView = {
   connected: boolean;
-  userName: string | null;
-  base: string;
-  liveData: boolean;
+  projectx: { connected: boolean; userName: string | null; base: string; liveData: boolean };
+  tradovate: { connected: boolean; userName: string | null; environment: "demo" | "live" };
   loop: { running: boolean; lastTick: number; error: string };
   date: string;
   bots: LiveBot[];
   runs: Record<string, BotRun>;
   log: LogEntry[];
-  accounts?: PxAccount[];
+  accounts?: Account[];
   accountsError?: string;
   message?: string;
   error?: string;
@@ -50,7 +51,7 @@ export function LivePanel() {
   const [live, setLive] = useState<LiveView | null>(null);
   const [server, setServer] = useState<ServerView | null>(null);
   const [blocked, setBlocked] = useState("");
-  const [accounts, setAccounts] = useState<PxAccount[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   const refresh = useCallback(async (withAccounts = false) => {
     try {
@@ -101,9 +102,13 @@ export function LivePanel() {
         />
         <Status
           icon={Plug}
-          title="ProjectX"
+          title="Brokers"
           ok={live.connected}
-          lines={live.connected ? [`Connected as ${live.userName}`, `${accounts.length} active account${accounts.length === 1 ? "" : "s"}`, `${live.liveData ? "Live" : "Sim"} data subscription`] : ["Not connected", "Add your API key below to run bots on real-time bars"]}
+          lines={[
+            `Tradovate: ${live.tradovate.connected ? `connected as ${live.tradovate.userName}` : "not connected"}`,
+            `TopstepX: ${live.projectx.connected ? `connected as ${live.projectx.userName}` : "not connected"}`,
+            `${accounts.length} account${accounts.length === 1 ? "" : "s"} available to bots`,
+          ]}
         />
         <Status
           icon={Bot}
@@ -117,9 +122,9 @@ export function LivePanel() {
         />
       </section>
 
-      <Alerts />
-      <Broker live={live} accounts={accounts} onChange={(l) => { setLive(l); if (l.accounts) setAccounts(l.accounts); }} />
+      <Brokers live={live} accounts={accounts} onChange={(l) => { setLive(l); if (l.accounts) setAccounts(l.accounts); }} />
       {live.connected && <Bots live={live} accounts={accounts} onChange={setLive} />}
+      <Alerts />
       <TradingViewCard />
       <Activity log={live.log} />
     </div>
@@ -128,7 +133,7 @@ export function LivePanel() {
 
 function Status({ icon: Icon, title, ok, lines }: { icon: typeof Radio; title: string; ok: boolean; lines: string[] }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-4">
+    <div className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-4">
       <p className="flex items-center gap-2 text-[14px] font-semibold text-zinc-100">
         <Icon className="h-4 w-4 text-zinc-400" /> {title}
         <span className={clsx("ml-auto h-2 w-2 rounded-full", ok ? "bg-tp-green shadow-[0_0_10px_rgb(var(--tp-green))]" : "bg-zinc-600")} />
@@ -208,8 +213,8 @@ function Alerts() {
   const toggleEvent = (k: keyof NotifyView["events"]) => run("events", { action: "save", events: { [k]: !s.events[k] } }, () => "Saved.");
 
   return (
-    <section className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
-      <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+    <section className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
+      <p className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
         <Bell className="h-3.5 w-3.5" /> Alerts to your phone
       </p>
       <div className="mt-4 grid gap-5 lg:grid-cols-2">
@@ -296,78 +301,174 @@ function Alerts() {
   );
 }
 
-function Broker({ live, accounts, onChange }: { live: LiveView; accounts: PxAccount[]; onChange: (l: LiveView) => void }) {
-  const [user, setUser] = useState("");
-  const [key, setKey] = useState("");
-  const [base, setBase] = useState(live.base);
-  const [liveData, setLiveData] = useState(false);
+const TRADOVATE_FIRMS = ["lucid", "tof", "futures-elite", "tradeify", "fundednext", "takeprofittrader"];
+const TRADOVATE_NAMES = "Lucid · Top One Futures · Futures Elite · Tradeify · FundedNext · Take Profit Trader";
+
+function Brokers({ live, accounts, onChange }: { live: LiveView; accounts: Account[]; onChange: (l: LiveView) => void }) {
+  return (
+    <section className="grid gap-4 xl:grid-cols-[1.25fr_1fr]">
+      <TradovateCard live={live} accounts={accounts.filter((a) => a.broker === "tradovate")} onChange={onChange} />
+      <TopstepCard live={live} accounts={accounts.filter((a) => a.broker === "projectx")} onChange={onChange} />
+    </section>
+  );
+}
+
+function BrokerShell({ logo, title, firms, connected, who, children }: { logo: string; title: string; firms: React.ReactNode; connected: boolean; who?: string | null; children: React.ReactNode }) {
+  return (
+    <div className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] p-5 backdrop-blur-xl">
+      <div className="flex items-start gap-3">
+        <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-[13px] bg-white ring-1 ring-white/10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logo} alt="" className="h-[74%] w-[74%] object-contain" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[17px] font-semibold text-white">{title}</p>
+          <div className="mt-0.5 text-[12.5px] text-zinc-500">{firms}</div>
+        </div>
+        <span className={clsx("rounded-full px-2.5 py-1 text-[12px] font-semibold", connected ? "bg-tp-green/15 text-tp-green" : "bg-white/[0.07] text-zinc-400")}>{connected ? `Connected${who ? ` · ${who}` : ""}` : "Not connected"}</span>
+      </div>
+      <div className="mt-4">{children}</div>
+    </div>
+  );
+}
+
+function AccountList({ accounts, empty }: { accounts: Account[]; empty: string }) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {accounts.map((a) => (
+        <div key={`${a.broker}-${a.id}`} className="rounded-2xl bg-black/25 px-3.5 py-2.5 ring-1 ring-inset ring-white/[0.05]">
+          <p className="truncate text-[14px] font-semibold text-white">{a.name}</p>
+          <p className="text-[12px] text-zinc-500">{a.balance != null ? `${usd(a.balance)} · ` : ""}{a.canTrade === false ? "trading locked" : "ready"}</p>
+        </div>
+      ))}
+      {!accounts.length && <p className="text-[13px] text-zinc-500">{empty}</p>}
+    </div>
+  );
+}
+
+function useAct(onChange: (l: LiveView) => void) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const act = async (body: Record<string, unknown>) => {
     setBusy(true);
     setErr("");
     try {
-      onChange(await api<LiveView>("/api/live", body));
-      setKey("");
+      onChange(await api<LiveView>("/api/live?accounts=1", body));
+      return true;
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Failed");
+      return false;
     } finally {
       setBusy(false);
     }
   };
+  return { busy, err, act };
+}
+
+function TradovateCard({ live, accounts, onChange }: { live: LiveView; accounts: Account[]; onChange: (l: LiveView) => void }) {
+  const [f, setF] = useState({ name: "", password: "", appId: "", cid: "", sec: "", environment: "demo" as "demo" | "live" });
+  const { busy, err, act } = useAct(onChange);
+  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value }));
   return (
-    <section className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
-      <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-        <Link2 className="h-3.5 w-3.5" /> Broker · ProjectX (TopstepX and firms on ProjectX)
-      </p>
-      {live.connected ? (
-        <div className="mt-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[14px] text-zinc-200">
-              Connected as <span className="font-semibold">{live.userName}</span> <span className="text-zinc-500">· {live.base.replace("https://", "")}</span>
-            </p>
-            <button onClick={() => act({ action: "disconnect" })} className="text-[12.5px] text-tp-red hover:underline">
-              Disconnect (flattens armed bots)
+    <BrokerShell
+      logo="/logos/tradovate.png"
+      title="Tradovate"
+      connected={live.tradovate.connected}
+      who={live.tradovate.userName}
+      firms={
+        <span className="flex flex-wrap items-center gap-1.5">
+          <span className="flex -space-x-1.5">
+            {TRADOVATE_FIRMS.map((id) => (
+              <span key={id} className="rounded-[30%] ring-2 ring-[#161618]">
+                <FirmMark firmId={id} size={20} />
+              </span>
+            ))}
+          </span>
+          {TRADOVATE_NAMES}
+        </span>
+      }
+    >
+      {live.tradovate.connected ? (
+        <>
+          <AccountList accounts={accounts} empty="No active accounts returned." />
+          <div className="mt-3 flex items-center justify-between text-[12.5px] text-zinc-500">
+            <span>{live.tradovate.environment === "live" ? "Live" : "Demo / sim"} environment · real-time bars from Tradovate market data</span>
+            <button onClick={() => act({ action: "disconnect-tradovate" })} className="text-tp-red hover:underline">
+              Disconnect
             </button>
           </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {accounts.map((a) => (
-              <div key={a.id} className="rounded-xl bg-white/[0.03] px-3 py-2.5 ring-1 ring-inset ring-white/[0.05]">
-                <p className="truncate text-[13.5px] font-semibold text-zinc-100">{a.name}</p>
-                <p className="font-mono text-[12px] text-zinc-400">
-                  {usd(a.balance)} · {a.canTrade ? "can trade" : "trading locked"}
-                  {a.simulated ? " · sim" : ""}
-                </p>
-              </div>
-            ))}
-            {!accounts.length && <p className="text-[13px] text-zinc-500">{live.accountsError || "No active accounts returned."}</p>}
-          </div>
-        </div>
+        </>
       ) : (
-        <div className="mt-3 grid gap-2 md:grid-cols-[1fr_1fr_1.3fr_auto]">
-          <input value={user} onChange={(e) => setUser(e.target.value)} placeholder="ProjectX username" className={inputCls} autoComplete="off" />
-          <input value={key} onChange={(e) => setKey(e.target.value)} placeholder="API key" className={inputCls} type="password" autoComplete="off" />
-          <input value={base} onChange={(e) => setBase(e.target.value)} placeholder="https://api.topstepx.com/api" className={inputCls} />
-          <Btn busy={busy} onClick={() => act({ action: "connect", userName: user, apiKey: key, base, liveData })} disabled={!user || !key}>
-            Connect
-          </Btn>
-          <label className="flex items-center gap-2 text-[12.5px] text-zinc-400 md:col-span-4">
-            <input type="checkbox" checked={liveData} onChange={(e) => setLiveData(e.target.checked)} /> My API access includes the live (not sim) market data subscription
-          </label>
-          <p className="text-[12px] text-zinc-500 md:col-span-4">
-            The key is stored on this machine only (.tradepilot/live-secrets.json) and sent only to ProjectX. TopstepX keys come from the TopstepX API access page; other firms on ProjectX use their own gateway address.
+        <div className="space-y-2.5">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input value={f.name} onChange={set("name")} placeholder="Tradovate username" className={inputCls} autoComplete="off" />
+            <input value={f.password} onChange={set("password")} placeholder="Password" type="password" className={inputCls} autoComplete="off" />
+            <input value={f.appId} onChange={set("appId")} placeholder="API app ID" className={inputCls} autoComplete="off" />
+            <input value={f.cid} onChange={set("cid")} placeholder="CID" inputMode="numeric" className={inputCls} autoComplete="off" />
+            <input value={f.sec} onChange={set("sec")} placeholder="API secret" type="password" className={clsx(inputCls, "sm:col-span-2")} autoComplete="off" />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Segmented value={f.environment} options={[{ v: "demo" as const, label: "Demo / prop sim" }, { v: "live" as const, label: "Live" }]} onChange={(v) => setF((x) => ({ ...x, environment: v }))} compact />
+            <Btn busy={busy} disabled={!f.name || !f.password || !f.appId || !f.cid || !f.sec} onClick={() => act({ action: "connect-tradovate", ...f, cid: Number(f.cid) })}>
+              Connect Tradovate
+            </Btn>
+          </div>
+          <p className="text-[12px] leading-relaxed text-zinc-500">
+            Create an API key in Tradovate under Application Settings → API Access (it needs the API add-on). Most prop evaluation and funded accounts are on the demo environment. Your firm has to allow API access on the account; a prop login without it is refused. Credentials stay on this machine (.tradepilot/tradovate-secrets.json).
           </p>
         </div>
       )}
-      {err && <p className="mt-3 text-[13px] text-tp-red">{err}</p>}
-    </section>
+      {err && <p className="mt-2 text-[13px] text-tp-red">{err}</p>}
+    </BrokerShell>
   );
 }
 
-function Bots({ live, accounts, onChange }: { live: LiveView; accounts: PxAccount[]; onChange: (l: LiveView) => void }) {
+function TopstepCard({ live, accounts, onChange }: { live: LiveView; accounts: Account[]; onChange: (l: LiveView) => void }) {
+  const [user, setUser] = useState("");
+  const [key, setKey] = useState("");
+  const [base, setBase] = useState(live.projectx.base);
+  const [liveData, setLiveData] = useState(false);
+  const { busy, err, act } = useAct(onChange);
+  return (
+    <BrokerShell logo="/logos/topstep.png" title="TopstepX" connected={live.projectx.connected} who={live.projectx.userName} firms="Topstep and other firms on ProjectX">
+      {live.projectx.connected ? (
+        <>
+          <AccountList accounts={accounts} empty="No active accounts returned." />
+          <div className="mt-3 flex items-center justify-between text-[12.5px] text-zinc-500">
+            <span>{live.projectx.liveData ? "Live" : "Sim"} data · set accounts to Auto OCO Brackets</span>
+            <button onClick={() => act({ action: "disconnect-projectx" })} className="text-tp-red hover:underline">
+              Disconnect
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="space-y-2.5">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input value={user} onChange={(e) => setUser(e.target.value)} placeholder="Username" className={inputCls} autoComplete="off" />
+            <input value={key} onChange={(e) => setKey(e.target.value)} placeholder="API key" type="password" className={inputCls} autoComplete="off" />
+            <input value={base} onChange={(e) => setBase(e.target.value)} placeholder="https://api.topstepx.com/api" className={clsx(inputCls, "sm:col-span-2")} />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <label className="flex items-center gap-2 text-[12.5px] text-zinc-400">
+              <input type="checkbox" checked={liveData} onChange={(e) => setLiveData(e.target.checked)} /> Live market data subscription
+            </label>
+            <Btn busy={busy} disabled={!user || !key} onClick={() => act({ action: "connect", userName: user, apiKey: key, base, liveData })}>
+              Connect TopstepX
+            </Btn>
+          </div>
+          <p className="text-[12px] leading-relaxed text-zinc-500">TopstepX keys come from its API access page. Other ProjectX firms use their own gateway address. Stored on this machine only.</p>
+        </div>
+      )}
+      {err && <p className="mt-2 text-[13px] text-tp-red">{err}</p>}
+    </BrokerShell>
+  );
+}
+
+function Bots({ live, accounts, onChange }: { live: LiveView; accounts: Account[]; onChange: (l: LiveView) => void }) {
   const tests = useProvingStore((s) => s.tests).filter((t) => t.cfg.strategy !== "tv-signals");
   const [testId, setTestId] = useState("");
-  const [accountId, setAccountId] = useState<number | "">("");
+  const [pick, setPick] = useState("");
+  const chosen = accounts.find((a) => `${a.broker}:${a.id}` === pick);
   const [maxContracts, setMax] = useState(2);
   const [dailyLossStop, setStop] = useState(500);
   const [busy, setBusy] = useState("");
@@ -396,8 +497,8 @@ function Bots({ live, accounts, onChange }: { live: LiveView; accounts: PxAccoun
 
   return (
     <section className="space-y-4">
-      <div className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
-        <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+      <div className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
+        <p className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
           <Bot className="h-3.5 w-3.5" /> New bot from a test
         </p>
         <div className="mt-3 grid gap-2 md:grid-cols-[1.4fr_1.2fr_0.7fr_0.8fr_auto]">
@@ -409,11 +510,11 @@ function Bots({ live, accounts, onChange }: { live: LiveView; accounts: PxAccoun
               </option>
             ))}
           </select>
-          <select value={accountId} onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")} className={inputCls}>
+          <select value={pick} onChange={(e) => setPick(e.target.value)} className={inputCls}>
             <option value="">Pick an account…</option>
             {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
+              <option key={`${a.broker}:${a.id}`} value={`${a.broker}:${a.id}`}>
+                {a.name} · {a.broker === "tradovate" ? "Tradovate" : "TopstepX"}
               </option>
             ))}
           </select>
@@ -427,10 +528,10 @@ function Bots({ live, accounts, onChange }: { live: LiveView; accounts: PxAccoun
           </label>
           <Btn
             busy={busy === "add"}
-            disabled={!test || !accountId}
+            disabled={!test || !chosen}
             onClick={() =>
               test &&
-              act("add", { action: "add-bot", name: test.name, cfg: test.cfg, accountId, accountName: accounts.find((a) => a.id === accountId)?.name, maxContracts, dailyLossStop }).then((ok) => ok && setTestId(""))
+              act("add", { action: "add-bot", name: test.name, cfg: test.cfg, accountId: chosen?.id, accountName: chosen?.name, broker: chosen?.broker, maxContracts, dailyLossStop }).then((ok) => ok && setTestId(""))
             }
           >
             Add in shadow
@@ -472,7 +573,7 @@ function BotCard({ bot: b, run, date, busy, act }: { bot: LiveBot; run?: BotRun;
             </span>
           </p>
           <p className="text-[12.5px] text-zinc-500">
-            {STRATEGIES[b.cfg.strategy].label} · {b.cfg.timeframe} · {b.contractName ?? INSTRUMENTS[b.cfg.instrument].label} · {b.accountName}
+            {STRATEGIES[b.cfg.strategy].label} · {b.cfg.timeframe} · {b.contractName ?? INSTRUMENTS[b.cfg.instrument].label} · {b.accountName} on {b.broker === "tradovate" ? "Tradovate" : "TopstepX"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -513,7 +614,11 @@ function BotCard({ bot: b, run, date, busy, act }: { bot: LiveBot; run?: BotRun;
           <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-[12.5px] text-zinc-300">
             <li>Market entries on fresh signals only, at most {b.maxContracts} contracts, each with a broker-side stop and target.</li>
             <li>The bot halts and flattens at a {usd(b.dailyLossStop)} day loss and at the strategy&apos;s {b.cfg.flatBy} ET flat time.</li>
-            <li>The account must be set to Auto OCO Brackets in ProjectX risk settings, or the first order is rejected and the bot disarms.</li>
+            {(b.broker ?? "projectx") === "projectx" ? (
+              <li>The account must be set to Auto OCO Brackets in ProjectX risk settings, or the first order is rejected and the bot disarms.</li>
+            ) : (
+              <li>Tradovate gets the stop and target as an OCO pair attached to the entry, marked as an automated order.</li>
+            )}
             <li>Arming ends at the close. Tomorrow it is back in shadow.</li>
           </ul>
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -593,7 +698,7 @@ function Guard({ label, value, onSave }: { label: string; value: number; onSave:
 
 function TradingViewCard() {
   return (
-    <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
+    <section className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
       <div>
         <p className="text-[14px] font-semibold text-zinc-100">TradingView</p>
         <p className="mt-0.5 max-w-2xl text-[12.5px] text-zinc-400">
@@ -621,8 +726,8 @@ function TradingViewCard() {
 
 function Activity({ log }: { log: LogEntry[] }) {
   return (
-    <section className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">Activity · every bot decision and order</p>
+    <section className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
+      <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Activity · every bot decision and order</p>
       <ol className="mt-3 max-h-72 space-y-1 overflow-y-auto pr-1">
         {log.length ? (
           [...log].reverse().map((l, i) => (

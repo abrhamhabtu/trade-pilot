@@ -286,3 +286,16 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 @keyframes tpSheetIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 .tp-sheet-in { animation: tpSheetIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
 @media (prefers-reduced-motion: reduce) { .tp-sheet-in { animation: none; } }
+
+/* Proving Ground sheet: rises from the bottom on phones, scales in on desktop. */
+@keyframes tpSheetIn {
+  from { transform: translateY(24px) scale(0.98); opacity: 0; }
+}
+@keyframes tpStepIn {
+  from { transform: translateX(14px); opacity: 0; }
+}
+.tp-sheet { animation: tpSheetIn 0.5s cubic-bezier(0.32, 0.72, 0, 1); }
+.tp-step { animation: tpStepIn 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .tp-sheet, .tp-step { animation: none; }
+}

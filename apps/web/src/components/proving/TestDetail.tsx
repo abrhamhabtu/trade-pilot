@@ -88,7 +88,7 @@ export function TestDetail({ test, evaluation }: { test: ProvingTest; evaluation
               {e.verdict === "passed" ? <Trophy className="h-6 w-6" /> : e.verdict === "failed" ? <XOctagon className="h-6 w-6" /> : <span className="h-2.5 w-2.5 animate-pulse rounded-full" style={{ background: test.color }} />}
             </span>
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+              <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
                 {program.firm} · {program.program} · {program.sizeLabel}
               </p>
               <h2 className={clsx("mt-0.5 text-xl font-semibold", tone === "green" ? "text-tp-green" : tone === "red" ? "text-tp-red" : "text-zinc-50")}>
@@ -119,9 +119,9 @@ export function TestDetail({ test, evaluation }: { test: ProvingTest; evaluation
 
       {/* Equity + gauges */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
+        <section className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">Account balance · as {program.firm} sees it</p>
+            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Account balance · as {program.firm} sees it</p>
             <div className="flex gap-3 font-mono text-[10px] text-zinc-500">
               <span className="flex items-center gap-1"><span className="h-0.5 w-3" style={{ background: test.color }} />balance</span>
               <span className="flex items-center gap-1"><span className="h-0.5 w-3 border-t border-dashed border-tp-red" />{DD_LABEL[program.ddType].toLowerCase()} drawdown</span>
@@ -135,8 +135,8 @@ export function TestDetail({ test, evaluation }: { test: ProvingTest; evaluation
             </div>
           )}
         </section>
-        <section className="space-y-3 rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">Firm rules</p>
+        <section className="space-y-3 rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
+          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Firm rules</p>
           <Gauge label="Profit target" value={Math.max(0, e.profit)} max={program.target} text={`${signed(e.profit)} of ${usd(program.target)}`} tone={e.profit >= program.target ? "green" : "blue"} />
           <Gauge label={`${DD_LABEL[program.ddType]} buffer`} value={Math.max(0, e.buffer)} max={program.drawdown} text={`${usd(e.buffer)} left of ${usd(program.drawdown)}`} tone={e.buffer < program.drawdown * 0.3 ? "red" : e.buffer < program.drawdown * 0.6 ? "yellow" : "green"} />
           <Gauge
@@ -159,9 +159,9 @@ export function TestDetail({ test, evaluation }: { test: ProvingTest; evaluation
       </div>
 
       {/* Session replay */}
-      <section className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
+      <section className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
             Session replay · {focus ? shortDate(focus) : "—"} {focusDay?.partial && <span className="ml-1 rounded bg-tp-red/15 px-1 text-tp-red">LIVE</span>}
           </p>
           <div className="flex w-full min-w-0 gap-1 overflow-x-auto pb-1 [scrollbar-width:thin] sm:w-auto sm:max-w-[60%]">
@@ -195,9 +195,9 @@ export function TestDetail({ test, evaluation }: { test: ProvingTest; evaluation
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         {/* Firm matrix */}
-        <section className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
+        <section className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
           <div className="mb-3 flex items-center justify-between">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">Same trades, every firm · {program.sizeLabel}</p>
+            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Same trades, every firm · {program.sizeLabel}</p>
             <span className="text-[11px] text-zinc-500">{matrix.filter((m) => m.e.verdict === "passed").length} pass · {matrix.filter((m) => m.e.verdict === "failed").length} fail</span>
           </div>
           <div className="divide-y divide-white/[0.05]">
@@ -225,8 +225,8 @@ export function TestDetail({ test, evaluation }: { test: ProvingTest; evaluation
         </section>
 
         {/* Notes */}
-        <section className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
-          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">Lab notes</p>
+        <section className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
+          <p className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Lab notes</p>
           {noteFor && (
             <p className="mb-2 flex items-center gap-2 text-[11.5px] text-tp-blue">
               Note on {noteFor.tradeId ? `trade ${noteFor.tradeId.split("-").pop()} of ` : ""}
@@ -267,8 +267,8 @@ export function TestDetail({ test, evaluation }: { test: ProvingTest; evaluation
       </div>
 
       {/* Trades */}
-      <section className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
-        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">Trades · {allTrades.length}</p>
+      <section className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
+        <p className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Trades · {allTrades.length}</p>
         {allTrades.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-[12.5px]">

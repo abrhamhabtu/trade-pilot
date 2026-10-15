@@ -2,16 +2,20 @@ import { nyClock } from "@/lib/pilot/market";
 import { localOnly, noStore } from "@/lib/server/guard";
 import { addBot, arm, flattenAll, getBots, getLog, getRuns, liveState, saveBots, setMode, type LiveBot } from "@/lib/server/live/bots";
 import * as px from "@/lib/server/live/projectx";
+import * as tv from "@/lib/server/live/tradovate";
 import type { StrategyConfig } from "@/lib/proving/engine";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function snapshot() {
   const s = await px.getSecrets();
+  const t = await tv.getSecrets();
   const runs = await getRuns();
   const date = nyClock(Date.now()).date;
   return {
-    connected: !!s.apiKey,
+    connected: !!s.apiKey || !!t.sec,
+    projectx: { connected: !!s.apiKey, userName: s.userName ?? null, base: s.base ?? px.DEFAULT_BASE, liveData: !!s.liveData },
+    tradovate: { connected: !!t.sec, userName: t.name ?? null, environment: t.environment ?? "demo" },
     userName: s.userName ?? null,
     base: s.base ?? px.DEFAULT_BASE,
     liveData: !!s.liveData,
@@ -29,11 +33,13 @@ export async function GET(req: Request) {
   const out = await snapshot();
   const url = new URL(req.url);
   if (url.searchParams.get("accounts") === "1" && out.connected) {
-    try {
-      return noStore({ ...out, accounts: await px.accounts() });
-    } catch (e) {
-      return noStore({ ...out, accounts: [], accountsError: e instanceof Error ? e.message : "Accounts unavailable" });
-    }
+    const errors: string[] = [];
+    const tag = <T extends { id: number; name: string }>(broker: "projectx" | "tradovate", list: T[]) => list.map((a) => ({ ...a, broker }));
+    const [p, t] = await Promise.all([
+      out.projectx.connected ? px.accounts().then((l) => tag("projectx", l)).catch((e) => (errors.push(`TopstepX: ${e.message}`), [])) : [],
+      out.tradovate.connected ? tv.accounts().then((l) => tag("tradovate", l)).catch((e) => (errors.push(`Tradovate: ${e.message}`), [])) : [],
+    ]);
+    return noStore({ ...out, accounts: [...t, ...p], accountsError: errors.join(" · ") || undefined });
   }
   return noStore(out);
 }
@@ -53,9 +59,23 @@ export async function POST(req: Request) {
         const accounts = await px.connect(body.userName.trim(), body.apiKey, base, body.liveData === true);
         return noStore({ ...(await snapshot()), accounts });
       }
+      case "connect-tradovate": {
+        const strings = [body.name, body.password, body.appId, body.sec];
+        const cid = Number(body.cid);
+        if (!strings.every((v) => typeof v === "string" && v.length > 0 && v.length <= 4096) || !Number.isSafeInteger(cid) || cid <= 0)
+          return noStore({ error: "Enter your Tradovate username, password, API app ID, CID and secret." }, 400);
+        const environment = body.environment === "live" ? "live" : "demo";
+        await tv.connect({ name: String(body.name).trim(), password: String(body.password), appId: String(body.appId), cid, sec: String(body.sec), environment });
+        return noStore(await snapshot());
+      }
       case "disconnect":
-        await flattenAll("disconnected");
+      case "disconnect-projectx":
+        await flattenAll("TopstepX disconnected");
         await px.disconnect();
+        return noStore(await snapshot());
+      case "disconnect-tradovate":
+        await flattenAll("Tradovate disconnected");
+        await tv.disconnect();
         return noStore(await snapshot());
       case "add-bot": {
         const cfg = body.cfg as StrategyConfig | undefined;
@@ -64,7 +84,8 @@ export async function POST(req: Request) {
         const dailyLossStop = num(body.dailyLossStop, 0, 100_000);
         if (!cfg || typeof cfg.strategy !== "string" || cfg.strategy === "tv-signals" || !accountId || !maxContracts || dailyLossStop === null || typeof body.name !== "string")
           return noStore({ error: "Pick a test, an account, a contract cap and a daily loss stop." }, 400);
-        await addBot({ name: body.name.slice(0, 60), cfg, accountId, accountName: String(body.accountName ?? accountId).slice(0, 60), maxContracts, dailyLossStop });
+        const broker = body.broker === "tradovate" ? "tradovate" : "projectx";
+        await addBot({ name: body.name.slice(0, 60), cfg, accountId, accountName: String(body.accountName ?? accountId).slice(0, 60), maxContracts, dailyLossStop, broker });
         return noStore(await snapshot());
       }
       case "update-bot": {

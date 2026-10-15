@@ -19,6 +19,9 @@ import { INSTRUMENTS, STRATEGIES, TF_MINUTES, runSession, toSessions, type Strat
 import { notify } from "../notify";
 import { appendLine, readJson, tailLines, updateJson } from "../store";
 import * as px from "./projectx";
+import * as tv from "./tradovate";
+
+export type BrokerId = "projectx" | "tradovate";
 
 export type BotMode = "off" | "shadow" | "armed";
 
@@ -28,7 +31,9 @@ export interface LiveBot {
   cfg: StrategyConfig;
   accountId: number;
   accountName: string;
-  contractId?: string;
+  /** Which connection trades it. Bots made before Tradovate support are ProjectX. */
+  broker?: BrokerId;
+  contractId?: string | number;
   contractName?: string;
   tickSize?: number;
   mode: BotMode;
@@ -100,8 +105,11 @@ async function log(entry: Omit<LogEntry, "at">, alert = false) {
 
 export const isArmed = (b: LiveBot, date = nyClock(Date.now()).date) => b.mode === "armed" && b.armedOn === date && b.firmAllowsAutomation;
 
-export async function addBot(input: Pick<LiveBot, "name" | "cfg" | "accountId" | "accountName" | "maxContracts" | "dailyLossStop">) {
-  const contract = await px.frontContract(ROOT[input.cfg.instrument]);
+const brokerOf = (b: LiveBot): BrokerId => b.broker ?? "projectx";
+
+export async function addBot(input: Pick<LiveBot, "name" | "cfg" | "accountId" | "accountName" | "maxContracts" | "dailyLossStop" | "broker">) {
+  const root = ROOT[input.cfg.instrument];
+  const contract = input.broker === "tradovate" ? { ...(await tv.frontContract(root)), tickSize: INSTRUMENTS[input.cfg.instrument].tick } : await px.frontContract(root);
   const bot: LiveBot = {
     ...input,
     id: uid(),
@@ -140,14 +148,15 @@ export async function setMode(id: string, mode: Exclude<BotMode, "armed">, reaso
 
 /** Close the bot's position, cancel its leftover orders, and stop it for the day. */
 async function flattenBot(b: LiveBot, reason: string) {
-  if (!b.contractId) return;
+  if (b.contractId == null) return;
   try {
-    await px.closeContract(b.accountId, b.contractId);
+    if (brokerOf(b) === "tradovate") await tv.liquidate(b.accountId, Number(b.contractId));
+    else await px.closeContract(b.accountId, String(b.contractId));
   } catch (e) {
     // No position to close is fine; anything else is reported.
     if (!(e instanceof Error && /position/i.test(e.message))) await log({ botId: b.id, level: "error", text: `${b.name}: close failed: ${e instanceof Error ? e.message : e}` }, true);
   }
-  await px.cancelOpenOrders(b.accountId, b.contractId).catch(() => undefined);
+  if (brokerOf(b) === "projectx") await px.cancelOpenOrders(b.accountId, String(b.contractId)).catch(() => undefined);
   await log({ botId: b.id, level: "order", text: `🛑 ${b.name}: flattened (${reason}).` }, true);
 }
 
@@ -179,9 +188,10 @@ export async function liveSummary() {
 
 async function runBot(b: LiveBot, run: BotRun, now: number) {
   const clock = nyClock(now);
-  if (!b.contractId || !b.tickSize) return;
+  if (b.contractId == null || !b.tickSize || !b.contractName) return;
   const tf = TF_MINUTES[b.cfg.timeframe];
-  const bars = await px.minuteBars(b.contractId, tf, now - 4 * 86_400_000, now);
+  const broker = brokerOf(b);
+  const bars = broker === "tradovate" ? await tv.minuteBars(b.contractName, tf) : await px.minuteBars(String(b.contractId), tf, now - 4 * 86_400_000, now);
   const session = toSessions(bars).find((s) => s.date === clock.date);
   if (!session?.rth.length) return;
   const sim = runSession(session, b.cfg, { partial: clock.minute < RTH_CLOSE });
@@ -219,14 +229,18 @@ async function runBot(b: LiveBot, run: BotRun, now: number) {
       const exec: Execution = { tradeId: t.id, at: now, side: t.side, qty, entryPx: t.entryPx, live: armed };
       if (armed) {
         try {
-          exec.orderId = await px.placeBracketMarket({ accountId: b.accountId, contractId: b.contractId, side: t.side, size: qty, stopTicks, targetTicks, tag: `tp-${b.id}-${t.id}`.slice(0, 50) });
+          const tag = `tp-${b.id}-${t.id}`.slice(0, 50);
+          exec.orderId =
+            broker === "tradovate"
+              ? await tv.placeBracketMarket({ accountId: b.accountId, accountName: b.accountName, symbol: b.contractName, side: t.side, size: qty, refPx: bars[bars.length - 1].c, stopPts: Math.abs(t.entryPx - t.stopPx), targetPts: Math.abs(t.targetPx - t.entryPx), tick: b.tickSize, tag })
+              : await px.placeBracketMarket({ accountId: b.accountId, contractId: String(b.contractId), side: t.side, size: qty, stopTicks, targetTicks, tag });
           await log({ botId: b.id, level: "order", text: `🚀 ${b.name}: ${what} (order ${exec.orderId})` }, true);
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           exec.skipped = `rejected: ${msg}`;
           run.halted = "order rejected";
           await setMode(b.id, "shadow", "order rejected");
-          const hint = /bracket/i.test(msg) ? " Set the account's risk setting to Auto OCO Brackets, then arm again." : "";
+          const hint = broker === "projectx" && /bracket/i.test(msg) ? " Set the account's risk setting to Auto OCO Brackets, then arm again." : "";
           await log({ botId: b.id, level: "error", text: `⛔ ${b.name}: order rejected: ${msg}. Bot disarmed.${hint}` }, true);
         }
       } else {
@@ -240,8 +254,11 @@ async function runBot(b: LiveBot, run: BotRun, now: number) {
     if (!done.closed && !done.skipped && t.exit !== "open") {
       done.closed = true;
       if (done.live && (t.exit === "time" || t.exit === "breakeven")) {
-        await px.closeContract(b.accountId, b.contractId).catch(() => undefined);
-        await px.cancelOpenOrders(b.accountId, b.contractId).catch(() => undefined);
+        if (broker === "tradovate") await tv.liquidate(b.accountId, Number(b.contractId)).catch(() => undefined);
+        else {
+          await px.closeContract(b.accountId, String(b.contractId)).catch(() => undefined);
+          await px.cancelOpenOrders(b.accountId, String(b.contractId)).catch(() => undefined);
+        }
       }
       await log({ botId: b.id, level: done.live ? "order" : "info", text: `${done.live ? "" : "[SHADOW] "}${b.name}: ${t.exit} exit, ${money(t.pnl)} (${t.r >= 0 ? "+" : ""}${t.r}R).` }, true);
     }
@@ -252,10 +269,10 @@ export async function liveTick(now = Date.now()) {
   const clock = nyClock(now);
   const bots = (await getBots()).filter((b) => b.mode !== "off");
   if (!bots.length || clock.weekday === 0 || clock.weekday === 6 || clock.minute < RTH_OPEN - 5 || clock.minute > RTH_CLOSE + 5) return;
-  const secrets = await px.getSecrets();
-  if (!secrets.apiKey) return;
+  const connected = { projectx: !!(await px.getSecrets()).apiKey, tradovate: !!(await tv.getSecrets()).sec };
   const runs = await getRuns();
   for (const b of bots) {
+    if (!connected[brokerOf(b)]) continue;
     const run: BotRun = runs[b.id]?.date === clock.date ? runs[b.id] : { date: clock.date, executions: {}, dayPnl: 0, trades: [] };
     try {
       await runBot(b, run, now);

@@ -25,10 +25,11 @@ The server starts background loops on boot (`src/instrumentation.ts`). Set `TRAD
 
 - **Always-on runner.** The browser mirrors its tests to the server, which replays them every minute and sends alerts with no browser open. Tests on "My TradingView signals" still run only in the browser.
 - **Alerts.** A Telegram bot (token from @BotFather, then *Find my chat*) and/or a Discord webhook. Telegram answers `/status`, `/live`, `/flatten` and `/help`, from the saved chat only.
-- **Live bots (ProjectX).** Connect with your ProjectX username and API key (TopstepX by default; other firms on ProjectX use their own gateway address). A bot runs a test's rules on ProjectX's own bars for the front-month contract.
+- **Brokers.** Tradovate covers Lucid, Top One Futures, Futures Elite, Tradeify, FundedNext and Take Profit Trader: connect with your Tradovate username, password and an API key (app ID, CID, secret; needs Tradovate's API add-on and your firm's permission). Most prop accounts are on the demo environment. TopstepX (ProjectX) connects with a username and API key; other firms on ProjectX use their own gateway address. Tradovate bars stream from its market-data WebSocket, which needs Node 22 or newer (the Docker image uses Node 22).
+- **Live bots.** A bot runs a test's rules on the broker's own real-time bars for the front-month contract.
   - Shadow is the default: every order it would send is logged and alerted, and nothing reaches the broker.
   - Arming needs a typed `ARM`, your confirmation that the firm allows automated trading on that account, and lasts for one session.
-  - Armed orders are market entries on fresh signals only, with broker-side OCO brackets (the account must be set to **Auto OCO Brackets** in ProjectX risk settings), a contract cap, a daily loss stop that halts and flattens, and the strategy's flat-by time.
+  - Armed orders are market entries on fresh signals only, with broker-side OCO brackets (Tradovate: an OCO stop and target attached to the entry, flagged as automated; ProjectX: the account must be set to **Auto OCO Brackets** in its risk settings), a contract cap, a daily loss stop that halts and flattens, and the strategy's flat-by time.
   - Any rejected order disarms the bot. The kill switch (in the app, or `/flatten` on Telegram) closes every armed bot's position, cancels its orders and disarms all bots.
 
 Several prop firms restrict or ban automated trading. Check your firm's rules before arming.
@@ -39,4 +40,4 @@ Server state is plain JSON in `.tradepilot/` (or `TRADEPILOT_DATA_DIR`), git-ign
 
 ## Not verified
 
-No ProjectX key, Telegram bot or Discord webhook was available during development, so live order placement, ProjectX bars and message delivery have been checked against ProjectX's and the services' published API documentation only. Run a bot in shadow for a session, and send a test alert, before relying on either.
+No Tradovate or ProjectX credentials, Telegram bot or Discord webhook were available during development, so order placement, broker bars and message delivery have been checked against the published API documentation only (Tradovate: docs.ninjatrader.com/api). Run a bot in shadow for a session, and send a test alert, before relying on either.

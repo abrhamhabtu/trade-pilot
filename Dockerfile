@@ -1,7 +1,7 @@
 # TradePilot Dockerfile (Next.js)
 # Build and run the Next.js app from apps/web
 
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 

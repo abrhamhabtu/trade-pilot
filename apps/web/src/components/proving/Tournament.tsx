@@ -90,7 +90,7 @@ export function Tournament() {
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <section className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
+      <section className="flex flex-wrap items-end justify-between gap-4 rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
         <div className="max-w-xl">
           <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#B18CFF]">
             <Trophy className="h-3.5 w-3.5" /> Tournament
@@ -116,7 +116,7 @@ export function Tournament() {
       </section>
 
       {busy && (
-        <section className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-6">
+        <section className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-6">
           <div className="flex items-center gap-3 text-sm text-zinc-300">
             <Loader2 className="h-4 w-4 animate-spin text-[#B18CFF]" />
             {progress!.label}…
@@ -134,9 +134,9 @@ export function Tournament() {
           <BestBet cell={best} result={result} />
 
           {/* Matrix */}
-          <section className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
+          <section className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">Chance of coming out ahead in 3 months · typical result</p>
+              <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Chance of coming out ahead in 3 months · typical result</p>
               <p className="text-[12px] text-zinc-500">
                 {result.mode === "tuned"
                   ? `Rules and size chosen on ${shortDate(result.trainFrom ?? "")}–${shortDate(result.trainTo ?? "")}, scored on ${shortDate(result.from)}–${shortDate(result.to)}`
@@ -290,8 +290,8 @@ function PairDetail({ cell, result }: { cell: Cell; result: TournamentResult }) 
   const at = (n: number) => `${((n - lo) / (hi - lo)) * 100}%`;
   return (
     <section className="grid gap-4 lg:grid-cols-2">
-      <div className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
-        <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+      <div className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
+        <p className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
           <Dices className="h-3.5 w-3.5" /> {o.runs} account lives · {STRATEGIES[cell.strategy].short} × {cell.program.firm} {cell.program.program}
         </p>
         <p className="mt-3 text-[15px] text-zinc-200">
@@ -314,8 +314,8 @@ function PairDetail({ cell, result }: { cell: Cell; result: TournamentResult }) 
         <RunAsTest cell={cell} result={result} />
       </div>
 
-      <div className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">The real window, in order</p>
+      <div className="rounded-[28px] border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl p-5">
+        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-zinc-500">The real window, in order</p>
         <p className="mt-3 text-[15px] text-zinc-200">
           Spent <span className="font-semibold text-zinc-50">{usd(c.spent)}</span>, paid out <span className="font-semibold text-zinc-50">{usd(c.paidOut)}</span>:{" "}
           <span className={clsx("font-semibold", c.net >= 0 ? "text-tp-green" : "text-tp-red")}>{signed(c.net)}</span>
