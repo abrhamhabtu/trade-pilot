@@ -33,6 +33,18 @@ export function ProvingRunner() {
   const [pings, setPings] = useState<Ping[]>([]);
   const busy = useRef(false);
 
+  // Mirror the tests to the server, which keeps running them and sends alerts
+  // while no browser is open. A server that refuses (not local) is fine.
+  const mirror = useProvingStore((s) =>
+    JSON.stringify(s.tests.map(({ id, name, cfg, programKey, startDate, state, createdAt }) => ({ id, name, cfg, programKey, startDate, state, createdAt }))),
+  );
+  useEffect(() => {
+    const id = setTimeout(() => {
+      fetch("/api/proving/server", { method: "PUT", headers: { "Content-Type": "application/json" }, body: `{"tests":${mirror}}` }).catch(() => undefined);
+    }, 1500);
+    return () => clearTimeout(id);
+  }, [mirror]);
+
   useEffect(() => {
     if (!running) return;
     let stopped = false;

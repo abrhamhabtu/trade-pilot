@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
-import { FlaskConical, Plus, Rocket, ShieldCheck, Trophy, Beaker } from "lucide-react";
+import { FlaskConical, Plus, Radio, Rocket, ShieldCheck, Trophy, Beaker } from "lucide-react";
 import { useHistoryTab } from "@/hooks/useHistoryParam";
 import { MAX_RUNNING, useProvingStore, type ProvingTest } from "@/store/provingStore";
 import { STRATEGIES, defaultConfig, type StrategyId } from "@/lib/proving/engine";
@@ -15,8 +15,9 @@ import { NewTest, type NewTestInput } from "./NewTest";
 import { TestDetail } from "./TestDetail";
 import { Tournament } from "./Tournament";
 import { Leaderboard } from "./Leaderboard";
+import { LivePanel } from "./LivePanel";
 
-const VIEWS = ["tests", "tournament"] as const;
+const VIEWS = ["tests", "tournament", "live"] as const;
 
 const signed = (n: number) => `${n >= 0 ? "+" : "-"}$${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
 const usd = (n: number) => `$${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
@@ -101,6 +102,7 @@ export function ProvingPage() {
           [
             { id: "tests", label: "Your tests", icon: Beaker, badge: tests.length || null },
             { id: "tournament", label: "Tournament", icon: Trophy, badge: null },
+            { id: "live", label: "Live & alerts", icon: Radio, badge: null },
           ] as const
         ).map((v) => (
           <button
@@ -121,6 +123,8 @@ export function ProvingPage() {
 
       {view === "tournament" ? (
         <Tournament />
+      ) : view === "live" ? (
+        <LivePanel />
       ) : !tests.length ? (
         <section className="grid gap-4 lg:grid-cols-3">
           {TEMPLATES.map((t) => {

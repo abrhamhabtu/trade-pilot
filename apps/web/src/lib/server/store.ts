@@ -3,8 +3,8 @@
 // one folder, written atomically. Secrets live in their own file, readable by
 // the owner only, and are never sent back to a browser.
 
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import { promises as fs } from "fs";
+import path from "path";
 
 export const DATA_DIR = process.env.TRADEPILOT_DATA_DIR || path.join(process.cwd(), ".tradepilot");
 
