@@ -1,12 +1,6 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import { AppShell } from '@/components/app/AppShell';
-import { Setups } from '@/components/Setups';
-
+// Setups was folded into Playbooks; old links land there.
 export default function SetupsPage() {
-    return (
-        <AppShell fullHeight>
-            <Setups />
-        </AppShell>
-    );
+  redirect('/app/playbooks');
 }

@@ -10,7 +10,7 @@
   max-width: 1320px;
   margin: auto;
   padding: 8px 0 30px;
-  font-size: 14px;
+  font-size: 15.5px;
   line-height: 1.55;
 }
 .pilot-workspace h1,
@@ -32,7 +32,7 @@
   gap: 10px;
   align-items: center;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14.5px;
   margin-bottom: 17px;
   color: var(--p-accent);
 }
@@ -50,7 +50,7 @@
   color: var(--p-muted);
 }
 .pilot-small {
-  font-size: 12px;
+  font-size: 13.5px;
 }
 .pilot-workspace button,
 .pilot-dialog button {
@@ -77,7 +77,7 @@
   background: rgba(150, 175, 211, 0.05);
   border-radius: 9px;
   padding: 9px 13px;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 550;
   white-space: nowrap;
   color: var(--p-text);
@@ -117,7 +117,7 @@
 }
 .pilot-context label > span {
   display: block;
-  font-size: 9px;
+  font-size: 10.5px;
   letter-spacing: 0.14em;
   color: var(--p-muted);
   margin-bottom: 3px;
@@ -127,7 +127,7 @@
   background: transparent;
   border: 0;
   color: var(--p-text);
-  font-size: 13px;
+  font-size: 14.5px;
   padding-right: 8px;
   max-width: 230px;
   cursor: pointer;
@@ -146,12 +146,12 @@
   gap: 9px;
   align-items: center;
   color: var(--p-muted);
-  font-size: 12px;
+  font-size: 13.5px;
   flex: 1;
 }
 .pilot-source small {
   display: block;
-  font-size: 10px;
+  font-size: 11.5px;
   margin-top: 2px;
 }
 .pilot-dot {
@@ -168,7 +168,7 @@
   display: inline-flex;
   gap: 7px;
   align-items: center;
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--p-accent);
   text-align: left;
 }
@@ -185,7 +185,7 @@
 .pilot-tabs > button {
   white-space: nowrap;
   color: var(--p-muted);
-  font-size: 12px;
+  font-size: 13.5px;
   padding: 15px 0 13px;
   border-bottom: 2px solid transparent;
   display: flex;
@@ -197,7 +197,7 @@
   color: var(--p-text);
 }
 .pilot-tabs button > span {
-  font-size: 9px;
+  font-size: 10.5px;
   border-radius: 5px;
   background: var(--p-panel-soft);
   padding: 1px 5px;
@@ -211,7 +211,7 @@
 }
 .pilot-eyebrow {
   display: block;
-  font-size: 9px;
+  font-size: 10.5px;
   letter-spacing: 0.16em;
   font-weight: 600;
   color: var(--p-muted);
@@ -263,7 +263,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 14px;
+  font-size: 15.5px;
   font-weight: 550;
   letter-spacing: -0.015em;
   margin: 0;
@@ -292,7 +292,7 @@
   margin: 12px 0;
 }
 .pilot-summary p {
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--p-muted);
   max-width: 430px;
 }
@@ -320,7 +320,7 @@
 }
 .pilot-metrics span {
   display: block;
-  font-size: 10px;
+  font-size: 11.5px;
   color: var(--p-muted);
   margin-bottom: 3px;
 }
@@ -331,7 +331,7 @@
   font-variant-numeric: tabular-nums;
 }
 .pilot-metrics small {
-  font-size: 14px;
+  font-size: 15.5px;
   color: var(--p-muted);
   font-weight: 400;
 }
@@ -348,7 +348,7 @@
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: 11px;
+  font-size: 12.5px;
 }
 .pilot-rule-meter strong {
   font-weight: 500;
@@ -367,7 +367,7 @@
   border-radius: 5px;
 }
 .pilot-rule-meter small {
-  font-size: 10px;
+  font-size: 11.5px;
   color: var(--p-muted);
 }
 .pilot-flags > button {
@@ -384,14 +384,14 @@
 }
 .pilot-flags strong {
   display: block;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 500;
   color: #e6c99e;
 }
 .pilot-flags small {
   display: block;
   color: var(--p-muted);
-  font-size: 10px;
+  font-size: 11.5px;
   margin-top: 3px;
 }
 .pilot-alert-mark {
@@ -401,7 +401,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 11.5px;
   color: #e6c99e;
   flex-shrink: 0;
 }
@@ -409,7 +409,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 12px;
+  font-size: 13.5px;
   padding-top: 8px;
   color: var(--p-muted);
 }
@@ -431,16 +431,16 @@
 .pilot-agent-rows strong {
   display: block;
   font-weight: 500;
-  font-size: 12px;
+  font-size: 13.5px;
 }
 .pilot-agent-rows small {
-  font-size: 11px;
+  font-size: 12.5px;
   display: block;
   color: var(--p-muted);
   margin-top: 2px;
 }
 .pilot-status {
-  font-size: 9px !important;
+  font-size: 10.5px !important;
   border-radius: 5px;
   padding: 3px 6px;
   background: rgba(160, 185, 220, 0.07);
@@ -473,12 +473,12 @@
   flex: 1;
 }
 .pilot-coach h2 {
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 550;
   letter-spacing: 0;
 }
 .pilot-coach header p {
-  font-size: 10px;
+  font-size: 11.5px;
   color: var(--p-muted);
   margin-top: 2px;
 }
@@ -503,7 +503,7 @@
   margin: 16px 0;
 }
 .pilot-coach-welcome > p {
-  font-size: 12px;
+  font-size: 13.5px;
   line-height: 1.7;
   color: var(--p-muted);
 }
@@ -525,7 +525,7 @@
   border: 1px solid var(--p-line);
   border-radius: 8px;
   padding: 9px 10px;
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--p-muted);
   text-align: left;
 }
@@ -549,7 +549,7 @@
   width: 100%;
   background: transparent;
   outline: 0;
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--p-text);
 }
 .pilot-coach form > div {
@@ -560,7 +560,7 @@
   margin-top: 5px;
 }
 .pilot-coach form span {
-  font-size: 9px;
+  font-size: 10.5px;
   color: var(--p-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -579,15 +579,15 @@
 .pilot-coach-footnote {
   text-align: center;
   color: var(--p-muted);
-  font-size: 9px;
+  font-size: 10.5px;
   padding: 11px 5px;
 }
 .pilot-message {
   padding: 12px 0;
-  font-size: 12px;
+  font-size: 13.5px;
 }
 .pilot-message > span {
-  font-size: 9px;
+  font-size: 10.5px;
   color: var(--p-accent);
 }
 .pilot-message p {
@@ -617,11 +617,11 @@
 }
 .pilot-side-note strong {
   color: var(--p-text);
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 500;
 }
 .pilot-side-note p {
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1.7;
   margin: 5px 0 10px;
 }
@@ -635,7 +635,7 @@
   border-top: 1px solid var(--p-line);
 }
 .pilot-trade-list > button > strong {
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 500;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -647,7 +647,7 @@
   place-items: center;
   background: rgba(160, 185, 220, 0.06);
   border-radius: 8px;
-  font-size: 9px;
+  font-size: 10.5px;
   color: var(--p-muted);
   flex-shrink: 0;
 }
@@ -657,18 +657,18 @@
 }
 .pilot-trade-detail > strong {
   display: block;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 500;
 }
 .pilot-trade-detail > strong > span {
-  font-size: 10px;
+  font-size: 11.5px;
   color: var(--p-muted);
   font-weight: 400;
   margin-left: 5px;
 }
 .pilot-trade-detail > small {
   display: block;
-  font-size: 10px;
+  font-size: 11.5px;
   color: var(--p-muted);
   margin-top: 2px;
 }
@@ -680,7 +680,7 @@
 }
 .pilot-tags span {
   background: rgba(160, 185, 220, 0.07);
-  font-size: 8px;
+  font-size: 9.5px;
   color: var(--p-muted);
   border-radius: 4px;
   padding: 2px 5px;
@@ -698,7 +698,7 @@
   align-items: center;
   gap: 10px;
   color: var(--p-muted);
-  font-size: 10px;
+  font-size: 11.5px;
   margin-top: 30px;
   flex-wrap: wrap;
 }
@@ -717,7 +717,7 @@
   margin: 10px 0;
 }
 .pilot-empty p {
-  font-size: 12px;
+  font-size: 13.5px;
   margin-bottom: 20px;
 }
 .pilot-notice {
@@ -729,7 +729,7 @@
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 18px;
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--p-accent);
 }
 .pilot-notice button {
@@ -739,7 +739,7 @@
   display: flex;
   gap: 10px;
   padding: 13px 0;
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--p-muted);
 }
 .pilot-inline-info svg {
@@ -752,7 +752,7 @@
   font-size: 27px;
 }
 .pilot-settings h3 {
-  font-size: 16px;
+  font-size: 17px;
   margin: 25px 0 16px;
 }
 .pilot-switches {
@@ -767,12 +767,12 @@
   border-bottom: 1px solid var(--p-line);
 }
 .pilot-switches strong {
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 500;
 }
 .pilot-switches small {
   display: block;
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--p-muted);
   margin-top: 4px;
 }
@@ -815,7 +815,7 @@
 .pilot-model-form label,
 .pilot-dialog form > label {
   display: block;
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--p-muted);
 }
 .pilot-rule-fields input,
@@ -832,7 +832,7 @@
   padding: 10px 12px;
   margin-top: 7px;
   color: var(--p-text);
-  font-size: 13px;
+  font-size: 14.5px;
   color-scheme: dark;
 }
 .pilot-provider-grid {
@@ -850,7 +850,7 @@
   text-align: left;
   border: 1px solid var(--p-line);
   border-radius: 9px;
-  font-size: 12px;
+  font-size: 13.5px;
 }
 .pilot-provider-grid button.selected {
   border-color: var(--p-accent);
@@ -879,7 +879,7 @@
   background: none;
   border: 0;
   padding: 0;
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--p-muted);
   text-decoration: underline;
   cursor: pointer;
@@ -892,7 +892,7 @@
   padding: 18px;
   border: 1px solid var(--p-line);
   border-radius: 9px;
-  font-size: 12px;
+  font-size: 13.5px;
 }
 .pilot-connection-note strong {
   font-weight: 500;
@@ -915,11 +915,11 @@
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 12px;
+  font-size: 13.5px;
   white-space: nowrap;
 }
 .pilot-edge-table th {
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 400;
   color: var(--p-muted);
   padding: 10px;
@@ -931,7 +931,7 @@
 .pilot-error,
 .pilot-warning {
   color: #ecc18b;
-  font-size: 12px;
+  font-size: 13.5px;
 }
 .pilot-dialog {
   --p-bg: #111e30;
@@ -980,7 +980,7 @@
 .pilot-dialog .pilot-section-title {
   margin-top: 22px;
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: 14.5px;
 }
 .pilot-dialog-actions {
   display: flex;
@@ -992,7 +992,7 @@
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--p-muted);
   margin-bottom: 16px;
 }
@@ -1005,7 +1005,7 @@
 .pilot-review-checks p {
   display: flex;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13.5px;
   padding: 3px 0;
 }
 .pilot-dialog .pilot-small {
@@ -1069,7 +1069,7 @@ html[data-theme="light"] .pilot-workspace input {
     font-size: 29px;
   }
   .pilot-source {
-    font-size: 10px;
+    font-size: 11.5px;
   }
   .pilot-context {
     padding: 14px;
@@ -1124,7 +1124,7 @@ html[data-theme="light"] .pilot-workspace input {
   }
   .pilot-button {
     padding: 8px 10px;
-    font-size: 11px;
+    font-size: 12.5px;
   }
   .pilot-context {
     gap: 10px;
@@ -1136,7 +1136,7 @@ html[data-theme="light"] .pilot-workspace input {
     max-width: 155px;
   }
   .pilot-context .pilot-text-link {
-    font-size: 10px;
+    font-size: 11.5px;
   }
   .pilot-context label {
     min-width: 0;
@@ -1146,7 +1146,7 @@ html[data-theme="light"] .pilot-workspace input {
     margin-bottom: 20px;
   }
   .pilot-tabs > button {
-    font-size: 11px;
+    font-size: 12.5px;
   }
   .pilot-panel,
   .pilot-summary {
@@ -1179,7 +1179,7 @@ html[data-theme="light"] .pilot-workspace input {
     align-items: flex-start;
   }
   .pilot-rule-meter > div:first-child {
-    font-size: 10px;
+    font-size: 11.5px;
   }
   .pilot-dialog {
     padding: 20px;
@@ -1192,7 +1192,7 @@ html[data-theme="light"] .pilot-workspace input {
     min-width: 0;
   }
   .pilot-footer {
-    font-size: 9px;
+    font-size: 10.5px;
     gap: 7px;
   }
   .pilot-agent-rows small {
@@ -1224,7 +1224,7 @@ html[data-theme="light"] .pilot-workspace input {
   margin: 10px 0;
 }
 .pilot-demo-heading p {
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--p-muted);
   max-width: 680px;
 }
@@ -1232,7 +1232,7 @@ html[data-theme="light"] .pilot-workspace input {
   display: flex;
   gap: 6px;
   align-items: center;
-  font-size: 10px;
+  font-size: 11.5px;
   color: var(--p-accent);
   white-space: nowrap;
   border: 1px solid var(--p-line);
@@ -1253,7 +1253,7 @@ html[data-theme="light"] .pilot-workspace input {
   border: 1px solid var(--p-line);
   border-radius: 7px;
   padding: 8px 12px;
-  font-size: 12px;
+  font-size: 13.5px;
   color: var(--p-muted);
 }
 .pilot-demo-tabs button[aria-pressed="true"] {
@@ -1279,13 +1279,13 @@ html[data-theme="light"] .pilot-workspace input {
 }
 .pilot-demo-source h3 span {
   color: var(--p-muted);
-  font-size: 15px;
+  font-size: 16.5px;
   margin-left: 5px;
 }
 .pilot-demo-source > p,
 .pilot-demo-output > p {
   color: var(--p-muted);
-  font-size: 12px;
+  font-size: 13.5px;
   line-height: 1.7;
 }
 .pilot-demo-source dl {
@@ -1295,7 +1295,7 @@ html[data-theme="light"] .pilot-workspace input {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  font-size: 11px;
+  font-size: 12.5px;
   padding: 5px 0;
 }
 .pilot-demo-source dt {
@@ -1310,7 +1310,7 @@ html[data-theme="light"] .pilot-workspace input {
   min-width: 0;
 }
 .pilot-demo-output blockquote {
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.85;
   margin: 15px 0;
   padding: 14px 17px;
@@ -1327,7 +1327,7 @@ html[data-theme="light"] .pilot-workspace input {
   align-items: flex-start;
   gap: 9px;
   color: #e6c99e;
-  font-size: 13px;
+  font-size: 14.5px;
 }
 .pilot-demo-findings svg {
   flex-shrink: 0;
@@ -1351,7 +1351,7 @@ html[data-theme="light"] .pilot-workspace input {
   color: var(--p-accent);
   border: 1px solid rgba(184, 230, 213, 0.2);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 13.5px;
 }
 .pilot-demo-output p + p {
   margin-top: 14px;
@@ -1365,20 +1365,20 @@ html[data-theme="light"] .pilot-workspace input {
   justify-content: space-between;
   padding: 12px 0;
   border-bottom: 1px solid var(--p-line);
-  font-size: 13px;
+  font-size: 14.5px;
 }
 .pilot-demo-comparison strong {
   font-weight: 500;
 }
 .pilot-demo-comparison small {
   display: block;
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--p-muted);
   margin-top: 4px;
 }
 .pilot-demo-footnote {
   padding: 11px 25px;
-  font-size: 10px;
+  font-size: 11.5px;
   color: var(--p-muted);
   border-top: 1px solid var(--p-line);
 }
@@ -1418,3 +1418,21 @@ html[data-theme="light"] .pilot-workspace input {
     font-size: 20px;
   }
 }
+
+/* The Pilot page is reading material: lift the app's small utility sizes a
+   step here so the coaching reads at a comfortable size, without touching the
+   same components where they appear elsewhere (the dashboard coach card). */
+.pilot-workspace .text-\[9px\] { font-size: 10.5px; }
+.pilot-workspace .text-\[10px\] { font-size: 11.5px; }
+.pilot-workspace .text-\[10\.5px\] { font-size: 12px; }
+.pilot-workspace .text-\[11px\] { font-size: 12.5px; }
+.pilot-workspace .text-\[11\.5px\] { font-size: 13px; }
+.pilot-workspace .text-\[12px\] { font-size: 13.5px; }
+.pilot-workspace .text-\[12\.5px\] { font-size: 14px; }
+.pilot-workspace .text-\[13px\] { font-size: 14.5px; }
+.pilot-workspace .text-\[13\.5px\] { font-size: 15px; }
+.pilot-workspace .text-\[14px\] { font-size: 15.5px; }
+.pilot-workspace .text-\[15px\] { font-size: 16.5px; }
+.pilot-workspace .text-xs { font-size: 13px; line-height: 1.2rem; }
+.pilot-workspace .text-sm { font-size: 15.5px; line-height: 1.5rem; }
+.pilot-workspace .text-base { font-size: 17px; line-height: 1.6rem; }
