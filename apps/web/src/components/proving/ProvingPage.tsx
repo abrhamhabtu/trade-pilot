@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
-import { FlaskConical, Plus, Rocket, ShieldCheck } from "lucide-react";
+import { FlaskConical, Plus, Rocket, ShieldCheck, Trophy, Beaker } from "lucide-react";
+import { useHistoryTab } from "@/hooks/useHistoryParam";
 import { MAX_RUNNING, useProvingStore, type ProvingTest } from "@/store/provingStore";
 import { STRATEGIES, defaultConfig, type StrategyId } from "@/lib/proving/engine";
 import { programByKey, type Evaluation } from "@/lib/proving/firms";
@@ -12,6 +13,10 @@ import { CompareChart, Sparkline } from "./charts";
 import { StrategyGlyph } from "./glyphs";
 import { NewTest, type NewTestInput } from "./NewTest";
 import { TestDetail } from "./TestDetail";
+import { Tournament } from "./Tournament";
+import { Leaderboard } from "./Leaderboard";
+
+const VIEWS = ["tests", "tournament"] as const;
 
 const signed = (n: number) => `${n >= 0 ? "+" : "-"}$${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
 const usd = (n: number) => `$${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
@@ -23,6 +28,7 @@ const TEMPLATES: { strategy: StrategyId; programKey: string; pitch: string }[] =
 ];
 
 export function ProvingPage() {
+  const [view, setView] = useHistoryTab("view", VIEWS);
   const { tests, selectedId, select, add } = useProvingStore();
   const [hydrated, setHydrated] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -67,7 +73,7 @@ export function ProvingPage() {
               <span className="bg-gradient-to-r from-tp-green via-emerald-300 to-[#B18CFF] bg-clip-text text-transparent">before you pay for it.</span>
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
-              Each test puts one strategy on one prop firm's exact rules. It replays real bars, then keeps trading live every session on its own until the account passes or blows. Run up to {MAX_RUNNING} side by side.
+              Each test is its own prop account: one strategy under one firm's exact rules. It buys the eval, pays for a reset when it blows, goes funded when it passes and takes payouts. It replays real bars, then trades every new session on its own. Run up to {MAX_RUNNING} side by side.
             </p>
           </div>
           <div className="flex flex-col items-end gap-3">
@@ -90,7 +96,32 @@ export function ProvingPage() {
         </div>
       </section>
 
-      {!tests.length ? (
+      <nav aria-label="Proving Ground views" className="flex gap-1 rounded-2xl bg-white/[0.03] p-1 ring-1 ring-inset ring-white/[0.06] sm:w-fit">
+        {(
+          [
+            { id: "tests", label: "Your tests", icon: Beaker, badge: tests.length || null },
+            { id: "tournament", label: "Tournament", icon: Trophy, badge: null },
+          ] as const
+        ).map((v) => (
+          <button
+            key={v.id}
+            onClick={() => setView(v.id)}
+            aria-current={view === v.id ? "page" : undefined}
+            className={clsx(
+              "flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2 text-[14px] font-semibold transition sm:flex-none",
+              view === v.id ? "bg-white/[0.1] text-zinc-50 shadow-[inset_0_0.5px_0_rgba(255,255,255,0.12)]" : "text-zinc-400 hover:text-zinc-200",
+            )}
+          >
+            <v.icon className="h-4 w-4" />
+            {v.label}
+            {v.badge != null && <span className="rounded-md bg-white/[0.08] px-1.5 font-mono text-[11px] text-zinc-300">{v.badge}</span>}
+          </button>
+        ))}
+      </nav>
+
+      {view === "tournament" ? (
+        <Tournament />
+      ) : !tests.length ? (
         <section className="grid gap-4 lg:grid-cols-3">
           {TEMPLATES.map((t) => {
             const p = programByKey(t.programKey)!;
@@ -127,6 +158,8 @@ export function ProvingPage() {
               </button>
             )}
           </section>
+
+          <Leaderboard tests={tests} onSelect={select} selectedId={selected?.id ?? null} />
 
           {tests.length > 1 && (
             <section className="rounded-2xl border border-white/[0.06] bg-tp-card/90 p-5">

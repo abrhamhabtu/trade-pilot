@@ -6,11 +6,20 @@ import clsx from "clsx";
 import { FlaskConical, X } from "lucide-react";
 import { useProvingStore } from "@/store/provingStore";
 import { useSessionFlow } from "@/store/sessionFlowStore";
-import { advance, feedFor, loadFeed, testEvaluation } from "@/lib/proving/runner";
+import { advance, feedFor, loadFeed, testCareer } from "@/lib/proving/runner";
+import type { CareerEvent } from "@/lib/proving/career";
 import { STRATEGIES } from "@/lib/proving/engine";
 import { chime } from "@/components/pilot/flow/judge";
 
 const TICK_MS = 60_000;
+
+const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
+const CAREER_PING: Partial<Record<CareerEvent["kind"], { title: string; tone: "go" | "wait"; body: (e: CareerEvent) => string }>> = {
+  passed: { title: "PASSED", tone: "go", body: () => "Eval passed. The funded account starts next session." },
+  "eval-failed": { title: "EVAL FAILED", tone: "wait", body: () => "Drawdown hit. A new eval is bought next session." },
+  blown: { title: "FUNDED BLOWN", tone: "wait", body: () => "The funded account hit its drawdown. Back to a new eval." },
+  payout: { title: "PAYOUT", tone: "go", body: (e) => `${money(e.amount)} to you after the split.` },
+};
 
 type Ping = { id: number; color: string; title: string; body: string; tone: "go" | "caution" | "wait" };
 
@@ -42,17 +51,14 @@ export function ProvingRunner() {
             saveDays(t.id, [], e instanceof Error ? e.message : "Bars unavailable");
             continue;
           }
-          const before = testEvaluation(t)?.verdict;
+          const before = testCareer(t)?.events.length ?? 0;
           const firstRun = t.lastRun === 0;
           const days = advance(t, feed.sessions, signals);
           const prevTrades = new Map(Object.values(t.days).flatMap((d) => d.trades).map((x) => [x.id, x.exit]));
           saveDays(t.id, days);
           const next = useProvingStore.getState().tests.find((x) => x.id === t.id);
           if (!next) continue;
-          const after = testEvaluation(next);
-          // A decided account frees its slot; tweaking the rules starts it again.
-          const decided = after && (after.verdict === "passed" || after.verdict === "failed") && !Object.values(next.days).some((d) => d.partial);
-          if (decided) useProvingStore.getState().update(t.id, { state: "paused" });
+          const life = testCareer(next);
           if (firstRun) continue; // a fresh replay would ping for every historical trade
           const label = `${t.name} · ${STRATEGIES[t.cfg.strategy].short}`;
           for (const tr of days.flatMap((d) => d.trades)) {
@@ -62,8 +68,10 @@ export function ProvingRunner() {
             if ((was === undefined || was === "open") && tr.exit !== "open")
               push({ color: t.color, title: label, body: `Closed ${tr.pnl >= 0 ? "+" : "-"}$${Math.abs(Math.round(tr.pnl))} (${tr.exit}, ${tr.r >= 0 ? "+" : ""}${tr.r}R).`, tone: tr.pnl >= 0 ? "go" : "wait" });
           }
-          if (after && after.verdict !== before && (after.verdict === "passed" || after.verdict === "failed"))
-            push({ color: t.color, title: `${t.name}: ${after.verdict === "passed" ? "PASSED" : "FAILED"}`, body: after.headline, tone: after.verdict === "passed" ? "go" : "wait" });
+          for (const ev of life?.events.slice(before) ?? []) {
+            const ping = CAREER_PING[ev.kind];
+            if (ping) push({ color: t.color, title: `${t.name}: ${ping.title}`, body: ping.body(ev), tone: ping.tone });
+          }
         }
       } finally {
         busy.current = false;

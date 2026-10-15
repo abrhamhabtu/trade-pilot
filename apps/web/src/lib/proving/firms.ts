@@ -31,6 +31,11 @@ export interface FirmProgram {
   maxMicros: number;
   model: "eval" | "instant";
   cost: number;
+  costCadence: "monthly" | "one-time";
+  /** % of each payout the trader keeps. */
+  split: number;
+  /** Lifetime payout dollars kept at 100% before the split applies. 0 = none. */
+  keep100Upto: number;
   notes: string;
 }
 
@@ -55,6 +60,9 @@ export const FIRM_PROGRAMS: FirmProgram[] = PROP_FIRMS.filter((f) => f.id !== "c
     maxMicros: t.maxMicros,
     model: f.payoutModel,
     cost: t.cost,
+    costCadence: f.costCadence,
+    split: f.profitSplit,
+    keep100Upto: f.keep100Upto,
     notes: f.notes,
   })),
 );
@@ -111,7 +119,6 @@ export function evaluate(
   size: { contracts: number; micro: boolean },
 ): Evaluation {
   const start = p.size;
-  const cap = p.lock == null ? Infinity : start + p.lock;
   let balance = start;
   let peak = start;
   let threshold = start - p.drawdown;
@@ -135,38 +142,16 @@ export function evaluate(
     return { lim, ok: p.consistencyPct >= 100 || bestDay <= lim + 0.01 };
   };
 
+  const acct = openAccount(p);
   for (const d of [...days].sort((a, b) => a.date.localeCompare(b.date))) {
-    const open = balance;
-    let dayLow = open;
-    let dayHigh = open;
-    let dayPnl = d.pnl;
-    let failedAt: number | null = null;
-    for (let i = 0; i < d.path.length; i++) {
-      const [lo, hi] = d.path[i];
-      if (p.dll != null && lo <= -p.dll) {
-        // The firm flattens you at the daily limit and the day ends there. It
-        // only costs the account if that level is also through the drawdown.
-        dayPnl = -p.dll;
-        dayLow = Math.min(dayLow, open - p.dll);
-        if (open - p.dll <= threshold) failedAt = i;
-        break;
-      }
-      if (p.ddType === "trailing-intraday") {
-        peak = Math.max(peak, open + hi);
-        threshold = Math.min(peak - p.drawdown, cap);
-      }
-      dayLow = Math.min(dayLow, open + lo);
-      dayHigh = Math.max(dayHigh, open + hi);
-      if (open + lo <= threshold) {
-        failedAt = i;
-        break;
-      }
-    }
+    const w = walkDay(acct, d, p);
+    ({ balance, peak, threshold } = acct);
+    const { low: dayLow, high: dayHigh, pnl: dayPnl } = w;
 
-    if (failedAt !== null) {
+    if (w.failedAt !== null) {
+      const failedAt = w.failedAt;
       const at = new Date((d.t0 + failedAt * d.step) * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
-      balance = threshold;
-      marks.push({ date: d.date, balance, low: dayLow, high: dayHigh, threshold, pnl: balance - open, partial: d.partial });
+      marks.push({ date: d.date, balance, low: dayLow, high: dayHigh, threshold, pnl: dayPnl, partial: d.partial });
       return {
         ...base,
         verdict: "failed",
@@ -183,13 +168,8 @@ export function evaluate(
       };
     }
 
-    balance = open + dayPnl;
     if (d.trades.length) daysTraded++;
     if (!d.partial) bestDay = Math.max(bestDay, dayPnl);
-    if (p.ddType === "trailing-eod" && !d.partial) {
-      peak = Math.max(peak, balance);
-      threshold = Math.min(peak - p.drawdown, cap);
-    }
     marks.push({ date: d.date, balance, low: dayLow, high: dayHigh, threshold, pnl: dayPnl, partial: d.partial });
 
     const profit = balance - start;
@@ -240,3 +220,60 @@ export function evaluate(
 
 const short = (d: string) =>
   new Date(`${d}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+/** A fresh account on a program: balance, trailing peak and the threshold in force. */
+export interface AccountState {
+  start: number;
+  balance: number;
+  peak: number;
+  threshold: number;
+  cap: number;
+}
+
+export function openAccount(p: FirmProgram): AccountState {
+  return { start: p.size, balance: p.size, peak: p.size, threshold: p.size - p.drawdown, cap: p.lock == null ? Infinity : p.size + p.lock };
+}
+
+/**
+ * Walk one session's equity path against the account, the way a risk desk
+ * would, and update the account. `failedAt` is the bar index that breached the
+ * threshold, or null if the account survived the day.
+ */
+export function walkDay(a: AccountState, d: DaySim, p: FirmProgram) {
+  const open = a.balance;
+  let low = open;
+  let high = open;
+  let pnl = d.pnl;
+  let failedAt: number | null = null;
+  for (let i = 0; i < d.path.length; i++) {
+    const [lo, hi] = d.path[i];
+    if (p.dll != null && lo <= -p.dll) {
+      // The firm flattens you at the daily limit and the day ends there. It
+      // only costs the account if that level is also through the drawdown.
+      pnl = -p.dll;
+      low = Math.min(low, open - p.dll);
+      if (open - p.dll <= a.threshold) failedAt = i;
+      break;
+    }
+    if (p.ddType === "trailing-intraday") {
+      a.peak = Math.max(a.peak, open + hi);
+      a.threshold = Math.min(a.peak - p.drawdown, a.cap);
+    }
+    low = Math.min(low, open + lo);
+    high = Math.max(high, open + hi);
+    if (open + lo <= a.threshold) {
+      failedAt = i;
+      break;
+    }
+  }
+  if (failedAt !== null) {
+    a.balance = a.threshold;
+    return { failedAt, low, high, pnl: a.balance - open };
+  }
+  a.balance = open + pnl;
+  if (p.ddType === "trailing-eod" && !d.partial) {
+    a.peak = Math.max(a.peak, a.balance);
+    a.threshold = Math.min(a.peak - p.drawdown, a.cap);
+  }
+  return { failedAt: null, low, high, pnl };
+}

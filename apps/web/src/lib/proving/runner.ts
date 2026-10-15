@@ -8,6 +8,7 @@ import { RTH_CLOSE, nyClock, rootSymbol } from "@/lib/pilot/market";
 import type { TvSignal } from "@/lib/pilot/session";
 import { INSTRUMENTS, runSession, toSessions, type DaySim, type Session, type Timeframe } from "./engine";
 import { evaluate, programByKey } from "./firms";
+import { career } from "./career";
 import type { ProvingTest } from "@/store/provingStore";
 
 type Feed = { at: number; bars: Bar[]; sessions: Session[] };
@@ -55,13 +56,12 @@ export function signalsFor(t: ProvingTest, signals: TvSignal[]) {
 
 /**
  * The sessions to (re)simulate for a test: every finished session since the
- * start that is not stored yet, plus today's while it is still trading.
- * Stops at the session that decided the account.
+ * start that is not stored yet, plus today's while it is still trading. A test
+ * is a prop account for life, so it keeps trading after a pass or a blow; the
+ * account-life model (career.ts) buys the next eval or moves to funded.
  */
 export function advance(t: ProvingTest, sessions: Session[], signals: TvSignal[], now = Date.now()): DaySim[] {
   const clock = nyClock(now);
-  const verdict = testEvaluation(t);
-  if (verdict && (verdict.verdict === "passed" || verdict.verdict === "failed") && !Object.values(t.days).some((d) => d.partial)) return [];
   const sig = t.cfg.strategy === "tv-signals" ? signalsFor(t, signals) : undefined;
   const out: DaySim[] = [];
   for (const s of sessions) {
@@ -71,9 +71,13 @@ export function advance(t: ProvingTest, sessions: Session[], signals: TvSignal[]
     if (stored && !stored.partial && !live) continue;
     out.push(runSession(s, t.cfg, { partial: live, signals: sig }));
   }
-  // Re-grade with the new sessions and drop anything after the deciding day.
-  const merged = { ...t, days: { ...t.days, ...Object.fromEntries(out.map((d) => [d.date, d])) } };
-  const e = testEvaluation(merged);
-  if (e?.on && (e.verdict === "passed" || e.verdict === "failed")) return out.filter((d) => d.date <= e.on!);
   return out;
+}
+
+/** The test's whole life as a prop account so far. */
+export function testCareer(t: ProvingTest) {
+  const program = programByKey(t.programKey);
+  if (!program) return null;
+  const days = Object.values(t.days).filter((d) => d.date >= t.startDate);
+  return career(days, program, { contracts: t.cfg.contracts, micro: INSTRUMENTS[t.cfg.instrument].micro });
 }

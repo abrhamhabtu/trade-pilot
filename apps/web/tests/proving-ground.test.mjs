@@ -130,3 +130,59 @@ test("every firm program in the app is gradeable", () => {
   const s = stats([{ ...day("2026-09-01", [[0, 0, 0]], 0), trades: [] }]);
   assert.equal(s.trades, 0);
 });
+
+// ─── Account life ──────────────────────────────────────────────────────────────
+import { career, careerOdds, traderShare } from "../src/lib/proving/career.ts";
+import { scaleDays } from "../src/lib/proving/tournament.ts";
+
+/** A finished session that ends `pnl` from its start, with a flat path. */
+const flatDay = (date, pnl, low = Math.min(0, pnl)) => ({ date, trades: pnl ? [{ id: date, pnl }] : [], pnl, path: [[low, Math.max(0, pnl), pnl]], t0: et(date, "09:30"), step: 300, partial: false });
+const weekdays = (n, from = "2026-01-05") => {
+  const out = [];
+  for (let d = new Date(`${from}T12:00:00Z`); out.length < n; d.setUTCDate(d.getUTCDate() + 1)) if (d.getUTCDay() % 6) out.push(d.toISOString().slice(0, 10));
+  return out;
+};
+const topstep = () => programByKey("topstep:topstep-50k");
+
+test("account life: a blown eval buys the next one, a pass moves to funded, and funded pays out above the cushion", () => {
+  const p = topstep();
+  const dates = weekdays(16);
+  // Blow the first eval; pass the second in three days with every day under
+  // Topstep's $1,500 consistency cap; then build the funded account past its cushion.
+  const pnl = [-2500, 1400, 1400, 1000, 1000, 1000, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const c = career(dates.map((d, i) => flatDay(d, pnl[i])), p, { contracts: 1, micro: true });
+  assert.deepEqual(c.events.map((e) => e.kind).slice(0, 4), ["bought", "eval-failed", "bought", "passed"]);
+  assert.equal(c.accountsBought, 2);
+  assert.equal(c.payouts, 1);
+  // Funded day three is $3,000 up with a $2,000 cushion kept: $1,000 gross at 90%.
+  assert.equal(Math.round(c.paidOut), 900);
+  assert.equal(c.status, "funded");
+});
+
+test("a payout keeps 100% up to the firm's allowance, then splits", () => {
+  assert.equal(traderShare(1000, 0, { split: 90, keep100Upto: 0 }), 900);
+  assert.equal(traderShare(1000, 0, { split: 80, keep100Upto: 600 }), 600 + 400 * 0.8);
+  assert.equal(traderShare(1000, 600, { split: 80, keep100Upto: 600 }), 800);
+});
+
+test("monthly evals keep billing while they run", () => {
+  const p = topstep();
+  const c = career(weekdays(45).map((d) => flatDay(d, 10)), p, { contracts: 1, micro: true });
+  assert.ok(c.events.some((e) => e.kind === "renewed"));
+  assert.ok(c.spent > p.cost);
+});
+
+test("many lives are reproducible and bounded by the real days", () => {
+  const p = topstep();
+  const days = weekdays(20).map((d, i) => flatDay(d, i % 2 ? 900 : -400));
+  const a = careerOdds(days, p, { contracts: 1, micro: true }, { runs: 50, seed: 3 });
+  const b = careerOdds(days, p, { contracts: 1, micro: true }, { runs: 50, seed: 3 });
+  assert.deepEqual(a, b);
+  assert.ok(a.pProfit >= 0 && a.pProfit <= 1 && a.p10 <= a.medianNet && a.medianNet <= a.p90);
+});
+
+test("scaling a day to more contracts scales its P&L and path exactly", () => {
+  const [d] = scaleDays([flatDay("2026-01-05", 100, -50)], 2, 6);
+  assert.equal(d.pnl, 300);
+  assert.deepEqual(d.path[0], [-150, 300, 300]);
+});
