@@ -45,7 +45,7 @@ export function VisionChart({ bars, sym, scan, phase, position, height }: { bars
   const candles = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const emaLine = useRef<ISeriesApi<"Line"> | null>(null);
   const volume = useRef<ISeriesApi<"Histogram"> | null>(null);
-  const shape = useRef({ n: 0, first: 0 });
+  const shape = useRef({ n: 0, first: 0, last: 0, sig: "" });
   const [geo, setGeo] = useState<Geo | null>(null);
   const [hover, setHover] = useState<number | null>(null);
   const shift = useMemo(() => (bars.length ? shiftFor(sym, bars[bars.length - 1].t) : 0), [sym, bars.length > 0]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -87,7 +87,7 @@ export function VisionChart({ bars, sym, scan, phase, position, height }: { bars
       ro.disconnect();
       c.remove();
       chart.current = null;
-      shape.current = { n: 0, first: 0 };
+      shape.current = { n: 0, first: 0, last: 0, sig: "" };
     };
   }, []);
 
@@ -99,19 +99,29 @@ export function VisionChart({ bars, sym, scan, phase, position, height }: { bars
       candles.current.setData([]);
       volume.current.setData([]);
       emaLine.current.setData([]);
-      shape.current = { n: 0, first: 0 };
+      shape.current = { n: 0, first: 0, last: 0, sig: "" };
       return;
     }
     const at = (t: number) => (t + shift) as UTCTimestamp;
     const candle = (b: Bar) => ({ time: at(b.t), open: b.o, high: b.h, low: b.l, close: b.c });
     const vol = (b: Bar) => ({ time: at(b.t), value: b.v, color: b.c >= b.o ? "rgba(255,138,61,0.45)" : "rgba(120,126,140,0.4)" });
-    const same = shape.current.first === bars[0].t && bars.length - shape.current.n <= 1 && bars.length >= shape.current.n;
-    const shrank = shape.current.first === bars[0].t && bars.length < shape.current.n;
+    // Incremental update only for the same series growing by at most one bar; anything else is a reset.
+    const sig = `${sym.id}:${shift}`;
+    const lastT = bars[bars.length - 1].t;
+    const same = shape.current.sig === sig && shape.current.first === bars[0].t && bars.length - shape.current.n <= 1 && bars.length >= shape.current.n && lastT >= shape.current.last;
+    const shrank = shape.current.sig === sig && shape.current.first === bars[0].t && bars.length < shape.current.n;
+    let updated = false;
     if (same && shape.current.n) {
-      candles.current.update(candle(bars[bars.length - 1]));
-      volume.current.update(vol(bars[bars.length - 1]));
-    } else {
-      const fresh = shape.current.first !== bars[0].t;
+      try {
+        candles.current.update(candle(bars[bars.length - 1]));
+        volume.current.update(vol(bars[bars.length - 1]));
+        updated = true;
+      } catch {
+        updated = false;
+      }
+    }
+    if (!updated) {
+      const fresh = shape.current.first !== bars[0].t || shape.current.sig !== sig;
       candles.current.setData(bars.map(candle));
       volume.current.setData(bars.map(vol));
       if (fresh || shrank) {
@@ -119,7 +129,7 @@ export function VisionChart({ bars, sym, scan, phase, position, height }: { bars
         c.timeScale().setVisibleLogicalRange({ from: Math.max(0, n - 150), to: n + 22 });
       }
     }
-    shape.current = { n: bars.length, first: bars[0].t };
+    shape.current = { n: bars.length, first: bars[0].t, last: lastT, sig };
     candles.current.applyOptions({ priceFormat: { type: "price", precision: sym.decimals, minMove: sym.tick } });
     requestAnimationFrame(() => c.timeScale().applyOptions({}));
   }, [bars, shift, sym]);
@@ -372,7 +382,7 @@ function Overlay({ geo, bars, scan, phase, position, fmt }: { geo: Geo; bars: Ba
           ) : null,
         )}
       {cards.map((c) => (
-        <div key={c.n} className="tp-card-in absolute flex w-[250px] items-start gap-2.5 rounded-2xl border border-white/[0.12] bg-[#1C1C1F]/85 px-3 py-2.5 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl" style={{ left: c.cx, top: c.cy }}>
+        <div key={c.n} className={clsx("tp-card-in absolute flex w-[250px] items-start gap-2.5 rounded-2xl border border-white/[0.12] bg-[#1C1C1F]/[0.96] px-3 py-2.5 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl", s && s.outcome !== "open" && "opacity-75")} style={{ left: c.cx, top: c.cy }}>
           <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#FF8A3D] text-[12px] font-bold text-black">{c.n}</span>
           <span className="min-w-0">
             <span className="block text-[13.5px] font-semibold text-white">{c.title}</span>
