@@ -299,3 +299,20 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 @media (prefers-reduced-motion: reduce) {
   .tp-sheet, .tp-step { animation: none; }
 }
+
+/* Vision chart overlay */
+@keyframes tpFadeIn { from { opacity: 0; } }
+@keyframes tpDraw { from { stroke-dashoffset: 600; } to { stroke-dashoffset: 0; } }
+@keyframes tpCardIn { from { opacity: 0; transform: translateY(6px) scale(0.97); } }
+@keyframes tpPop { 0% { opacity: 0; transform: translate(-50%, 6px) scale(0.8); } 70% { transform: translate(-50%, 0) scale(1.06); } 100% { transform: translate(-50%, 0) scale(1); } }
+@keyframes tpPulseRing { 0% { transform: scale(0.6); opacity: 0.9; } 100% { transform: scale(2.2); opacity: 0; } }
+@keyframes tpShimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+.tp-fade-in { animation: tpFadeIn 0.6s ease-out both; }
+.tp-draw { stroke-dasharray: 6 6; animation: tpFadeIn 0.4s ease-out both; }
+.tp-card-in { animation: tpCardIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.tp-pop { animation: tpPop 0.6s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.tp-pulse-ring { transform-box: fill-box; transform-origin: center; animation: tpPulseRing 1.8s ease-out infinite; }
+.tp-shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: tpShimmer 1.6s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .tp-fade-in, .tp-draw, .tp-card-in, .tp-pop, .tp-pulse-ring, .tp-shimmer { animation: none; }
+}

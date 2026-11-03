@@ -13,7 +13,7 @@ import { JournalSwitcher } from '@/components/JournalSwitcher';
 // The rail is a floating panel, inset from the window edge. Pages are grouped by
 // what you are doing, and one solid pill slides to wherever you are.
 const GROUPS: { label: string; hrefs: string[] }[] = [
-  { label: 'Trade', hrefs: [APP_ROUTES.dashboard, APP_ROUTES.pilot, APP_ROUTES.calendar, APP_ROUTES.trades, APP_ROUTES.journal] },
+  { label: 'Trade', hrefs: [APP_ROUTES.dashboard, APP_ROUTES.pilot, APP_ROUTES.vision, APP_ROUTES.calendar, APP_ROUTES.trades, APP_ROUTES.journal] },
   { label: 'Prepare', hrefs: [APP_ROUTES.playbooks, APP_ROUTES.routine, APP_ROUTES.journey, APP_ROUTES.proving] },
   { label: 'Accounts', hrefs: [APP_ROUTES.accounts, APP_ROUTES.payout, APP_ROUTES.propfirms] },
 ];
