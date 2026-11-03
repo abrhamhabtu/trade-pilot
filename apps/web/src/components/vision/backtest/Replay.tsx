@@ -9,6 +9,7 @@ import { inHours } from "@/lib/vision/backtest";
 import { SESSION_WINDOWS } from "@/lib/vision/custom";
 import { TF_SECONDS, aggregate, formatPrice, type Timeframe, type VisionSymbol } from "@/lib/vision/markets";
 import { programByKey } from "@/lib/proving/firms";
+import { accountState, type AccountTrade, type PropAccount } from "@/lib/vision/account";
 import type { BacktestSettings, VisionPosition, VisionTrade } from "@/store/visionStore";
 import { VisionChart } from "../VisionChart";
 import { money, timeOf, type Loaded } from "./data";
@@ -22,19 +23,30 @@ const WARMUP = 400;
 const HTF: Partial<Record<Timeframe, Timeframe>> = { "1m": "15m", "5m": "1h", "15m": "4h", "1h": "4h" };
 
 type OrderType = "market" | "limit" | "stop";
-type Session = { side: Side; qty: number; entry: number; exit: number; stop: number; target: number; entryT: number; exitT: number; pnl: number; r: number; reason: "target" | "stop" | "breakeven" | "manual" | "flattened"; vision: boolean };
+type Session = { side: Side; qty: number; entry: number; exit: number; stop: number; target: number; entryT: number; exitT: number; pnl: number; r: number; reason: "target" | "stop" | "breakeven" | "manual" | "flattened"; vision: boolean; worst: number; best: number };
 type Pending = { side: Side; type: Exclude<OrderType, "market">; price: number; stopDist: number; rr: number; placedAt: number };
-type Pos = VisionPosition & { vision: boolean; risk: number; moved: boolean; mfe: number };
+type Pos = VisionPosition & { vision: boolean; risk: number; moved: boolean; mfe: number; worst: number; best: number };
+
+const toAccountTrade = (t: Session): AccountTrade => ({ id: `m${t.entryT}${Math.round(t.entry * 100)}`, entryT: t.entryT, exitT: t.exitT, session: sessionOf(t.entryT).session, side: t.side, qty: t.qty, entry: t.entry, exit: t.exit, stop: t.stop, target: t.target, pnl: t.pnl, r: t.r, worst: t.worst, best: t.best, reason: t.reason, source: "manual", strategy: t.vision ? "Vision plan" : undefined });
 
 /**
  * Bar-by-bar replay over history, the way a simulator works: price hides what
  * comes next, orders fill against each new bar, and Vision (if you want it)
  * marks setups as they form. In prop firm mode the firm's rules run live.
  */
-export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, settings, onSave }: { loaded: Loaded; sym: VisionSymbol; tf: Timeframe; anchor: "rth" | "utc"; reader: ReaderChoice; scenario?: Scenario; startAt?: number; settings: BacktestSettings; onSave: (s: { trades: Session[]; from: number; to: number }) => Promise<boolean> }) {
+export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, settings, onSave, account, onAccountTrade, onCursor, onMore }: { loaded: Loaded; sym: VisionSymbol; tf: Timeframe; anchor: "rth" | "utc"; reader: ReaderChoice; scenario?: Scenario; startAt?: number; settings: BacktestSettings; onSave: (s: { trades: Session[]; from: number; to: number }) => Promise<boolean>; account?: PropAccount; onAccountTrade?: (t: AccountTrade) => void; onCursor?: (t: number) => void; onMore?: () => void }) {
   const bars = loaded.bars;
   const n = bars.length;
-  const first = startAt != null ? Math.min(n, Math.max(WARMUP, startAt + 1)) : Math.max(WARMUP, n - 1500);
+  // An account picks up where it stopped, or at its start date's New York open.
+  const accountStart = useMemo(() => {
+    if (!account) return null;
+    const i = account.cursorT != null ? bars.findIndex((b) => b.t > account.cursorT!) : bars.findIndex((b) => {
+      const s = sessionOf(b.t);
+      return s.date >= account.startDate && (s.date > account.startDate || s.minute >= 570);
+    });
+    return i < 0 ? n : i;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const first = accountStart != null ? Math.min(n, Math.max(1, accountStart)) : startAt != null ? Math.min(n, Math.max(WARMUP, startAt + 1)) : Math.max(WARMUP, n - 1500);
   const [cursor, setCursor] = useState(first);
   const [base, setBase] = useState(Math.max(0, first - WARMUP));
   const [playing, setPlaying] = useState(false);
@@ -47,18 +59,22 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
   const [lastClosed, setLastClosed] = useState<VisionTrade | null>(null);
   const [orderType, setOrderType] = useState<OrderType>("market");
   const [orderPx, setOrderPx] = useState(0);
-  const [sizing, setSizing] = useState<"fixed" | "risk">(sym.kind === "crypto" ? "risk" : settings.sizing);
-  const [qty, setQty] = useState(settings.contracts);
-  const [riskPct, setRiskPct] = useState(settings.riskPct);
+  const [sizing, setSizing] = useState<"fixed" | "risk">(sym.kind === "crypto" ? "risk" : (account?.sizing ?? settings.sizing));
+  const [qty, setQty] = useState(account?.contracts ?? settings.contracts);
+  const [riskPct, setRiskPct] = useState(account?.riskPct ?? settings.riskPct);
   const [stopPts, setStopPts] = useState(0);
   const [rr, setRr] = useState(2);
   const [autoBe, setAutoBe] = useState(false);
   const [openRow, setOpenRow] = useState<number | null>(null);
   const [saved, setSaved] = useState<"idle" | "saving" | "saved">("idle");
   const fmt = useCallback((p: number) => formatPrice(sym, p), [sym]);
-  const pointValue = sym.kind === "crypto" ? 1 : settings.micro ? sym.pointValue!.micro : sym.pointValue!.full;
-  const program = sym.kind === "futures" && settings.prop.on ? programByKey(settings.prop.program) : null;
-  const balance0 = program ? program.size : settings.balance;
+  const micro = account ? account.micro : settings.micro;
+  const pointValue = sym.kind === "crypto" ? 1 : micro ? sym.pointValue!.micro : sym.pointValue!.full;
+  const program = account ? programByKey(account.program) : sym.kind === "futures" && settings.prop.on ? programByKey(settings.prop.program) : null;
+  // The account as it stood when replay opened; this session's trades build on it.
+  const [snap] = useState(() => (account ? accountState(account) : null));
+  const size = program ? program.size : settings.balance;
+  const balance0 = snap ? snap.balance : size;
 
   // Every bar where the strategy fires, to jump between setups and list where it formed.
   const signals = useMemo(() => {
@@ -94,14 +110,16 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
   const sizeFor = useCallback(
     (dist: number) => {
       if (sym.kind === "crypto") return Math.max(0, Math.floor((settings.riskDollars / dist) * 1e4) / 1e4);
-      if (sizing === "risk") return Math.max(0, Math.min(50, Math.floor(((balance0 + realized) * riskPct) / 100 / (dist * pointValue))));
-      return Math.max(1, Math.round(qty));
+      const cap = program ? (micro ? program.maxMicros : program.maxMinis) : 50;
+      if (sizing === "risk") return Math.max(0, Math.min(cap, Math.floor(((balance0 + realized) * riskPct) / 100 / (dist * pointValue))));
+      return Math.max(1, Math.min(cap, Math.round(qty)));
     },
-    [sym.kind, settings.riskDollars, sizing, balance0, realized, riskPct, pointValue, qty],
+    [sym.kind, settings.riskDollars, sizing, balance0, realized, riskPct, pointValue, qty, program, micro],
   );
 
   // ── The prop firm account, live ──
-  const acct = useRef({ peak: balance0, threshold: program ? balance0 - program.drawdown : -Infinity, day: "", dayStart: 0, blown: "", halted: "" });
+  const fresh = () => ({ peak: snap ? snap.peak : size, threshold: snap ? snap.threshold : program ? size - program.drawdown : -Infinity, day: snap?.lastDay ?? "", dayStart: snap ? -snap.lastDayPnl : 0, blown: snap?.status === "blown" ? "This account is blown" : "", halted: "" });
+  const acct = useRef(fresh());
   const [acctTick, setAcctTick] = useState(0);
   const openPnl = pos && last ? (last.c - pos.entry) * (pos.side === "long" ? 1 : -1) * pos.qty * pos.pointValue : 0;
   const equity = balance0 + realized + openPnl;
@@ -110,12 +128,14 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
     (p: Pos, exit: number, reason: Session["reason"], t: number) => {
       const dir = p.side === "long" ? 1 : -1;
       const pnl = (exit - p.entry) * dir * p.qty * p.pointValue - (sym.kind === "crypto" ? settings.commission : settings.commission * p.qty);
-      setTrades((ts) => [...ts, { side: p.side, qty: p.qty, entry: p.entry, exit, stop: p.stop, target: p.target, entryT: p.openedAt / 1000, exitT: t, pnl, r: ((exit - p.entry) * dir) / p.risk, reason, vision: p.vision }]);
+      const done: Session = { side: p.side, qty: p.qty, entry: p.entry, exit, stop: p.stop, target: p.target, entryT: p.openedAt / 1000, exitT: t, pnl, r: ((exit - p.entry) * dir) / p.risk, reason, vision: p.vision, worst: Math.min(p.worst, pnl), best: Math.max(p.best, pnl) };
+      setTrades((ts) => [...ts, done]);
+      onAccountTrade?.(toAccountTrade(done));
       setLastClosed({ ...p, exit, closedAt: Date.now(), pnl, reason: reason === "target" ? "target" : reason === "stop" ? "stop" : "manual" });
       setSaved("idle");
       return pnl;
     },
-    [sym.kind, settings.commission],
+    [sym.kind, settings.commission, onAccountTrade],
   );
 
   const fill = useCallback(
@@ -126,7 +146,7 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
       if (!(risk > 0) || (side === "long" ? target <= entry : target >= entry)) return null;
       const size = sizeFor(risk);
       if (size <= 0) return null;
-      return { id: `r${t}`, symbol: sym.id, side, qty: size, entry, stop, target, openedAt: t * 1000, setupId: usePlan?.id ?? "", auto: false, venue: "paper", pointValue, vision: !!usePlan, risk, moved: false, mfe: 0 };
+      return { id: `r${t}`, symbol: sym.id, side, qty: size, entry, stop, target, openedAt: t * 1000, setupId: usePlan?.id ?? "", auto: false, venue: "paper", pointValue, vision: !!usePlan, risk, moved: false, mfe: 0, worst: 0, best: 0 };
     },
     [sizeFor, sym.id, pointValue],
   );
@@ -148,7 +168,7 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
         // A new session: end-of-day trailing moves, and yesterday's daily stop lifts.
         if (program && a.day && program.ddType === "trailing-eod") {
           a.peak = Math.max(a.peak, balance0 + realizedNow);
-          a.threshold = Math.min(a.peak - program.drawdown, program.lock == null ? Infinity : balance0 + program.lock);
+          a.threshold = Math.min(a.peak - program.drawdown, program.lock == null ? Infinity : size + program.lock);
         }
         a.day = day;
         a.dayStart = realizedNow;
@@ -172,12 +192,17 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
         const stopHit = p.side === "long" ? b.l <= p.stop : b.h >= p.stop;
         const targetHit = p.side === "long" ? b.h >= p.target : b.l <= p.target;
         if (stopHit || targetHit) {
-          realizedNow += closeAt(p, stopHit ? p.stop : p.target, stopHit ? (p.moved ? "breakeven" : "stop") : "target", b.t);
+          const dir = p.side === "long" ? 1 : -1;
+          const exitPx = stopHit ? p.stop : p.target;
+          const edge = stopHit ? exitPx : p.side === "long" ? Math.max(b.l, p.stop) : Math.min(b.h, p.stop);
+          p = { ...p, worst: Math.min(p.worst, (edge - p.entry) * dir * p.qty * p.pointValue) };
+          realizedNow += closeAt(p, exitPx, stopHit ? (p.moved ? "breakeven" : "stop") : "target", b.t);
           p = null;
         } else {
           const dir = p.side === "long" ? 1 : -1;
           const mfe = Math.max(p.mfe, (((p.side === "long" ? b.h : b.l) - p.entry) * dir) / p.risk);
-          p = { ...p, mfe, ...(autoBe && !p.moved && mfe >= 1 ? { stop: p.entry, moved: true } : {}) };
+          const usdAt = (px: number) => (px - p!.entry) * dir * p!.qty * p!.pointValue;
+          p = { ...p, mfe, worst: Math.min(p.worst, usdAt(p.side === "long" ? b.l : b.h)), best: Math.max(p.best, usdAt(p.side === "long" ? b.h : b.l)), ...(autoBe && !p.moved && mfe >= 1 ? { stop: p.entry, moved: true } : {}) };
         }
       }
       // The firm watches the worst of each bar.
@@ -186,10 +211,10 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
         const best = p ? (((p.side === "long" ? b.h : b.l) - p.entry) * (p.side === "long" ? 1 : -1) * p.qty * p.pointValue) : 0;
         if (program.ddType === "trailing-intraday") {
           a.peak = Math.max(a.peak, balance0 + realizedNow + best);
-          a.threshold = Math.min(a.peak - program.drawdown, program.lock == null ? Infinity : balance0 + program.lock);
+          a.threshold = Math.min(a.peak - program.drawdown, program.lock == null ? Infinity : size + program.lock);
         }
         if (balance0 + realizedNow + worst <= a.threshold) {
-          if (p) realizedNow += closeAt(p, p.side === "long" ? b.l : b.h, "flattened", b.t);
+          if (p) realizedNow += closeAt({ ...p, worst: Math.min(p.worst, worst) }, p.side === "long" ? b.l : b.h, "flattened", b.t);
           p = null;
           o = null;
           a.blown = `Drawdown hit on ${timeOf(b.t)}`;
@@ -197,7 +222,7 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
           break;
         }
         if (program.dll != null && realizedNow - a.dayStart + worst <= -program.dll && !a.halted) {
-          if (p) realizedNow += closeAt(p, p.side === "long" ? b.l : b.h, "flattened", b.t);
+          if (p) realizedNow += closeAt({ ...p, worst: Math.min(p.worst, worst) }, p.side === "long" ? b.l : b.h, "flattened", b.t);
           p = null;
           o = null;
           a.halted = `Daily loss limit hit at ${timeOf(b.t)}; trading resumes next session`;
@@ -207,6 +232,13 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
     setPos(p);
     setPending(o);
     setAcctTick((x) => x + 1);
+  }, [cursor]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save where the account is, a moment after the cursor stops.
+  useEffect(() => {
+    if (!onCursor || !bars[cursor - 1]) return;
+    const id = setTimeout(() => onCursor(bars[cursor - 1].t), 1200);
+    return () => clearTimeout(id);
   }, [cursor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep the chart light: once the window grows long, start it closer to now.
@@ -248,7 +280,10 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
     if (i >= 0) jump(Math.max(WARMUP, i + 1));
   };
 
-  const locked = !!acct.current.blown || !!acct.current.halted;
+  // The account with this session's trades, graded the same way as everywhere else.
+  const live = useMemo(() => (account && snap ? accountState({ ...account, trades: [...account.trades, ...trades.map(toAccountTrade)] }) : null), [trades]); // eslint-disable-line react-hooks/exhaustive-deps
+  const passed = live?.status === "passed";
+  const locked = !!acct.current.blown || !!acct.current.halted || passed || live?.status === "blown";
   const place = (side: Side, usePlan: boolean) => {
     if (!last || pos || pending || locked) return;
     if (orderType !== "market" && !usePlan) {
@@ -303,26 +338,24 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="min-w-0 space-y-3">
         {program && (
-          <div className={clsx("grid gap-3 rounded-[22px] p-4 ring-1 sm:grid-cols-[auto_1fr_1fr_1fr]", a.blown ? "bg-[#FF7A85]/10 ring-[#FF7A85]/40" : "bg-[#BF5AF2]/[0.08] ring-[#BF5AF2]/35")}>
+          <div className={clsx("grid gap-3 rounded-[22px] p-4 ring-1 sm:grid-cols-[auto_1fr_1fr_1fr]", a.blown || live?.status === "blown" ? "bg-[#FF7A85]/10 ring-[#FF7A85]/40" : passed ? "bg-[#30D158]/10 ring-[#30D158]/40" : "bg-[#BF5AF2]/[0.08] ring-[#BF5AF2]/35")}>
             <div className="flex items-center gap-2.5">
               <span className="grid h-9 w-9 place-items-center rounded-[11px] bg-[#BF5AF2] text-white">
                 <Building2 className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-[13px] font-bold text-white">
-                  {program.firm} {program.sizeLabel}
-                </p>
-                <p className="text-[11.5px] text-white/50">{a.blown || a.halted || "Rules running live"}</p>
+                <p className="text-[13px] font-bold text-white">{account ? account.name : `${program.firm} ${program.sizeLabel}`}</p>
+                <p className="text-[11.5px] text-white/50">{passed ? "Passed: target, days and consistency met" : a.blown || (live?.status === "blown" ? live.headline : "") || a.halted || (account ? `${program.firm} ${program.sizeLabel} · saving as you trade` : "Rules running live")}</p>
               </div>
             </div>
-            <Meter label="Profit target" value={equity - balance0} max={program.target} text={`${money(equity - balance0)} of ${money(program.target).replace("+", "")}`} color="#30D158" />
+            <Meter label={account?.phase === "funded" ? "Profit" : "Profit target"} value={equity - size} max={program.target} text={`${money(equity - size)} of ${money(program.target).replace("+", "")}`} color="#30D158" />
             <Meter label="Drawdown left" value={equity - a.threshold} max={program.drawdown} text={`${money(equity - a.threshold).replace("+", "")} · floor $${Math.round(a.threshold).toLocaleString("en-US")}`} color="#BF5AF2" />
             <Meter label="Daily loss left" value={program.dll != null ? program.dll + dayPnl : 1} max={program.dll ?? 1} text={program.dll != null ? `${money(program.dll + dayPnl).replace("+", "")} of ${money(program.dll).replace("+", "")}` : "No daily limit"} color="#FFD60A" />
           </div>
         )}
         <Card className="!p-0 overflow-hidden">
           <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.06] px-4 py-3">
-            <span className="text-[17px] font-bold text-white">/{sym.kind === "futures" ? (settings.micro ? sym.roots!.micro : sym.roots!.full) : sym.id}</span>
+            <span className="text-[17px] font-bold text-white">/{sym.kind === "futures" ? (micro ? sym.roots!.micro : sym.roots!.full) : sym.id}</span>
             <Pill tone="cyan">REPLAY</Pill>
             <span className="rounded-full bg-white/[0.07] px-2 py-0.5 font-mono text-[11px] text-white/60">
               {tf}
@@ -341,6 +374,14 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
             </span>
           </div>
           <VisionChart bars={view} sym={sym} scan={scan} phase={PHASE} position={shownPos} closed={lastClosed} height={htf && htfTf ? 440 : 520} label="REPLAY" />
+          {cursor >= n && onMore && (
+            <div className="flex items-center gap-2 border-t border-white/[0.06] bg-white/[0.04] px-4 py-2.5 text-[12.5px] text-white/75">
+              End of the loaded history.
+              <button onClick={onMore} className="ml-auto rounded-full bg-white px-3 py-1 text-[12px] font-bold text-black">
+                Load the next months
+              </button>
+            </div>
+          )}
           {pending && (
             <div className="flex items-center gap-2 border-t border-white/[0.06] bg-[#5AC8FA]/[0.06] px-4 py-2 text-[12.5px] text-white/75">
               <span className="h-2 w-2 animate-pulse rounded-full bg-[#5AC8FA]" />
@@ -501,6 +542,7 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
             >
               <FolderDown className="h-4 w-4" /> {saved === "saved" ? "Saved" : saved === "saving" ? "Saving…" : "Save session"}
             </button>
+            {!account && (
             <button
               onClick={() => {
                 setTrades([]);
@@ -508,7 +550,7 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
                 setPending(null);
                 setLastClosed(null);
                 setSaved("idle");
-                acct.current = { peak: balance0, threshold: program ? balance0 - program.drawdown : -Infinity, day: "", dayStart: 0, blown: "", halted: "" };
+                acct.current = fresh();
                 setAcctTick((x) => x + 1);
               }}
               aria-label="Reset session"
@@ -517,6 +559,7 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
             >
               <RotateCcw className="h-4 w-4" />
             </button>
+            )}
           </div>
         </Card>
 

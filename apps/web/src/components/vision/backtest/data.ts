@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Bar } from "@/lib/pilot/market";
 import type { LibFile, LibraryIndex } from "@/lib/server/library";
 import type { SavedItem } from "@/lib/server/library/saved";
+import type { PropAccount } from "@/lib/vision/account";
 import type { BacktestContext } from "@/lib/vision/backtest";
 import { loadHistory } from "@/lib/vision/feed";
 import { SYMBOLS, isSymbol, type Timeframe } from "@/lib/vision/markets";
@@ -185,3 +186,36 @@ export const money = (n: number, dp = 0) => `${n < 0 ? "-" : n > 0 ? "+" : ""}$$
 export const sizeOf = (b: number) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : b >= 1e3 ? `${Math.round(b / 1e3)} KB` : `${b} B`);
 export const dateOf = (t: number) => new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" });
 export const timeOf = (t: number) => new Date(t * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+
+/** The trader's prop backtest accounts, saved on this machine. Updates show at once and save behind. */
+export function useAccounts() {
+  const [accounts, setAccounts] = useState<PropAccount[] | null>(null);
+  const [error, setError] = useState("");
+  const refresh = useCallback(async () => {
+    try {
+      const r = await fetch("/api/library/accounts", { cache: "no-store" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Accounts unavailable");
+      setAccounts(j.accounts);
+      setError("");
+    } catch (e) {
+      setAccounts([]);
+      setError(e instanceof Error ? e.message : "Accounts unavailable");
+    }
+  }, []);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+  const save = useCallback(async (a: PropAccount) => {
+    const next = { ...a, updatedAt: Date.now() };
+    setAccounts((xs) => [next, ...(xs ?? []).filter((x) => x.id !== a.id)]);
+    const r = await fetch("/api/library/accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "save", account: next }) }).catch(() => null);
+    if (!r?.ok) setError("Couldn't save the account; it is kept on screen until the next try.");
+    return next;
+  }, []);
+  const remove = useCallback(async (id: string) => {
+    setAccounts((xs) => (xs ?? []).filter((x) => x.id !== id));
+    await fetch("/api/library/accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "remove", id }) }).catch(() => null);
+  }, []);
+  return { accounts, error, refresh, save, remove };
+}

@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { ArrowRight, Compass, FlaskConical, FolderOpen, Hand, History, LineChart, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Building2, Compass, FlaskConical, FolderOpen, Hand, History, LineChart, ShieldCheck, Sparkles } from "lucide-react";
 import { READERS, type ReaderId } from "@/lib/vision/analyze";
-import type { BacktestOptions, BacktestResult, BacktestTrade } from "@/lib/vision/backtest";
+import { runBacktest, type BacktestOptions, type BacktestResult, type BacktestTrade } from "@/lib/vision/backtest";
+import { accountState, type AccountTrade, type PropAccount } from "@/lib/vision/account";
 import type { BacktestRequest } from "@/lib/vision/backtest.worker";
 import { SESSION_WINDOWS, parseRules } from "@/lib/vision/custom";
 import { SYMBOLS, TF_SECONDS, isSymbol } from "@/lib/vision/markets";
@@ -12,7 +13,8 @@ import type { PropReport } from "@/lib/vision/prop";
 import type { Verdict } from "@/lib/vision/verdict";
 import { programByKey } from "@/lib/proving/firms";
 import { useVisionStore, type BacktestSettings } from "@/store/visionStore";
-import { dateOf, useContext, useHistory, useLibrary, useSaved, type Loaded, type SavedItem } from "./data";
+import { dateOf, money, useAccounts, useContext, useHistory, useLibrary, useSaved, type Loaded, type SavedItem } from "./data";
+import { PropDesk, type AutoRunRequest, type AutoRunResult } from "./prop/PropDesk";
 import { Library } from "./Library";
 import { Replay } from "./Replay";
 import { Results, type LeagueRow } from "./Results";
@@ -39,7 +41,20 @@ export function BacktestWorkspace() {
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [replay, setReplay] = useState<{ loaded: Loaded; settings: BacktestSettings; at?: number; scenario?: Scenario } | null>(null);
+  const [replay, setReplay] = useState<{ loaded: Loaded; settings: BacktestSettings; at?: number; scenario?: Scenario; account?: PropAccount } | null>(null);
+  const desk = useAccounts();
+  // The newest copy of each account, for saves that land while replay runs.
+  const latest = useRef(new Map<string, PropAccount>());
+  useEffect(() => {
+    for (const a of desk.accounts ?? []) latest.current.set(a.id, a);
+  }, [desk.accounts]);
+  const saveAccount = useCallback(
+    async (a: PropAccount) => {
+      latest.current.set(a.id, a);
+      return desk.save(a);
+    },
+    [desk],
+  );
   const worker = useRef<Worker | null>(null);
   const seq = useRef(0);
   useEffect(() => () => worker.current?.terminate(), []);
@@ -130,6 +145,100 @@ export function BacktestWorkspace() {
     }
   };
 
+  // ── Prop accounts ──
+  const windowFor = (a: PropAccount, daysAhead: number) => {
+    const fromT = a.cursorT ?? Date.parse(`${a.startDate}T12:00:00Z`) / 1000;
+    const iso = (t: number) => new Date(t * 1000).toISOString().slice(0, 10);
+    return { fromT, settings: { ...useVisionStore.getState().bt, symbol: a.symbol, tf: a.tf, source: library.lib?.series[a.symbol] ? ("library" as const) : ("feed" as const), days: -1, from: iso(fromT - 12 * 86_400), to: iso(fromT + daysAhead * 86_400), micro: a.micro, contracts: a.contracts, sizing: a.sizing, riskPct: a.riskPct, prop: { on: true, program: a.program } } };
+  };
+  const openAccountReplay = async (a0: PropAccount) => {
+    const a = latest.current.get(a0.id) ?? a0;
+    const { settings } = windowFor(a, 130);
+    setError("");
+    setRunning(true);
+    const loaded = await history.load(settings);
+    setRunning(false);
+    if (!loaded) return;
+    const s = accountState(a);
+    await saveAccount({ ...a, events: [...a.events, { at: Date.now(), kind: "session", text: `Replay from ${dateOf(a.cursorT ?? Date.parse(`${a.startDate}T14:30:00Z`) / 1000)}${s ? ` at $${Math.round(s.balance).toLocaleString("en-US")}` : ""}` }] });
+    setReplay({ loaded, settings, account: latest.current.get(a.id) });
+    set({ btTab: "replay" });
+  };
+  const addAccountTrade = (id: string, t: AccountTrade) => {
+    const a = latest.current.get(id);
+    if (!a || a.trades.some((x) => x.id === t.id)) return;
+    const before = accountState(a)?.status;
+    const next: PropAccount = { ...a, trades: [...a.trades, t], cursorT: Math.max(a.cursorT ?? 0, t.exitT) };
+    const after = accountState(next);
+    if (after && after.status !== before && after.status !== "active") next.events = [...next.events, { at: Date.now(), kind: after.status === "passed" ? "passed" : "blown", text: after.headline }];
+    saveAccount(next);
+  };
+  const saveCursor = (id: string, t: number) => {
+    const a = latest.current.get(id);
+    if (a && a.cursorT !== t) saveAccount({ ...a, cursorT: t });
+  };
+  const autoRun = async (a0: PropAccount, req: AutoRunRequest): Promise<AutoRunResult> => {
+    const a = latest.current.get(a0.id) ?? a0;
+    const s0 = accountState(a);
+    if (!s0) return { error: "That firm program is no longer listed." };
+    if (s0.status !== "active") return { error: `This account is ${s0.status}. Reset it to try again.` };
+    const horizon = req.horizon === "pass" ? 365 : Math.ceil(req.horizon * 1.5) + 7;
+    const { fromT, settings } = windowFor(a, horizon);
+    const loaded = await history.load(settings);
+    if (!loaded) return { error: history.error || "No bars for that period." };
+    const m = isSymbol(a.symbol) ? SYMBOLS[a.symbol] : null;
+    const program = s0.program;
+    const cap = a.micro ? program.maxMicros : program.maxMinis;
+    const bt0 = useVisionStore.getState().bt;
+    const rules = req.strategy.logic === "custom" ? (bt0.rules ?? parseRules(bt0.text).rules) : null;
+    const pv = m ? (a.micro ? m.pointValue!.micro : m.pointValue!.full) : 1;
+    const r = runBacktest(loaded.bars, {
+      reader: req.strategy.logic === "vision" ? req.strategy.reader : "auto",
+      custom: rules,
+      anchor: "rth",
+      side: rules?.side ?? "both",
+      pointValue: pv,
+      contracts: Math.min(cap, Math.max(1, a.contracts)),
+      riskDollars: a.sizing === "risk" ? (program.size * a.riskPct) / 100 : undefined,
+      integer: a.sizing === "risk",
+      maxUnits: cap,
+      balance: program.size,
+      commission: bt0.commission,
+      slippageTicks: bt0.slippageTicks,
+      tick: m?.tick ?? 0.25,
+      maxHold: bt0.maxHold,
+      breakEvenR: rules ? rules.breakEvenR : bt0.breakEvenR,
+      maxPerDay: rules ? rules.maxPerDay : bt0.maxPerDay,
+      skipFomc: bt0.skipFomc && has.fomc,
+      skipEarly: bt0.skipEarly && has.early,
+      vix: has.vix ? bt0.vix : "any",
+      hours: SESSION_WINDOWS[req.session].hours,
+      context: ctx,
+    });
+    const name = rules ? "Your rules" : req.strategy.logic === "vision" && req.strategy.reader !== "auto" ? READERS[req.strategy.reader].label : "Every Vision strategy";
+    const fresh = r.trades.filter((t) => t.entryT > fromT);
+    // Add a day at a time and stop the moment the firm would.
+    const days: string[] = [];
+    for (const t of fresh) if (days[days.length - 1] !== t.session) days.push(t.session);
+    let next = a;
+    let used = 0;
+    let st = s0;
+    for (const d of days.slice(0, req.horizon === "pass" ? undefined : req.horizon)) {
+      const add: AccountTrade[] = fresh.filter((t) => t.session === d).map((t) => ({ id: `a${t.entryT}${t.n}`, entryT: t.entryT, exitT: t.exitT, session: t.session, side: t.side, qty: t.units, entry: t.entry, exit: t.exit, stop: t.stop, target: t.target, pnl: t.pnl, r: t.r, worst: t.mae * t.riskUsd, best: t.mfe * t.riskUsd, reason: t.outcome, source: "auto", strategy: name }));
+      next = { ...next, trades: [...next.trades, ...add], cursorT: add[add.length - 1].exitT };
+      used += add.length;
+      st = accountState(next)!;
+      if (st.status !== "active") break;
+    }
+    const pnl = st.balance - s0.balance;
+    const endT = used ? next.cursorT! : loaded.bars[loaded.bars.length - 1].t;
+    const text = used
+      ? `${name}: ${used} trades over ${new Set(next.trades.slice(-used).map((t) => t.session)).size} days, ${money(pnl)}. ${st.status === "passed" ? `Passed — ${st.headline}.` : st.status === "blown" ? `Blown — ${st.headline}.` : `Still going: ${st.headline}.`}`
+      : `${name} found no trades in ${SESSION_WINDOWS[req.session].label} after ${dateOf(fromT)}.`;
+    await saveAccount({ ...next, cursorT: endT, events: [...next.events, { at: Date.now(), kind: "run", text }, ...(st.status !== "active" ? [{ at: Date.now() + 1, kind: st.status === "passed" ? ("passed" as const) : ("blown" as const), text: st.headline }] : [])] });
+    return { added: used, pnl, text };
+  };
+
   const replayTrade = (t: BacktestTrade) => {
     if (!run) return;
     setReplay({ loaded: run.loaded, settings: run.settings, at: Math.max(0, t.entryIndex - 40) });
@@ -198,6 +307,7 @@ export function BacktestWorkspace() {
         label="Backtest section"
         options={[
           { v: "test" as const, l: <span className="flex items-center gap-1.5"><LineChart className="h-4 w-4" /> Strategy test</span> },
+          { v: "prop" as const, l: <span className="flex items-center gap-1.5"><Building2 className="h-4 w-4" /> Prop firm{desk.accounts?.length ? ` · ${desk.accounts.length}` : ""}</span> },
           { v: "replay" as const, l: <span className="flex items-center gap-1.5"><History className="h-4 w-4" /> Replay</span> },
           { v: "library" as const, l: <span className="flex items-center gap-1.5"><FolderOpen className="h-4 w-4" /> Library{saved.items?.length ? ` · ${saved.items.length}` : ""}</span> },
         ]}
@@ -253,13 +363,22 @@ export function BacktestWorkspace() {
               <Pill>
                 {dateOf(replay.loaded.bars[0].t)} – {dateOf(replay.loaded.bars[replay.loaded.bars.length - 1].t)}
               </Pill>
+              {replay.account && (
+                <button onClick={() => set({ btTab: "prop", propAccount: replay.account!.id })} className="flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold text-white ring-1 ring-white/15" style={{ background: `${replay.account.color}30` }}>
+                  <span className="h-2 w-2 rounded-full" style={{ background: replay.account.color }} /> {replay.account.name}
+                </button>
+              )}
               {replay.scenario ? <Pill tone="cyan">Scenario · {replay.scenario.name}</Pill> : <Pill>Vision hints · {replay.settings.logic === "custom" || replay.settings.reader === "auto" ? "every Vision strategy" : READERS[replay.settings.reader].label}</Pill>}
               <button onClick={() => setReplay(null)} className="ml-auto rounded-full bg-white/[0.07] px-3 py-1.5 text-[12.5px] font-semibold text-white/75 hover:bg-white/[0.12]">
                 Change market or period
               </button>
             </div>
             <Replay
-              key={`${replay.loaded.key}:${replay.at ?? ""}`}
+              key={`${replay.loaded.key}:${replay.at ?? ""}:${replay.account?.id ?? ""}`}
+              account={replay.account}
+              onAccountTrade={replay.account ? (t) => addAccountTrade(replay.account!.id, t) : undefined}
+              onCursor={replay.account ? (t) => saveCursor(replay.account!.id, t) : undefined}
+              onMore={replay.account ? () => openAccountReplay(replay.account!) : undefined}
               loaded={replay.loaded}
               sym={SYMBOLS[replay.settings.symbol]}
               tf={replay.settings.tf}
@@ -323,6 +442,8 @@ export function BacktestWorkspace() {
             <SetupPanel lib={library.lib} has={has} onRun={() => startReplay()} running={running} progress={null} rules={false} runLabel="Start replay" />
           </div>
         ))}
+
+      {tab === "prop" && <PropDesk accounts={desk.accounts} lib={library.lib} error={desk.error || history.error} onSave={saveAccount} onRemove={desk.remove} onReplay={openAccountReplay} onAutoRun={autoRun} />}
 
       {tab === "library" && <Library lib={library.lib} error={library.error} refresh={library.refresh} saved={saved.items} onRemoveSaved={saved.remove} onOpenRun={openSaved} />}
     </div>

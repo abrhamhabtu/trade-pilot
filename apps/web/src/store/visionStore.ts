@@ -83,7 +83,9 @@ export interface JournalEntry {
 
 interface VisionState {
   mode: 'live' | 'backtest';
-  btTab: 'test' | 'replay' | 'library';
+  btTab: 'test' | 'prop' | 'replay' | 'library';
+  /** The prop account open in the Prop firm tab. */
+  propAccount: string | null;
   bt: BacktestSettings;
   /** Notes on backtest and replay trades, by symbol:entry time. */
   journal: Record<string, JournalEntry>;
@@ -123,6 +125,7 @@ export const useVisionStore = create<VisionState>()(
     (set, get) => ({
       mode: 'live',
       btTab: 'test',
+      propAccount: null,
       bt: { symbol: 'NQ', source: 'library', tf: '5m', days: 365, reader: 'auto', side: 'both', contracts: 2, micro: true, riskDollars: 250, commission: 1.04, slippageTicks: 1, maxHold: 48, skipFomc: false, skipEarly: true, vix: 'any', session: 'ny', balance: 50_000, logic: 'vision', text: TEMPLATES[0].text, rules: null, sizing: 'fixed', riskPct: 1, breakEvenR: null, maxPerDay: null, prop: { on: false, program: 'lucid-pro:lucidpro-50k' } },
       journal: {},
       setJournal: (key, e) =>
