@@ -168,6 +168,51 @@ export function addAlerts(code: string, picks: { expr: string; title: string; si
 export const alertMessage = (name: string, side = "") => JSON.stringify({ name: jsonPart(name) || "My alert", side, symbol: "{{ticker}}", price: "{{close}}", tf: "{{interval}}" });
 export const orderFillMessage = (name: string) => JSON.stringify({ name: jsonPart(name) || "Strategy", side: "{{strategy.order.action}}", symbol: "{{ticker}}", price: "{{strategy.order.price}}", message: "{{strategy.order.comment}}" });
 
+// ── Copies and credit ──────────────────────────────────────────────────────────
+
+/** The same script, whatever the line endings or trailing spaces. */
+export const samePine = (a: string, b: string) => normalizePine(a) === normalizePine(b);
+export const normalizePine = (code: string) => code.replace(/\r\n?/g, "\n").split("\n").map((l) => l.trimEnd()).join("\n").trim();
+
+/** Who wrote a script, from the © line TradingView adds to published code. */
+export function authorOf(code: string) {
+  const m = code.match(/^\s*\/\/.*(?:©|\(c\)|copyright)\s*@?([A-Za-z0-9_.-]{2,40})/im);
+  return m ? m[1] : "";
+}
+
+/** Only TradingView script pages: this address gets stored and shown as a link. */
+export function cleanSourceUrl(raw: string) {
+  try {
+    const u = new URL(raw.trim());
+    return u.protocol === "https:" && /(^|\.)tradingview\.com$/.test(u.hostname) ? u.href : "";
+  } catch {
+    return "";
+  }
+}
+
+export interface PineTopic {
+  name: string;
+  why: string;
+  url: string;
+}
+
+/** TradingView's public library, by what a futures day trader tends to look for. */
+export const PINE_TOPICS: PineTopic[] = [
+  { name: "VWAP", why: "Bands, anchored VWAP, session VWAP", url: "https://www.tradingview.com/scripts/vwap/" },
+  { name: "Double-break VWAP", why: "People's versions of your setup", url: "https://www.tradingview.com/scripts/search/double%20break%20vwap/" },
+  { name: "Opening range", why: "ORB levels and breakouts", url: "https://www.tradingview.com/scripts/search/opening%20range/" },
+  { name: "Order blocks", why: "Supply and demand zones", url: "https://www.tradingview.com/scripts/orderblock/" },
+  { name: "Fair value gaps", why: "Imbalances and retests", url: "https://www.tradingview.com/scripts/fairvaluegap/" },
+  { name: "Liquidity sweeps", why: "Stop runs at highs and lows", url: "https://www.tradingview.com/scripts/search/liquidity%20sweep/" },
+  { name: "Market structure", why: "Break of structure and CHoCH", url: "https://www.tradingview.com/scripts/search/market%20structure/" },
+  { name: "Sessions", why: "Asia, London and New York ranges", url: "https://www.tradingview.com/scripts/search/session%20high%20low/" },
+  { name: "Volume profile", why: "Where the volume traded", url: "https://www.tradingview.com/scripts/search/volume%20profile/" },
+  { name: "Prop firm tools", why: "Drawdown and daily loss trackers", url: "https://www.tradingview.com/scripts/search/prop%20firm/" },
+  { name: "Everything", why: "Browse TradingView's whole library", url: "https://www.tradingview.com/scripts/" },
+];
+
+export const pineSearchUrl = (q: string) => `https://www.tradingview.com/scripts/search/${encodeURIComponent(q.trim())}/`;
+
 // ── Ready to use ───────────────────────────────────────────────────────────────
 
 export interface PineStarter {

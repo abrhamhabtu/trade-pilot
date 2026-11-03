@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_RULES, alertText, callScript, localClock, parseWebhook, routeAlert, scanLatest, xmlEscape } from "../src/lib/vision/alerts.ts";
-import { PINE_STARTERS, addAlerts, alertMessage, analyzePine } from "../src/lib/vision/pineTools.ts";
+import { PINE_STARTERS, PINE_TOPICS, addAlerts, alertMessage, analyzePine, authorOf, cleanSourceUrl, normalizePine, pineSearchUrl, samePine } from "../src/lib/vision/pineTools.ts";
 import { gradeRead, parseRead, readPrompt } from "../src/lib/vision/read.ts";
 import { coinFlipTest, prescribe } from "../src/lib/vision/doctor.ts";
 import { runBacktest } from "../src/lib/vision/backtest.ts";
@@ -194,4 +194,19 @@ test("the doctor does find a real pattern, and calls a real edge better than a c
   const trades = r.trades.map((t) => (t.weekday === 2 ? { ...t, pnl: -Math.abs(t.riskUsd) * 1.5, r: -1.5 } : t));
   const d = prescribe({ ...r, trades });
   assert.ok(d.prescriptions.some((p) => p.id === "wd2"), d.prescriptions.map((p) => p.id).join());
+});
+
+test("Pine: copies are recognised, authors credited, and only TradingView links kept", () => {
+  assert.ok(samePine("a = 1  \r\nb = 2\r\n\r\n", "a = 1\nb = 2"));
+  assert.ok(!samePine("a = 1", "a = 2"));
+  assert.equal(normalizePine(" \n x\n"), "x");
+  assert.equal(authorOf("// This source code is subject to the terms of the Mozilla Public License 2.0\n// © LuxAlgo\n//@version=5"), "LuxAlgo");
+  assert.equal(authorOf("//@version=6\nindicator(\"x\")"), "");
+  assert.equal(cleanSourceUrl("https://www.tradingview.com/script/abc-Name/"), "https://www.tradingview.com/script/abc-Name/");
+  assert.equal(cleanSourceUrl("https://in.tradingview.com/script/abc/"), "https://in.tradingview.com/script/abc/");
+  assert.equal(cleanSourceUrl("javascript:alert(1)"), "");
+  assert.equal(cleanSourceUrl("https://tradingview.com.evil.example/x"), "");
+  assert.equal(cleanSourceUrl("http://www.tradingview.com/x"), "");
+  assert.ok(PINE_TOPICS.every((t) => cleanSourceUrl(t.url)));
+  assert.equal(pineSearchUrl("anchored vwap"), "https://www.tradingview.com/scripts/search/anchored%20vwap/");
 });

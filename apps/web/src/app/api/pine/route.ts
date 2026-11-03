@@ -1,5 +1,5 @@
 import { localOnly, noStore } from "@/lib/server/guard";
-import { listPine, removePine, savePine, type PineScript } from "@/lib/server/pine";
+import { listPine, removeCopies, removePine, savePine, type PineScript } from "@/lib/server/pine";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
       await removePine(b.id);
       return noStore({ ok: true });
     }
+    if (b.action === "remove-copies") return noStore({ removed: await removeCopies() });
     return noStore({ error: "Unknown action." }, 400);
   } catch (e) {
     return noStore({ error: e instanceof Error ? e.message : "Pine request failed." }, 500);
