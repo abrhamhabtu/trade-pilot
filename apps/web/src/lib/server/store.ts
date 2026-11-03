@@ -3,10 +3,26 @@
 // one folder, written atomically. Secrets live in their own file, readable by
 // the owner only, and are never sent back to a browser.
 
-import { promises as fs } from "fs";
+import { existsSync, promises as fs, renameSync } from "fs";
+import os from "os";
 import path from "path";
 
-export const DATA_DIR = process.env.TRADEPILOT_DATA_DIR || path.join(process.cwd(), ".tradepilot");
+// One folder per person, not per checkout: a fresh clone, a worktree or a
+// `git clean` must never cost anyone their market data, accounts or alert
+// settings. TRADEPILOT_DATA_DIR points it elsewhere (a Docker volume, a synced drive).
+export const DATA_DIR = process.env.TRADEPILOT_DATA_DIR || path.join(os.homedir(), ".tradepilot");
+
+// Earlier versions kept this folder inside the checkout; bring it along once.
+if (!process.env.TRADEPILOT_DATA_DIR) {
+  const legacy = path.join(process.cwd(), ".tradepilot");
+  if (existsSync(legacy) && !existsSync(DATA_DIR)) {
+    try {
+      renameSync(legacy, DATA_DIR);
+    } catch {
+      /* another volume: the old folder stays where it is and nothing is lost */
+    }
+  }
+}
 
 const locks = new Map<string, Promise<unknown>>();
 

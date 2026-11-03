@@ -1,0 +1,84 @@
+{
+  "note": "What the local data library should hold. No prices are stored in this repository. Restore with: npm run data:import -- <folder of downloads>",
+  "series": {
+    "ES": {
+      "from": "2010-06-07",
+      "to": "2026-10-23",
+      "bars": 5728393,
+      "joinedWith": "MES"
+    },
+    "GC": {
+      "from": "2010-06-07",
+      "to": "2026-10-23",
+      "bars": 5682695,
+      "joinedWith": "MGC"
+    },
+    "MES": {
+      "from": "2019-05-05",
+      "to": "2026-10-23",
+      "bars": 2633681,
+      "joinedWith": null
+    },
+    "MGC": {
+      "from": "2019-01-01",
+      "to": "2026-10-23",
+      "bars": 2634895,
+      "joinedWith": null
+    },
+    "MNQ": {
+      "from": "2019-05-05",
+      "to": "2026-10-23",
+      "bars": 2635261,
+      "joinedWith": null
+    },
+    "NQ": {
+      "from": "2010-06-07",
+      "to": "2026-11-02",
+      "bars": 5562207,
+      "joinedWith": "MNQ"
+    },
+    "VIX": {
+      "from": "1990-01-02",
+      "to": "2026-10-23",
+      "bars": 9301,
+      "joinedWith": null
+    }
+  },
+  "files": [
+    {
+      "name": "databento-2026-10-24-es.zip",
+      "size": 190269670,
+      "md5": "96829f1cc214ac4802ebf5ad8c1c82b4"
+    },
+    {
+      "name": "databento-2026-10-24-gc.zip",
+      "size": 192311270,
+      "md5": "0a72abd74cfbca28e60bd1f39d349c05"
+    },
+    {
+      "name": "databento-2026-10-24-mes.zip",
+      "size": 92127910,
+      "md5": "d09a561e3657e070a390c96ea93e5095"
+    },
+    {
+      "name": "databento-2026-10-24-mgc.zip",
+      "size": 127890100,
+      "md5": "ea9512ae1fa18116080e86f131053f8f"
+    },
+    {
+      "name": "databento-2026-10-24-mnq.zip",
+      "size": 147159714,
+      "md5": "7ce344d6f20e05812f385232f1fe91fb"
+    },
+    {
+      "name": "free-data-2026-10-24.zip",
+      "size": 2255898,
+      "md5": "1756d89f907766f911c41c7414a42b31"
+    },
+    {
+      "name": "databento-2026-10-24-nq.zip",
+      "size": 309066795,
+      "md5": "597cf9d9a5c6f52d114f1ab5e76f2569"
+    }
+  ]
+}

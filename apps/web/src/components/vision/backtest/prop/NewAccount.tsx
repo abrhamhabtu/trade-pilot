@@ -2,36 +2,68 @@
 
 import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
-import { ArrowLeft, ArrowRight, Bot, Check, Dices, Hand, Layers, X } from "lucide-react";
+import Image from "next/image";
+import { AlertTriangle, ArrowLeft, ArrowRight, Bot, Check, Dices, Hand, Layers, Shield, X } from "lucide-react";
 import { DD_LABEL, FIRM_PROGRAMS, type FirmProgram } from "@/lib/proving/firms";
+import { FIRM_ORDER, firmBrand } from "@/components/proving/firmBrand";
 import { ACCOUNT_COLORS, newAccount, type PropAccount } from "@/lib/vision/account";
+import { coinFlipOdds, firmTraps } from "@/lib/vision/lab";
 import { SYMBOLS, type Timeframe } from "@/lib/vision/markets";
-import { Num, Seg } from "../ui";
+import { Seg } from "../ui";
 import type { Library } from "../data";
+import { Corridor } from "./Corridor";
 
-const STEPS = ["Firm", "Account", "Market & start", "Name it"];
+const STEPS = ["Firm", "Account", "Market and start", "Name"];
 const FUTURES = ["NQ", "ES", "GC", "CL"] as const;
 const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
+const pct = (n: number) => `${Math.round(n * 100)}%`;
 
-/** A guided setup for a new prop backtest account. */
+type Sort = "yours" | "odds" | "cost";
+
+// Thousands of simulated days per firm: worked out once per visit, not on every open.
+const flips = new Map<string, ReturnType<typeof coinFlipOdds>>();
+const flipOf = (p: FirmProgram) => {
+  const hit = flips.get(p.key);
+  if (hit) return hit;
+  const out = coinFlipOdds(p, { runs: 120, horizon: 80 });
+  flips.set(p.key, out);
+  return out;
+};
+
+function FirmMark({ firmId, firm }: { firmId: string; firm: string }) {
+  const b = firmBrand(firmId);
+  return b.logo ? (
+    <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-[12px] bg-white/[0.92] p-1.5">
+      <Image src={b.logo} alt="" width={28} height={28} className="h-full w-full object-contain" />
+    </span>
+  ) : (
+    <span aria-label={firm} className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] text-[13px] font-black text-black" style={{ background: b.color }}>
+      {b.mono}
+    </span>
+  );
+}
+
+/** A guided setup for a new prop backtest account. Size is chosen later, when trading starts. */
 export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: Library | null; existing: PropAccount[]; onCancel: () => void; onCreate: (a: PropAccount) => void; start?: Partial<PropAccount> }) {
   const [step, setStep] = useState(0);
-  const firms = useMemo(() => {
+  const [sort, setSort] = useState<Sort>("yours");
+  const [model, setModel] = useState<"all" | "eval" | "instant">("all");
+  // Every firm at one size, so the bars and odds compare like with like.
+  const rows = useMemo(() => {
     const m = new Map<string, FirmProgram[]>();
     for (const p of FIRM_PROGRAMS) m.set(p.firmId, [...(m.get(p.firmId) ?? []), p]);
-    return [...m.values()];
+    return [...m.values()].map((ps) => {
+      const ref = ps.find((p) => p.size === 50_000) ?? ps[0];
+      return { ps, ref, flip: flipOf(ref) };
+    });
   }, []);
   const initial = start?.program ? FIRM_PROGRAMS.find((p) => p.key === start.program) : undefined;
   const [firmId, setFirmId] = useState(initial?.firmId ?? "");
   const [key, setKey] = useState(initial?.key ?? "");
   const program = FIRM_PROGRAMS.find((p) => p.key === key) ?? null;
-  const [symbol, setSymbol] = useState<string>(start?.symbol ?? (lib?.series.NQ ? "NQ" : "NQ"));
+  const [symbol, setSymbol] = useState<string>(start?.symbol ?? "NQ");
   const [tf, setTf] = useState<Timeframe>(start?.tf ?? "5m");
-  const [micro, setMicro] = useState(start?.micro ?? true);
-  const [sizing, setSizing] = useState<"fixed" | "risk">(start?.sizing ?? "fixed");
-  const [contracts, setContracts] = useState(start?.contracts ?? 2);
-  const [riskPct, setRiskPct] = useState(start?.riskPct ?? 1);
   const series = lib?.series[symbol];
   const lo = series ? new Date(series.from * 1000 + 30 * 86_400_000) : new Date(Date.now() - 50 * 86_400_000);
   const hi = series ? new Date(series.to * 1000 - 20 * 86_400_000) : new Date(Date.now() - 7 * 86_400_000);
@@ -46,149 +78,147 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel]);
-  // A sensible default name once the firm and market are known.
   useEffect(() => {
     if (!program) return;
     const n = existing.filter((a) => a.program === program.key).length + 1;
-    setName(`${program.firm.replace(/ (Trading|Futures|Funding|Trader)$/, "")} ${program.sizeLabel} · ${symbol}${n > 1 ? ` #${n}` : ""}`);
+    setName(`${program.firm.replace(/ (Trading|Futures|Funding|Trader)$/, "")} ${program.sizeLabel}, ${symbol}${n > 1 ? ` #${n}` : ""}`);
   }, [program, symbol, existing]);
 
-  const cap = program ? (micro ? program.maxMicros : program.maxMinis) : 50;
+  const shown = useMemo(() => {
+    const list = rows.filter((r) => model === "all" || r.ref.model === model);
+    if (sort === "odds") return [...list].sort((a, b) => b.flip.rate - a.flip.rate);
+    if (sort === "cost") return [...list].sort((a, b) => (a.flip.costPerPass ?? 1e9) - (b.flip.costPerPass ?? 1e9));
+    const rank = (f: string) => {
+      const i = FIRM_ORDER.indexOf(f);
+      return i < 0 ? 99 : i;
+    };
+    return [...list].sort((a, b) => rank(a.ref.firm) - rank(b.ref.firm));
+  }, [rows, sort, model]);
+
+  const flip = useMemo(() => (program ? flipOf(program) : null), [program]);
+  const traps = useMemo(() => (program ? firmTraps(program) : []), [program]);
+
   const quick = [
     { l: "3 months ago", d: new Date(hi.getTime() - 90 * 86_400_000) },
     { l: "Start of this year", d: new Date(Date.UTC(hi.getUTCFullYear(), 0, 2)) },
-    { l: "Covid crash · Mar 2020", d: new Date(Date.UTC(2020, 1, 24)) },
+    { l: "Covid crash, Mar 2020", d: new Date(Date.UTC(2020, 1, 24)) },
     { l: "2022 bear market", d: new Date(Date.UTC(2022, 0, 3)) },
     { l: "Aug 2024 vol spike", d: new Date(Date.UTC(2024, 6, 15)) },
   ].filter((q) => q.d >= lo && q.d <= hi);
-  const ok = [!!firmId, !!program, !!date && (sizing === "risk" || contracts <= cap), name.trim().length > 0][step];
+  const ok = [!!firmId, !!program, !!date, name.trim().length > 0][step];
 
   const create = () => {
     if (!program) return;
-    const a = newAccount({ name: name.trim(), color, program: program.key, symbol, tf, micro, sizing, contracts: Math.min(contracts, cap), riskPct, mode, startDate: date });
+    const a = newAccount({ name: name.trim(), color, program: program.key, symbol, tf, micro: start?.micro ?? true, sizing: start?.sizing ?? "fixed", contracts: Math.min(start?.contracts ?? 2, program.maxMicros), riskPct: start?.riskPct ?? 1, mode, startDate: date });
     onCreate(blind ? { ...a, events: [...a.events, { at: Date.now(), kind: "note", text: "Blind start: a random date" }] } : a);
   };
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-[8px] sm:items-center sm:p-6" onClick={onCancel}>
-      <div role="dialog" aria-modal="true" aria-label="New prop account" onClick={(e) => e.stopPropagation()} className="tp-sheet flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-[30px] border border-white/[0.08] bg-[#161618]/95 backdrop-blur-2xl sm:rounded-[30px]">
-        <header className="flex items-center gap-4 px-6 pb-4 pt-5">
-          <div className="flex-1">
-            <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[#E3B5FF]">New prop account</p>
-            <h2 className="text-[24px] font-bold tracking-tight text-white">{["Which firm are you taking on?", "Pick the account", "Where does it start?", "Name it and choose how you'll test"][step]}</h2>
-          </div>
-          <button aria-label="Close" onClick={onCancel} className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.08] text-white/70 hover:bg-white/[0.14]">
+    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 backdrop-blur-[10px] sm:items-center sm:p-6" onClick={onCancel}>
+      <div role="dialog" aria-modal="true" aria-label="New prop account" onClick={(e) => e.stopPropagation()} className="tp-sheet flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-t-[28px] border border-white/[0.09] bg-[#111114] sm:rounded-[28px]">
+        <header className="flex items-center gap-5 border-b border-white/[0.06] px-6 py-4">
+          <h2 className="min-w-0 flex-1 text-[22px] font-semibold tracking-[-0.02em] text-white">{["Which firm are you taking on?", "Pick the account", "Where does it start?", "Name it and choose how you'll test"][step]}</h2>
+          <ol className="hidden items-center gap-1 md:flex" aria-label="Steps">
+            {STEPS.map((s, i) => (
+              <li key={s} className="flex items-center gap-1">
+                <button disabled={i > step} onClick={() => setStep(i)} aria-current={i === step ? "step" : undefined} className={clsx("rounded-full px-3 py-1 text-[12.5px] font-medium transition", i === step ? "bg-white text-black" : i < step ? "text-white/75 hover:bg-white/[0.08]" : "text-white/30")}>
+                  {s}
+                </button>
+              </li>
+            ))}
+          </ol>
+          <button aria-label="Close" onClick={onCancel} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/[0.08] text-white/70 hover:bg-white/[0.14]">
             <X className="h-4 w-4" />
           </button>
         </header>
-        <ol className="flex gap-2 px-6 pb-4">
-          {STEPS.map((s, i) => (
-            <li key={s} className="flex flex-1 flex-col gap-1.5">
-              <span className={clsx("h-1 rounded-full transition-colors duration-500", i <= step ? "bg-gradient-to-r from-[#BF5AF2] to-[#5AC8FA]" : "bg-white/[0.08]")} />
-              <span className={clsx("text-[11.5px] font-semibold", i === step ? "text-white" : "text-white/40")}>
-                {i + 1}. {s}
-              </span>
-            </li>
-          ))}
-        </ol>
 
-        <div className="min-h-[380px] flex-1 overflow-y-auto px-6 pb-4">
-          {step === 0 && (
-            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-              {firms.map((ps) => {
-                const f = ps[0];
-                const on = firmId === f.firmId;
-                return (
-                  <button
-                    key={f.firmId}
-                    onClick={() => {
-                      setFirmId(f.firmId);
-                      setKey(ps.find((p) => p.size === 50_000)?.key ?? ps[0].key);
-                    }}
-                    className={clsx("rounded-[20px] p-4 text-left ring-1 transition", on ? "bg-[#BF5AF2]/12 ring-[#BF5AF2]/60" : "bg-white/[0.04] ring-white/[0.07] hover:bg-white/[0.07]")}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-gradient-to-br from-white/20 to-white/5 text-[13px] font-black text-white">{f.firm.slice(0, 2).toUpperCase()}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14.5px] font-bold text-white">{f.firm}</p>
-                        <p className="truncate text-[12px] text-white/50">{f.program}</p>
-                      </div>
-                      {on && <Check className="h-4 w-4 text-[#E3B5FF]" />}
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      <Tag>{f.model === "instant" ? "Instant funding" : "Evaluation"}</Tag>
-                      <Tag>{DD_LABEL[f.ddType]}</Tag>
-                      <Tag>from {usd(Math.min(...ps.map((p) => p.cost)))}</Tag>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+        <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:overflow-hidden">
+          <div className="min-h-[420px] min-w-0 px-6 py-5 lg:overflow-y-auto">
+            {step === 0 && (
+              <>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <Seg size="sm" value={model} onChange={setModel} label="Type of account" options={[{ v: "all" as const, l: "All" }, { v: "eval" as const, l: "Evaluation" }, { v: "instant" as const, l: "Instant" }]} />
+                  <span className="flex-1" />
+                  <Seg size="sm" value={sort} onChange={setSort} label="Sort firms" options={[{ v: "yours" as const, l: "Your firms" }, { v: "odds" as const, l: "Best odds" }, { v: "cost" as const, l: "Cheapest pass" }]} />
+                </div>
+                <div className="space-y-1.5">
+                  {shown.map(({ ps, ref, flip: f }) => {
+                    const on = firmId === ref.firmId;
+                    return (
+                      <button
+                        key={ref.firmId}
+                        onClick={() => {
+                          setFirmId(ref.firmId);
+                          setKey(ref.key);
+                        }}
+                        aria-pressed={on}
+                        className={clsx("grid w-full grid-cols-[auto_minmax(0,1fr)_72px] items-center gap-x-3.5 rounded-[18px] px-3.5 py-3 text-left transition sm:grid-cols-[auto_minmax(0,0.9fr)_minmax(0,1fr)_72px]", on ? "bg-white/[0.1] ring-1 ring-white/40" : "bg-white/[0.03] hover:bg-white/[0.06]")}
+                      >
+                        <FirmMark firmId={ref.firmId} firm={ref.firm} />
+                        <span className="min-w-0">
+                          <span className="block truncate text-[14.5px] font-semibold text-white">{ref.firm}</span>
+                          <span className="block truncate text-[12px] text-white/50">
+                            {ref.program}, from {usd(Math.min(...ps.map((p) => p.cost)))}
+                          </span>
+                        </span>
+                        <span className="col-span-3 row-start-2 mt-2 sm:col-span-1 sm:row-start-auto sm:mt-0">
+                          <Corridor p={ref} size="sm" />
+                        </span>
+                        <span className="col-start-3 row-start-1 text-right sm:col-start-auto sm:row-start-auto">
+                          <span className="block text-[17px] font-semibold tabular-nums tracking-tight text-white">{pct(f.rate)}</span>
+                          <span className="block text-[10.5px] text-white/40">no-edge odds</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-3 text-[11.5px] leading-snug text-white/40">Bars compare each firm&apos;s 50K-size account, or its nearest. Red is the room you may lose, green is what you must make. No-edge odds: how often a coin-flip trader passes under these rules alone.</p>
+              </>
+            )}
 
-          {step === 1 && program && (
-            <div className="space-y-4">
-              <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {step === 1 && program && (
+              <div className="grid gap-2 sm:grid-cols-2">
                 {FIRM_PROGRAMS.filter((p) => p.firmId === firmId).map((p) => (
-                  <button key={p.key} onClick={() => setKey(p.key)} className={clsx("rounded-[20px] p-4 text-left ring-1 transition", key === p.key ? "bg-[#BF5AF2]/12 ring-[#BF5AF2]/60" : "bg-white/[0.04] ring-white/[0.07] hover:bg-white/[0.07]")}>
-                    <p className="flex items-center justify-between text-[22px] font-bold tracking-tight text-white">
-                      {p.sizeLabel} {key === p.key && <Check className="h-4 w-4 text-[#E3B5FF]" />}
-                    </p>
-                    <div className="mt-2 grid grid-cols-2 gap-1.5 text-[12px]">
-                      <Kv k="Target" v={p.model === "instant" ? "—" : usd(p.target)} />
-                      <Kv k="Drawdown" v={usd(p.drawdown)} />
-                      <Kv k="Daily limit" v={p.dll ? usd(p.dll) : "None"} />
-                      <Kv k="Max size" v={`${p.maxMinis} / ${p.maxMicros}μ`} />
-                    </div>
-                    <p className="mt-2 text-[12px] font-semibold text-white/60">
-                      {usd(p.cost)} {p.costCadence === "monthly" ? "a month" : "one time"}
-                    </p>
+                  <button key={p.key} onClick={() => setKey(p.key)} aria-pressed={key === p.key} className={clsx("rounded-[18px] p-4 text-left transition", key === p.key ? "bg-white/[0.1] ring-1 ring-white/40" : "bg-white/[0.03] hover:bg-white/[0.06]")}>
+                    <span className="flex items-baseline justify-between">
+                      <span className="text-[24px] font-semibold tracking-[-0.02em] text-white">{p.sizeLabel}</span>
+                      <span className="text-[13px] tabular-nums text-white/60">
+                        {usd(p.cost)}
+                        {p.costCadence === "monthly" ? " a month" : ""}
+                      </span>
+                    </span>
+                    <span className="mt-3 block">
+                      <Corridor p={p} />
+                    </span>
+                    <span className="mt-2.5 block text-[12px] text-white/50">
+                      {p.dll ? `${usd(p.dll)} daily limit` : "No daily limit"}, up to {p.maxMinis} minis or {p.maxMicros} micros
+                    </span>
                   </button>
                 ))}
               </div>
-              <div className="rounded-[18px] bg-white/[0.04] p-4 ring-1 ring-white/[0.06]">
-                <p className="text-[13px] font-semibold text-white">
-                  {program.firm} · {program.program} rules
-                </p>
-                <div className="mt-2 grid gap-1.5 text-[12.5px] text-white/65 sm:grid-cols-2">
-                  <p>• {DD_LABEL[program.ddType]} drawdown of {usd(program.drawdown)}{program.lock != null ? `, locking ${program.lock ? `at +${usd(program.lock)}` : "at the start balance"}` : ", trailing for good"}</p>
-                  <p>• {program.dll ? `Daily loss limit ${usd(program.dll)}; the day ends there` : "No daily loss limit"}</p>
-                  <p>• {program.consistencyPct >= 100 ? "No consistency rule" : `Best day at most ${program.consistencyPct}% of ${program.consistencyBasis === "profitTarget" ? "the target" : "total profit"}`}</p>
-                  <p>• At least {program.minDays} trading day{program.minDays === 1 ? "" : "s"} · {program.split}% split once funded</p>
-                </div>
-                {program.notes && <p className="mt-2 text-[11.5px] leading-snug text-white/40">{program.notes}</p>}
-              </div>
-            </div>
-          )}
+            )}
 
-          {step === 2 && (
-            <div className="grid gap-5 lg:grid-cols-2">
-              <div className="space-y-4">
+            {step === 2 && (
+              <div className="max-w-xl space-y-5">
                 <Label t="Market">
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {FUTURES.map((id) => (
-                      <button key={id} onClick={() => setSymbol(id)} className={clsx("rounded-[13px] px-2 py-2 text-left ring-1", symbol === id ? "bg-[#BF5AF2]/12 ring-[#BF5AF2]/55" : "bg-white/[0.04] ring-white/[0.06] hover:bg-white/[0.07]")}>
-                        <span className="flex items-center gap-1.5 text-[13.5px] font-bold text-white">
-                          <span className="h-2 w-2 rounded-full" style={{ background: SYMBOLS[id].color }} /> {id}
-                        </span>
-                        <span className="block truncate text-[11px] text-white/45">{lib?.series[id] ? "Your library" : "Free feed"}</span>
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                    {FUTURES.map((id) => {
+                      const s = lib?.series[id];
+                      return (
+                        <button key={id} onClick={() => setSymbol(id)} aria-pressed={symbol === id} className={clsx("rounded-[14px] px-3 py-2.5 text-left", symbol === id ? "bg-white/[0.1] ring-1 ring-white/40" : "bg-white/[0.03] hover:bg-white/[0.06]")}>
+                          <span className="flex items-center gap-1.5 text-[14px] font-semibold text-white">
+                            <span className="h-2 w-2 rounded-full" style={{ background: SYMBOLS[id].color }} /> {SYMBOLS[id].name}
+                          </span>
+                          <span className="mt-0.5 block text-[11.5px] tabular-nums text-white/45">{s ? `${new Date(s.from * 1000).getUTCFullYear()} to ${new Date(s.to * 1000).getUTCFullYear()}` : "2 months, free feed"}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </Label>
-                <Label t="Execution timeframe">
+                <Label t="Chart timeframe">
                   <Seg full size="sm" value={tf} onChange={setTf} options={(["1m", "5m", "15m", "1h"] as Timeframe[]).map((t) => ({ v: t, l: t }))} />
                 </Label>
-                <Label t="Position size" hint={sizing === "risk" ? `Whole contracts risking ${riskPct}% of the balance, capped at the firm's ${cap}.` : `The firm allows up to ${cap} ${micro ? "micros" : "minis"}.`}>
-                  <div className="flex flex-wrap gap-2">
-                    <Seg size="sm" value={micro ? 1 : 0} onChange={(v) => setMicro(v === 1)} options={[{ v: 1, l: `Micro (${SYMBOLS[symbol as "NQ"].roots!.micro})` }, { v: 0, l: `Full (${SYMBOLS[symbol as "NQ"].roots!.full})` }]} />
-                    <Seg size="sm" value={sizing} onChange={setSizing} options={[{ v: "fixed" as const, l: "Contracts" }, { v: "risk" as const, l: "% risk" }]} />
-                    {sizing === "fixed" ? <Num value={contracts} onChange={(c) => setContracts(Math.round(c))} min={1} max={cap} width="w-20" /> : <Num value={riskPct} onChange={setRiskPct} min={0.1} max={5} step={0.1} suffix="%" width="w-24" />}
-                  </div>
-                </Label>
-              </div>
-              <div className="space-y-4">
-                <Label t="Start date" hint={series ? `Your ${symbol} history runs ${iso(new Date(series.from * 1000))} to ${iso(new Date(series.to * 1000))}.` : "Without library data, replay reaches back about two months."}>
+                <Label t="Start date" hint={series ? `${symbol} history runs ${iso(new Date(series.from * 1000))} to ${iso(new Date(series.to * 1000))}.` : "Add your data in the Library to reach further back than about two months."}>
                   <input
                     type="date"
                     value={date}
@@ -198,14 +228,18 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
                       setDate(e.target.value);
                       setBlind(false);
                     }}
-                    className="w-full rounded-xl bg-white/[0.06] px-3 py-2.5 text-[14px] text-white [color-scheme:dark] ring-1 ring-inset ring-white/[0.08]"
+                    className="w-full rounded-[13px] bg-white/[0.06] px-3 py-2.5 text-[14px] text-white [color-scheme:dark] ring-1 ring-inset ring-white/[0.08]"
                   />
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {quick.map((q) => (
-                      <button key={q.l} onClick={() => {
+                      <button
+                        key={q.l}
+                        onClick={() => {
                           setDate(iso(q.d));
                           setBlind(false);
-                        }} className={clsx("rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1", date === iso(q.d) ? "bg-white text-black ring-white" : "bg-white/[0.04] text-white/65 ring-white/[0.08] hover:text-white")}>
+                        }}
+                        className={clsx("rounded-full px-2.5 py-1 text-[12px] font-medium", date === iso(q.d) ? "bg-white text-black" : "bg-white/[0.05] text-white/65 hover:text-white")}
+                      >
                         {q.l}
                       </button>
                     ))}
@@ -214,29 +248,24 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
                         setDate(iso(new Date(lo.getTime() + Math.random() * (hi.getTime() - lo.getTime()))));
                         setBlind(true);
                       }}
-                      className={clsx("flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1", blind ? "bg-[#BF5AF2] text-white ring-[#BF5AF2]" : "bg-white/[0.04] text-white/65 ring-white/[0.08] hover:text-white")}
+                      className={clsx("flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium", blind ? "bg-white text-black" : "bg-white/[0.05] text-white/65 hover:text-white")}
                     >
                       <Dices className="h-3.5 w-3.5" /> Random date
                     </button>
                   </div>
                 </Label>
-                <p className="rounded-[16px] bg-white/[0.03] p-3 text-[12.5px] leading-relaxed text-white/55">
-                  The account opens at the New York open on this day. Replay picks up where you leave off each time, and automated runs continue from the same point, so both add to one account&apos;s balance and drawdown.
-                </p>
               </div>
-            </div>
-          )}
+            )}
 
-          {step === 3 && program && (
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
-              <div className="space-y-4">
+            {step === 3 && program && (
+              <div className="max-w-xl space-y-5">
                 <Label t="Account name">
-                  <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoFocus className="w-full rounded-xl bg-white/[0.06] px-3.5 py-3 text-[16px] font-semibold text-white outline-none ring-1 ring-inset ring-white/[0.08] focus:ring-[#BF5AF2]/60" />
+                  <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoFocus className="w-full rounded-[13px] bg-white/[0.06] px-3.5 py-3 text-[16px] font-medium text-white outline-none ring-1 ring-inset ring-white/[0.08] focus:ring-white/40" />
                 </Label>
                 <Label t="Colour">
                   <div className="flex gap-2">
                     {ACCOUNT_COLORS.map((c) => (
-                      <button key={c} aria-label={`Colour ${c}`} onClick={() => setColor(c)} className={clsx("h-8 w-8 rounded-full ring-2 ring-offset-2 ring-offset-[#161618] transition", color === c ? "ring-white" : "ring-transparent")} style={{ background: c }} />
+                      <button key={c} aria-label={`Colour ${c}`} aria-pressed={color === c} onClick={() => setColor(c)} className={clsx("h-8 w-8 rounded-full ring-2 ring-offset-2 ring-offset-[#111114] transition", color === c ? "ring-white" : "ring-transparent")} style={{ background: c }} />
                     ))}
                   </div>
                 </Label>
@@ -247,8 +276,8 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
                       { v: "auto" as const, icon: <Bot className="h-4 w-4" />, t: "Automated", d: "Run a strategy forward until it passes or fails" },
                       { v: "both" as const, icon: <Layers className="h-4 w-4" />, t: "Both", d: "Mix sessions by hand with strategy runs" },
                     ].map((m) => (
-                      <button key={m.v} onClick={() => setMode(m.v)} className={clsx("rounded-[16px] p-3 text-left ring-1", mode === m.v ? "bg-[#BF5AF2]/12 ring-[#BF5AF2]/60" : "bg-white/[0.04] ring-white/[0.07] hover:bg-white/[0.07]")}>
-                        <span className="flex items-center gap-1.5 text-[13.5px] font-bold text-white">
+                      <button key={m.v} onClick={() => setMode(m.v)} aria-pressed={mode === m.v} className={clsx("rounded-[16px] p-3 text-left", mode === m.v ? "bg-white/[0.1] ring-1 ring-white/40" : "bg-white/[0.03] hover:bg-white/[0.06]")}>
+                        <span className="flex items-center gap-1.5 text-[13.5px] font-semibold text-white">
                           {m.icon} {m.t}
                         </span>
                         <span className="mt-1 block text-[11.5px] leading-snug text-white/50">{m.d}</span>
@@ -256,43 +285,74 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
                     ))}
                   </div>
                 </Label>
+                <p className="text-[12.5px] leading-relaxed text-white/50">You&apos;ll pick contracts and risk once the account is open, right where you trade it. The lab there can work out the size that gives you the best odds at this firm.</p>
               </div>
-              <div className="rounded-[22px] p-5 ring-1 ring-white/[0.08]" style={{ background: `linear-gradient(150deg, ${color}2e, rgba(22,22,24,0.9) 60%)` }}>
-                <p className="flex items-center gap-2 text-[12px] font-semibold text-white/60">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} /> Preview
-                </p>
-                <p className="mt-2 text-[22px] font-bold tracking-tight text-white">{name || "Untitled account"}</p>
-                <p className="text-[13px] text-white/55">
-                  {program.firm} {program.sizeLabel} · {program.program}
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-[12.5px]">
-                  <Kv k="Balance" v={usd(program.size)} />
-                  <Kv k="Target" v={program.model === "instant" ? "—" : usd(program.target)} />
-                  <Kv k="Floor" v={usd(program.size - program.drawdown)} />
-                  <Kv k="Daily limit" v={program.dll ? usd(program.dll) : "None"} />
-                  <Kv k="Market" v={`${micro ? SYMBOLS[symbol as "NQ"].roots!.micro : SYMBOLS[symbol as "NQ"].roots!.full} · ${tf}`} />
-                  <Kv k="Size" v={sizing === "fixed" ? `${contracts} contracts` : `${riskPct}% risk`} />
-                  <Kv k="Starts" v={blind ? "A random day" : new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })} />
-                  <Kv k="Cost" v={`${usd(program.cost)}${program.costCadence === "monthly" ? "/mo" : ""}`} />
+            )}
+          </div>
+
+          {/* The deal stays in view while you choose. */}
+          <aside className={clsx("border-t border-white/[0.06] bg-white/[0.02] px-6 py-5 lg:block lg:overflow-y-auto lg:border-l lg:border-t-0", !program && "hidden")}>
+            {!program ? (
+              <div className="flex h-full min-h-[200px] flex-col justify-center text-center">
+                <p className="text-[15px] font-medium text-white/70">Pick a firm to see how its rules tilt the game</p>
+                <p className="mx-auto mt-1 max-w-[260px] text-[12.5px] leading-snug text-white/40">Every firm wins when you buy another evaluation. Here is where each one makes that likely.</p>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-3">
+                  <FirmMark firmId={program.firmId} firm={program.firm} />
+                  <div className="min-w-0">
+                    <p className="truncate text-[16px] font-semibold text-white">
+                      {program.firm} {program.sizeLabel}
+                    </p>
+                    <p className="truncate text-[12px] text-white/50">{program.program}</p>
+                  </div>
                 </div>
+                <div className="mt-4">
+                  <Corridor p={program} size="lg" />
+                </div>
+                {flip && (
+                  <div className="mt-4 rounded-[16px] bg-white/[0.04] p-3.5">
+                    <p className="text-[32px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-white">{pct(flip.rate)}</p>
+                    <p className="mt-1.5 text-[12.5px] leading-snug text-white/55">
+                      of coin-flip traders pass, about {flip.costPerPass ? usd(flip.costPerPass) : "more than it's worth"} in fees per pass. Your strategy has to beat this number, or the firm is the one with the edge.
+                    </p>
+                  </div>
+                )}
+                <div className="mt-4 space-y-3">
+                  {traps.slice(0, 4).map((t) => (
+                    <div key={t.id}>
+                      <p className="flex items-start gap-1.5 text-[13px] font-semibold text-white">
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#FFB98A]" /> {t.title}
+                      </p>
+                      <p className="mt-0.5 pl-5 text-[12px] leading-snug text-white/50">{t.how}</p>
+                      <p className="mt-1 flex items-start gap-1.5 pl-5 text-[12px] leading-snug text-[#9BE1FF]">
+                        <Shield className="mt-0.5 h-3 w-3 shrink-0" /> {t.answer}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-4 text-[11.5px] leading-snug text-white/40">
+                  {DD_LABEL[program.ddType]} drawdown, at least {program.minDays} trading day{program.minDays === 1 ? "" : "s"}, {program.split}% split once funded. {program.notes} Check the firm&apos;s current terms before you pay.
+                </p>
               </div>
-            </div>
-          )}
+            )}
+          </aside>
         </div>
 
-        <footer className="flex items-center gap-2 border-t border-white/[0.06] px-6 py-4">
+        <footer className="flex items-center gap-2 border-t border-white/[0.06] px-6 py-3.5">
           {step > 0 && (
-            <button onClick={() => setStep(step - 1)} className="flex items-center gap-1.5 rounded-full bg-white/[0.08] px-4 py-2.5 text-[14px] font-semibold text-white hover:bg-white/[0.12]">
+            <button onClick={() => setStep(step - 1)} className="flex items-center gap-1.5 rounded-full bg-white/[0.08] px-4 py-2.5 text-[14px] font-medium text-white hover:bg-white/[0.12]">
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
           )}
           <span className="flex-1" />
           {step < 3 ? (
-            <button disabled={!ok} onClick={() => setStep(step + 1)} className="flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-[14px] font-bold text-black disabled:opacity-40">
+            <button disabled={!ok} onClick={() => setStep(step + 1)} className="flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-black disabled:opacity-40">
               Continue <ArrowRight className="h-4 w-4" />
             </button>
           ) : (
-            <button disabled={!ok} onClick={create} className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#BF5AF2] to-[#5AC8FA] px-5 py-2.5 text-[14px] font-bold text-white shadow-[0_12px_30px_-12px_rgba(191,90,242,0.9)] disabled:opacity-40">
+            <button disabled={!ok} onClick={create} className="flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-black disabled:opacity-40">
               <Check className="h-4 w-4" /> Create account
             </button>
           )}
@@ -302,23 +362,10 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
   );
 }
 
-function Tag({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[11px] font-semibold text-white/60">{children}</span>;
-}
-
-function Kv({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="rounded-xl bg-black/20 px-2.5 py-1.5">
-      <p className="text-[10.5px] text-white/40">{k}</p>
-      <p className="truncate font-semibold text-white/90">{v}</p>
-    </div>
-  );
-}
-
 function Label({ t, hint, children }: { t: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-1.5 text-[12px] font-semibold text-white/55">{t}</p>
+      <p className="mb-1.5 text-[13px] font-medium text-white/60">{t}</p>
       {children}
       {hint && <p className="mt-1.5 text-[11.5px] leading-snug text-white/40">{hint}</p>}
     </div>

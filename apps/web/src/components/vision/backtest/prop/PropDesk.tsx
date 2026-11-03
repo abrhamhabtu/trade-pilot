@@ -5,10 +5,14 @@ import clsx from "clsx";
 import { ArrowLeft, Bot, Building2, CheckCircle2, ChevronDown, CircleDashed, Copy, Download, Hand, Loader2, Pencil, Play, Plus, RotateCcw, Trash2, Trophy, XCircle } from "lucide-react";
 import { READERS, READER_ORDER, type ReaderChoice } from "@/lib/vision/analyze";
 import { accountCsv, accountState, resetAccount, uid, type AccountState, type PropAccount } from "@/lib/vision/account";
+import { SYMBOLS, isSymbol } from "@/lib/vision/markets";
 import { SESSION_WINDOWS, type SessionKey } from "@/lib/vision/custom";
 import { DD_LABEL } from "@/lib/proving/firms";
 import { useVisionStore } from "@/store/visionStore";
+import { Num, Seg } from "../ui";
 import { download, money, timeOf, type Library } from "../data";
+import { DayLedger } from "./DayLedger";
+import { EdgeLab } from "./EdgeLab";
 import { NewAccount } from "./NewAccount";
 
 const VIOLET = "#BF5AF2";
@@ -35,7 +39,7 @@ export function PropDesk({ accounts, lib, error, onSave, onRemove, onReplay, onA
   return (
     <div className="space-y-5">
       {open ? (
-        <Detail a={open} s={states.get(open.id) ?? null} onBack={() => set({ propAccount: null })} onSave={onSave} onRemove={(id) => (onRemove(id), set({ propAccount: null }))} onReplay={onReplay} onAutoRun={onAutoRun} onDuplicate={(a) => setWizard({ ...a })} onFunded={async (a, s) => {
+        <Detail a={open} s={states.get(open.id) ?? null} hasData={!!lib?.series[open.symbol]} dataTo={lib?.series[open.symbol]?.to} onBack={() => set({ propAccount: null })} onSave={onSave} onRemove={(id) => (onRemove(id), set({ propAccount: null }))} onReplay={onReplay} onAutoRun={onAutoRun} onDuplicate={(a) => setWizard({ ...a })} onFunded={async (a, s) => {
           const f: PropAccount = { ...a, id: uid(), name: `${a.name} · Funded`, phase: "funded", parentId: a.id, createdAt: Date.now(), updatedAt: Date.now(), trades: [], history: [], resets: 0, startDate: s.lastDay ?? a.startDate, cursorT: a.cursorT, events: [{ at: Date.now(), kind: "funded", text: `Funded after passing ${a.name}` }] };
           await onSave({ ...a, events: [...a.events, { at: Date.now(), kind: "funded", text: "Continued as a funded account" }] });
           await onSave(f);
@@ -63,13 +67,10 @@ function Gallery({ accounts, states, loading, error, onOpen, onNew }: { accounts
       <section className="overflow-hidden rounded-[28px] border border-[#BF5AF2]/30 bg-[radial-gradient(120%_140%_at_0%_0%,rgba(191,90,242,0.2),rgba(18,18,20,0.9)_55%)] p-6 backdrop-blur-2xl">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[#E3B5FF]">● Prop firm desk</p>
-            <h2 className="mt-2 text-[34px] font-bold leading-[1.05] tracking-[-0.035em] text-white">
-              Beat the firm <span className="bg-gradient-to-r from-[#BF5AF2] to-[#5AC8FA] bg-clip-text text-transparent">before you pay it</span>.
-            </h2>
+            <h2 className="text-[34px] font-semibold leading-[1.05] tracking-[-0.035em] text-white">Beat the firm before you pay it.</h2>
             <p className="mt-2 max-w-2xl text-[14.5px] leading-relaxed text-white/60">Open a practice account at any firm, start it on any day in your history, and fill it with trades by hand in replay, with your strategies, or both. Every account keeps its balance, trailing floor and record, graded on the firm&apos;s own rules.</p>
           </div>
-          <button onClick={onNew} className="flex items-center gap-2 rounded-full bg-gradient-to-r from-[#BF5AF2] to-[#5AC8FA] px-5 py-3 text-[15px] font-bold text-white shadow-[0_14px_34px_-12px_rgba(191,90,242,0.9)] active:scale-[0.98]">
+          <button onClick={onNew} className="flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[15px] font-semibold text-black active:scale-[0.98]">
             <Plus className="h-4 w-4" /> New account
           </button>
         </div>
@@ -117,7 +118,7 @@ function Gallery({ accounts, states, loading, error, onOpen, onNew }: { accounts
 function Rec({ k, v, tone }: { k: string; v: string; tone?: "pos" | "neg" }) {
   return (
     <div className="rounded-[18px] bg-black/25 px-4 py-3 ring-1 ring-inset ring-white/[0.06]">
-      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">{k}</p>
+      <p className="text-[12px] font-medium text-white/50">{k}</p>
       <p className={clsx("mt-1 text-[26px] font-bold tabular-nums tracking-tight", tone === "pos" ? "text-[#7CE59A]" : tone === "neg" ? "text-[#FFA3AB]" : "text-white")}>{v}</p>
     </div>
   );
@@ -202,7 +203,7 @@ function Bar({ label, v, max, color, text }: { label: string; v: number; max: nu
 
 // ── One account ──
 
-function Detail({ a, s, onBack, onSave, onRemove, onReplay, onAutoRun, onDuplicate, onFunded }: { a: PropAccount; s: AccountState | null; onBack: () => void; onSave: (a: PropAccount) => Promise<PropAccount>; onRemove: (id: string) => void; onReplay: (a: PropAccount) => void; onAutoRun: (a: PropAccount, r: AutoRunRequest) => Promise<AutoRunResult>; onDuplicate: (a: PropAccount) => void; onFunded: (a: PropAccount, s: AccountState) => void }) {
+function Detail({ a, s, hasData, dataTo, onBack, onSave, onRemove, onReplay, onAutoRun, onDuplicate, onFunded }: { a: PropAccount; s: AccountState | null; hasData: boolean; dataTo?: number; onBack: () => void; onSave: (a: PropAccount) => Promise<PropAccount>; onRemove: (id: string) => void; onReplay: (a: PropAccount) => void; onAutoRun: (a: PropAccount, r: AutoRunRequest) => Promise<AutoRunResult>; onDuplicate: (a: PropAccount) => void; onFunded: (a: PropAccount, s: AccountState) => void }) {
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(a.name);
   const [confirm, setConfirm] = useState<"reset" | "delete" | null>(null);
@@ -239,7 +240,7 @@ function Detail({ a, s, onBack, onSave, onRemove, onReplay, onAutoRun, onDuplica
               </button>
             )}
             <p className="text-[13px] text-white/55">
-              {p.firm} {p.sizeLabel} · {p.program} · {a.phase === "funded" ? "Funded" : "Evaluation"} · {a.symbol} {a.micro ? "micros" : "minis"} {a.tf} · {a.sizing === "fixed" ? `${a.contracts} contracts` : `${a.riskPct}% risk`}
+              {p.firm} {p.sizeLabel}, {p.program}. {a.phase === "funded" ? "Funded" : "Evaluation"} on {a.symbol} {a.tf}.
             </p>
           </div>
           <StatusPill a={a} s={s} />
@@ -289,7 +290,7 @@ function Detail({ a, s, onBack, onSave, onRemove, onReplay, onAutoRun, onDuplica
 
         <div className="grid gap-5 p-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <div>
-            <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-white/45">Balance</p>
+            <p className="text-[13px] font-medium text-white/50">Balance</p>
             <p className="mt-1 text-[48px] font-bold leading-none tracking-[-0.04em] tabular-nums text-white">${Math.round(s.balance).toLocaleString("en-US")}</p>
             <p className={clsx("mt-2 text-[15px] font-semibold tabular-nums", s.profit >= 0 ? "text-[#7CE59A]" : "text-[#FFA3AB]")}>
               {money(s.profit, 2)} · {a.trades.length} trades · {a.trades.length ? `${Math.round((s.wins / a.trades.length) * 100)}% win · ${s.netR >= 0 ? "+" : ""}${s.netR.toFixed(1)}R` : "no trades yet"}
@@ -298,6 +299,7 @@ function Detail({ a, s, onBack, onSave, onRemove, onReplay, onAutoRun, onDuplica
               <p className="text-[14px] font-semibold text-white">{s.headline}</p>
               <p className="mt-0.5 text-[12.5px] text-white/55">{s.detail}</p>
             </div>
+            {!done && <TradeSize a={a} s={s} onSave={onSave} />}
             <div className="mt-4 flex flex-wrap gap-2">
               {!done && manual && (
                 <button onClick={() => onReplay(a)} className="flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[14.5px] font-bold text-black active:scale-[0.98]">
@@ -325,6 +327,8 @@ function Detail({ a, s, onBack, onSave, onRemove, onReplay, onAutoRun, onDuplica
         </div>
       </section>
 
+      <EdgeLab a={a} s={s} hasData={hasData} dataTo={dataTo} onSave={onSave} />
+
       {auto && !done && <AutoRun a={a} onAutoRun={onAutoRun} />}
 
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
@@ -332,12 +336,36 @@ function Detail({ a, s, onBack, onSave, onRemove, onReplay, onAutoRun, onDuplica
         <Calendar s={s} />
       </div>
 
+      <DayLedger days={s.days} program={p} name={a.name} />
+
       <Rules a={a} s={s} />
 
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
         <Ledger a={a} />
         <Timeline a={a} />
       </div>
+    </div>
+  );
+}
+
+/** Size is a decision made at the moment of trading, so it lives next to the buttons that trade. */
+function TradeSize({ a, s, onSave }: { a: PropAccount; s: AccountState; onSave: (a: PropAccount) => Promise<PropAccount> }) {
+  const p = s.program;
+  const roots = isSymbol(a.symbol) ? SYMBOLS[a.symbol].roots : undefined;
+  const cap = a.micro ? p.maxMicros : p.maxMinis;
+  const pv = isSymbol(a.symbol) ? SYMBOLS[a.symbol].pointValue : undefined;
+  const perPoint = pv ? (a.micro ? pv.micro : pv.full) * a.contracts : 0;
+  return (
+    <div className="mt-4 rounded-[18px] bg-black/25 p-3.5 ring-1 ring-inset ring-white/[0.06]">
+      <div className="flex flex-wrap items-center gap-2">
+        <Seg size="sm" label="Contract" value={a.micro ? 1 : 0} onChange={(v) => onSave({ ...a, micro: v === 1, contracts: Math.min(a.contracts, v === 1 ? p.maxMicros : p.maxMinis) })} options={[{ v: 1, l: roots?.micro ?? "Micro" }, { v: 0, l: roots?.full ?? "Full" }]} />
+        <Seg size="sm" label="Sizing" value={a.sizing} onChange={(v) => onSave({ ...a, sizing: v })} options={[{ v: "fixed" as const, l: "Contracts" }, { v: "risk" as const, l: "% risk" }]} />
+        {a.sizing === "fixed" ? <Num value={a.contracts} onChange={(c) => onSave({ ...a, contracts: Math.max(1, Math.min(cap, Math.round(c))) })} min={1} max={cap} width="w-20" /> : <Num value={a.riskPct} onChange={(r) => onSave({ ...a, riskPct: r })} min={0.1} max={5} step={0.1} suffix="%" width="w-24" />}
+      </div>
+      <p className="mt-2 text-[12px] leading-snug text-white/50">
+        {a.sizing === "fixed" ? `${perPoint ? `$${perPoint.toLocaleString("en-US")} a point. ` : ""}A 20-point stop risks $${(perPoint * 20).toLocaleString("en-US")}, ${Math.round(((perPoint * 20) / Math.max(1, s.buffer)) * 100)}% of the room you have left. ` : `Each trade risks about $${Math.round((p.size * a.riskPct) / 100).toLocaleString("en-US")}, ${Math.round(((p.size * a.riskPct) / 100 / Math.max(1, s.buffer)) * 100)}% of the room you have left. `}
+        The firm allows {cap}.
+      </p>
     </div>
   );
 }
@@ -387,7 +415,7 @@ function AutoRun({ a, onAutoRun }: { a: PropAccount; onAutoRun: (a: PropAccount,
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[16px] font-bold text-white">Run a strategy on this account</p>
-          <p className="text-[12.5px] text-white/50">Picks up from {a.cursorT ? timeOf(a.cursorT) : sdate(a.startDate)} and trades forward on the firm&apos;s rules, adding to the same balance.</p>
+          <p className="text-[12.5px] text-white/50">Your pick at the size above, from {a.cursorT ? timeOf(a.cursorT) : sdate(a.startDate)}, on the firm&apos;s rules. Adds to the same balance.</p>
         </div>
       </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">

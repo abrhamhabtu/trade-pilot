@@ -36,7 +36,7 @@ Several prop firms restrict or ban automated trading. Check your firm's rules be
 
 ## Data and security
 
-Server state is plain JSON in `.tradepilot/` (or `TRADEPILOT_DATA_DIR`), git-ignored. Alert tokens and the ProjectX key are owner-readable only and never sent to a browser. The alert, runner and live routes answer only same-origin requests to a loopback address. A production (Docker) build also needs `TRADEPILOT_LOCAL_CONTROL=1`; keep that port off the public internet.
+Server state is plain JSON in `~/.tradepilot/` (or `TRADEPILOT_DATA_DIR`), outside the repository. Alert tokens and the ProjectX key are owner-readable only and never sent to a browser. The alert, runner and live routes answer only same-origin requests to a loopback address. A production (Docker) build also needs `TRADEPILOT_LOCAL_CONTROL=1`; keep that port off the public internet.
 
 ## Not verified
 

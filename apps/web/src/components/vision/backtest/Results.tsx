@@ -6,11 +6,13 @@ import { ChevronDown, Download, FolderDown, ShieldAlert, Sparkles, Trophy } from
 import type { Bar } from "@/lib/pilot/market";
 import { READERS, type ReaderId } from "@/lib/vision/analyze";
 import { tradesCsv, type BacktestResult, type BacktestTrade, type Group } from "@/lib/vision/backtest";
-import type { PropReport } from "@/lib/vision/prop";
+import type { FirmProgram } from "@/lib/proving/firms";
+import { toDays, type PropReport } from "@/lib/vision/prop";
 import type { Verdict } from "@/lib/vision/verdict";
 import type { Timeframe, VisionSymbol } from "@/lib/vision/markets";
 import { useVisionStore } from "@/store/visionStore";
 import { dateOf, download, money, type Loaded } from "./data";
+import { DayLedger } from "./prop/DayLedger";
 import { PropCard } from "./PropCard";
 import { TradeReview } from "./TradeReview";
 import { CY, Card, NEG, Seg } from "./ui";
@@ -63,6 +65,15 @@ export function Results({
   const bars: Bar[] = loaded.bars;
   const [pick, setPick] = useState<number>(0);
   const review = useRef<HTMLDivElement>(null);
+  // Point value and bar length as the run itself priced them, recovered from a trade.
+  const ledgerDays = useMemo(() => {
+    const t = result.trades[0];
+    if (!t || bars.length < 2) return [];
+    const risk = Math.abs(t.entry - t.stop) * t.units;
+    return toDays(result.trades, bars, risk ? t.riskUsd / risk : 1, bars[1].t - bars[0].t);
+  }, [result, bars]);
+  // Without a firm, one that can't be hit: the ledger is then just the days and their numbers.
+  const ledgerProgram = useMemo(() => prop?.program ?? ({ size: result.balance, target: 0, drawdown: 1e12, ddType: "static", lock: null, dll: null, consistencyPct: 100, consistencyBasis: "totalProfit", minDays: 0, maxMinis: 1e6, maxMicros: 1e6 } as unknown as FirmProgram), [prop, result.balance]);
   const open = (k: number) => {
     setPick(k);
     requestAnimationFrame(() => review.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
@@ -136,6 +147,8 @@ export function Results({
       {league && <League rows={league} onUse={onUse} />}
 
       <Breakdowns by={result.by} />
+
+      <DayLedger days={ledgerDays} program={ledgerProgram} firm={!!prop} name={`backtest-${sym?.id ?? "data"}`} />
 
       {/* ── Every trade the engine took, on the chart ── */}
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">

@@ -1,7 +1,7 @@
 import os from "os";
 import path from "path";
 import { localOnly, noStore } from "@/lib/server/guard";
-import { addFromPath, getIndex, jobs, processFile, removeFile } from "@/lib/server/library";
+import { addFromPath, getIndex, importFolder, jobs, processFile, removeFile } from "@/lib/server/library";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -26,6 +26,12 @@ export async function POST(req: Request) {
       const f = await addFromPath(p);
       void processFile(f.id);
       return noStore({ file: f });
+    }
+    if (body.action === "import-folder") {
+      const p = path.resolve(String(body.path ?? "").replace(/^~(?=$|\/)/, os.homedir()));
+      if (!p.startsWith(os.homedir() + path.sep)) return noStore({ error: "Pick a folder inside your home folder." }, 400);
+      void importFolder(p).catch(() => undefined);
+      return noStore({ ok: true });
     }
     if (body.action === "process") {
       void processFile(String(body.id));

@@ -43,6 +43,10 @@ export interface SeriesInfo {
   bars: number;
   years: number[];
   sources: string[];
+  /** Bars held per calendar year, to spot holes. */
+  byYear?: Record<string, number>;
+  /** The micro whose bars fill the years this contract's own file lacks. */
+  joinedWith?: string;
 }
 
 export interface LibraryIndex {
@@ -54,8 +58,32 @@ export interface LibraryIndex {
 const EMPTY: LibraryIndex = { files: [], series: {}, datasets: {} };
 export const jobs = ((globalThis as Record<string, unknown>).__tpLibraryJobs ??= new Map<string, { stage: string; done: number; total: number }>()) as Map<string, { stage: string; done: number; total: number }>;
 
-export const getIndex = () => readJson<LibraryIndex>(INDEX, EMPTY);
+// A micro and its full-size contract trade the same index or metal at the same
+// prices, so one fills the other's gaps: the NQ download stops in May 2019 where
+// MNQ takes over. Micros did not exist before 2019, so older years are full-size only.
+export const JOINS: Record<string, string> = { NQ: "MNQ", ES: "MES", GC: "MGC" };
+
+/** The stored series, with each full-size contract's range widened by its micro. */
+function joined(raw: LibraryIndex): LibraryIndex {
+  const series = { ...raw.series };
+  for (const [full, micro] of Object.entries(JOINS)) {
+    const a = series[full];
+    const b = series[micro];
+    if (!b) continue;
+    if (!a) {
+      series[full] = { ...b, symbol: full, joinedWith: micro };
+      continue;
+    }
+    const byYear: Record<string, number> = { ...(b.byYear ?? {}) };
+    for (const [y, n] of Object.entries(a.byYear ?? {})) byYear[y] = Math.max(n, byYear[y] ?? 0);
+    series[full] = { ...a, from: Math.min(a.from, b.from), to: Math.max(a.to, b.to), bars: Object.values(byYear).reduce((x, y) => x + y, 0) || a.bars, years: [...new Set([...a.years, ...b.years])].sort(), sources: [...new Set([...a.sources, ...b.sources])], byYear, joinedWith: micro };
+  }
+  return { ...raw, series };
+}
+
+export const getIndex = async () => joined(await readJson<LibraryIndex>(INDEX, EMPTY));
 const saveIndex = (change: (i: LibraryIndex) => void) =>
+  // Writes go to the file as stored; the joined view is only ever computed on the way out.
   updateJson<LibraryIndex>(INDEX, EMPTY, (i) => {
     const next = {
       files: i.files ?? [],
@@ -101,6 +129,59 @@ export async function addFromPath(src: string) {
   const st = await fs.stat(src);
   if (!st.isFile()) throw new Error("That path is not a file.");
   return addFromStream(path.basename(src), createReadStream(src));
+}
+
+/**
+ * Add everything usable in a folder of downloads: whole zips, CSVs and split
+ * zips, whose parts are joined straight into one zip. Anything already in the
+ * library (same name and size) is left alone, so running this twice costs nothing.
+ */
+export async function importFolder(dir: string, onStep: (text: string) => void = () => {}) {
+  const names = (await fs.readdir(dir)).sort();
+  const groups = new Map<string, string[]>();
+  for (const n of names) {
+    const part = n.match(/^(.+\.zip)\.part\d+$/i);
+    if (part) groups.set(part[1], [...(groups.get(part[1]) ?? []), n]);
+    else if (/\.(zip|csv)$/i.test(n)) groups.set(n, [n]);
+  }
+  await fs.mkdir(FILES, { recursive: true, mode: 0o700 });
+  const added: string[] = [];
+  const skipped: string[] = [];
+  for (const [name, parts] of groups) {
+    const paths = parts.map((p) => path.join(dir, p));
+    const size = (await Promise.all(paths.map((p) => fs.stat(p)))).reduce((a, st) => a + st.size, 0);
+    if ((await getIndex()).files.some((f) => f.name === name && f.size === size && f.status === "processed")) {
+      skipped.push(name);
+      continue;
+    }
+    onStep(`Adding ${name}`);
+    const f: LibFile = { id: uid(), name, size, addedAt: Date.now(), kind: kindOf(name), status: "stored", note: parts.length > 1 ? `Joined from ${parts.length} parts` : "" };
+    const out = createWriteStream(filePath(f));
+    for (const p of paths)
+      await new Promise<void>((res, rej) =>
+        createReadStream(p)
+          .on("end", () => res())
+          .on("error", rej)
+          .pipe(out, { end: false }),
+      );
+    await new Promise<void>((res) => out.end(res));
+    if (f.kind === "zip" && (await zipList(filePath(f))).incomplete) {
+      await fs.rm(filePath(f), { force: true });
+      skipped.push(`${name} (incomplete, a part is missing)`);
+      continue;
+    }
+    // A newer copy of the same download replaces the old one; bars from both stay merged in the series.
+    const stale = (await getIndex()).files.filter((x) => x.name === name);
+    await saveIndex((i) => {
+      i.files = i.files.filter((x) => x.name !== name);
+      i.files.push(f);
+    });
+    for (const x of stale) await fs.rm(filePath(x), { force: true });
+    onStep(`Reading ${name}`);
+    await processFile(f.id);
+    added.push(name);
+  }
+  return { added, skipped };
 }
 
 export async function removeFile(id: string) {
@@ -228,6 +309,9 @@ function parseTime(raw: string) {
 }
 
 const BAR_HEADER = /(^|,)(open|o)(,|$)/i;
+// Databento's second-month series (NQ.v.1) shares a root with the front month at a
+// different price. Stored together, its thin bars would overwrite the real ones.
+const BACK_MONTH = /\.[a-z]\.[1-9]\d*"?$/i;
 
 function headerMap(line: string) {
   const cols = line.split(",").map((c) => c.trim().replace(/^"|"$/g, "").toLowerCase());
@@ -307,6 +391,7 @@ async function ingestBars(lines: AsyncIterable<string>, file: string, source: st
       continue;
     }
     const p = line.split(",");
+    if (cols.sym >= 0 && BACK_MONTH.test((p[cols.sym] ?? "").trim())) continue;
     const t = parseTime(p[cols.t] ?? "");
     let o = Number(p[cols.o]);
     let h = Number(p[cols.h]);
@@ -354,9 +439,11 @@ async function refreshSeries(symbol: string, source: string) {
   let bars = 0;
   let from = Infinity;
   let to = -Infinity;
+  const byYear: Record<string, number> = {};
   for (const y of years) {
     const a = await readYear(symbol, y);
     if (!a.length) continue;
+    byYear[y] = a.length / 6;
     bars += a.length / 6;
     from = Math.min(from, a[0]);
     to = Math.max(to, a[a.length - 6]);
@@ -369,9 +456,35 @@ async function refreshSeries(symbol: string, source: string) {
       to,
       bars,
       years,
+      byYear,
       sources: [...new Set([...(prev?.sources ?? []), source])],
     };
   });
+}
+
+/** One year of a series, with its micro's bars wherever the contract itself has none. */
+async function readJoined(symbol: string, year: number): Promise<Float64Array> {
+  const own = await readYear(symbol, year);
+  const micro = JOINS[symbol];
+  if (!micro) return own;
+  const fill = await readYear(micro, year);
+  if (!fill.length) return own;
+  if (!own.length) return fill;
+  const out = new Float64Array(own.length + fill.length);
+  let i = 0;
+  let j = 0;
+  let k = 0;
+  while (i < own.length || j < fill.length) {
+    const takeOwn = j >= fill.length || (i < own.length && own[i] <= fill[j]);
+    if (i < own.length && j < fill.length && own[i] === fill[j]) j += 6;
+    const src = takeOwn ? own : fill;
+    const at = takeOwn ? i : j;
+    for (let c = 0; c < 6; c++) out[k + c] = src[at + c];
+    k += 6;
+    if (takeOwn) i += 6;
+    else j += 6;
+  }
+  return out.subarray(0, k);
 }
 
 /** Bars for a range at any timeframe (seconds), built from the stored 1-minute series. */
@@ -380,7 +493,7 @@ export async function queryBars(symbol: string, from: number, to: number, tfSeco
   const y1 = new Date(to * 1000).getUTCFullYear();
   const out: Bar[] = [];
   for (let y = y0; y <= y1; y++) {
-    const a = await readYear(symbol, y);
+    const a = await readJoined(symbol, y);
     for (let k = 0; k < a.length; k += 6) {
       const t = a[k];
       if (t < from || t > to) continue;

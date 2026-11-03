@@ -26,6 +26,7 @@ export function Library({ lib, error, refresh, saved, onRemoveSaved, onOpenRun }
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="min-w-0 space-y-5">
         <Drop onDone={refresh} />
+        <ImportFolder onDone={refresh} />
         <Card
           title={`Files · ${lib?.files.length ?? 0}`}
           aside={
@@ -87,6 +88,7 @@ export function Library({ lib, error, refresh, saved, onRemoveSaved, onOpenRun }
                   <p className="text-[12px] text-white/40">
                     {Math.round(s.bars).toLocaleString()} one-minute bars · {s.years.length} years
                   </p>
+                  {s.joinedWith && <p className="mt-0.5 text-[11.5px] text-white/40">Joined with {s.joinedWith} where {s.symbol}&apos;s own file has no bars.</p>}
                   <Coverage years={s.years} />
                 </div>
               ))}
@@ -112,9 +114,28 @@ export function Library({ lib, error, refresh, saved, onRemoveSaved, onOpenRun }
             </div>
           )}
         </Card>
-        <p className="px-1 text-[11.5px] leading-snug text-white/38">Everything stays on this computer in TradePilot&apos;s data folder. Originals download exactly as you added them. Databento data is for your own use under its licence.</p>
+        <p className="px-1 text-[11.5px] leading-snug text-white/38">Kept in the .tradepilot folder in your home folder, outside the code, so a new checkout or update can&apos;t lose it. It isn&apos;t on GitHub: Databento&apos;s licence is for your own use, and this repository is public.</p>
       </div>
     </div>
+  );
+}
+
+function ImportFolder({ onDone }: { onDone: () => void }) {
+  const [path, setPath] = useState("");
+  const [note, setNote] = useState("");
+  const go = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { ok, j } = await post({ action: "import-folder", path });
+    setNote(ok ? "Importing. Split zips are joined, and anything already here is skipped." : j.error);
+    if (ok) onDone();
+  };
+  return (
+    <form onSubmit={go} className="flex flex-wrap items-center gap-2 rounded-[20px] bg-white/[0.03] px-4 py-3 ring-1 ring-inset ring-white/[0.05]">
+      <label htmlFor="lib-folder" className="text-[13px] font-medium text-white/70">Add a whole folder</label>
+      <input id="lib-folder" value={path} onChange={(e) => setPath(e.target.value)} placeholder="~/Downloads/Databento-2026-10-24" className="min-w-[220px] flex-1 rounded-[11px] bg-white/[0.06] px-3 py-2 text-[13px] text-white outline-none ring-1 ring-inset ring-white/[0.08] focus:ring-white/40" />
+      <button disabled={!path.trim()} className="rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-black disabled:opacity-40">Import</button>
+      {note && <p className="w-full text-[12px] text-white/55">{note}</p>}
+    </form>
   );
 }
 
