@@ -53,6 +53,7 @@ export const useModelStore = create<{
 
 /** Ready to call a remote model: provider chosen, model ID set, key present (unless loopback). */
 export function modelReady(m: ModelConfig) {
+  if (m.provider === "claude-code" || m.provider === "codex") return true;
   if (m.provider === "local" || !m.model.trim()) return false;
   if (m.provider === "custom" && !m.baseUrl.trim()) return false;
   if (m.provider === "ollama") return true;

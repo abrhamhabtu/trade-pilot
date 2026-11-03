@@ -14,6 +14,7 @@ import type { Verdict } from "@/lib/vision/verdict";
 import { programByKey } from "@/lib/proving/firms";
 import { useVisionStore, type BacktestSettings } from "@/store/visionStore";
 import { dateOf, money, useAccounts, useContext, useHistory, useLibrary, useSaved, type Loaded, type SavedItem } from "./data";
+import type { CoinFlipReport, DoctorReport } from "@/lib/vision/doctor";
 import { DEFAULT_LIMITS, riskCap, type RiskLimits } from "@/lib/vision/limits";
 import { PropDesk, type AutoRunRequest, type AutoRunResult } from "./prop/PropDesk";
 import { Library } from "./Library";
@@ -23,7 +24,7 @@ import { SCENARIOS, practiceMonths, type Scenario } from "./scenarios";
 import { SetupPanel } from "./SetupPanel";
 import { Card, Pill, Seg } from "./ui";
 
-type Run = { result: BacktestResult; loaded: Loaded; settings: BacktestSettings; league: LeagueRow[] | null; verdict: Verdict | null; prop?: PropReport | null };
+type Run = { result: BacktestResult; loaded: Loaded; settings: BacktestSettings; league: LeagueRow[] | null; verdict: Verdict | null; prop?: PropReport | null; coin?: CoinFlipReport; doctor?: DoctorReport };
 
 const strategyName = (s: BacktestSettings) => (s.logic === "custom" ? "Your rules" : s.reader === "auto" ? "Every strategy" : READERS[s.reader].label);
 const flat = (t: Record<string, unknown>) => Object.fromEntries(Object.entries(t).map(([k, v]) => [k, /T$/.test(k) && typeof v === "number" ? new Date(v * 1000).toISOString() : v]));
@@ -115,6 +116,7 @@ export function BacktestWorkspace() {
           setRunning(false);
           setProgress(null);
         } else if (msg.type === "verdict") setRun((r) => (r ? { ...r, verdict: msg.verdict } : r));
+        else if (msg.type === "doctor") setRun((r) => (r ? { ...r, coin: msg.coin, doctor: msg.doctor } : r));
         else if (msg.type === "prop") setRun((r) => (r ? { ...r, prop: msg.report } : r));
         else if (msg.type === "league") setRun((r) => (r ? { ...r, league: msg.rows } : r));
         else if (msg.type === "error") {
@@ -348,6 +350,9 @@ export function BacktestWorkspace() {
                 league={run.league}
                 verdict={run.verdict}
                 prop={run.prop}
+                coin={run.coin ?? null}
+                doctor={run.doctor ?? null}
+                onApply={(patch) => start(patch)}
                 onUse={(reader: ReaderId) => start({ logic: "vision", reader })}
                 onReplayTrade={replayTrade}
                 onProgram={(program) => start({ prop: { on: true, program } })}

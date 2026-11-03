@@ -4,6 +4,16 @@ export const PROVIDERS = {
     url: "",
     hint: "Private, deterministic analysis. No API key needed.",
   },
+  "claude-code": {
+    label: "Claude Code (logged in)",
+    url: "",
+    hint: "Uses the Claude Code you're already logged into on this computer. No key, and it counts against your plan rather than API billing.",
+  },
+  codex: {
+    label: "Codex (logged in)",
+    url: "",
+    hint: "Uses the Codex you're already logged into on this computer. No key needed.",
+  },
   anthropic: {
     label: "Anthropic (Claude)",
     url: "https://api.anthropic.com",

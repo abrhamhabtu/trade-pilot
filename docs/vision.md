@@ -38,6 +38,22 @@ Real futures orders go through `POST /api/vision/execute` after arming a venue f
 - **Pine Script**: the same reader as a TradingView Pine v6 indicator, with numbered steps, the plan and alerts whose JSON the TradePilot webhook accepts.
 - **Second read**: with a model connected in Pilot AI settings, the Copilot can ask it for a short take using only the computed facts.
 
+## Alerts
+
+The Alerts button opens a step-by-step guide, alert rules, Pine scripts and a history. Alerts only tell the trader to look at a chart: nothing here places a trade.
+
+- **Phone**: calls and texts through the trader's own Twilio account (`src/lib/server/alerts.ts`). Credentials stay in `~/.tradepilot/alerts.json`, owner-readable, and are never sent back to a browser.
+- **Rules** (`src/lib/vision/alerts.ts`): words to match, channels, hours in the trader's time zone, days and a quiet period. Named rules beat the catch-all. A wake-up call before the open reads the day's CPI, jobs and FOMC dates and skips holidays.
+- **TradingView**: `POST /api/alerts/tradingview?key=` is the only route meant for the internet. The key lives in the address, not the script. It can only send an alert. Through a Cloudflare tunnel, `src/middleware.ts` answers 404 for everything else unless `TRADEPILOT_PUBLIC_APP=1`.
+- **Watcher**: each minute during chosen hours, the Vision readers plus a VWAP touch run on closed bars from the free feed, so alerts can be about 10 minutes late.
+- **Pine scripts** (`src/lib/vision/pineTools.ts`, `/api/pine`): paste or drop files, keep versions, notes and favorites. The app reads what a script is and can alert on, warns about common traps, and adds alert code. TradingView runs Pine: this app can't chart or backtest it, and the ready-made scripts haven't been compiled in TradingView.
+
+## AI
+
+Claude Code and Codex connect with one click where they're installed and logged in (`src/lib/server/sessionModel.ts`). The app runs the official command as the trader, in an empty temp folder, with API key variables removed. It never reads login files. This works only when the app runs on the trader's own computer; other providers take a key.
+
+**Read this chart** sends a real screenshot of the chart. The high and low of the visible chart are held back from the facts it's given, and it's asked to read them from the picture. `gradeRead` compares its answers with the real bars, and an answer that misreads them is marked as untrustworthy. The picture, prompt and checks are all shown.
+
 ## Backtest mode
 
 The Live | Backtest switch in Vision's header turns the page cyan and swaps the live charts for three sections. Nothing in backtest mode touches the paper book, the trade history or a broker.
@@ -51,6 +67,8 @@ Set up in three steps on the right:
 3. **Risk & rules**: direction, fixed contracts or whole contracts sized to a % of the balance, costs, max hold, break-even, trades a day, FOMC/early-close/VIX filters, and **prop firm mode**.
 
 `src/lib/vision/backtest.ts` runs it in a worker, one position at a time. Entry at the signal bar's close plus slippage; stop and target on whole ticks; the stop wins a bar that touches both; break-even moves the stop from the bar after the trigger; a time exit after the max hold; commission per contract. Each trade records MAE/MFE in R and its duration.
+
+Each report opens with **Against a coin flip**: the same entries, stops, targets and costs with the side picked at random 1,000 times, and **How to improve it** (`src/lib/vision/doctor.ts`): changes that help on the older 70% of trades and also on the newer 30%, some applying with a click, with tips worked out from the run. The Coin flip strategy under Your words tests the coin alone.
 
 The report: net P&L, profit factor, win rate and drawdown as a share of the balance; Sharpe, Sortino and Calmar from daily P&L; long and short; best entry time; a metrics table; equity and drawdown; monthly or yearly P&L; each Vision strategy on its own; breakdowns by 30-minute slot, hour, weekday, month, strategy, side, exit, VIX and FOMC. `src/lib/vision/verdict.ts` writes the **edge verdict** and a 0–100 edge score from the trades alone: the expectancy's t-stat, both halves of the period, green months and how much the best two carried, a 600-run bootstrap of final P&L and drawdown, and what to fix before sizing up.
 

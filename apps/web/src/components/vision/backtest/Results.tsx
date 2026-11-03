@@ -12,6 +12,9 @@ import type { Verdict } from "@/lib/vision/verdict";
 import type { Timeframe, VisionSymbol } from "@/lib/vision/markets";
 import { useVisionStore } from "@/store/visionStore";
 import { dateOf, download, money, type Loaded } from "./data";
+import type { BacktestSettings } from "@/store/visionStore";
+import type { CoinFlipReport, DoctorReport } from "@/lib/vision/doctor";
+import { DoctorCard } from "./DoctorCard";
 import { DayLedger } from "./prop/DayLedger";
 import { PropCard } from "./PropCard";
 import { TradeReview } from "./TradeReview";
@@ -40,6 +43,9 @@ export function Results({
   league,
   verdict,
   prop,
+  coin,
+  doctor,
+  onApply,
   onReplayTrade,
   onProgram,
   onSize,
@@ -57,6 +63,9 @@ export function Results({
   league: LeagueRow[] | null;
   verdict: Verdict | null;
   prop: PropReport | null | undefined;
+  coin: CoinFlipReport | null;
+  doctor: DoctorReport | null;
+  onApply: (patch: Partial<BacktestSettings>) => void;
   onReplayTrade: (t: BacktestTrade) => void;
   onProgram: (key: string) => void;
   onSize: (contracts: number) => void;
@@ -136,6 +145,8 @@ export function Results({
       {verdict && <VerdictCard v={verdict} />}
 
       {prop && <PropCard report={prop} onProgram={onProgram} onSize={onSize} />}
+
+      <DoctorCard coin={coin} doctor={doctor} onApply={onApply} />
 
       <Report result={result} verdict={verdict} />
 

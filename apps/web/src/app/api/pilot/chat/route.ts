@@ -38,6 +38,38 @@ function validTurns(turns: unknown): turns is ChatTurn[] {
   });
 }
 
+/** A logged-in tool on this computer: one answer, in the shapes the other providers use. */
+async function sessionTurn(body: Record<string, unknown>, request: Request) {
+  const { localOnly } = await import("@/lib/server/guard");
+  const { askSession } = await import("@/lib/server/sessionModel");
+  const blocked = localOnly(request);
+  if (blocked) return blocked;
+  const turns = (Array.isArray(body.messages) ? body.messages : []) as { role?: string; content?: unknown }[];
+  const history = turns.filter((t) => typeof t.content === "string" && t.content).map((t) => `${t.role === "assistant" ? "You" : t.role === "tool" ? "Lookup result" : "Trader"}: ${t.content}`).join("\n\n");
+  const prompt = `${PILOT_SYSTEM}\n${contextBlock(body.context)}\n\nYou have no tools here. Answer from the context above, and say so when something isn't in it.\n\n${history}`;
+  const tool = body.provider as "claude-code" | "codex";
+  if (body.stream !== true) {
+    try {
+      return NextResponse.json({ text: (await askSession(tool, prompt, { signal: request.signal })).slice(0, 20000) }, { headers: { "Cache-Control": "no-store" } });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "The AI didn't answer." }, { status: 502 });
+    }
+  }
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const emit = (e: StreamEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(e)}\n`));
+      try {
+        emit({ t: "text", v: await askSession(tool, prompt, { signal: request.signal }) });
+      } catch (e) {
+        emit({ t: "error", v: e instanceof Error ? e.message : "The AI didn't answer." });
+      }
+      controller.close();
+    },
+  });
+  return new Response(stream, { headers: { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store" } });
+}
+
 /** Streams one model turn to the browser as NDJSON events. */
 async function streamTurn(body: Record<string, unknown>, request: Request) {
   if (!validTurns(body.messages)) throw new Error("Invalid conversation.");
@@ -174,7 +206,8 @@ async function claudeOnce(body: Record<string, unknown>) {
 }
 
 export async function POST(request: Request) {
-  // This is a bring-your-own-key proxy. Never borrow machine credentials.
+  // A bring-your-own-key proxy. The one exception is a logged-in tool the trader
+  // connected on purpose, which runs as them, for the local app only (see sessionTurn).
   if (!sameOrigin(request))
     return NextResponse.json(
       { error: "Same-origin requests only." },
@@ -188,6 +221,7 @@ export async function POST(request: Request) {
         { status: 413 },
       );
     const body = JSON.parse(raw);
+    if (body.provider === "claude-code" || body.provider === "codex") return await sessionTurn(body, request);
     if (body.stream === true) return await streamTurn(body, request);
     if (body.provider === "anthropic") return await claudeOnce(body);
     const { endpoint, headers, model } = resolveModelEndpoint(body);

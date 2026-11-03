@@ -49,7 +49,9 @@ export function PropDesk({ accounts, lib, error, onSave, onRemove, onReplay, onA
         }} />
       ) : (
         <>
-          <Seg value={page} onChange={setPage} label="Desk section" options={[{ v: "accounts" as const, l: "Accounts" }, { v: "scout" as const, l: "Strategy scout" }, { v: "book" as const, l: "Several accounts" }, { v: "limits" as const, l: "Limits and firm rules" }]} />
+          <div className="-mx-1 overflow-x-auto px-1">
+            <Seg value={page} onChange={setPage} label="Desk section" options={[{ v: "accounts" as const, l: "Accounts" }, { v: "scout" as const, l: "Scout" }, { v: "book" as const, l: "Multi-account" }, { v: "limits" as const, l: "Limits & rules" }]} />
+          </div>
           {page === "accounts" && <Gallery accounts={list} states={states} loading={accounts == null} error={error} onOpen={(id) => set({ propAccount: id })} onNew={() => setWizard({})} />}
           {page === "scout" && <ScoutPage />}
           {page === "book" && <BookPage />}

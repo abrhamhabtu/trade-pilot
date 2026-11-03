@@ -6,6 +6,7 @@
 import type { Bar } from "@/lib/pilot/market";
 import { READER_ORDER } from "./analyze";
 import { runBacktest, type BacktestOptions } from "./backtest";
+import { coinFlipTest, prescribe } from "./doctor";
 import { propReport } from "./prop";
 import { verdict } from "./verdict";
 
@@ -18,6 +19,7 @@ self.onmessage = (event: MessageEvent<BacktestRequest>) => {
     const result = runBacktest(bars, options, (done, total) => self.postMessage({ id, type: "progress", done, total }));
     self.postMessage({ id, type: "done", result });
     self.postMessage({ id, type: "verdict", verdict: verdict(result) });
+    self.postMessage({ id, type: "doctor", coin: coinFlipTest(bars, result.trades, { slip: options.slippageTicks * options.tick, maxHold: options.maxHold }), doctor: prescribe(result) });
     if (prop) self.postMessage({ id, type: "prop", report: propReport(result.trades, bars, prop) });
     if (league) {
       const rows = READER_ORDER.map((reader) => ({ reader, stats: runBacktest(bars, { ...options, custom: null, reader }).stats }));

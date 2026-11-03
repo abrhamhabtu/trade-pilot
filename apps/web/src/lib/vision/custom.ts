@@ -25,6 +25,10 @@ export type EntryRule =
   | { kind: "inside_orb"; minutes: number }
   | { kind: "gap_fade"; minGap: number }
   | { kind: "last_half"; signal: "first30" | "overnight" }
+  | { kind: "coin_flip"; minute: number; seed: number }
+  | { kind: "open_reversal"; minMove: number }
+  | { kind: "opening_drive"; minMove: number }
+  | { kind: "globex_break" }
   | { kind: "reader"; reader: ReaderId };
 
 export type StopRule = { kind: "atr"; mult: number; len: number } | { kind: "points"; pts: number } | { kind: "ticks"; n: number } | { kind: "swing"; bars: number } | { kind: "signal" } | { kind: "plan" };
@@ -66,6 +70,10 @@ export const ENTRY_LABEL: Record<EntryRule["kind"], string> = {
   inside_orb: "Opening range breakout after an inside day",
   gap_fade: "Fade the opening gap back to the prior close",
   last_half: "Last half hour, in the direction of earlier returns",
+  coin_flip: "Coin flip: a random side at a set time",
+  open_reversal: "Fade a big first half hour",
+  opening_drive: "Follow a big first half hour",
+  globex_break: "Break of the overnight range",
   reader: "One of your Vision strategies",
 };
 
@@ -83,6 +91,14 @@ export const TEMPLATES: Template[] = [
   { id: "ema", name: "EMA 9/21 cross", text: "Long when the 9 EMA crosses above the 21 EMA, short when it crosses below. Stop 20 points. Take profit 40 points. New York session only." },
   { id: "fvg", name: "Fair value gap retest", text: "Trade the first retest of a fair value gap in the direction of the gap, with a bullish candle for longs and bearish for shorts. Stop 1.2x ATR(14). Take profit 2:1. NY open only." },
   { id: "choch", name: "Change of character", text: "Long on a change of character: a close above the last swing high. Short on a close below the last swing low. Stop at the swing of the last 8 bars. 2R target. Break even at 1R." },
+  { id: "coin", name: "Coin flip (the baseline)", text: "Coin flip: pick long or short at random at 9:35 in New York. Stop 1x ATR. Take profit 1:1. One trade per day." },
+  { id: "reversal", name: "First-hour reversal", text: "Fade a big first half hour: if the first 30 minutes of New York moved more than 1.5x ATR, trade the other way at 10:00. Stop 1.5x ATR. Take profit 1.5:1. One trade per day." },
+  { id: "drive", name: "Opening drive", text: "Follow a big first half hour: if the first 30 minutes of New York moved more than 1.5x ATR, trade the same way at 10:00. Stop 1.5x ATR. Take profit 2:1. One trade per day." },
+  { id: "globex", name: "Overnight range break", text: "Break of the overnight range: first close beyond the Globex high or low during New York. Stop 1.5x ATR. Take profit 2:1. One trade per day." },
+  { id: "narrow", name: "Narrow day breakout", text: "Narrow day breakout: after the narrowest day in 7, trade the first close beyond the first 30 minutes of New York. Stop 1.5x ATR. Take profit 2:1. One trade per day." },
+  { id: "inside", name: "Inside day breakout", text: "Inside day breakout: after an inside day, trade the first close beyond the first 30 minutes of New York. Stop 1.5x ATR. Take profit 2:1. One trade per day." },
+  { id: "gap", name: "Opening gap fade", text: "Fade the opening gap back to the prior close when the gap is over 0.5x ATR. One trade per day." },
+  { id: "last", name: "Last half hour", text: "Last half hour momentum: at 3:30 pm trade in the direction of the first half hour. Stop 1.5x ATR. Take profit 3:1." },
   { id: "dbvwap", name: "Double-break VWAP (yours)", text: "Use my double-break VWAP strategy on NQ in the New York session with its own stop and target." },
 ];
 
@@ -99,8 +115,28 @@ export function parseRules(text: string): { rules: CustomRules; used: string[]; 
   const reader = (Object.keys(READERS) as ReaderId[]).find((id) =>
     ({ dbvwap: /double[- ]?break/, sd: /supply (and|&) demand|octavia|demand zone|supply zone/, sweep: /liquidity sweep strategy|my sweep/, orb: /my orb|my opening range/, vwappb: /vwap (trend )?pull ?back/ })[id].test(t),
   );
+  const special = /coin ?flip/.test(t)
+    ? ({ kind: "coin_flip", minute: 9 * 60 + 35, seed: 1 } as const)
+    : /fade a big first|first[- ]hour reversal|open(ing)? reversal/.test(t)
+      ? ({ kind: "open_reversal", minMove: num(t.match(/more than (\d+(?:\.\d+)?)x? ?atr/)?.[1], 1.5) } as const)
+      : /follow a big first|opening drive/.test(t)
+        ? ({ kind: "opening_drive", minMove: num(t.match(/more than (\d+(?:\.\d+)?)x? ?atr/)?.[1], 1.5) } as const)
+        : /overnight range|globex (range|high)/.test(t)
+          ? ({ kind: "globex_break" } as const)
+          : /narrow(est)? day/.test(t)
+            ? ({ kind: "narrow_orb", minutes: 30, lookback: num(t.match(/narrowest day in (\d+)/)?.[1], 7) } as const)
+            : /inside day/.test(t)
+              ? ({ kind: "inside_orb", minutes: 30 } as const)
+              : /opening gap|gap fade|fade the gap/.test(t)
+                ? ({ kind: "gap_fade", minGap: num(t.match(/over (\d+(?:\.\d+)?)x? ?atr/)?.[1], 0.5) } as const)
+                : /last half hour/.test(t)
+                  ? ({ kind: "last_half", signal: /overnight/.test(t) ? "overnight" : "first30" } as const)
+                  : null;
   const prevDay = /(previous|prior|yesterday's|yesterdays) day'?s? (high|low)|\bpd[hl]\b|prior (high|low)|previous (high|low)/.test(t);
-  if (reader) {
+  if (special) {
+    r.entry = special;
+    used.push(`Entry: ${ENTRY_LABEL[special.kind]}`);
+  } else if (reader) {
     r.entry = { kind: "reader", reader };
     used.push(`Entry: ${READERS[reader].label}`);
   } else if (prevDay && /sweep|take[sn]? out|run|raid|stop hunt|fade/.test(t)) {
@@ -215,6 +251,10 @@ export function describeRules(r: CustomRules) {
     e.kind === "orb" ? `First close above the high of New York's first ${e.minutes} minutes` :
     e.kind === "narrow_orb" ? `After the narrowest session of the last ${e.lookback}, first close above the high of New York's first ${e.minutes} minutes` :
     e.kind === "inside_orb" ? `After a session inside the one before it, first close above the high of New York's first ${e.minutes} minutes` :
+    e.kind === "coin_flip" ? "A coin flip says long" :
+    e.kind === "open_reversal" ? `The first 30 minutes fell more than ${e.minMove}× ATR` :
+    e.kind === "opening_drive" ? `The first 30 minutes rose more than ${e.minMove}× ATR` :
+    e.kind === "globex_break" ? "First close above the overnight high" :
     e.kind === "gap_fade" ? `New York opens more than ${e.minGap}× ATR below the prior close, and the first bar closes bullish` :
     e.kind === "last_half" ? `At 3:30 pm, ${e.signal === "first30" ? "the first half hour of the session was up" : "the overnight session was up"}` :
     e.kind === "vwap_cross" ? "Close crosses from below VWAP to above it" :
@@ -226,6 +266,10 @@ export function describeRules(r: CustomRules) {
   const short =
     e.kind === "reader" ? "The same, mirrored" :
     e.kind === "rsi" ? `RSI(${e.len}) crosses back below ${e.high}` :
+    e.kind === "coin_flip" ? "A coin flip says short" :
+    e.kind === "open_reversal" ? `The first 30 minutes rose more than ${e.minMove}× ATR` :
+    e.kind === "opening_drive" ? `The first 30 minutes fell more than ${e.minMove}× ATR` :
+    e.kind === "globex_break" ? "First close below the overnight low" :
     e.kind === "gap_fade" ? `New York opens more than ${e.minGap}× ATR above the prior close, and the first bar closes bearish` :
     e.kind === "last_half" ? `At 3:30 pm, ${e.signal === "first30" ? "the first half hour of the session was down" : "the overnight session was down"}` :
     e.kind === "ema_cross" ? `The ${e.fast} EMA crosses below the ${e.slow} EMA` :
@@ -243,7 +287,7 @@ export function describeRules(r: CustomRules) {
 /** Short chips for the parsed rules. */
 export function ruleChips(r: CustomRules) {
   const e = r.entry;
-  const entry = e.kind === "orb" ? `ORB ${e.minutes}m` : e.kind === "ema_cross" ? `EMA ${e.fast}/${e.slow}` : e.kind === "rsi" ? `RSI(${e.len})` : e.kind === "reader" ? READERS[e.reader].short : { pdhl_retest: "Prev day H/L · break & retest", pdhl_sweep: "Prev day H/L · sweep", vwap_cross: "VWAP cross", fvg: "FVG retest", structure: "CHoCH / BOS", narrow_orb: "Narrow day ORB", inside_orb: "Inside day ORB", gap_fade: "Gap fade", last_half: "Last half hour" }[e.kind as "pdhl_retest"];
+  const entry = e.kind === "orb" ? `ORB ${e.minutes}m` : e.kind === "ema_cross" ? `EMA ${e.fast}/${e.slow}` : e.kind === "rsi" ? `RSI(${e.len})` : e.kind === "reader" ? READERS[e.reader].short : { pdhl_retest: "Prev day H/L · break & retest", pdhl_sweep: "Prev day H/L · sweep", vwap_cross: "VWAP cross", fvg: "FVG retest", structure: "CHoCH / BOS", narrow_orb: "Narrow day ORB", inside_orb: "Inside day ORB", gap_fade: "Gap fade", last_half: "Last half hour", coin_flip: "Coin flip", open_reversal: "First-hour reversal", opening_drive: "Opening drive", globex_break: "Overnight break" }[e.kind as "pdhl_retest"];
   const stop = r.stop.kind === "atr" ? `${r.stop.mult}× ATR(${r.stop.len})` : r.stop.kind === "points" ? `SL ${r.stop.pts} pts` : r.stop.kind === "ticks" ? `SL ${r.stop.n} ticks` : r.stop.kind === "swing" ? `Swing ${r.stop.bars}` : r.stop.kind === "signal" ? "Signal-bar stop" : "Own stop";
   const tgt = r.target.kind === "r" ? `${r.target.r}:1 R` : r.target.kind === "points" ? `TP ${r.target.pts} pts` : "Own target";
   return [entry, stop, tgt, ...(r.trend !== "none" ? [r.trend === "ema200" ? "200 EMA trend" : "VWAP side"] : []), ...(r.breakEvenR ? [`BE ${r.breakEvenR}R`] : []), ...(r.maxPerDay ? [`${r.maxPerDay}/day`] : [])];
@@ -357,7 +401,7 @@ export function customDetector(bars: Bar[], anchor: Anchor, r: CustomRules, tick
 
   // Each session's high, low and returns, worked out once when a rule first asks. Only earlier
   // sessions' whole ranges are read; first30 and overnight are read at 3:30 pm, after they ended.
-  type DayFacts = { h: number; l: number; rthClose: number; first30: number; overnight: number; sessionOpen: number; rthOpen: number };
+  type DayFacts = { h: number; l: number; rthClose: number; first30: number; overnight: number; sessionOpen: number; rthOpen: number; overnightHigh: number; overnightLow: number };
   let ranges: { days: DayFacts[]; index: Map<string, number> } | null = null;
   const sessionRanges = () => {
     if (ranges) return ranges;
@@ -369,12 +413,17 @@ export function customDetector(bars: Bar[], anchor: Anchor, r: CustomRules, tick
       if (k == null) {
         k = days.length;
         index.set(key, k);
-        days.push({ h: -Infinity, l: Infinity, rthClose: NaN, first30: NaN, overnight: NaN, sessionOpen: bars[i].o, rthOpen: NaN });
+        days.push({ h: -Infinity, l: Infinity, rthClose: NaN, first30: NaN, overnight: NaN, sessionOpen: bars[i].o, rthOpen: NaN, overnightHigh: NaN, overnightLow: NaN });
       }
       const d = days[k];
       d.h = Math.max(d.h, bars[i].h);
       d.l = Math.min(d.l, bars[i].l);
       const m = sess[i].minute;
+      // Bars before the first New York bar of the session are the overnight range; it is read only after they end.
+      if (!Number.isFinite(d.rthOpen) && !(m >= 9 * 60 + 30 && m < 16 * 60)) {
+        d.overnightHigh = Math.max(Number.isFinite(d.overnightHigh) ? d.overnightHigh : -Infinity, bars[i].h);
+        d.overnightLow = Math.min(Number.isFinite(d.overnightLow) ? d.overnightLow : Infinity, bars[i].l);
+      }
       if (m >= 9 * 60 + 30 && m < 16 * 60) {
         if (!Number.isFinite(d.rthOpen)) {
           d.rthOpen = bars[i].o;
@@ -432,6 +481,38 @@ export function customDetector(bars: Bar[], anchor: Anchor, r: CustomRules, tick
         const hi = Math.max(b.h, p.h, bars[i - 2].h);
         if (lo < L && b.c > L && bull) return once("long", () => plan("long", i));
         if (hi > H && b.c < H && bear) return once("short", () => plan("short", i));
+        return null;
+      }
+      case "coin_flip": {
+        // The side comes from a hash of the date, so a run gives the same flips every time.
+        const span = n > 1 ? (bars[1].t - bars[0].t) / 60 : 5;
+        const m = sess[i].minute;
+        if (m >= e.minute || m + span < e.minute) return null;
+        let h = 2166136261 ^ e.seed;
+        for (let c = 0; c < day.length; c++) h = Math.imul(h ^ day.charCodeAt(c), 16777619);
+        h = Math.imul(h ^ (h >>> 13), 1274126177);
+        const side: Side = ((h ^ (h >>> 16)) & 1) === 0 ? "long" : "short";
+        return once(side, () => plan(side, i));
+      }
+      case "open_reversal":
+      case "opening_drive": {
+        // Decided on the bar that closes at 10:00, once the first half hour is in.
+        const span = n > 1 ? (bars[1].t - bars[0].t) / 60 : 5;
+        const m = sess[i].minute;
+        if (m >= 10 * 60 || m + span < 10 * 60) return null;
+        const facts = sessionRanges().days[sessionRanges().index.get(day) ?? -1];
+        if (!facts || !Number.isFinite(facts.first30) || Math.abs(facts.first30) < e.minMove * atr14[i]) return null;
+        const up = facts.first30 > 0;
+        const side: Side = (e.kind === "opening_drive") === up ? "long" : "short";
+        return once(side, () => plan(side, i));
+      }
+      case "globex_break": {
+        const m = sess[i].minute;
+        if (m < 9 * 60 + 30 || m >= 16 * 60) return null;
+        const facts = sessionRanges().days[sessionRanges().index.get(day) ?? -1];
+        if (!facts || !Number.isFinite(facts.overnightHigh)) return null;
+        if (b.c > facts.overnightHigh && p.c <= facts.overnightHigh) return once("long", () => plan("long", i));
+        if (b.c < facts.overnightLow && p.c >= facts.overnightLow) return once("short", () => plan("short", i));
         return null;
       }
       case "narrow_orb":

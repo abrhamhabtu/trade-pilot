@@ -6,6 +6,7 @@ import { Check, Loader2, Sparkles, Zap } from "lucide-react";
 import { READERS, type Scan } from "@/lib/vision/analyze";
 import { formatPrice, type VisionSymbol } from "@/lib/vision/markets";
 import { useModelStore, modelReady } from "@/lib/pilot/modelStore";
+import { ChartRead } from "./ChartRead";
 import { PROVIDERS } from "@/lib/pilot/models";
 import type { VisionPosition, VisionTrade } from "@/store/visionStore";
 import type { ChartState } from "./ChartCard";
@@ -76,6 +77,7 @@ export function CopilotPanel({
   const hydrate = useModelStore((s) => s.hydrate);
   useEffect(() => hydrate(), [hydrate]);
   const ready = modelReady(model);
+  const isSession = model.provider === "claude-code" || model.provider === "codex";
   const [ai, setAi] = useState<{ text: string; busy: boolean; error: string }>({ text: "", busy: false, error: "" });
   const abort = useRef<AbortController | null>(null);
   useEffect(() => {
@@ -160,7 +162,7 @@ export function CopilotPanel({
         </span>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-[17px] font-semibold text-white">Vision Copilot{state?.mode === "demo" && <span className="rounded-md bg-[#FF8A3D]/15 px-1.5 py-0.5 text-[10.5px] font-bold tracking-[0.06em] text-[#FFB27D]">DEMO</span>}</p>
-          <p className="truncate text-[12px] text-[#FFB27D]">{ready ? `${PROVIDERS[model.provider].label} · ${model.model}` : "Built-in chart reader"}</p>
+          <p className="truncate text-[12px] text-[#FFB27D]">{ready ? `${PROVIDERS[model.provider].label}${model.model ? ` · ${model.model}` : ""}` : "Built-in chart reader"}</p>
         </div>
         <span className={clsx("h-2 w-2 rounded-full", scanning ? "animate-pulse bg-[#FF8A3D]" : "bg-white/30")} />
       </header>
@@ -207,15 +209,12 @@ export function CopilotPanel({
           )}
           {scan && !scanning && (
             <div className="mt-2">
-              {ready ? (
+              <ChartRead sym={sym} state={state} scan={scan} />
+              {!isSession && ready ? (
                 <button onClick={askModel} disabled={ai.busy} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#FFB27D] hover:underline disabled:opacity-60">
                   {ai.busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Ask {model.model || PROVIDERS[model.provider].label} for a second read
                 </button>
-              ) : (
-                <a href="/app/pilot?tab=settings" className="text-[12.5px] text-white/45 hover:text-white/75">
-                  Connect a model in Pilot AI settings for a second read →
-                </a>
-              )}
+              ) : null}
               {(ai.text || ai.error) && <p className={clsx("mt-2 rounded-2xl bg-white/[0.04] p-3 text-[13.5px] leading-relaxed", ai.error ? "text-[#FF8D85]" : "text-white/80")}>{ai.error || ai.text}</p>}
             </div>
           )}

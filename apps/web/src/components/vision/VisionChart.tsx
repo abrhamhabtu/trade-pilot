@@ -58,6 +58,27 @@ function shiftFor(sym: VisionSymbol, t: number) {
 
 const volColor = (b: Bar, on: boolean) => (on ? (b.c >= b.o ? "rgba(255,138,61,0.95)" : "rgba(205,210,220,0.75)") : b.c >= b.o ? "rgba(255,138,61,0.36)" : "rgba(120,126,140,0.32)");
 
+// The charts on screen by market, so the copilot can take a real picture of what the trader sees.
+const shown = new Map<string, IChartApi>();
+
+/** A PNG of the chart as drawn, and which bars are in view. */
+export function captureChart(symbol: string): { image: string; from: number; to: number } | null {
+  const c = shown.get(symbol);
+  if (!c) return null;
+  const shot = c.takeScreenshot();
+  const out = document.createElement("canvas");
+  out.width = shot.width;
+  out.height = shot.height;
+  const g = out.getContext("2d");
+  if (!g) return null;
+  // The chart's background is see-through; a model needs a real one.
+  g.fillStyle = "#101014";
+  g.fillRect(0, 0, out.width, out.height);
+  g.drawImage(shot, 0, 0);
+  const r = c.timeScale().getVisibleLogicalRange();
+  return { image: out.toDataURL("image/png"), from: r ? Math.floor(r.from) : 0, to: r ? Math.ceil(r.to) : Number.MAX_SAFE_INTEGER };
+}
+
 export function VisionChart({ bars, sym, scan, phase, position, closed, height, label, story = false, review }: { bars: Bar[]; sym: VisionSymbol; scan: Scan | null; phase: Phase; position: VisionPosition | null; closed?: VisionTrade | null; height: number; label?: string; story?: boolean; review?: ReviewMark | null }) {
   const box = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
@@ -113,12 +134,15 @@ export function VisionChart({ bars, sym, scan, phase, position, closed, height, 
     volume.current = c.addHistogramSeries({ priceScaleId: "vol", priceFormat: { type: "volume" }, lastValueVisible: false, priceLineVisible: false });
     c.priceScale("vol").applyOptions({ scaleMargins: { top: 0.84, bottom: 0 } });
     chart.current = c;
+    const key = sym.id;
+    shown.set(key, c);
     c.timeScale().subscribeVisibleLogicalRangeChange(() => measure());
     c.subscribeCrosshairMove((p) => setHover(p.logical == null ? null : Math.round(p.logical as number)));
     const ro = new ResizeObserver(() => requestAnimationFrame(measure));
     ro.observe(el);
     return () => {
       ro.disconnect();
+      if (shown.get(key) === c) shown.delete(key);
       c.remove();
       chart.current = null;
       lines.current = [];

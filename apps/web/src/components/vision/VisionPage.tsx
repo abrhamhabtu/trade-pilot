@@ -2,17 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { Code2, Columns2, Copy, Download, FlaskConical, Radio, ScanEye, Square, Volume2, VolumeX, X } from "lucide-react";
+import { BellRing, Code2, Columns2, FlaskConical, Radio, ScanEye, Square, Volume2, VolumeX, X } from "lucide-react";
 import { useVisionStore, type VisionPosition, type VisionTrade, type Venue } from "@/store/visionStore";
-import { useSessionFlow } from "@/store/sessionFlowStore";
 import { BY_KIND, SYMBOLS, formatPrice, type MarketKind, type VisionSymbolId } from "@/lib/vision/markets";
 import { useTickers } from "@/lib/vision/feed";
-import { visionPine } from "@/lib/vision/pine";
 import { useModelStore, modelReady } from "@/lib/pilot/modelStore";
 import { PROVIDERS } from "@/lib/pilot/models";
 import { chime } from "@/components/pilot/flow/judge";
 import { ChartCard, type ChartState } from "./ChartCard";
 import { CopilotPanel } from "./CopilotPanel";
+import { AlertCenter } from "./alerts/AlertCenter";
 import { BacktestWorkspace } from "./backtest/Workspace";
 
 const signed = (n: number) => `${n >= 0 ? "+" : "-"}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -43,7 +42,6 @@ function LiveVision() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
   const [states, setStates] = useState<(ChartState | null)[]>([null, null]);
-  const [pine, setPine] = useState(false);
   const [autoNote, setAutoNote] = useState("");
   // Demo trades live here, never in the paper book or its history.
   const [demo, setDemo] = useState<Book>(EMPTY_BOOK);
@@ -254,7 +252,7 @@ function LiveVision() {
 
   return (
     <div className="space-y-5 pb-6">
-      <TopBar mode="live" onMode={(mode) => s.set({ mode })} kind={s.kind} onKind={switchKind} layout={s.charts.length as 1 | 2} onLayout={setLayout} onPine={() => setPine(true)} sound={s.sound} onSound={() => s.set({ sound: !s.sound })} />
+      <TopBar mode="live" onMode={(mode) => s.set({ mode })} kind={s.kind} onKind={switchKind} layout={s.charts.length as 1 | 2} onLayout={setLayout} onPine={() => undefined} sound={s.sound} onSound={() => s.set({ sound: !s.sound })} />
 
       <TickerStrip rows={tickers} active={focused.symbol} onPick={pickSymbol} />
 
@@ -322,7 +320,6 @@ function LiveVision() {
         </div>
       </div>
 
-      {pine && <PineSheet onClose={() => setPine(false)} />}
     </div>
   );
 }
@@ -332,6 +329,7 @@ type LiveBar = { kind: MarketKind; onKind: (k: MarketKind) => void; layout: 1 | 
 function TopBar(props: { mode: "live" | "backtest"; onMode: (m: "live" | "backtest") => void } & (LiveBar | { kind?: undefined })) {
   const { mode, onMode } = props;
   const backtest = mode === "backtest";
+  const [center, setCenter] = useState<"guide" | "pine" | null>(null);
   return (
     <header className="flex flex-wrap items-end justify-between gap-4 pt-1">
       <div className="flex items-center gap-4">
@@ -350,8 +348,12 @@ function TopBar(props: { mode: "live" | "backtest"; onMode: (m: "live" | "backte
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <ModeSwitch mode={mode} onMode={onMode} />
-        {props.kind !== undefined && <LiveControls {...(props as LiveBar)} />}
+        {props.kind !== undefined && <LiveControls {...(props as LiveBar)} onPine={() => setCenter("pine")} />}
+        <button onClick={() => setCenter("guide")} className="flex h-10 items-center gap-2 rounded-full bg-white px-4 text-[14px] font-semibold text-black active:scale-[0.97]">
+          <BellRing className="h-4 w-4" /> Alerts
+        </button>
       </div>
+      {center && <AlertCenter start={center} onClose={() => setCenter(null)} />}
     </header>
   );
 }
@@ -702,74 +704,3 @@ function VenueSlot({ kind, arm }: { kind: MarketKind; arm: ReturnType<typeof use
   );
 }
 
-function PineSheet({ onClose }: { onClose: () => void }) {
-  const key = useSessionFlow((s) => s.webhookKey);
-  const ensureKey = useSessionFlow((s) => s.ensureKey);
-  useEffect(() => {
-    ensureKey();
-  }, [ensureKey]);
-  const code = useMemo(() => visionPine({ key }), [key]);
-  const [copied, setCopied] = useState(false);
-  const hook = typeof window !== "undefined" ? `${window.location.origin}/api/signals/tradingview?key=${key}` : "";
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  return (
-    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55 backdrop-blur-[6px] sm:items-center sm:p-6" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Pine Script"
-        onClick={(e) => e.stopPropagation()}
-        className="tp-sheet flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[30px] border border-white/[0.08] bg-[#161618]/95 backdrop-blur-2xl sm:rounded-[30px]"
-      >
-        <header className="flex items-start gap-3 px-6 pb-3 pt-5">
-          <span className="grid h-10 w-10 place-items-center rounded-[13px] bg-[#FF8A3D] text-black">
-            <Code2 className="h-5 w-5" />
-          </span>
-          <div className="flex-1">
-            <h2 className="text-[22px] font-bold tracking-tight text-white">Vision for TradingView</h2>
-            <p className="text-[13.5px] text-white/55">The same sweep-and-reversal reader as a Pine v6 indicator, with numbered steps, the plan, and alerts for TradePilot.</p>
-          </div>
-          <button aria-label="Close" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.08] text-white/70 hover:bg-white/[0.14]">
-            <X className="h-4 w-4" />
-          </button>
-        </header>
-        <ol className="mx-6 mb-3 list-decimal space-y-1 pl-5 text-[13px] text-white/65">
-          <li>TradingView → Pine Editor → paste → Add to chart.</li>
-          <li>
-            For alerts: Create alert → Condition &quot;TP Vision&quot; → Any alert() function call → Webhook URL: <span className="break-all font-mono text-[12px] text-[#FFB27D]">{hook}</span>
-          </li>
-          <li>TradingView needs a public URL for webhooks; set one in Pilot AI → Today → Signal setup if this app runs on localhost.</li>
-        </ol>
-        <pre className="mx-6 flex-1 overflow-auto rounded-2xl bg-black/40 p-4 font-mono text-[12px] leading-relaxed text-white/80 ring-1 ring-white/[0.06]">{code}</pre>
-        <footer className="flex gap-2 px-6 py-4">
-          <button
-            onClick={async () => {
-              await navigator.clipboard.writeText(code);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            }}
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#FF8A3D] py-3 text-[15px] font-semibold text-black"
-          >
-            <Copy className="h-4 w-4" /> {copied ? "Copied" : "Copy script"}
-          </button>
-          <button
-            onClick={() => {
-              const a = document.createElement("a");
-              a.href = URL.createObjectURL(new Blob([code], { type: "text/plain" }));
-              a.download = "tradepilot-vision.pine";
-              a.click();
-              URL.revokeObjectURL(a.href);
-            }}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-white/[0.08] px-5 py-3 text-[15px] font-semibold text-white"
-          >
-            <Download className="h-4 w-4" /> .pine
-          </button>
-        </footer>
-      </div>
-    </div>
-  );
-}

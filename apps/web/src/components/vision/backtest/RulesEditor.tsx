@@ -18,6 +18,10 @@ const ENTRY_DEFAULTS: Record<EntryRule["kind"], EntryRule> = {
   inside_orb: { kind: "inside_orb", minutes: 30 },
   gap_fade: { kind: "gap_fade", minGap: 0.5 },
   last_half: { kind: "last_half", signal: "first30" },
+  coin_flip: { kind: "coin_flip", minute: 575, seed: 1 },
+  open_reversal: { kind: "open_reversal", minMove: 1.5 },
+  opening_drive: { kind: "opening_drive", minMove: 1.5 },
+  globex_break: { kind: "globex_break" },
   reader: { kind: "reader", reader: "dbvwap" },
 };
 const STOP_DEFAULTS: Record<StopRule["kind"], StopRule> = { atr: { kind: "atr", mult: 1.5, len: 14 }, points: { kind: "points", pts: 20 }, ticks: { kind: "ticks", n: 40 }, swing: { kind: "swing", bars: 8 }, signal: { kind: "signal" }, plan: { kind: "plan" } };

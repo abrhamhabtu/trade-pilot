@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check, Loader2 } from "lucide-react";
+import { SessionConnect } from "@/components/vision/ChartRead";
 import {
   PROVIDERS,
   listModels,
@@ -11,7 +12,7 @@ import {
 
 /** Loopback providers answer without a key; everyone else needs one first. */
 function canListModels(config: ModelConfig) {
-  if (config.provider === "local") return false;
+  if (config.provider === "local" || config.provider === "claude-code" || config.provider === "codex") return false;
   if (config.provider === "custom") return !!config.baseUrl.trim();
   if (config.provider === "ollama") return true;
   return !!config.apiKey.trim();
@@ -108,7 +109,13 @@ export function ModelPanel({
         ))}
       </div>
       <p className="pilot-muted">{PROVIDERS[config.provider].hint}</p>
-      {config.provider !== "local" && (
+      {(config.provider === "local" || config.provider === "claude-code" || config.provider === "codex") && (
+        <div className="mt-3">
+          <p className="pilot-muted mb-2">The easy way: use the AI you&apos;re already logged into on this computer.</p>
+          <SessionConnect />
+        </div>
+      )}
+      {config.provider !== "local" && config.provider !== "claude-code" && config.provider !== "codex" && (
         <div className="pilot-model-form">
           {config.provider === "custom" && (
             <label>
