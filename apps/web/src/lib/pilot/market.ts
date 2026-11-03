@@ -159,9 +159,19 @@ function nextDate(date: string) {
 
 /** The futures session a bar belongs to: bars from 18:00 ET roll into the next day. */
 export function sessionOf(tSeconds: number) {
-  const { date, minute } = nyClock(tSeconds * 1000);
-  return { session: minute >= GLOBEX_OPEN ? nextDate(date) : date, date, minute };
+  // New York's offset from UTC is whole hours, so one lookup per UTC hour is exact.
+  const hour = Math.floor(tSeconds / 3600);
+  let base = hourCache.get(hour);
+  if (!base) {
+    const c = nyClock(hour * 3600_000);
+    base = { date: c.date, minute: c.minute, next: nextDate(c.date) };
+    if (hourCache.size > 250_000) hourCache.clear();
+    hourCache.set(hour, base);
+  }
+  const minute = base.minute + Math.floor((tSeconds - hour * 3600) / 60);
+  return { session: minute >= GLOBEX_OPEN ? base.next : base.date, date: base.date, minute };
 }
+const hourCache = new Map<number, { date: string; minute: number; next: string }>();
 
 const round = (n: number) => Math.round(n * 100) / 100;
 

@@ -42,9 +42,29 @@ Real futures orders go through `POST /api/vision/execute` after arming a venue f
 
 The Live | Backtest switch in Vision's header turns the page cyan and swaps the live charts for three sections. Nothing in backtest mode touches the paper book, the trade history or a broker.
 
-- **Strategy test** (`src/lib/vision/backtest.ts`, run in `backtest.worker.ts`): the live readers over history, one position at a time. Entry at the signal bar's close plus slippage; stop and target on whole ticks; the stop wins a bar that touches both; a time exit after the max hold; commission per contract (per trade when sizing crypto by risk). Filters: entry hours (NY open 9:30–11:30, RTH or all), direction, FOMC days, early closes and a VIX band taken from the prior close. Results: net P&L, win rate, profit factor, expectancy, drawdown, the equity and drawdown curves, each strategy run on its own, breakdowns by hour, weekday, month, VIX, FOMC, side and strategy, and every trade, drawn on the chart when tapped. Runs export as CSV or save to the Library.
-- **Replay**: bar-by-bar playback from any date with a hidden future, up to 25×, a jump to the next setup, a ticket with stop and target, and Vision's marks as setups form. Sessions save to the Library.
-- **Library** (`src/lib/server/library/`, `/api/library/*`): files dropped in the browser or added by a path in the home folder, kept on this machine under `.tradepilot/library/`. Originals download unchanged. OHLCV CSVs (Databento `ts_event` or `ts_utc` with `continuous`, or plain time/open/high/low/close/volume) become 1-minute series per symbol, stored per year; 1-second bars fold into minutes. Split zips (`.part00`/`.part01` onward) join once they read as a whole zip, and the parts are then dropped. The free-data pack supplies FOMC days, CME early closes and holidays, and VIX. Saved runs and sessions download as CSV or JSON.
+### Strategy test
+
+Set up in three steps on the right:
+
+1. **Market**: symbol, data source, timeframe, period, start balance (5K–150K) and the entry session (Entire day, Asia 7 pm–2 am, London 3–8 am, New York 9:30–4, NY open 9:30–11:30, all New York time; Asia wraps past midnight).
+2. **Strategy**: one of the Vision readers, or **your words**. Plain English is parsed by `src/lib/vision/custom.ts` into named rules (entry, stop, target, trend filter, session, trades a day, break-even) that are read back on cards and can be edited in place. The parser is deterministic and lists sentences it could not use. Entries: break and retest of the prior day's high/low, a sweep of it, opening range breakout, VWAP cross, EMA cross, fair value gap retest, RSI reversal, break of structure (CHoCH/BOS), or any Vision reader with its own or your stop and target.
+3. **Risk & rules**: direction, fixed contracts or whole contracts sized to a % of the balance, costs, max hold, break-even, trades a day, FOMC/early-close/VIX filters, and **prop firm mode**.
+
+`src/lib/vision/backtest.ts` runs it in a worker, one position at a time. Entry at the signal bar's close plus slippage; stop and target on whole ticks; the stop wins a bar that touches both; break-even moves the stop from the bar after the trigger; a time exit after the max hold; commission per contract. Each trade records MAE/MFE in R and its duration.
+
+The report: net P&L, profit factor, win rate and drawdown as a share of the balance; Sharpe, Sortino and Calmar from daily P&L; long and short; best entry time; a metrics table; equity and drawdown; monthly or yearly P&L; each Vision strategy on its own; breakdowns by 30-minute slot, hour, weekday, month, strategy, side, exit, VIX and FOMC. `src/lib/vision/verdict.ts` writes the **edge verdict** and a 0–100 edge score from the trades alone: the expectancy's t-stat, both halves of the period, green months and how much the best two carried, a 600-run bootstrap of final P&L and drawdown, and what to fix before sizing up.
+
+Every trade is in the log with a running balance. Tapping one plots it: Vision's own marks on the run's timeframe, or the entry, exit, risk and reward boxes on 1m–1h (lower timeframes come from the library), the heat/run-up ruler, tags and notes (kept with the run when saved), ← / → to step, and "Replay from here".
+
+**Prop firm mode** (`src/lib/vision/prop.ts`) grades the trades with Proving Ground's evaluator (`src/lib/proving/firms.ts`): from the first day, then started on every trading day (pass, blown and still going), median days to pass, evaluation cost per funded account, funded payout odds from `careerOdds`, pass odds for each contract count, and the same trades at every firm's account of that size.
+
+### Replay
+
+Bar-by-bar playback with the future hidden, from any date, up to 25×: market, limit and stop orders filled against each new bar, take profit in R, stop in points, fixed or %-risk sizing, auto break-even at +1R, a synced higher-timeframe chart, Vision's marks as setups form, and "Where it formed", the sessions where the strategy fired. In prop firm mode the drawdown (trailing intraday, end of day or static), daily loss limit and target run live. Guided scenarios pick a setup, market and session and offer months to practise. Every fill can be tagged; sessions save to the Library.
+
+### Library
+
+`src/lib/server/library/`, `/api/library/*`. Files dropped in the browser or added by a path in the home folder, kept on this machine under `.tradepilot/library/`. Originals download unchanged. OHLCV CSVs (Databento `ts_event` or `ts_utc` with `continuous`, or plain time/open/high/low/close/volume) become 1-minute series per symbol, stored per year; 1-second bars fold into minutes. Split zips (`.part00`/`.part01` onward) join once they read as a whole zip, and a zip of parts or zips (a Google Drive download) is unpacked first. The free-data pack supplies FOMC days, CME early closes and holidays, and VIX. Saved runs and sessions download as CSV or JSON. A run loads at most 400,000 bars (about five years of 5-minute bars); longer periods keep the latest.
 
 Databento's continuous contracts are front month by volume and not back-adjusted, so a trade over a roll can see the roll's price step. Without library data, history comes from the free feeds: Yahoo for futures (about 60 days of 5-minute bars) and Coinbase for crypto.
 

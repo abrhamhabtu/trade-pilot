@@ -537,6 +537,20 @@ export async function processFile(id: string) {
         });
         return;
       }
+      // A zip of zips or split parts (a Google Drive download, say): unpack each
+      // into the library on its own, then drop the wrapper; its contents are the originals.
+      const inner = listing.rows.filter((r) => /\.zip(\.part\d+)?$/i.test(r.name));
+      if (inner.length && !listing.rows.some((r) => /\.csv$/i.test(r.name))) {
+        const added: LibFile[] = [];
+        for (const [k, r] of [...inner].sort((a, b) => a.name.localeCompare(b.name)).entries()) {
+          jobs.set(id, { stage: `Unpacking ${path.basename(r.name)}`, done: k, total: inner.length });
+          added.push(await addFromStream(path.basename(r.name), memberStream(filePath(f), r.name)));
+        }
+        jobs.delete(id);
+        await removeFile(id);
+        for (const x of added) await processFile(x.id);
+        return;
+      }
       const csvs = listing.rows.filter((r) => /\.csv$/i.test(r.name));
       let done = 0;
       for (const r of csvs) {

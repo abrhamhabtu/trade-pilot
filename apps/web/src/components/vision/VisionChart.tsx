@@ -25,6 +25,19 @@ export interface Phase {
   step?: "scanning" | "marking" | "planning" | "done";
 }
 
+/** A finished historical trade, drawn as entry, exit and its risk and reward boxes. */
+export interface ReviewMark {
+  side: "long" | "short";
+  entry: number;
+  stop: number;
+  target: number;
+  exit: number;
+  entryT: number;
+  exitT: number;
+  label: string;
+  win: boolean;
+}
+
 interface Geo {
   w: number;
   h: number;
@@ -45,7 +58,7 @@ function shiftFor(sym: VisionSymbol, t: number) {
 
 const volColor = (b: Bar, on: boolean) => (on ? (b.c >= b.o ? "rgba(255,138,61,0.95)" : "rgba(205,210,220,0.75)") : b.c >= b.o ? "rgba(255,138,61,0.36)" : "rgba(120,126,140,0.32)");
 
-export function VisionChart({ bars, sym, scan, phase, position, closed, height, label, story = false }: { bars: Bar[]; sym: VisionSymbol; scan: Scan | null; phase: Phase; position: VisionPosition | null; closed?: VisionTrade | null; height: number; label?: string; story?: boolean }) {
+export function VisionChart({ bars, sym, scan, phase, position, closed, height, label, story = false, review }: { bars: Bar[]; sym: VisionSymbol; scan: Scan | null; phase: Phase; position: VisionPosition | null; closed?: VisionTrade | null; height: number; label?: string; story?: boolean; review?: ReviewMark | null }) {
   const box = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
   const candles = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -185,10 +198,38 @@ export function VisionChart({ bars, sym, scan, phase, position, closed, height, 
     lines.current.push(cs.createPriceLine({ price: setup.stop, color: RED, lineWidth: 1, lineStyle: LineStyle.Solid, axisLabelVisible: true, title: "" }));
   }, [setup, planShown, full]);
 
+  // ── A reviewed trade: its levels on the axis, and the view framed around it ──
+  useEffect(() => {
+    const cs = candles.current;
+    const c = chart.current;
+    if (!cs || !c || !review || !bars.length) return;
+    const made = [
+      cs.createPriceLine({ price: review.entry, color: "rgba(255,255,255,0.6)", lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: "" }),
+      cs.createPriceLine({ price: review.target, color: ORANGE, lineWidth: 1, lineStyle: LineStyle.Solid, axisLabelVisible: true, title: "" }),
+      cs.createPriceLine({ price: review.stop, color: RED, lineWidth: 1, lineStyle: LineStyle.Solid, axisLabelVisible: true, title: "" }),
+    ];
+    const ei = Math.max(0, bars.findIndex((b) => b.t >= review.entryT));
+    let xi = bars.findIndex((b) => b.t >= review.exitT);
+    if (xi < 0) xi = bars.length - 1;
+    // An invisible series at the stop and target keeps both inside the price scale.
+    const frame = c.addLineSeries({ color: "rgba(0,0,0,0)", lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    const at = (t: number) => (t + shift) as UTCTimestamp;
+    frame.setData(xi > ei ? [{ time: at(bars[ei].t), value: review.stop }, { time: at(bars[xi].t), value: review.target }] : [{ time: at(bars[ei].t), value: review.stop }]);
+    c.timeScale().setVisibleLogicalRange({ from: Math.max(0, ei - Math.max(40, (xi - ei) * 0.8)), to: xi + Math.max(14, (xi - ei) * 0.4) });
+    requestAnimationFrame(measure);
+    return () => {
+      // On unmount the chart may already be gone.
+      if (chart.current !== c) return;
+      made.forEach((l) => cs.removePriceLine(l));
+      c.removeSeries(frame);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [review, bars]);
+
   // ── Frame the setup: from a little before its first mark to past its projection ──
   useEffect(() => {
     const c = chart.current;
-    if (!c || !setup) return;
+    if (!c || !setup || review) return;
     const last = bars.length - 1;
     if (last - setup.index > 70) return;
     const horizon = Math.max(10, Math.min(24, setup.history.medianBarsToTarget ?? 16));
@@ -227,6 +268,7 @@ export function VisionChart({ bars, sym, scan, phase, position, closed, height, 
       {label && <span className="pointer-events-none absolute bottom-[34px] left-14 z-10 rounded-full bg-[#FF8A3D]/15 px-2.5 py-0.5 text-[11px] font-bold tracking-[0.08em] text-[#FFB27D] ring-1 ring-[#FF8A3D]/30">{label}</span>}
       <div ref={box} className="absolute inset-0" />
       {geo && bars.length > 0 && <Overlay geo={geo} bars={bars} scan={scan} setup={setup} full={full} phase={phase} position={position} closed={closed ?? null} fmt={fmt} />}
+      {geo && bars.length > 0 && review && <ReviewOverlay geo={geo} bars={bars} r={review} fmt={fmt} />}
     </div>
   );
 }
@@ -573,6 +615,45 @@ function Brackets({ x0, x1, y0, y1 }: { x0: number; x1: number; y0: number; y1: 
       <rect x={x0} y={top} width={Math.max(0, x1 - x0)} height={Math.max(0, bot - top)} fill={ORANGE} fillOpacity="0.05" />
       <path d={d} fill="none" stroke={ORANGE} strokeWidth="2" strokeLinecap="round" />
     </>
+  );
+}
+
+function ReviewOverlay({ geo, bars, r, fmt }: { geo: Geo; bars: Bar[]; r: ReviewMark; fmt: (n: number) => string }) {
+  const { plotW, x, y, bar } = geo;
+  let ei = bars.findIndex((b) => b.t >= r.entryT);
+  if (ei < 0) return null;
+  // The entry fills on the signal bar's close; the box starts at that bar.
+  if (bars[ei].t > r.entryT && ei > 0) ei--;
+  let xi = bars.findIndex((b) => b.t >= r.exitT);
+  if (xi < 0) xi = bars.length - 1;
+  const x0 = x(ei);
+  const x1 = x(xi);
+  const yE = y(r.entry);
+  const yS = y(r.stop);
+  const yT = y(r.target);
+  const yX = y(r.exit);
+  if (x0 == null || x1 == null || yE == null || yS == null || yT == null || yX == null) return null;
+  const left = x0;
+  const width = Math.max(bar, x1 - x0);
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <svg width={geo.w} height={geo.h} className="absolute inset-0">
+        <rect x={left} y={Math.min(yE, yT)} width={width} height={Math.abs(yT - yE)} fill={ORANGE} fillOpacity="0.12" stroke={ORANGE} strokeOpacity="0.35" />
+        <rect x={left} y={Math.min(yE, yS)} width={width} height={Math.abs(yS - yE)} fill={RED} fillOpacity="0.12" stroke={RED} strokeOpacity="0.35" />
+        <line x1={x0} y1={yE} x2={x1} y2={yX} stroke="#fff" strokeOpacity="0.75" strokeDasharray="3 3" strokeWidth="1.5" />
+        <circle cx={x0} cy={yE} r="5" fill="#fff" stroke="#121214" strokeWidth="2" />
+        <circle cx={x1} cy={yX} r="5.5" fill={r.win ? ORANGE : RED} stroke="#121214" strokeWidth="2" />
+      </svg>
+      <span className="absolute -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-[10.5px] font-bold tracking-[0.04em] text-black" style={{ left: Math.max(40, x0), top: r.side === "long" ? yE + 10 : yE - 26 }}>
+        {r.side === "long" ? "LONG" : "SHORT"} @ {fmt(r.entry)}
+      </span>
+      <span
+        className={clsx("absolute whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-bold", r.win ? "bg-[#FF8A3D] text-black" : "bg-[#FF5A4E] text-white")}
+        style={{ left: Math.min(plotW - 150, x1 + 10), top: yX - 11 }}
+      >
+        {r.label}
+      </span>
+    </div>
   );
 }
 

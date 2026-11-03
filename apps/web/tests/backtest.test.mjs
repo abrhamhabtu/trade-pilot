@@ -75,3 +75,79 @@ test("stats add up", () => {
   assert.ok(Math.abs(r.equity.at(-1).pnl - s.pnl) < 1e-6);
   assert.equal(r.by.side.reduce((a, g) => a + g.n, 0), s.trades);
 });
+
+test("plain English becomes the rules it says", async () => {
+  const { parseRules, TEMPLATES } = await import("../src/lib/vision/custom.ts");
+  const a = parseRules(TEMPLATES[0].text).rules;
+  assert.equal(a.entry.kind, "pdhl_retest");
+  assert.deepEqual(a.stop, { kind: "atr", mult: 1.5, len: 14 });
+  assert.deepEqual(a.target, { kind: "r", r: 2 });
+  const b = parseRules("Long when price crosses above VWAP while above the 200 EMA. Stop 1x ATR. Take profit 2:1. Max 2 trades per day.").rules;
+  assert.equal(b.entry.kind, "vwap_cross");
+  assert.equal(b.trend, "ema200");
+  assert.equal(b.maxPerDay, 2);
+  const c = parseRules("Opening range breakout on the first 30 minutes. Longs only. Stop 20 points, take profit 40 points. Break even at 1R. London").rules;
+  assert.deepEqual(c.entry, { kind: "orb", minutes: 30 });
+  assert.equal(c.side, "long");
+  assert.deepEqual(c.stop, { kind: "points", pts: 20 });
+  assert.deepEqual(c.target, { kind: "points", pts: 40 });
+  assert.equal(c.breakEvenR, 1);
+  assert.equal(c.session, "london");
+  const d = parseRules("Use my double-break VWAP strategy with its own stop and target.").rules;
+  assert.deepEqual(d.entry, { kind: "reader", reader: "dbvwap" });
+  assert.equal(d.stop.kind, "plan");
+  assert.ok(parseRules("I like coffee. EMA 9/21 cross.").unknown.includes("I like coffee."));
+});
+
+test("custom rules run and honour their stop, target and daily limit", async () => {
+  const { parseRules } = await import("../src/lib/vision/custom.ts");
+  const bars = sample();
+  const rules = parseRules("Long when the 9 EMA crosses above the 21 EMA, short below. Stop 8 points. Take profit 3:1. One trade per day.").rules;
+  const r = runBacktest(bars, { ...base, custom: rules, maxPerDay: rules.maxPerDay });
+  assert.ok(r.trades.length > 0);
+  const days = new Map();
+  for (const t of r.trades) {
+    assert.equal(t.reader, "custom");
+    assert.ok(Math.abs(Math.abs(bars[t.entryIndex].c - t.stop) - 8) < 0.26);
+    days.set(t.session, (days.get(t.session) ?? 0) + 1);
+  }
+  assert.ok([...days.values()].every((n) => n === 1));
+});
+
+test("break-even turns would-be losers into scratches after the trigger", () => {
+  const bars = sample();
+  const plain = runBacktest(bars, base);
+  const be = runBacktest(bars, { ...base, breakEvenR: 0.5 });
+  assert.ok(be.trades.some((t) => t.outcome === "breakeven") || be.trades.every((t) => t.mfe < 0.5 || t.outcome === "target"));
+  for (const t of be.trades.filter((x) => x.outcome === "breakeven")) assert.ok(t.mfe >= 0.5 && Math.abs(t.r) < 0.1);
+  assert.ok(plain.trades.every((t) => t.mae <= 0 && t.mfe >= 0));
+});
+
+test("sessions that wrap midnight keep the overnight hours", async () => {
+  const { inHours } = await import("../src/lib/vision/backtest.ts");
+  assert.ok(inHours(23 * 60, [19 * 60, 2 * 60]));
+  assert.ok(inHours(60, [19 * 60, 2 * 60]));
+  assert.ok(!inHours(10 * 60, [19 * 60, 2 * 60]));
+  assert.ok(inHours(10 * 60, [9 * 60 + 30, 16 * 60]));
+});
+
+test("prop firm grading counts every start and scales by size", async () => {
+  const { propReport, toDays } = await import("../src/lib/vision/prop.ts");
+  const { FIRM_PROGRAMS } = await import("../src/lib/proving/firms.ts");
+  const bars = sample();
+  const r = runBacktest(bars, { ...base, contracts: 2 });
+  const days = toDays(r.trades, bars, 2, 300);
+  assert.ok(Math.abs(days.reduce((a, d) => a + d.pnl, 0) - r.stats.pnl) < 1e-6);
+  for (const d of days) assert.ok(d.path.every(([lo, hi, c]) => lo <= c + 1e-9 && c <= hi + 1e-9));
+  const p = FIRM_PROGRAMS[0];
+  const rep = propReport(r.trades, bars, { programKey: p.key, contracts: 2, micro: true, pointValue: 2, stepSeconds: 300, fixedSize: true });
+  assert.equal(rep.rolling.passed + rep.rolling.failed + rep.rolling.open, rep.rolling.starts);
+  assert.ok(rep.sizes.length >= 1 && rep.firms.length >= 1);
+});
+
+test("the verdict refuses to grade a handful of trades", async () => {
+  const { verdict } = await import("../src/lib/vision/verdict.ts");
+  const r = runBacktest(sample().slice(0, 200), base);
+  const v = verdict({ ...r, trades: r.trades.slice(0, 3), stats: { ...r.stats, trades: 3 } });
+  assert.equal(v.grade, "—");
+});

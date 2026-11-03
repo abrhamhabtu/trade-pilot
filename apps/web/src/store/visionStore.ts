@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { MarketKind, Timeframe, VisionSymbolId } from '@/lib/vision/markets';
 import type { ReaderChoice, Side } from '@/lib/vision/analyze';
+import { TEMPLATES, type CustomRules, type SessionKey } from '@/lib/vision/custom';
 
 export type Venue = 'paper' | 'tradovate' | 'projectx';
 
@@ -55,16 +56,38 @@ export interface BacktestSettings {
   skipEarly: boolean;
   vix: 'any' | 'low' | 'mid' | 'high';
   /** Entry hours, New York time. */
-  session?: 'all' | 'rth' | 'open';
+  session: SessionKey;
   /** Custom period (YYYY-MM-DD), used when days is -1. */
   from?: string;
   to?: string;
+  /** Starting balance; in prop firm mode, the account size. */
+  balance: number;
+  /** Vision's strategies, or the trader's own rules written in plain English. */
+  logic: 'vision' | 'custom';
+  text: string;
+  /** The parsed rules, as edited on screen. */
+  rules: CustomRules | null;
+  /** Futures sizing: a fixed count, or contracts that risk a share of the balance. */
+  sizing: 'fixed' | 'risk';
+  riskPct: number;
+  breakEvenR: number | null;
+  maxPerDay: number | null;
+  prop: { on: boolean; program: string };
+}
+
+/** A tag or note on one historical trade. */
+export interface JournalEntry {
+  tags: string[];
+  note: string;
 }
 
 interface VisionState {
   mode: 'live' | 'backtest';
   btTab: 'test' | 'replay' | 'library';
   bt: BacktestSettings;
+  /** Notes on backtest and replay trades, by symbol:entry time. */
+  journal: Record<string, JournalEntry>;
+  setJournal: (key: string, e: JournalEntry | null) => void;
   kind: MarketKind;
   charts: ChartSlot[];
   focus: number;
@@ -84,7 +107,7 @@ interface VisionState {
   trades: VisionTrade[];
   /** Setups already acted on or skipped, so a setup is never taken twice. */
   handled: string[];
-  set: (patch: Partial<Omit<VisionState, 'set' | 'open' | 'close' | 'handle' | 'setChart' | 'resetPaper' | 'setBt'>>) => void;
+  set: (patch: Partial<Omit<VisionState, 'set' | 'open' | 'close' | 'handle' | 'setChart' | 'resetPaper' | 'setBt' | 'setJournal'>>) => void;
   setBt: (patch: Partial<BacktestSettings>) => void;
   setChart: (index: number, patch: Partial<ChartSlot>) => void;
   open: (p: Omit<VisionPosition, 'id' | 'openedAt'>) => void;
@@ -100,7 +123,15 @@ export const useVisionStore = create<VisionState>()(
     (set, get) => ({
       mode: 'live',
       btTab: 'test',
-      bt: { symbol: 'NQ', source: 'library', tf: '5m', days: 365, reader: 'auto', side: 'both', contracts: 2, micro: true, riskDollars: 250, commission: 1.04, slippageTicks: 1, maxHold: 48, skipFomc: false, skipEarly: true, vix: 'any', session: 'rth' },
+      bt: { symbol: 'NQ', source: 'library', tf: '5m', days: 365, reader: 'auto', side: 'both', contracts: 2, micro: true, riskDollars: 250, commission: 1.04, slippageTicks: 1, maxHold: 48, skipFomc: false, skipEarly: true, vix: 'any', session: 'ny', balance: 50_000, logic: 'vision', text: TEMPLATES[0].text, rules: null, sizing: 'fixed', riskPct: 1, breakEvenR: null, maxPerDay: null, prop: { on: false, program: 'lucid-pro:lucidpro-50k' } },
+      journal: {},
+      setJournal: (key, e) =>
+        set((s) => {
+          const journal = { ...s.journal };
+          if (e && (e.tags.length || e.note.trim())) journal[key] = e;
+          else delete journal[key];
+          return { journal };
+        }),
       setBt: (patch) => set((s) => ({ bt: { ...s.bt, ...patch } })),
       kind: 'crypto',
       charts: [{ symbol: 'BTC', tf: '15m' }],
@@ -137,7 +168,10 @@ export const useVisionStore = create<VisionState>()(
       // New backtest settings get their defaults on top of what was saved before.
       merge: (saved, current) => {
         const p = (saved ?? {}) as Partial<VisionState>;
-        return { ...current, ...p, bt: { ...current.bt, ...p.bt } };
+        const bt = { ...current.bt, ...p.bt } as BacktestSettings;
+        // Sessions were once 'rth'; that is New York now.
+        if ((bt.session as string) === 'rth') bt.session = 'ny';
+        return { ...current, ...p, bt };
       },
     },
   ),

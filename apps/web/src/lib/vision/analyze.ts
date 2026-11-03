@@ -228,7 +228,20 @@ interface Fired {
   volume: Setup["volume"];
 }
 
-const known = (c: Ctx, i: number) => c.piv.filter((p) => p.i + SPAN < i && p.i >= i - LOOKBACK);
+/** Pivots confirmed before bar i within the lookback. Pivots are in index order, so a binary search finds the start. */
+function known(c: Ctx, i: number) {
+  const a = c.piv;
+  let lo = 0;
+  let hi = a.length;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if (a[m].i < i - LOOKBACK) lo = m + 1;
+    else hi = m;
+  }
+  const out: Pivot[] = [];
+  for (let k = lo; k < a.length && a[k].i + SPAN < i; k++) out.push(a[k]);
+  return out;
+}
 
 /** Stop, target and the plan's sanity checks, shared by every reader. */
 function plan(c: Ctx, i: number, side: Side, stop: number, base: Omit<Fired, "entry" | "stop" | "target" | "rr" | "volume">): Fired | null {
@@ -338,17 +351,20 @@ function sdAt(c: Ctx, i: number): Fired | null {
   const a = atr[i];
   for (const side of ["long", "short"] as const) {
     const dir = side === "long" ? 1 : -1;
+    // The trigger bar has to close the trade's way; without that no base can fire.
+    if (dir * (bars[i].c - bars[i].o) <= 0) continue;
     // A base: one or two small-bodied bars. Then an impulse of 1.5+ ATR within four bars.
     for (let b = i - 6; b >= Math.max(20, i - 80); b--) {
       const ab = atr[b];
       if (Math.abs(bars[b].c - bars[b].o) >= 0.6 * ab) continue;
       const pair = Math.abs(bars[b - 1].c - bars[b - 1].o) < 0.6 * ab;
-      const base = pair ? [bars[b - 1], bars[b]] : [bars[b]];
-      const top = Math.max(...base.map((x) => x.h));
-      const bottom = Math.min(...base.map((x) => x.l));
-      const peak = bars.slice(b + 1, Math.min(b + 5, i));
-      if (!peak.length) continue;
-      const impulse = side === "long" ? Math.max(...peak.map((x) => x.c)) - top : bottom - Math.min(...peak.map((x) => x.c));
+      const top = pair ? Math.max(bars[b - 1].h, bars[b].h) : bars[b].h;
+      const bottom = pair ? Math.min(bars[b - 1].l, bars[b].l) : bars[b].l;
+      const end = Math.min(b + 5, i);
+      if (end <= b + 1) continue;
+      let ext = side === "long" ? -Infinity : Infinity;
+      for (let k = b + 1; k < end; k++) ext = side === "long" ? Math.max(ext, bars[k].c) : Math.min(ext, bars[k].c);
+      const impulse = side === "long" ? ext - top : bottom - ext;
       if (impulse < 1.5 * ab) continue;
       // The impulse has to leave the zone; the first return after that is the trade.
       let left = -1;
@@ -359,7 +375,7 @@ function sdAt(c: Ctx, i: number): Fired | null {
         }
       if (left < 0 || i - left < 2) continue;
       let touched = false;
-      for (let k = left + 1; k < i; k++) if (side === "long" ? bars[k].l <= top : bars[k].h >= bottom) touched = true;
+      for (let k = left + 1; k < i && !touched; k++) if (side === "long" ? bars[k].l <= top : bars[k].h >= bottom) touched = true;
       if (touched) continue;
       const edge = side === "long" ? top : bottom;
       const far = side === "long" ? bottom : top;
@@ -369,7 +385,7 @@ function sdAt(c: Ctx, i: number): Fired | null {
       const rejected = dir * (x.c - edge) > 0 && dir * (x.c - x.o) > 0;
       if (!(into && held && rejected)) continue;
       const stop = side === "long" ? far - 0.15 * a : far + 0.15 * a;
-      const f = plan(c, i, side, stop, { reader: "sd", side, level: edge, levelIndex: b, sweepIndex: Math.max(0, i - 2), index: i, zone: { top, bottom, from: b - (base.length - 1) }, marks: [b, i, i] });
+      const f = plan(c, i, side, stop, { reader: "sd", side, level: edge, levelIndex: b, sweepIndex: Math.max(0, i - 2), index: i, zone: { top, bottom, from: pair ? b - 1 : b }, marks: [b, i, i] });
       if (f) return f;
       break;
     }

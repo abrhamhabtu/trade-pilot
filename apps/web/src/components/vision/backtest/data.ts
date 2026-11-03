@@ -72,7 +72,7 @@ export interface Loaded {
 }
 
 const DAY = 86_400;
-export const MAX_LIBRARY_BARS = 80_000;
+export const MAX_LIBRARY_BARS = 400_000;
 
 /** The period a run covers, as unix seconds, from the settings and what the library holds. */
 export function periodOf(s: BacktestSettings, cover: { from: number; to: number }) {
