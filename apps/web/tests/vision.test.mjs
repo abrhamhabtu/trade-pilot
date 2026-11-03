@@ -93,3 +93,20 @@ test("the Pine script carries only a safe webhook key", () => {
   assert.match(code, /KEY\s+= input\.string\("abcalertx"/);
   assert.match(code, /^\/\/@version=6/);
 });
+
+test("every strategy builds a demo the real reader accepts, both sides, win or lose", async () => {
+  const { buildDemo } = await import("../src/lib/vision/demo.ts");
+  for (const reader of ["sweep", "dbvwap", "sd", "orb", "vwappb"])
+    for (const side of ["long", "short"])
+      for (const win of [true, false]) {
+        const d = buildDemo({ reader, side, win, price: 70000, tfSeconds: 300, anchor: "utc", seed: 7 });
+        assert.ok(d, `${reader} ${side} ${win}`);
+        assert.equal(d.side, side);
+        assert.equal(d.reader, reader);
+      }
+});
+
+test("each reader names its own steps", async () => {
+  const { READERS, READER_ORDER } = await import("../src/lib/vision/analyze.ts");
+  assert.deepEqual(READER_ORDER.sort(), Object.keys(READERS).sort());
+});

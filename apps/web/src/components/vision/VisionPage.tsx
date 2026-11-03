@@ -18,6 +18,10 @@ const signed = (n: number) => `${n >= 0 ? "+" : "-"}$${Math.abs(n).toLocaleStrin
 const dayOf = (ms: number) => new Date(ms).toLocaleDateString("en-CA");
 const QTY_DP: Partial<Record<VisionSymbolId, number>> = { BTC: 4, ETH: 3, SOL: 2, XRP: 0 };
 
+type Book = { positions: VisionPosition[]; trades: VisionTrade[]; handled: string[] };
+const EMPTY_BOOK: Book = { positions: [], trades: [], handled: [] };
+const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
 export function VisionPage() {
   const s = useVisionStore();
   const [hydrated, setHydrated] = useState(false);
@@ -25,14 +29,24 @@ export function VisionPage() {
   const [states, setStates] = useState<(ChartState | null)[]>([null, null]);
   const [pine, setPine] = useState(false);
   const [autoNote, setAutoNote] = useState("");
+  // Demo trades live here, never in the paper book or its history.
+  const [demo, setDemo] = useState<Book>(EMPTY_BOOK);
   const tickers = useTickers(s.kind);
   const arm = useArm();
 
-  const focused = s.charts[Math.min(s.focus, s.charts.length - 1)];
+  const fi = Math.min(s.focus, s.charts.length - 1);
+  const focused = s.charts[fi];
   const sym = SYMBOLS[focused.symbol];
-  const state = states[Math.min(s.focus, s.charts.length - 1)];
+  const state = states[fi];
+  const isDemo = (i: number) => states[i]?.mode === "demo";
+  const anyDemo = s.charts.some((_, i) => isDemo(i));
 
-  // Latest price per symbol: the charts first (tick-live), then the strip.
+  // A chart that leaves demo mode clears the demo book.
+  useEffect(() => {
+    if (!anyDemo && (demo.positions.length || demo.trades.length)) setDemo(EMPTY_BOOK);
+  }, [anyDemo, demo.positions.length, demo.trades.length]);
+
+  // Latest price per symbol: the charts first (tick-live), then the strip. Demo charts price their own demo book.
   const prices = useMemo(() => {
     const out: Partial<Record<VisionSymbolId, number>> = {};
     for (const t of tickers) if (t.price != null) out[t.id] = t.price;
@@ -42,10 +56,32 @@ export function VisionPage() {
     });
     return out;
   }, [tickers, states, s.charts]);
+  const demoPrices = useMemo(() => {
+    const out: Partial<Record<VisionSymbolId, number>> = {};
+    s.charts.forEach((c, i) => {
+      const st = states[i];
+      if (st?.mode === "demo" && st.bars.length) out[c.symbol] = st.bars[st.bars.length - 1].c;
+    });
+    return out;
+  }, [states, s.charts]);
+  // The range each charted symbol's latest bar has covered, so a stop or target touched by a wick counts.
+  const ranges = useMemo(() => {
+    const live: Partial<Record<VisionSymbolId, { h: number; l: number; t: number }>> = {};
+    const sim: Partial<Record<VisionSymbolId, { h: number; l: number; t: number }>> = {};
+    s.charts.forEach((c, i) => {
+      const st = states[i];
+      const b = st?.mode === "demo" ? st.bars : st?.feed.bars;
+      const x = b?.[b.length - 1];
+      if (x) (st!.mode === "demo" ? sim : live)[c.symbol] = { h: x.h, l: x.l, t: x.t };
+    });
+    return { live, sim };
+  }, [states, s.charts]);
 
   const today = dayOf(Date.now());
   const todays = s.trades.filter((t) => dayOf(t.closedAt) === today);
-  const positionFor = (id: VisionSymbolId) => s.positions.find((p) => p.symbol === id) ?? null;
+  const bookFor = (i: number): Book => (isDemo(i) ? demo : { positions: s.positions, trades: s.trades, handled: s.handled });
+  const positionIn = (b: Book, id: VisionSymbolId) => b.positions.find((p) => p.symbol === id) ?? null;
+  const recentClose = (b: Book, id: VisionSymbolId) => [...b.trades].reverse().find((t) => t.symbol === id && Date.now() - t.closedAt < 90_000) ?? null;
   const tradeLabel = `TRADE ${todays.length + s.positions.length + 1} · ${s.autoExecute ? "AUTO" : "MANUAL"}`;
 
   const ping = useCallback((tone: "go" | "caution" | "wait") => useVisionStore.getState().sound && chime(tone), []);
@@ -54,19 +90,25 @@ export function VisionPage() {
   const openFrom = useCallback(
     async (st: ChartState, symbol: VisionSymbolId, auto: boolean) => {
       const v = useVisionStore.getState();
+      const demoMode = st.mode === "demo";
       const setup = st.scan?.setup;
-      const bars = st.feed.bars;
-      if (st.replaying || !setup || setup.outcome !== "open" || !bars.length || v.positions.some((p) => p.symbol === symbol) || v.handled.includes(setup.id)) return;
+      const bars = st.bars;
+      const book = demoMode ? demo : { positions: v.positions, handled: v.handled };
+      if (st.replaying || !setup || setup.outcome !== "open" || !bars.length || book.positions.some((p) => p.symbol === symbol) || book.handled.includes(setup.id)) return;
+      const handle = (note = "") => {
+        if (demoMode) setDemo((d) => ({ ...d, handled: [...d.handled, setup.id] }));
+        else v.handle(setup.id);
+        if (note) setAutoNote(note);
+      };
       const sm = SYMBOLS[symbol];
       const price = bars[bars.length - 1].c;
       const risk = Math.abs(price - setup.stop);
-      // The plan has to still make sense at today's price.
+      // The plan has to still make sense at the price now.
       if ((setup.side === "long" && (price <= setup.stop || price >= setup.target)) || (setup.side === "short" && (price >= setup.stop || price <= setup.target)) || risk <= 0) {
-        v.handle(setup.id);
-        setAutoNote("Price already moved past the plan; skipped.");
+        handle("Price already moved past the plan; skipped.");
         return;
       }
-      const venue: Venue = sm.kind === "futures" && arm.armed ? (arm.armed.venue as Venue) : "paper";
+      const venue: Venue = !demoMode && sm.kind === "futures" && arm.armed ? (arm.armed.venue as Venue) : "paper";
       let qty: number;
       let pointValue: number;
       if (sm.kind === "crypto") {
@@ -78,7 +120,7 @@ export function VisionPage() {
         pointValue = v.micro ? sm.pointValue!.micro : sm.pointValue!.full;
       }
       if (qty <= 0) {
-        v.handle(setup.id);
+        handle();
         return;
       }
       if (venue !== "paper") {
@@ -90,33 +132,57 @@ export function VisionPage() {
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) {
-          v.handle(setup.id);
-          setAutoNote(`Order refused: ${j.error ?? r.status}`);
+          handle(`Order refused: ${j.error ?? r.status}`);
           ping("wait");
           return;
         }
       }
-      v.open({ symbol, side: setup.side, qty, entry: price, stop: setup.stop, target: setup.target, setupId: setup.id, auto, venue, pointValue });
+      const p = { symbol, side: setup.side, qty, entry: price, stop: setup.stop, target: setup.target, setupId: setup.id, auto, venue, pointValue };
+      if (demoMode) setDemo((d) => ({ ...d, positions: [...d.positions, { ...p, id: uid(), openedAt: bars[bars.length - 1].t * 1000 }], handled: [...d.handled, setup.id] }));
+      else v.open(p);
       setAutoNote("");
       ping("go");
     },
-    [arm.armed, ping],
+    [arm.armed, ping, demo],
   );
 
-  // ── Watching open positions ──
+  // ── Watching open positions: real ones on real prices, demo ones on the demo bars ──
   useEffect(() => {
     const v = useVisionStore.getState();
     for (const p of v.positions) {
       const px = prices[p.symbol];
       if (px == null) continue;
-      const stopHit = p.side === "long" ? px <= p.stop : px >= p.stop;
-      const targetHit = p.side === "long" ? px >= p.target : px <= p.target;
+      // Only the bar the position has been open through counts; earlier wicks do not.
+      const r = ranges.live[p.symbol];
+      const span = r && r.t * 1000 >= p.openedAt - 60_000 ? r : null;
+      const hi = Math.max(px, span?.h ?? px);
+      const lo = Math.min(px, span?.l ?? px);
+      const stopHit = p.side === "long" ? lo <= p.stop : hi >= p.stop;
+      const targetHit = p.side === "long" ? hi >= p.target : lo <= p.target;
       if (stopHit || targetHit) {
         const t = v.close(p.id, stopHit ? p.stop : p.target, stopHit ? "stop" : "target");
         if (t) ping(t.pnl >= 0 ? "go" : "wait");
       }
     }
-  }, [prices, ping]);
+  }, [prices, ranges, ping]);
+  useEffect(() => {
+    if (!demo.positions.length) return;
+    const closing: VisionTrade[] = [];
+    for (const p of demo.positions) {
+      const px = demoPrices[p.symbol];
+      const r = ranges.sim[p.symbol];
+      if (px == null || !r || r.t * 1000 <= p.openedAt) continue;
+      const stopHit = p.side === "long" ? r.l <= p.stop : r.h >= p.stop;
+      const targetHit = p.side === "long" ? r.h >= p.target : r.l <= p.target;
+      if (stopHit || targetHit) {
+        const exit = stopHit ? p.stop : p.target;
+        closing.push({ ...p, exit, closedAt: Date.now(), pnl: (p.side === "long" ? exit - p.entry : p.entry - exit) * p.qty * p.pointValue, reason: stopHit ? "stop" : "target" });
+      }
+    }
+    if (!closing.length) return;
+    setDemo((d) => ({ ...d, positions: d.positions.filter((p) => !closing.some((c) => c.id === p.id)), trades: [...d.trades, ...closing] }));
+    ping(closing[0].pnl >= 0 ? "go" : "wait");
+  }, [demoPrices, ranges, demo.positions, ping]);
 
   // ── Auto-execute ──
   useEffect(() => {
@@ -125,17 +191,19 @@ export function VisionPage() {
       const st = states[i];
       const setup = st?.scan?.setup;
       if (!st || st.replaying || !setup || !setup.fresh || !st.phase.done) return;
-      if (s.handled.includes(setup.id) || s.positions.some((p) => p.symbol === c.symbol)) return;
+      const book = st.mode === "demo" ? demo : { positions: s.positions, handled: s.handled };
+      if (book.handled.includes(setup.id) || book.positions.some((p) => p.symbol === c.symbol)) return;
       const h = setup.history;
       const passes = h.hitRate !== null && h.hitRate >= s.minHitRate && (!s.requireEdge || (h.expectancyR ?? -1) > 0);
-      if (!passes) {
+      // Demo shows the whole flow, so its filters only explain; they do not block.
+      if (!passes && st.mode !== "demo") {
         useVisionStore.getState().handle(setup.id);
         setAutoNote(h.hitRate === null ? "Too little history to rate this one; left it for you." : `History ${Math.round(h.hitRate * 100)}% is under your ${Math.round(s.minHitRate * 100)}% bar; skipped.`);
         return;
       }
       openFrom(st, c.symbol, true);
     });
-  }, [states, s.autoExecute, s.charts, s.handled, s.positions, s.minHitRate, s.requireEdge, openFrom]);
+  }, [states, s.autoExecute, s.charts, s.handled, s.positions, s.minHitRate, s.requireEdge, openFrom, demo]);
 
   const onState = useCallback((i: number) => (st: ChartState) => setStates((xs) => (xs[i] === st ? xs : Object.assign([...xs], { [i]: st }))), []);
   const stateSetters = useMemo(() => [onState(0), onState(1)], [onState]);
@@ -145,53 +213,66 @@ export function VisionPage() {
     const ids = BY_KIND[kind];
     s.set({ kind, charts: s.charts.map((c, i) => ({ ...c, symbol: ids[i] ?? ids[0] })), focus: 0 });
   };
-  const toggleLayout = () => {
-    if (s.charts.length === 2) s.set({ charts: [s.charts[s.focus] ?? s.charts[0]], focus: 0 });
+  const setLayout = (n: 1 | 2) => {
+    if (n === s.charts.length) return;
+    if (n === 1) s.set({ charts: [s.charts[fi] ?? s.charts[0]], focus: 0 });
     else {
       const other = BY_KIND[s.kind].find((id) => id !== s.charts[0].symbol) ?? s.charts[0].symbol;
-      s.set({ charts: [s.charts[0], { symbol: other, tf: s.charts[0].tf }] });
+      s.set({ charts: [s.charts[0], { symbol: other, tf: s.charts[0].tf, reader: s.charts[0].reader }] });
     }
   };
-  const pickSymbol = (id: VisionSymbolId) => s.setChart(s.focus, { symbol: id });
+  const pickSymbol = (id: VisionSymbolId) => s.setChart(fi, { symbol: id });
 
   if (!hydrated) return null;
-  const position = positionFor(focused.symbol);
-  const setupId = state?.scan?.setup?.id;
-  const lastTrade = s.trades[s.trades.length - 1] ?? null;
-  const sizing = sym.kind === "crypto" ? `Risk $${s.riskDollars} · ${state?.scan?.setup ? `${(s.riskDollars / Math.abs((prices[focused.symbol] ?? state.scan.setup.entry) - state.scan.setup.stop)).toFixed(QTY_DP[focused.symbol] ?? 2)} ${sym.id}` : ""}` : `${s.contracts} ${s.micro ? sym.roots!.micro : sym.roots!.full}`;
+  const book = bookFor(fi);
+  const position = positionIn(book, focused.symbol);
+  const setup = state?.scan?.setup ?? null;
+  const setupId = setup?.id;
+  const closedForSetup = setupId ? ([...book.trades].reverse().find((t) => t.setupId === setupId) ?? null) : null;
+  const lastTrade = book.trades[book.trades.length - 1] ?? null;
+  const focusPrice = (isDemo(fi) ? demoPrices : prices)[focused.symbol] ?? null;
+  const sizing =
+    sym.kind === "crypto"
+      ? `Risk $${s.riskDollars}${setup ? ` · ${(s.riskDollars / Math.max(1e-9, Math.abs((focusPrice ?? setup.entry) - setup.stop))).toFixed(QTY_DP[focused.symbol] ?? 2)} ${sym.id}` : ""}`
+      : `${s.contracts} ${s.micro ? sym.roots!.micro : sym.roots!.full}`;
 
   return (
     <div className="space-y-5 pb-6">
-      <TopBar kind={s.kind} onKind={switchKind} two={s.charts.length === 2} onLayout={toggleLayout} onPine={() => setPine(true)} sound={s.sound} onSound={() => s.set({ sound: !s.sound })} />
+      <TopBar kind={s.kind} onKind={switchKind} layout={s.charts.length as 1 | 2} onLayout={setLayout} onPine={() => setPine(true)} sound={s.sound} onSound={() => s.set({ sound: !s.sound })} />
 
       <TickerStrip rows={tickers} active={focused.symbol} onPick={pickSymbol} />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-5">
-          {s.charts.map((c, i) => (
-            <ChartCard
-              key={`${i}`}
-              symbol={c.symbol}
-              tf={c.tf}
-              focused={s.focus === i}
-              compact={s.charts.length === 2}
-              position={positionFor(c.symbol)}
-              tradeLabel={tradeLabel}
-              onFocus={() => s.focus !== i && s.set({ focus: i })}
-              onTf={(tf) => s.setChart(i, { tf })}
-              onClose={s.charts.length === 2 ? () => s.set({ charts: s.charts.filter((_, k) => k !== i), focus: 0 }) : undefined}
-              onState={stateSetters[i]}
-            />
-          ))}
+          <div className={clsx("grid gap-5", s.charts.length === 2 && "2xl:grid-cols-2")}>
+            {s.charts.map((c, i) => (
+              <ChartCard
+                key={`${i}`}
+                symbol={c.symbol}
+                tf={c.tf}
+                reader={c.reader ?? "auto"}
+                focused={s.charts.length > 1 && fi === i}
+                compact={s.charts.length === 2}
+                position={positionIn(bookFor(i), c.symbol)}
+                closed={recentClose(bookFor(i), c.symbol)}
+                tradeLabel={tradeLabel}
+                onFocus={() => s.focus !== i && s.set({ focus: i })}
+                onTf={(tf) => s.setChart(i, { tf })}
+                onReader={(reader) => s.setChart(i, { reader })}
+                onClose={s.charts.length === 2 ? () => s.set({ charts: s.charts.filter((_, k) => k !== i), focus: 0 }) : undefined}
+                onState={stateSetters[i]}
+              />
+            ))}
+          </div>
           <PnlStrip trades={s.trades} positions={s.positions} prices={prices} accountSize={s.accountSize} />
         </div>
         <div className="xl:sticky xl:top-4 xl:self-start">
           <CopilotPanel
             sym={sym}
             state={state ?? null}
-            price={prices[focused.symbol] ?? null}
+            price={focusPrice}
             position={position}
-            todays={todays}
+            todays={isDemo(fi) ? demo.trades : todays}
             autoExecute={s.autoExecute}
             autoNote={autoNote}
             onAuto={(on) => {
@@ -199,17 +280,23 @@ export function VisionPage() {
               setAutoNote("");
             }}
             onOpen={() => state && openFrom(state, focused.symbol, false)}
-            onSkip={() => setupId && s.handle(setupId)}
+            onSkip={() => setupId && (isDemo(fi) ? setDemo((d) => ({ ...d, handled: [...d.handled, setupId] })) : s.handle(setupId))}
             onClosePosition={async () => {
               if (!position) return;
+              if (isDemo(fi)) {
+                const exit = focusPrice ?? position.entry;
+                setDemo((d) => ({ ...d, positions: d.positions.filter((p) => p.id !== position.id), trades: [...d.trades, { ...position, exit, closedAt: Date.now(), pnl: (position.side === "long" ? exit - position.entry : position.entry - exit) * position.qty * position.pointValue, reason: "manual" }] }));
+                return;
+              }
               if (position.venue !== "paper") await fetch("/api/vision/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "flatten", symbol: position.symbol, micro: s.micro }) }).catch(() => undefined);
               const t = s.close(position.id, prices[position.symbol] ?? position.entry, "manual");
               if (t) ping(t.pnl >= 0 ? "go" : "wait");
             }}
-            handled={!!setupId && s.handled.includes(setupId) && !position}
+            handled={!!setupId && book.handled.includes(setupId) && !position && !closedForSetup}
             lastTrade={lastTrade}
+            closedForSetup={closedForSetup}
             sizing={sizing}
-            venueSlot={<VenueSlot kind={sym.kind} arm={arm} />}
+            venueSlot={isDemo(fi) ? <p className="rounded-2xl bg-[#FF8A3D]/10 px-3 py-2 text-[12px] text-[#FFB27D]">Demo trades are simulated and kept apart from your paper results.</p> : <VenueSlot kind={sym.kind} arm={arm} />}
           />
         </div>
       </div>
@@ -219,7 +306,7 @@ export function VisionPage() {
   );
 }
 
-function TopBar({ kind, onKind, two, onLayout, onPine, sound, onSound }: { kind: MarketKind; onKind: (k: MarketKind) => void; two: boolean; onLayout: () => void; onPine: () => void; sound: boolean; onSound: () => void }) {
+function TopBar({ kind, onKind, layout, onLayout, onPine, sound, onSound }: { kind: MarketKind; onKind: (k: MarketKind) => void; layout: 1 | 2; onLayout: (n: 1 | 2) => void; onPine: () => void; sound: boolean; onSound: () => void }) {
   const model = useModelStore((s) => s.model);
   const hydrate = useModelStore((s) => s.hydrate);
   useEffect(() => hydrate(), [hydrate]);
@@ -232,21 +319,20 @@ function TopBar({ kind, onKind, two, onLayout, onPine, sound, onSound }: { kind:
         </span>
         <div>
           <h1 className="text-[40px] font-bold leading-none tracking-[-0.04em] text-white">Vision</h1>
-          <p className="mt-1 text-[15px] text-white/50">Reads the chart, marks the setup, and shows its odds from real history.</p>
+          <p className="mt-1 text-[15px] text-white/50">Reads the chart with your strategies, marks the setup, and shows its odds from real history.</p>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative grid grid-cols-2 rounded-[14px] bg-white/[0.07] p-[3px]">
-          <span aria-hidden className="absolute bottom-[3px] left-[3px] top-[3px] w-[calc(50%-3px)] rounded-[11px] bg-white/[0.16] transition-transform duration-500 ease-spring" style={{ transform: kind === "futures" ? "translateX(100%)" : "none" }} />
-          {(["crypto", "futures"] as const).map((k) => (
-            <button key={k} onClick={() => onKind(k)} className={clsx("relative rounded-[11px] px-4 py-1.5 text-[14px] font-semibold capitalize", kind === k ? "text-white" : "text-white/50 hover:text-white/80")}>
-              {k}
-            </button>
-          ))}
-        </div>
-        <IconBtn label={two ? "One chart" : "Two charts"} onClick={onLayout}>
-          {two ? <Square className="h-4 w-4" /> : <Columns2 className="h-4 w-4" />}
-        </IconBtn>
+        <Seg value={kind} options={[{ v: "crypto" as const, l: "Crypto" }, { v: "futures" as const, l: "Futures" }]} onChange={onKind} />
+        <Seg
+          value={layout}
+          options={[
+            { v: 1 as const, l: <span className="flex items-center gap-1.5"><Square className="h-3.5 w-3.5" /> 1</span> },
+            { v: 2 as const, l: <span className="flex items-center gap-1.5"><Columns2 className="h-3.5 w-3.5" /> 2</span> },
+          ]}
+          onChange={onLayout}
+          label="Charts"
+        />
         <IconBtn label={sound ? "Sound on" : "Sound off"} onClick={onSound}>
           {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
         </IconBtn>
@@ -259,6 +345,20 @@ function TopBar({ kind, onKind, two, onLayout, onPine, sound, onSound }: { kind:
         </button>
       </div>
     </header>
+  );
+}
+
+function Seg<T extends string | number>({ value, options, onChange, label }: { value: T; options: { v: T; l: React.ReactNode }[]; onChange: (v: T) => void; label?: string }) {
+  const i = Math.max(0, options.findIndex((o) => o.v === value));
+  return (
+    <div role="group" aria-label={label} className="relative grid rounded-[14px] bg-white/[0.07] p-[3px]" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+      <span aria-hidden className="absolute bottom-[3px] left-[3px] top-[3px] rounded-[11px] bg-white/[0.16] transition-transform duration-500 ease-spring" style={{ width: `calc((100% - 6px) / ${options.length})`, transform: `translateX(${i * 100}%)` }} />
+      {options.map((o) => (
+        <button key={String(o.v)} onClick={() => onChange(o.v)} aria-pressed={o.v === value} className={clsx("relative rounded-[11px] px-4 py-1.5 text-[14px] font-semibold", o.v === value ? "text-white" : "text-white/50 hover:text-white/80")}>
+          {o.l}
+        </button>
+      ))}
+    </div>
   );
 }
 

@@ -3,13 +3,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { MarketKind, Timeframe, VisionSymbolId } from '@/lib/vision/markets';
-import type { Side } from '@/lib/vision/analyze';
+import type { ReaderChoice, Side } from '@/lib/vision/analyze';
 
 export type Venue = 'paper' | 'tradovate' | 'projectx';
 
 export interface ChartSlot {
   symbol: VisionSymbolId;
   tf: Timeframe;
+  /** Which strategy reads this chart; 'auto' runs all of them. */
+  reader?: ReaderChoice;
 }
 
 export interface VisionPosition {

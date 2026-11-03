@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { Check, Loader2, Sparkles, Zap } from "lucide-react";
-import type { Scan } from "@/lib/vision/analyze";
+import { READERS, type Scan } from "@/lib/vision/analyze";
 import { formatPrice, type VisionSymbol } from "@/lib/vision/markets";
 import { useModelStore, modelReady } from "@/lib/pilot/modelStore";
 import { PROVIDERS } from "@/lib/pilot/models";
@@ -42,6 +42,7 @@ export function CopilotPanel({
   onClosePosition,
   handled,
   lastTrade,
+  closedForSetup,
   sizing,
   venueSlot,
 }: {
@@ -58,12 +59,14 @@ export function CopilotPanel({
   onClosePosition: () => void;
   handled: boolean;
   lastTrade: VisionTrade | null;
+  closedForSetup: VisionTrade | null;
   sizing: string;
   venueSlot: React.ReactNode;
 }) {
   const scan: Scan | null = state?.scan ?? null;
   const phase = state?.phase;
-  const setup = scan?.setup && scan.setup.outcome === "open" ? scan.setup : null;
+  const setup = scan?.setup ?? null;
+  const open = setup?.outcome === "open";
   const scanning = phase?.step === "scanning";
   const fmt = (n: number) => formatPrice(sym, n);
   const typed = useTypewriter(scan?.overview ?? "", !!scan && !scanning && !state?.replaying);
@@ -141,7 +144,7 @@ export function CopilotPanel({
     { k: "Detect", ok: !!setup },
     { k: "Validate", ok: !!setup && rate !== null },
     { k: "Risk", ok: !!setup && setup.rr >= 1.2 },
-    { k: "Execute", ok: !!position },
+    { k: "Execute", ok: !!position || !!closedForSetup },
   ];
   const pnl = position && price != null ? (position.side === "long" ? price - position.entry : position.entry - price) * position.qty * position.pointValue : 0;
   const realized = todays.reduce((a, t) => a + t.pnl, 0);
@@ -156,7 +159,7 @@ export function CopilotPanel({
           <Sparkles className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[17px] font-semibold text-white">Vision Copilot</p>
+          <p className="flex items-center gap-2 text-[17px] font-semibold text-white">Vision Copilot{state?.mode === "demo" && <span className="rounded-md bg-[#FF8A3D]/15 px-1.5 py-0.5 text-[10.5px] font-bold tracking-[0.06em] text-[#FFB27D]">DEMO</span>}</p>
           <p className="truncate text-[12px] text-[#FFB27D]">{ready ? `${PROVIDERS[model.provider].label} · ${model.model}` : "Built-in chart reader"}</p>
         </div>
         <span className={clsx("h-2 w-2 rounded-full", scanning ? "animate-pulse bg-[#FF8A3D]" : "bg-white/30")} />
@@ -218,34 +221,35 @@ export function CopilotPanel({
           )}
         </section>
 
-        {setup && phase?.projection ? (
-          <section className="tp-card-in rounded-[22px] border border-[#FF8A3D]/25 bg-gradient-to-b from-[#FF8A3D]/[0.08] to-transparent p-4">
+        {setup && !(scanning && !state?.replaying) ? (
+          <section className={clsx("rounded-[22px] border p-4 transition-all duration-700", phase?.projection ? "tp-card-in border-[#FF8A3D]/25 bg-gradient-to-b from-[#FF8A3D]/[0.08] to-transparent" : "border-white/[0.06] bg-white/[0.02] opacity-45 saturate-50", !open && "opacity-80")}>
             <div className="flex items-start gap-3">
               <span className={clsx("rounded-full px-3 py-1 text-[13px] font-bold", setup.side === "long" ? "bg-[#FF8A3D] text-black" : "bg-white text-black")}>{setup.side === "long" ? "LONG" : "SHORT"}</span>
               <div className="min-w-0 flex-1">
                 <p className="text-[15px] font-semibold text-white">
-                  {sym.label} <span className="ml-1 rounded-md bg-[#FF8A3D]/15 px-1.5 py-0.5 text-[10.5px] font-bold tracking-[0.06em] text-[#FFB27D]">FORECAST</span>
+                  {sym.label} <span className="ml-1 rounded-md bg-[#FF8A3D]/15 px-1.5 py-0.5 text-[10.5px] font-bold tracking-[0.06em] text-[#FFB27D]">{state?.mode === "demo" ? "DEMO" : "FORECAST"}</span>
                 </p>
-                <p className="mt-0.5 text-[12.5px] text-[#FFB27D]">
-                  Projected {(((setup.target - setup.entry) / setup.entry) * 100).toFixed(2)}% move · {setup.rr.toFixed(1)}R
+                <p className="mt-0.5 truncate text-[12.5px] text-[#FFB27D]">
+                  {READERS[setup.reader].short} · projected {setup.target >= setup.entry ? "+" : ""}
+                  {(((setup.target - setup.entry) / setup.entry) * 100).toFixed(2)}% · {setup.rr.toFixed(1)}R
                 </p>
               </div>
-              <Ring value={rate ?? 0} label={rate === null ? "—" : `${Math.round(rate * 100)}%`} />
+              <Ring value={phase?.projection ? (rate ?? 0) : 0} label={rate === null ? "—" : `${Math.round(rate * 100)}%`} />
             </div>
             <dl className="mt-3 space-y-1.5 text-[14px]">
               <Row k="Entry" v={fmt(setup.entry)} />
-              <Row k="Target" v={fmt(setup.target)} tone="orange" />
+              <Row k="Projected target" v={fmt(setup.target)} tone="orange" />
               <Row k="Stop loss" v={fmt(setup.stop)} tone="red" />
-              <Row k="Past matches" v={`${h!.matches}${h!.hitRate === null ? " · too few to rate" : ` · ${h!.wins}W ${h!.losses}L`}`} />
+              <Row k="Historical matches" v={`${h!.matches}${h!.hitRate === null ? " · too few to rate" : ` · ${h!.wins}W ${h!.losses}L`}`} />
               {h!.expectancyR !== null && <Row k="Edge per trade" v={`${h!.expectancyR >= 0 ? "+" : ""}${h!.expectancyR.toFixed(2)}R`} tone={h!.expectancyR >= 0 ? "orange" : "red"} />}
               <Row k="Size" v={sizing} />
             </dl>
             <ol className="mt-4 flex items-start justify-between">
-              {steps.map((s, k) => (
-                <li key={s.k} className="relative flex flex-1 flex-col items-center">
-                  {k > 0 && <span className={clsx("absolute right-1/2 top-[9px] h-[2px] w-full", steps[k - 1].ok ? "bg-[#FF8A3D]/70" : "bg-white/10")} />}
-                  <span className={clsx("relative grid h-5 w-5 place-items-center rounded-full", s.ok ? "bg-[#FF8A3D] text-black" : "border-2 border-[#FF8A3D]/60 bg-[#121214]")}>{s.ok && <Check className="h-3 w-3" strokeWidth={3} />}</span>
-                  <span className={clsx("mt-1 text-[11.5px]", s.ok ? "text-white/80" : "text-[#FFB27D]")}>{s.k}</span>
+              {steps.map((st, k) => (
+                <li key={st.k} className="relative flex flex-1 flex-col items-center">
+                  {k > 0 && <span className={clsx("absolute right-1/2 top-[9px] h-[2px] w-full transition-colors duration-500", steps[k - 1].ok && st.ok ? "bg-[#FF8A3D]/80" : steps[k - 1].ok ? "bg-gradient-to-r from-[#FF8A3D]/80 to-white/10" : "bg-white/10")} />}
+                  <span className={clsx("relative grid h-5 w-5 place-items-center rounded-full transition-all duration-500", st.ok ? "bg-[#FF8A3D] text-black" : "border-2 border-[#FF8A3D]/60 bg-[#121214]")}>{st.ok && <Check className="h-3 w-3" strokeWidth={3} />}</span>
+                  <span className={clsx("mt-1 text-[11.5px]", st.ok ? "text-white/80" : "text-[#FFB27D]")}>{st.k}</span>
                 </li>
               ))}
             </ol>
@@ -254,25 +258,36 @@ export function CopilotPanel({
                 <p className="rounded-2xl bg-white/[0.05] px-3 py-2.5 text-center text-[13.5px] text-white/60">Replay of past bars · not tradable</p>
               ) : position ? (
                 <p className="flex items-center gap-2 rounded-2xl border border-[#FF8A3D]/30 bg-[#FF8A3D]/10 px-3 py-2.5 text-[14px] font-semibold text-[#FFB27D]">
-                  <Check className="h-4 w-4" /> Filled · {position.qty} @ {fmt(position.entry)} {position.venue !== "paper" ? `on ${position.venue === "tradovate" ? "Tradovate" : "TopstepX"}` : "(paper)"}
+                  {position.auto ? <Zap className="h-4 w-4" /> : <Check className="h-4 w-4" />} {position.auto ? "Auto-filled" : "Filled"} · {position.qty} @ {fmt(position.entry)}{" "}
+                  <span className="font-normal text-white/50">{position.venue === "paper" ? (state?.mode === "demo" ? "demo" : "paper") : position.venue === "tradovate" ? "Tradovate" : "TopstepX"}</span>
+                </p>
+              ) : closedForSetup ? (
+                <p className={clsx("flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-[14px] font-semibold", closedForSetup.pnl >= 0 ? "border-[#FF8A3D]/30 bg-[#FF8A3D]/10 text-[#FFB27D]" : "border-[#FF5A4E]/30 bg-[#FF5A4E]/10 text-[#FF8D85]")}>
+                  <Check className="h-4 w-4" /> {closedForSetup.reason === "target" ? "Closed at TP" : closedForSetup.reason === "stop" ? "Stopped out" : "Closed"} {signed(closedForSetup.pnl)}
+                </p>
+              ) : !open ? (
+                <p className={clsx("rounded-2xl px-3 py-2.5 text-center text-[13.5px]", setup.outcome === "target" ? "bg-[#FF8A3D]/10 text-[#FFB27D]" : "bg-[#FF5A4E]/10 text-[#FF8D85]")}>
+                  {setup.outcome === "target" ? "✓ Reached its target" : "✕ Hit its stop"} · not traded
                 </p>
               ) : autoExecute && !handled && setup.fresh ? (
                 <p className="flex items-center gap-2 rounded-2xl bg-[#FF8A3D]/10 px-3 py-2.5 text-[14px] font-semibold text-[#FFB27D]">
-                  <Zap className="h-4 w-4" /> {autoNote || "Auto-executing…"}
+                  <Zap className="h-4 w-4 animate-pulse" /> {autoNote || "Auto-executing…"}
                 </p>
               ) : handled ? (
-                <p className="rounded-2xl bg-white/[0.04] px-3 py-2.5 text-[13.5px] text-white/55">Skipped. Scanning for the next setup.</p>
+                <p className="rounded-2xl bg-white/[0.04] px-3 py-2.5 text-[13.5px] text-white/55">{autoNote || "Skipped. Scanning for the next setup."}</p>
               ) : (
                 <div className="grid grid-cols-[1.4fr_1fr] gap-2">
-                  <button onClick={onOpen} disabled={!setup.fresh} className="rounded-2xl bg-[#FF8A3D] py-3 text-[15px] font-bold text-black shadow-[0_12px_30px_-12px_rgba(255,138,61,0.9)] transition active:scale-[0.98] disabled:opacity-40" title={setup.fresh ? "" : "This setup fired a while ago; wait for a fresh one"}>
+                  <button onClick={onOpen} disabled={!setup.fresh || !phase?.projection} className="rounded-2xl bg-[#FF8A3D] py-3 text-[15px] font-bold text-black shadow-[0_12px_30px_-12px_rgba(255,138,61,0.9)] transition active:scale-[0.98] disabled:opacity-40" title={setup.fresh ? "" : "This setup fired a while ago; wait for a fresh one"}>
                     {setup.side === "long" ? "▲ Open long" : "▼ Open short"}
                   </button>
-                  <button onClick={onSkip} className="rounded-2xl bg-white/[0.08] py-3 text-[15px] font-semibold text-white transition hover:bg-white/[0.12] active:scale-[0.98]">
+                  <button onClick={onSkip} disabled={!phase?.projection} className="rounded-2xl bg-white/[0.08] py-3 text-[15px] font-semibold text-white transition hover:bg-white/[0.12] active:scale-[0.98] disabled:opacity-40">
                     Skip
                   </button>
                 </div>
               )}
-              <p className="mt-1.5 text-center text-[11.5px] text-white/40">{setup.fresh ? "You decide, or let auto-execute take it." : "Fired earlier; Vision only acts on fresh setups."}</p>
+              <p className="mt-1.5 text-center text-[11.5px] text-white/40">
+                {position?.auto ? "Opened automatically by Vision." : open ? (setup.fresh ? "You decide, or let auto-execute take it." : "Fired earlier; Vision only acts on fresh setups.") : "Scanning for the next setup."}
+              </p>
             </div>
           </section>
         ) : (
@@ -280,11 +295,6 @@ export function CopilotPanel({
             <div>
               <Loader2 className={clsx("mx-auto h-6 w-6 text-white/40", (scanning || !scan) && "animate-spin")} />
               <p className="mt-3 text-[14px] text-white/60">{scanning ? "Reading the chart…" : "Waiting for a high-probability setup"}</p>
-              {scan?.setup && scan.setup.outcome !== "open" && (
-                <p className={clsx("mt-1 text-[12.5px]", scan.setup.outcome === "target" ? "text-[#FFB27D]" : "text-[#FF8D85]")}>
-                  Last {scan.setup.side} setup {scan.setup.outcome === "target" ? "reached its target" : "was stopped out"}
-                </p>
-              )}
             </div>
           </section>
         )}

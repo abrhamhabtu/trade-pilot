@@ -9,15 +9,23 @@ Vision lives at `/app/vision`. It reads a live chart, marks a liquidity sweep an
 
 Timeframes are 1m, 5m, 15m, 1h and 4h (4h is built from hourly bars). One or two charts can be shown side by side.
 
-## The reader (`src/lib/vision/analyze.ts`)
+## Strategies (`src/lib/vision/analyze.ts`)
 
-Only closed bars are read. A long fires when a confirmed swing low is wicked through, price closes back above it, and confirms by closing above the 21 EMA or with momentum turning up on a green close. Shorts mirror this at swing highs. The stop sits under (over) the sweep, the target is the next opposite swing at 1.2R or more (else 2R, capped at 4R).
+Each chart picks a strategy, or "Any strategy" to run them all:
 
-The market scan reports structure (higher highs and lows, or lower), the nearest unswept liquidity, buy versus sell volume over 20 bars, and RSI/EMA momentum including divergence.
+- **Double-break VWAP**: close through the session VWAP, pushed back, close through again; the second break is entry, the stop is the extreme between the breaks.
+- **Supply & demand (Octavia)**: a one- or two-bar base that launched a 1.5 ATR impulse is the zone; the first return that closes back out of it is entry, the stop is beyond the zone.
+- **Liquidity sweep**: a confirmed swing is wicked through, price closes back, then confirms by closing past the 21 EMA or turning momentum.
+- **Opening range breakout**: the first close outside the session's first 15 minutes (15m bars or faster).
+- **VWAP trend pullback**: after five closes on one side of a sloping VWAP, the first tag back into it that closes in trend.
 
-**Historical matches** are the same detector run over every earlier bar in the loaded history, each replayed forward (up to 48 bars) to see whether the target or the stop came first. The stop wins a bar that touches both. The hit rate and the edge in R per trade are shown only with at least 8 decided matches; otherwise the setup is marked as too few to rate. The projection cone is the 25th–75th percentile path of those matches, scaled to the current setup's risk.
+Sessions are New York RTH for futures and the UTC day for crypto. Only closed bars are read. Targets are the next opposite swing at 1.2R or more, else 2R, capped at 4R.
 
-**Replay** walks the latest real setup forward bar by bar so the whole sequence can be watched. Nothing can be traded during a replay.
+The picker shows, for each strategy, how often it fired on the bars loaded and its edge in R and hit rate (target before stop), or "unrated" under 8 decided signals.
+
+**Historical matches** are the chosen strategy run over every earlier bar in the loaded history, each replayed forward (up to 48 bars). The stop wins a bar that touches both. The projection cone is the 25th to 75th percentile path of those matches.
+
+**Replay** walks the latest real setup forward bar by bar. **Demo** builds a clearly labelled simulated chart in which a chosen strategy forms and plays out to a win or a loss; every demo is checked by the real reader before it is shown, its odds come from the real chart's history, and demo trades are kept apart from paper results.
 
 ## Trading
 
