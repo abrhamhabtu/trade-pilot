@@ -21,6 +21,8 @@ export interface Phase {
   revealed: number;
   /** Setup box, projection and volume highlight. */
   projection: boolean;
+  /** Where the reveal is: the callouts show while marking and planning, then step aside. */
+  step?: "scanning" | "marking" | "planning" | "done";
 }
 
 interface Geo {
@@ -43,7 +45,7 @@ function shiftFor(sym: VisionSymbol, t: number) {
 
 const volColor = (b: Bar, on: boolean) => (on ? (b.c >= b.o ? "rgba(255,138,61,0.95)" : "rgba(205,210,220,0.75)") : b.c >= b.o ? "rgba(255,138,61,0.36)" : "rgba(120,126,140,0.32)");
 
-export function VisionChart({ bars, sym, scan, phase, position, closed, height, label }: { bars: Bar[]; sym: VisionSymbol; scan: Scan | null; phase: Phase; position: VisionPosition | null; closed?: VisionTrade | null; height: number; label?: string }) {
+export function VisionChart({ bars, sym, scan, phase, position, closed, height, label, story = false }: { bars: Bar[]; sym: VisionSymbol; scan: Scan | null; phase: Phase; position: VisionPosition | null; closed?: VisionTrade | null; height: number; label?: string; story?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
   const candles = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -56,7 +58,12 @@ export function VisionChart({ bars, sym, scan, phase, position, closed, height, 
   const [hover, setHover] = useState<number | null>(null);
   const shift = useMemo(() => (bars.length ? shiftFor(sym, bars[bars.length - 1].t) : 0), [sym, bars.length > 0]); // eslint-disable-line react-hooks/exhaustive-deps
   const fmt = (n: number) => formatPrice(sym, n);
-  const setup = scan?.setup ?? null;
+  // What to draw. An open setup in full; a finished one only briefly and quietly,
+  // unless a replay or demo is telling its story.
+  const raw = scan?.setup ?? null;
+  const ago = raw && raw.outcomeIndex != null ? bars.length - 2 - raw.outcomeIndex : 0;
+  const setup = raw && (raw.outcome === "open" || story || ago <= 12) ? raw : null;
+  const full = !!setup && (setup.outcome === "open" || story);
   const planShown = !!setup && (phase.projection || setup.outcome !== "open");
   const useVwap = setup ? READERS[setup.reader].line === "vwap" : scan?.reader && scan.reader !== "auto" ? READERS[scan.reader].line === "vwap" : false;
 
@@ -119,7 +126,7 @@ export function VisionChart({ bars, sym, scan, phase, position, closed, height, 
     }
     const at = (t: number) => (t + shift) as UTCTimestamp;
     const candle = (b: Bar) => ({ time: at(b.t), open: b.o, high: b.h, low: b.l, close: b.c });
-    const on = (i: number) => planShown && !!setup && i >= setup.volume.from && i <= setup.volume.to;
+    const on = (i: number) => full && planShown && !!setup && i >= setup.volume.from && i <= setup.volume.to;
     const vol = (b: Bar, i: number) => ({ time: at(b.t), value: b.v, color: volColor(b, on(i)) });
     // Incremental update only for the same series growing by at most one bar; anything else is a reset.
     const sig = `${sym.id}:${shift}`;
@@ -152,9 +159,9 @@ export function VisionChart({ bars, sym, scan, phase, position, closed, height, 
   useEffect(() => {
     if (!volume.current || !bars.length) return;
     const at = (t: number) => (t + shift) as UTCTimestamp;
-    volume.current.setData(bars.map((b, i) => ({ time: at(b.t), value: b.v, color: volColor(b, planShown && !!setup && i >= setup.volume.from && i <= setup.volume.to) })));
+    volume.current.setData(bars.map((b, i) => ({ time: at(b.t), value: b.v, color: volColor(b, full && planShown && !!setup && i >= setup.volume.from && i <= setup.volume.to) })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setup?.id, planShown]);
+  }, [setup?.id, planShown, full]);
 
   // ── EMA or VWAP, whichever the strategy reads ──
   useEffect(() => {
@@ -172,11 +179,11 @@ export function VisionChart({ bars, sym, scan, phase, position, closed, height, 
     if (!cs) return;
     lines.current.forEach((l) => cs.removePriceLine(l));
     lines.current = [];
-    if (!planShown || !setup) return;
+    if (!planShown || !setup || !full) return;
     lines.current.push(cs.createPriceLine({ price: setup.level, color: "rgba(255,255,255,0.5)", lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: "" }));
     lines.current.push(cs.createPriceLine({ price: setup.target, color: ORANGE, lineWidth: 1, lineStyle: LineStyle.Solid, axisLabelVisible: true, title: "" }));
     lines.current.push(cs.createPriceLine({ price: setup.stop, color: RED, lineWidth: 1, lineStyle: LineStyle.Solid, axisLabelVisible: true, title: "" }));
-  }, [setup, planShown]);
+  }, [setup, planShown, full]);
 
   // ── Frame the setup: from a little before its first mark to past its projection ──
   useEffect(() => {
@@ -217,16 +224,16 @@ export function VisionChart({ bars, sym, scan, phase, position, closed, height, 
           )}
         </div>
       )}
-      {label && <span className="pointer-events-none absolute right-24 top-2 z-10 rounded-full bg-[#FF8A3D]/15 px-2.5 py-0.5 text-[11px] font-bold tracking-[0.08em] text-[#FFB27D] ring-1 ring-[#FF8A3D]/30">{label}</span>}
+      {label && <span className="pointer-events-none absolute bottom-[34px] left-14 z-10 rounded-full bg-[#FF8A3D]/15 px-2.5 py-0.5 text-[11px] font-bold tracking-[0.08em] text-[#FFB27D] ring-1 ring-[#FF8A3D]/30">{label}</span>}
       <div ref={box} className="absolute inset-0" />
-      {geo && bars.length > 0 && <Overlay geo={geo} bars={bars} scan={scan} phase={phase} position={position} closed={closed ?? null} fmt={fmt} />}
+      {geo && bars.length > 0 && <Overlay geo={geo} bars={bars} scan={scan} setup={setup} full={full} phase={phase} position={position} closed={closed ?? null} fmt={fmt} />}
     </div>
   );
 }
 
-function Overlay({ geo, bars, scan, phase, position, closed, fmt }: { geo: Geo; bars: Bar[]; scan: Scan | null; phase: Phase; position: VisionPosition | null; closed: VisionTrade | null; fmt: (n: number) => string }) {
+function Overlay({ geo, bars, scan, setup, full, phase, position, closed, fmt }: { geo: Geo; bars: Bar[]; scan: Scan | null; setup: Scan["setup"]; full: boolean; phase: Phase; position: VisionPosition | null; closed: VisionTrade | null; fmt: (n: number) => string }) {
   const { w, h, plotW, x, y, bar } = geo;
-  const s = scan?.setup ?? null;
+  const s = setup;
   const volTop = h * 0.83;
   const volBottom = h - 28;
   const show = !!s && (phase.projection || s.outcome !== "open");
@@ -251,9 +258,12 @@ function Overlay({ geo, bars, scan, phase, position, closed, fmt }: { geo: Geo; 
       .map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`)
       .join(" ");
 
-  // Callout cards: one tidy column left of the pattern, ordered by where their points sit, never overlapping.
+  // Callout cards: one column left of the pattern, ordered by where their points sit,
+  // placed in the clearest band of that column (above or below the candles under it).
   const cards = useMemo(() => {
-    if (!s) return [];
+    if (!s || !full) return [];
+    // Once the plan is on screen the callouts have done their job and step aside, like a presenter's notes.
+    if (phase.step === "done" || (phase.step === undefined && phase.projection)) return [];
     const first = x(Math.min(s.levelIndex, s.sweepIndex)) ?? plotW / 2;
     const column = first - CARD_W - 60 > 8 ? Math.min(Math.max(12, first - CARD_W - 60), 36) : Math.min(plotW - CARD_W - 12, (x(s.index + horizon) ?? plotW) + 20);
     const placed: { n: number; title: string; detail: string; mark: "level" | "ring"; px: number; py: number; cx: number; cy: number }[] = [];
@@ -263,19 +273,38 @@ function Overlay({ geo, bars, scan, phase, position, closed, fmt }: { geo: Geo; 
       if (px == null || py == null) continue;
       placed.push({ ...c, px, py, cx: column, cy: py - CARD_H / 2 });
     }
-    placed.sort((a, b) => a.cy - b.cy);
-    const GAP = CARD_H + 18;
-    for (let k = 1; k < placed.length; k++) placed[k].cy = Math.max(placed[k].cy, placed[k - 1].cy + GAP);
-    const top = 44;
-    const bottom = volTop - CARD_H - 8;
-    const over = placed.length ? placed[placed.length - 1].cy - bottom : 0;
-    if (over > 0) placed.forEach((p) => (p.cy -= over));
-    if (placed.length && placed[0].cy < top) {
-      const under = top - placed[0].cy;
-      placed.forEach((p) => (p.cy += under));
+    if (!placed.length) return placed;
+    placed.sort((a, b) => a.py - b.py);
+    // Where the candles under the column are.
+    let occTop = Infinity;
+    let occBot = -Infinity;
+    for (let i = 0; i < bars.length; i++) {
+      const px = x(i);
+      if (px == null || px < column - bar || px > column + CARD_W + bar) continue;
+      const yh = y(bars[i].h);
+      const yl = y(bars[i].l);
+      if (yh != null) occTop = Math.min(occTop, yh);
+      if (yl != null) occBot = Math.max(occBot, yl);
     }
+    const top = 44;
+    const bottom = volTop - 8;
+    let gap = CARD_H + 18;
+    const total = (n: number, g: number) => (n - 1) * g + CARD_H;
+    const zones = Number.isFinite(occTop)
+      ? [
+          { a: top, b: occTop - 10 },
+          { a: occBot + 10, b: bottom },
+        ]
+      : [{ a: top, b: bottom }];
+    const meanPy = placed.reduce((m, p) => m + p.py, 0) / placed.length;
+    const fits = zones.filter((z) => z.b - z.a >= total(placed.length, CARD_H + 8));
+    const zone = (fits.length ? fits : [{ a: top, b: bottom }]).sort((p, q) => Math.abs((p.a + p.b) / 2 - meanPy) - Math.abs((q.a + q.b) / 2 - meanPy))[0];
+    while (gap > CARD_H + 8 && total(placed.length, gap) > zone.b - zone.a) gap -= 2;
+    const span = total(placed.length, gap);
+    const start = Math.max(zone.a, Math.min(zone.b - span, meanPy - span / 2));
+    placed.forEach((p, k) => (p.cy = start + k * gap));
     return placed;
-  }, [s, phase.revealed, x, y, plotW, volTop, horizon]);
+  }, [s, full, phase.revealed, phase.step, phase.projection, x, y, plotW, volTop, horizon, bars, bar]);
 
   const xi = s ? x(s.index) : null;
   const xs = s ? x(Math.min(s.sweepIndex, s.index)) : null;
@@ -289,7 +318,6 @@ function Overlay({ geo, bars, scan, phase, position, closed, fmt }: { geo: Geo; 
   const patternTop = s ? Math.max(...seg.map((b) => b.h)) : 0;
   const patternBot = s ? Math.min(...seg.map((b) => b.l)) : 0;
   const mid = proj && proj.mid[0][0] != null && proj.mid[0][1] != null && proj.mid[1][0] != null && proj.mid[1][1] != null ? { x0: proj.mid[0][0]!, y0: proj.mid[0][1]!, x1: proj.mid[1][0]!, y1: proj.mid[1][1]! } : null;
-  const angle = mid ? (Math.atan2(mid.y1 - mid.y0, mid.x1 - mid.x0) * 180) / Math.PI : 0;
   const ready = show && s && xs != null && xi != null && yE != null && yT != null && yS != null;
 
   return (
@@ -341,7 +369,7 @@ function Overlay({ geo, bars, scan, phase, position, closed, fmt }: { geo: Geo; 
               />
             )}
             <rect x={xi!} y={Math.min(yE!, yT!)} width={Math.max(0, right - xi!)} height={Math.abs(yT! - yE!)} fill="url(#tp-tp)" />
-            <rect x={xi!} y={Math.min(yE!, yS!)} width={Math.max(0, right - xi!)} height={Math.abs(yS! - yE!)} fill={RED} fillOpacity="0.08" />
+            <rect x={xi!} y={Math.min(yE!, yS!)} width={Math.max(0, right - xi!)} height={Math.abs(yS! - yE!)} fill="#ffffff" fillOpacity="0.045" />
             <line x1={xi!} x2={right} y1={yT!} y2={yT!} stroke={ORANGE} strokeOpacity="0.85" />
             <line x1={xi!} x2={right} y1={yS!} y2={yS!} stroke={RED} strokeOpacity="0.85" />
             <line x1={xi!} x2={plotW} y1={yE!} y2={yE!} stroke="rgba(255,255,255,0.45)" strokeDasharray="4 4" />
@@ -364,7 +392,7 @@ function Overlay({ geo, bars, scan, phase, position, closed, fmt }: { geo: Geo; 
           const r = c.mark === "ring" ? 11 : 4;
           return (
             <g key={c.n} className="tp-fade-in" opacity={done ? 0.75 : 1}>
-              {c.mark === "level" && <line x1={c.px} x2={plotW} y1={c.py} y2={c.py} stroke="rgba(255,255,255,0.45)" strokeDasharray="5 4" />}
+              {c.mark === "level" && <line x1={c.px} x2={Math.min(plotW, (xi ?? c.px) + bar * 3)} y1={c.py} y2={c.py} stroke="rgba(255,255,255,0.45)" strokeDasharray="5 4" />}
               <line x1={fromX} y1={c.cy + CARD_H / 2} x2={c.px + (left ? -r : r)} y2={c.py} stroke={ORANGE} strokeOpacity="0.8" strokeWidth="1.25" />
               {c.mark === "ring" ? (
                 <>
@@ -379,7 +407,7 @@ function Overlay({ geo, bars, scan, phase, position, closed, fmt }: { geo: Geo; 
           );
         })}
 
-        {ready && x(s!.volume.from) != null && x(s!.volume.to) != null && (
+        {ready && full && x(s!.volume.from) != null && x(s!.volume.to) != null && (
           <rect
             x={x(s!.volume.from)! - bar * 0.7}
             y={volTop}
@@ -411,32 +439,45 @@ function Overlay({ geo, bars, scan, phase, position, closed, fmt }: { geo: Geo; 
         </span>
       )}
 
-      {ready && (
-        <>
-          <span className="tp-fade-in absolute whitespace-nowrap rounded-full bg-[#FF8A3D] px-2.5 py-1 text-[11px] font-bold tracking-[0.04em] text-black shadow-[0_8px_24px_-6px_rgba(255,138,61,0.9)]" style={{ left: Math.max(6, xs! - bar), top: Math.max(4, y(patternTop)! - 46) }}>
-            ✦ {s!.side === "long" ? "LONG" : "SHORT"} SETUP
-          </span>
-          <Tag x={right - 156} y={yT! + (s!.side === "long" ? -24 : 4)} tone="orange">
-            TP {fmt(s!.target)} {pctOf(s!.target)}
-          </Tag>
-          <Tag x={right - 156} y={yS! + (s!.side === "long" ? 4 : -24)} tone="red">
-            SL {fmt(s!.stop)} {pctOf(s!.stop)}
-          </Tag>
-          {s!.outcome === "open" && mid && s!.history.matches > 0 && (
-            <span className="tp-fade-in absolute origin-left whitespace-nowrap text-[11px] font-medium text-white/55" style={{ left: mid.x0 + (mid.x1 - mid.x0) * 0.18, top: mid.y0 + (mid.y1 - mid.y0) * 0.18 - 18, transform: `rotate(${angle}deg)` }}>
-              matched against {s!.history.matches} past setup{s!.history.matches === 1 ? "" : "s"}
+      {ready && (() => {
+        const tagT = yT! + (s!.side === "long" ? -24 : 4);
+        const tagS = yS! + (s!.side === "long" ? 4 : -24);
+        const bracketTop = Math.min(y(patternTop)!, y(patternBot)!) - 10;
+        // Above the box and its upper tag; below the box when the top of the chart is too close.
+        const above = Math.min(bracketTop - 32, Math.min(tagT, tagS) - 30);
+        const bracketBot = Math.max(y(patternTop)!, y(patternBot)!) + 10;
+        const pillTop = above >= 40 ? above : Math.max(bracketBot, Math.max(tagT, tagS) + 24) + 8;
+        return (
+          <>
+            {full && (
+              <span className="tp-fade-in absolute whitespace-nowrap rounded-full bg-[#FF8A3D] px-2.5 py-1 text-[11px] font-bold tracking-[0.04em] text-black shadow-[0_8px_24px_-6px_rgba(255,138,61,0.9)]" style={{ left: Math.max(6, xs! - bar), top: pillTop }}>
+                ✦ {s!.side === "long" ? "LONG" : "SHORT"} SETUP
+              </span>
+            )}
+            <span className="tp-fade-in absolute -translate-x-full whitespace-nowrap rounded-md bg-[#FF8A3D] px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-black" style={{ left: right - 6, top: tagT }}>
+              TP {fmt(s!.target)} {pctOf(s!.target)}
             </span>
-          )}
-          {done && s!.outcomeIndex != null && x(s!.outcomeIndex) != null && (
-            <span
-              className={clsx("tp-pop absolute -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold tracking-[0.05em]", s!.outcome === "target" ? "bg-[#FF8A3D] text-black" : "bg-[#FF5A4E] text-white")}
-              style={{ left: x(s!.outcomeIndex)!, top: (s!.outcome === "target" ? yT! : yS!) + ((s!.outcome === "target") === (s!.side === "long") ? -34 : 10) }}
-            >
-              {s!.outcome === "target" ? "✓ PREDICTION CONFIRMED" : "✕ STOPPED OUT"}
+            <span className="tp-fade-in absolute -translate-x-full whitespace-nowrap rounded-md bg-[#FF5A4E] px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-white" style={{ left: right - 6, top: tagS }}>
+              SL {fmt(s!.stop)} {pctOf(s!.stop)}
             </span>
-          )}
-        </>
-      )}
+            {full && (
+              <span className="tp-fade-in absolute -translate-x-full -translate-y-1/2 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-[10.5px] font-bold tracking-[0.05em] text-black shadow" style={{ left: xi! - 8, top: yE! }}>
+                {s!.side === "long" ? "LONG" : "SHORT"}
+              </span>
+            )}
+            {s!.outcome === "open" && mid && (
+              <span className="tp-fade-in absolute -translate-y-1/2 whitespace-nowrap rounded-md bg-[#FF8A3D] px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-black" style={{ left: Math.min(plotW - 70, mid.x1 + 8), top: mid.y1 }}>
+                ▍{fmt(s!.target)}
+              </span>
+            )}
+            {s!.outcome === "open" && s!.history.matches > 0 && (
+              <span className="tp-fade-in absolute -translate-x-full whitespace-nowrap text-[11px] font-medium text-white/50" style={{ left: right - 4, top: Math.max(yT!, yS!) + 30 }}>
+                matched against {s!.history.matches} past setup{s!.history.matches === 1 ? "" : "s"}
+              </span>
+            )}
+          </>
+        );
+      })()}
 
       {scan &&
         !s &&
@@ -469,7 +510,7 @@ function Overlay({ geo, bars, scan, phase, position, closed, fmt }: { geo: Geo; 
             "tp-pop absolute top-2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-bold tracking-[0.06em] shadow-[0_8px_24px_-8px_rgba(255,138,61,0.9)]",
             s!.outcome === "stop" ? "bg-[#FF5A4E] text-white" : "bg-[#FF8A3D] text-black",
           )}
-          style={{ left: Math.min(plotW - 110, Math.max(110, (xi! + right) / 2)) }}
+          style={{ left: plotW / 2 }}
         >
           ✦ {s!.outcome === "target" ? "PREDICTION CONFIRMED" : s!.outcome === "stop" ? "STOPPED OUT" : s!.history.hitRate !== null ? `PROJECTED · ${Math.round(s!.history.hitRate * 100)}% HIT RATE` : "PROJECTED · UNRATED"}
         </span>

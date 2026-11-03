@@ -368,6 +368,7 @@ export function ChartCard({
             closed={mode === "replay" ? null : closed}
             height={compact ? 400 : 580}
             label={mode === "demo" ? "DEMO · SIMULATED PRICE" : mode === "replay" ? "REPLAY · PAST BARS" : undefined}
+            story={mode !== "live"}
           />
         ) : (
           <div className="tp-shimmer m-3 rounded-2xl" style={{ height: compact ? 380 : 560 }} />
