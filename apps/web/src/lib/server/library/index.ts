@@ -219,6 +219,16 @@ async function zipList(file: string) {
   return { rows, incomplete };
 }
 
+/** The lines of every matching CSV inside a stored zip, in name order; null when the zip isn't here. */
+export async function zipCsvLines(name: string, match: RegExp): Promise<AsyncIterable<string> | null> {
+  const f = (await getIndex()).files.find((x) => x.name === name);
+  if (!f) return null;
+  const members = (await zipList(filePath(f))).rows.filter((r) => match.test(r.name)).map((r) => r.name).sort();
+  return (async function* () {
+    for (const m of members) yield* readline.createInterface({ input: memberStream(filePath(f), m), crlfDelay: Infinity });
+  })();
+}
+
 const memberStream = (file: string, member: string) => spawn("unzip", ["-p", file, member]).stdout;
 
 const joining = new Set<string>();

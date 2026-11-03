@@ -10,6 +10,8 @@ import { SESSION_WINDOWS } from "@/lib/vision/custom";
 import { TF_SECONDS, aggregate, formatPrice, type Timeframe, type VisionSymbol } from "@/lib/vision/markets";
 import { programByKey } from "@/lib/proving/firms";
 import { accountState, type AccountTrade, type PropAccount } from "@/lib/vision/account";
+import { riskCap } from "@/lib/vision/limits";
+import { useLimits } from "./prop/useLab";
 import type { BacktestSettings, VisionPosition, VisionTrade } from "@/store/visionStore";
 import { VisionChart } from "../VisionChart";
 import { money, timeOf, type Loaded } from "./data";
@@ -35,6 +37,7 @@ const toAccountTrade = (t: Session): AccountTrade => ({ id: `m${t.entryT}${Math.
  * marks setups as they form. In prop firm mode the firm's rules run live.
  */
 export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, settings, onSave, account, onAccountTrade, onCursor, onMore }: { loaded: Loaded; sym: VisionSymbol; tf: Timeframe; anchor: "rth" | "utc"; reader: ReaderChoice; scenario?: Scenario; startAt?: number; settings: BacktestSettings; onSave: (s: { trades: Session[]; from: number; to: number }) => Promise<boolean>; account?: PropAccount; onAccountTrade?: (t: AccountTrade) => void; onCursor?: (t: number) => void; onMore?: () => void }) {
+  const { limits } = useLimits();
   const bars = loaded.bars;
   const n = bars.length;
   // An account picks up where it stopped, or at its start date's New York open.
@@ -110,11 +113,15 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
   const sizeFor = useCallback(
     (dist: number) => {
       if (sym.kind === "crypto") return Math.max(0, Math.floor((settings.riskDollars / dist) * 1e4) / 1e4);
-      const cap = program ? (micro ? program.maxMicros : program.maxMinis) : 50;
+      const firmCap = program ? (micro ? program.maxMicros : program.maxMinis) : 50;
+      // The trader's own limit on risk per trade holds here too.
+      const limitUsd = !program ? Infinity : account?.phase === "live" ? ((balance0 + realized) * limits.livePct) / 100 : program.drawdown * riskCap(limits, sym.id, account?.phase === "funded" ? "funded" : "eval");
+      const cap = Math.min(firmCap, Math.floor(limitUsd / (dist * pointValue)));
+      if (cap <= 0) return 0;
       if (sizing === "risk") return Math.max(0, Math.min(cap, Math.floor(((balance0 + realized) * riskPct) / 100 / (dist * pointValue))));
-      return Math.max(1, Math.min(cap, Math.round(qty)));
+      return Math.min(cap, Math.max(1, Math.round(qty)));
     },
-    [sym.kind, settings.riskDollars, sizing, balance0, realized, riskPct, pointValue, qty, program, micro],
+    [sym.kind, sym.id, settings.riskDollars, sizing, balance0, realized, riskPct, pointValue, qty, program, micro, limits, account?.phase],
   );
 
   // ── The prop firm account, live ──
@@ -344,12 +351,12 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
                 <Building2 className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-[13px] font-bold text-white">{account ? account.name : `${program.firm} ${program.sizeLabel}`}</p>
+                <p className="text-[13px] font-bold text-white">{account ? `You're trading ${account.name}` : `${program.firm} ${program.sizeLabel}`}</p>
                 <p className="text-[11.5px] text-white/50">{passed ? "Passed: target, days and consistency met" : a.blown || (live?.status === "blown" ? live.headline : "") || a.halted || (account ? `${program.firm} ${program.sizeLabel} · saving as you trade` : "Rules running live")}</p>
               </div>
             </div>
-            <Meter label={account?.phase === "funded" ? "Profit" : "Profit target"} value={equity - size} max={program.target} text={`${money(equity - size)} of ${money(program.target).replace("+", "")}`} color="#30D158" />
-            <Meter label="Drawdown left" value={equity - a.threshold} max={program.drawdown} text={`${money(equity - a.threshold).replace("+", "")} · floor $${Math.round(a.threshold).toLocaleString("en-US")}`} color="#BF5AF2" />
+            {account?.phase === "live" ? <Meter label="Return" value={Math.max(0, equity - size)} max={size} text={`${money(equity - size)}, ${(((equity - size) / size) * 100).toFixed(1)}%`} color="#30D158" /> : <Meter label={account?.phase === "funded" ? "Profit" : "Profit target"} value={equity - size} max={program.target} text={`${money(equity - size)} of ${money(program.target).replace("+", "")}`} color="#30D158" />}
+            <Meter label={account?.phase === "live" ? "Room to your stop" : "Drawdown left"} value={equity - a.threshold} max={program.drawdown} text={`${money(equity - a.threshold).replace("+", "")} · ${account?.phase === "live" ? "stops at" : "floor"} $${Math.round(a.threshold).toLocaleString("en-US")}`} color="#BF5AF2" />
             <Meter label="Daily loss left" value={program.dll != null ? program.dll + dayPnl : 1} max={program.dll ?? 1} text={program.dll != null ? `${money(program.dll + dayPnl).replace("+", "")} of ${money(program.dll).replace("+", "")}` : "No daily limit"} color="#FFD60A" />
           </div>
         )}
@@ -488,6 +495,7 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
               <Row k="Size" v={<span className="text-[13px] font-semibold tabular-nums text-white/80">{sizeFor(stopDist)}</span>} />
             )}
             {sym.kind === "futures" && sizing === "risk" && <p className="text-right text-[11.5px] text-white/40">{sizeFor(stopDist)} contracts at this stop</p>}
+            {sym.kind === "futures" && program && sizeFor(stopDist) === 0 && <p className="text-right text-[11.5px] text-[#FFD08A]">One contract at this stop is over your risk limit.</p>}
             <div className="rounded-[14px] bg-white/[0.03] px-3">
               <Toggle label="Auto break-even at +1R" on={autoBe} onChange={setAutoBe} />
             </div>

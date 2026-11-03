@@ -96,6 +96,7 @@ export function DayLedger({ days, program, firm = true, name, context }: { days:
                   {firm ? <span className={clsx("relative text-right", r.tightest < program.drawdown * 0.25 ? "text-[#FFA3AB]" : "text-white/70")}>{usd(Math.max(0, r.room))}</span> : <span className="relative text-right text-white/55">${Math.round(r.low).toLocaleString("en-US")}</span>}
                   {firm && <span className="relative text-right text-white/60">{Math.round(r.progress * 100)}%</span>}
                   <span className="relative flex min-w-0 gap-1 pl-2">
+                    {firm !== undefined && whoOf(r.items) && <span className="shrink-0 rounded-full bg-white/[0.07] px-2 py-0.5 text-[11px] font-medium text-white/70">{whoOf(r.items)}</span>}
                     {r.flags.map((f) => (
                       <span key={f} className={clsx("truncate rounded-full px-2 py-0.5 text-[11px] font-medium", /floor|limit/i.test(f) ? "bg-[#FF7A85]/15 text-[#FFA3AB]" : "bg-white/[0.07] text-white/65")}>
                         {f}
@@ -122,7 +123,7 @@ export function DayLedger({ days, program, firm = true, name, context }: { days:
                           <span className={t.side === "long" ? "text-[#9BE1FF]" : "text-[#FFA3AB]"}>{t.side === "long" ? "Long" : "Short"}</span>
                           <span className="text-right">{t.qty}×</span>
                           <span className="truncate text-white/50">
-                            {t.entryPx} to {t.exitPx}{t.why ? `, ${t.why}` : ""}
+                            {(t as unknown as { who?: string }).who === "manual" ? "You. " : (t as unknown as { who?: string }).who === "auto" ? "Auto. " : ""}{t.entryPx} to {t.exitPx}{t.why ? `, ${t.why}` : ""}
                           </span>
                           <span className={clsx("text-right font-medium", t.pnl >= 0 ? "text-[#7CE59A]" : "text-[#FFA3AB]")}>{money(t.pnl)}</span>
                           <span className="text-right text-white/50">{t.r >= 0 ? "+" : ""}{t.r.toFixed(2)}R</span>
@@ -143,6 +144,12 @@ export function DayLedger({ days, program, firm = true, name, context }: { days:
       </div>
     </section>
   );
+}
+
+/** Who placed a day's trades, when the trades say. */
+function whoOf(items: DaySim["trades"]) {
+  const who = new Set(items.map((t) => (t as unknown as { who?: string }).who).filter(Boolean));
+  return who.size === 2 ? "You and auto" : who.has("manual") ? "You" : who.has("auto") ? "Auto" : "";
 }
 
 function Fact({ k, v, sub, tone }: { k: string; v: string; sub?: string; tone?: "pos" | "neg" }) {

@@ -4,21 +4,29 @@ import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import Image from "next/image";
 import { firmBrand } from "@/components/proving/firmBrand";
-import { ArrowLeft, ArrowRight, Bot, Check, Dices, Hand, Layers, X } from "lucide-react";
-import { DD_LABEL, FIRM_PROGRAMS, type FirmProgram } from "@/lib/proving/firms";
+import { ArrowLeft, ArrowRight, Bot, Building2, Check, Dices, Hand, Landmark, Layers, X } from "lucide-react";
+import { DD_LABEL, FIRM_PROGRAMS, isLive, liveProgram, type FirmProgram } from "@/lib/proving/firms";
 import { ACCOUNT_COLORS, newAccount, type PropAccount } from "@/lib/vision/account";
 import { SYMBOLS, type Timeframe } from "@/lib/vision/markets";
-import { Seg } from "../ui";
+import { Num, Seg } from "../ui";
 import type { Library } from "../data";
 
 const STEPS = ["Firm", "Account", "Market & start", "Name it"];
+const LIVE_STEPS = ["Amount", "Market & start", "Name it"];
+const AMOUNTS = [1000, 5000, 10_000, 25_000, 50_000];
 const FUTURES = ["NQ", "ES", "GC", "CL"] as const;
 const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 /** A guided setup for a new prop backtest account. */
 export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: Library | null; existing: PropAccount[]; onCancel: () => void; onCreate: (a: PropAccount) => void; start?: Partial<PropAccount> }) {
-  const [step, setStep] = useState(0);
+  const [kind, setKind] = useState<"prop" | "live" | null>(start?.program ? (isLive(start.program) ? "live" : "prop") : null);
+  const [amount, setAmount] = useState(start?.program && isLive(start.program) ? Number(start.program.split(":")[1]) : 5000);
+  const [stopPct, setStopPct] = useState(start?.program && isLive(start.program) ? Number(start.program.split(":")[2]) : 50);
+  const live = kind === "live";
+  const [screen, setScreen] = useState(0);
+  // Live skips the firm's two steps: its screens are amount, market, name.
+  const step = live ? (screen === 0 ? -1 : screen + 1) : screen;
   const firms = useMemo(() => {
     const m = new Map<string, FirmProgram[]>();
     for (const p of FIRM_PROGRAMS) m.set(p.firmId, [...(m.get(p.firmId) ?? []), p]);
@@ -27,7 +35,7 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
   const initial = start?.program ? FIRM_PROGRAMS.find((p) => p.key === start.program) : undefined;
   const [firmId, setFirmId] = useState(initial?.firmId ?? "");
   const [key, setKey] = useState(initial?.key ?? "");
-  const program = FIRM_PROGRAMS.find((p) => p.key === key) ?? null;
+  const program = live ? liveProgram(Math.max(100, amount), stopPct) : (FIRM_PROGRAMS.find((p) => p.key === key) ?? null);
   const [symbol, setSymbol] = useState<string>(start?.symbol ?? (lib?.series.NQ ? "NQ" : "NQ"));
   const [tf, setTf] = useState<Timeframe>(start?.tf ?? "5m");
   const series = lib?.series[symbol];
@@ -48,8 +56,8 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
   useEffect(() => {
     if (!program) return;
     const n = existing.filter((a) => a.program === program.key).length + 1;
-    setName(`${program.firm.replace(/ (Trading|Futures|Funding|Trader)$/, "")} ${program.sizeLabel} · ${symbol}${n > 1 ? ` #${n}` : ""}`);
-  }, [program, symbol, existing]);
+    setName(live ? `Live ${program.sizeLabel}, ${symbol}${n > 1 ? ` #${n}` : ""}` : `${program.firm.replace(/ (Trading|Futures|Funding|Trader)$/, "")} ${program.sizeLabel} · ${symbol}${n > 1 ? ` #${n}` : ""}`);
+  }, [program?.key, symbol, existing, live]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const quick = [
     { l: "3 months ago", d: new Date(hi.getTime() - 90 * 86_400_000) },
@@ -58,11 +66,12 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
     { l: "2022 bear market", d: new Date(Date.UTC(2022, 0, 3)) },
     { l: "Aug 2024 vol spike", d: new Date(Date.UTC(2024, 6, 15)) },
   ].filter((q) => q.d >= lo && q.d <= hi);
-  const ok = [!!firmId, !!program, !!date, name.trim().length > 0][step];
+  const ok = step === -1 ? amount >= 100 : [!!firmId, !!program, !!date, name.trim().length > 0][step];
 
   const create = () => {
     if (!program) return;
     const a = newAccount({ name: name.trim(), color, program: program.key, symbol, tf, micro: start?.micro ?? true, sizing: start?.sizing ?? "fixed", contracts: Math.min(start?.contracts ?? 2, program.maxMicros), riskPct: start?.riskPct ?? 1, mode, startDate: date });
+    if (live) a.phase = "live";
     onCreate(blind ? { ...a, events: [...a.events, { at: Date.now(), kind: "note", text: "Blind start: a random date" }] } : a);
   };
 
@@ -71,26 +80,61 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
       <div role="dialog" aria-modal="true" aria-label="New prop account" onClick={(e) => e.stopPropagation()} className="tp-sheet flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-[30px] border border-white/[0.08] bg-[#161618]/95 backdrop-blur-2xl sm:rounded-[30px]">
         <header className="flex items-center gap-4 px-6 pb-4 pt-5">
           <div className="flex-1">
-            <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[#E3B5FF]">New prop account</p>
-            <h2 className="text-[24px] font-bold tracking-tight text-white">{["Which firm are you taking on?", "Pick the account", "Where does it start?", "Name it and choose how you'll test"][step]}</h2>
+            <h2 className="text-[24px] font-bold tracking-tight text-white">{!kind ? "What kind of account?" : step === -1 ? "How much of your own money?" : ["Which firm are you taking on?", "Pick the account", "Where does it start?", "Name it and choose how you'll test"][step]}</h2>
           </div>
           <button aria-label="Close" onClick={onCancel} className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.08] text-white/70 hover:bg-white/[0.14]">
             <X className="h-4 w-4" />
           </button>
         </header>
-        <ol className="flex gap-2 px-6 pb-4">
-          {STEPS.map((s, i) => (
+        {kind && <ol className="flex gap-2 px-6 pb-4">
+          {(live ? LIVE_STEPS : STEPS).map((s, i) => (
             <li key={s} className="flex flex-1 flex-col gap-1.5">
-              <span className={clsx("h-1 rounded-full transition-colors duration-500", i <= step ? "bg-gradient-to-r from-[#BF5AF2] to-[#5AC8FA]" : "bg-white/[0.08]")} />
-              <span className={clsx("text-[11.5px] font-semibold", i === step ? "text-white" : "text-white/40")}>
+              <span className={clsx("h-1 rounded-full transition-colors duration-500", i <= screen ? "bg-gradient-to-r from-[#BF5AF2] to-[#5AC8FA]" : "bg-white/[0.08]")} />
+              <span className={clsx("text-[11.5px] font-semibold", i === screen ? "text-white" : "text-white/40")}>
                 {i + 1}. {s}
               </span>
             </li>
           ))}
-        </ol>
+        </ol>}
 
         <div className="min-h-[380px] flex-1 overflow-y-auto px-6 pb-4">
-          {step === 0 && (
+          {!kind && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                { v: "prop" as const, icon: <Building2 className="h-6 w-6" />, t: "Prop firm", d: "Practice an evaluation or funded account under a firm's exact rules." },
+                { v: "live" as const, icon: <Landmark className="h-6 w-6" />, t: "Live money", d: "Your own $1,000, $5,000 or $50,000 at a broker. No firm rules, only margin and the loss you set." },
+              ].map((m) => (
+                <button key={m.v} onClick={() => setKind(m.v)} className="min-h-[190px] rounded-[24px] bg-white/[0.04] p-6 text-left ring-1 ring-white/[0.08] transition hover:bg-white/[0.08]">
+                  <span className="grid h-12 w-12 place-items-center rounded-[15px] bg-white/[0.1] text-white">{m.icon}</span>
+                  <span className="mt-4 block text-[22px] font-semibold tracking-[-0.02em] text-white">{m.t}</span>
+                  <span className="mt-1 block text-[13.5px] leading-snug text-white/55">{m.d}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {kind && step === -1 && (
+            <div className="max-w-xl space-y-5">
+              <Label t="Starting balance">
+                <div className="flex flex-wrap gap-1.5">
+                  {AMOUNTS.map((x) => (
+                    <button key={x} aria-pressed={amount === x} onClick={() => setAmount(x)} className={clsx("rounded-full px-4 py-2.5 text-[15px] font-semibold tabular-nums", amount === x ? "bg-white text-black" : "bg-white/[0.06] text-white/75 hover:bg-white/[0.1]")}>{usd(x)}</button>
+                  ))}
+                  <Num value={amount} onChange={(v) => setAmount(Math.round(v))} min={100} max={10_000_000} step={500} width="w-32" />
+                </div>
+              </Label>
+              <Label t="The most you'd lose before you stop" hint={`At ${stopPct}% it stops at ${usd(amount * (1 - stopPct / 100))}, the same way a firm's floor would. Nothing here risks real money: this is a backtest.`}>
+                <div className="flex flex-wrap gap-1.5">
+                  {[10, 25, 50, 75].map((x) => (
+                    <button key={x} aria-pressed={stopPct === x} onClick={() => setStopPct(x)} className={clsx("rounded-full px-3.5 py-2 text-[14px] font-medium tabular-nums", stopPct === x ? "bg-white text-black" : "bg-white/[0.06] text-white/70 hover:bg-white/[0.1]")}>{x}%</button>
+                  ))}
+                </div>
+              </Label>
+              <p className="rounded-[16px] bg-white/[0.03] p-3 text-[12.5px] leading-relaxed text-white/55">Only your broker&apos;s margin limits your size, so small balances may not be able to trade some stops at all, even in micros. The lab shows you where that line is.</p>
+            </div>
+          )}
+
+          {step === 0 && kind && (
             <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
               {firms.map((ps) => {
                 const f = ps[0];
@@ -123,7 +167,7 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
             </div>
           )}
 
-          {step === 1 && program && (
+          {step === 1 && !live && program && (
             <div className="space-y-4">
               <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                 {FIRM_PROGRAMS.filter((p) => p.firmId === firmId).map((p) => (
@@ -253,12 +297,12 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
                 </p>
                 <p className="mt-2 text-[22px] font-bold tracking-tight text-white">{name || "Untitled account"}</p>
                 <p className="text-[13px] text-white/55">
-                  {program.firm} {program.sizeLabel} · {program.program}
+                  {live ? "Live money, your broker" : `${program.firm} ${program.sizeLabel} · ${program.program}`}
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-2 text-[12.5px]">
                   <Kv k="Balance" v={usd(program.size)} />
                   <Kv k="Target" v={program.model === "instant" ? "—" : usd(program.target)} />
-                  <Kv k="Floor" v={usd(program.size - program.drawdown)} />
+                  <Kv k={live ? "Stops at" : "Floor"} v={usd(program.size - program.drawdown)} />
                   <Kv k="Daily limit" v={program.dll ? usd(program.dll) : "None"} />
                   <Kv k="Market" v={`${symbol} · ${tf}`} />
                   <Kv k="Starts" v={blind ? "A random day" : new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })} />
@@ -270,14 +314,14 @@ export function NewAccount({ lib, existing, onCancel, onCreate, start }: { lib: 
         </div>
 
         <footer className="flex items-center gap-2 border-t border-white/[0.06] px-6 py-4">
-          {step > 0 && (
-            <button onClick={() => setStep(step - 1)} className="flex items-center gap-1.5 rounded-full bg-white/[0.08] px-4 py-2.5 text-[14px] font-semibold text-white hover:bg-white/[0.12]">
+          {kind && (screen > 0 || !start?.program) && (
+            <button onClick={() => (screen > 0 ? setScreen(screen - 1) : setKind(null))} className="flex items-center gap-1.5 rounded-full bg-white/[0.08] px-4 py-2.5 text-[14px] font-semibold text-white hover:bg-white/[0.12]">
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
           )}
           <span className="flex-1" />
-          {step < 3 ? (
-            <button disabled={!ok} onClick={() => setStep(step + 1)} className="flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-[14px] font-bold text-black disabled:opacity-40">
+          {!kind ? null : step < 3 ? (
+            <button disabled={!ok} onClick={() => setScreen(screen + 1)} className="flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-[14px] font-bold text-black disabled:opacity-40">
               Continue <ArrowRight className="h-4 w-4" />
             </button>
           ) : (

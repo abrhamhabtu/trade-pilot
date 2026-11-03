@@ -3,29 +3,31 @@
 import { useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { ArrowLeft, Bot, Building2, CheckCircle2, ChevronDown, CircleDashed, Copy, Download, Hand, Loader2, Pencil, Play, Plus, RotateCcw, Trash2, Trophy, XCircle } from "lucide-react";
-import { READERS, READER_ORDER, type ReaderChoice } from "@/lib/vision/analyze";
 import { accountCsv, accountState, resetAccount, uid, type AccountState, type PropAccount } from "@/lib/vision/account";
-import { SYMBOLS, isSymbol } from "@/lib/vision/markets";
-import { SESSION_WINDOWS, type SessionKey } from "@/lib/vision/custom";
 import { DD_LABEL } from "@/lib/proving/firms";
 import { useVisionStore } from "@/store/visionStore";
-import { Num, Seg } from "../ui";
+import { Seg } from "../ui";
 import { download, money, timeOf, type Library } from "../data";
 import { DayLedger } from "./DayLedger";
 import { EdgeLab } from "./EdgeLab";
 import { NewAccount } from "./NewAccount";
+import { BookPage } from "./BookPage";
+import { LimitsPage } from "./LimitsPage";
+import { LiveLab } from "./LiveLab";
+import { ScoutPage } from "./ScoutPage";
+import { GamePlanCard, WhoTrades, type AutoRunRequest, type AutoRunResult } from "./TradePanel";
 
 const VIOLET = "#BF5AF2";
 const usd = (n: number) => `$${Math.round(Math.abs(n)).toLocaleString("en-US")}`;
 const sdate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
-export type AutoRunRequest = { strategy: { logic: "vision"; reader: ReaderChoice } | { logic: "custom" }; session: SessionKey; horizon: "pass" | number };
-export type AutoRunResult = { added: number; pnl: number; text: string } | { error: string };
+export type { AutoRunRequest, AutoRunResult };
 
 export function PropDesk({ accounts, lib, error, onSave, onRemove, onReplay, onAutoRun }: { accounts: PropAccount[] | null; lib: Library | null; error: string; onSave: (a: PropAccount) => Promise<PropAccount>; onRemove: (id: string) => void; onReplay: (a: PropAccount) => void; onAutoRun: (a: PropAccount, r: AutoRunRequest) => Promise<AutoRunResult> }) {
   const openId = useVisionStore((s) => s.propAccount);
   const set = useVisionStore((s) => s.set);
   const [wizard, setWizard] = useState<Partial<PropAccount> | null>(null);
+  const [page, setPage] = useState<"accounts" | "scout" | "book" | "limits">("accounts");
   const list = useMemo(() => accounts ?? [], [accounts]);
   const states = useMemo(() => new Map(list.map((a) => [a.id, accountState(a)])), [list]);
   const open = list.find((a) => a.id === openId) ?? null;
@@ -46,7 +48,13 @@ export function PropDesk({ accounts, lib, error, onSave, onRemove, onReplay, onA
           set({ propAccount: f.id });
         }} />
       ) : (
-        <Gallery accounts={list} states={states} loading={accounts == null} error={error} onOpen={(id) => set({ propAccount: id })} onNew={() => setWizard({})} />
+        <>
+          <Seg value={page} onChange={setPage} label="Desk section" options={[{ v: "accounts" as const, l: "Accounts" }, { v: "scout" as const, l: "Strategy scout" }, { v: "book" as const, l: "Several accounts" }, { v: "limits" as const, l: "Limits and firm rules" }]} />
+          {page === "accounts" && <Gallery accounts={list} states={states} loading={accounts == null} error={error} onOpen={(id) => set({ propAccount: id })} onNew={() => setWizard({})} />}
+          {page === "scout" && <ScoutPage />}
+          {page === "book" && <BookPage />}
+          {page === "limits" && <LimitsPage />}
+        </>
       )}
       {wizard && <NewAccount lib={lib} existing={list} start={wizard} onCancel={() => setWizard(null)} onCreate={create} />}
     </div>
@@ -129,7 +137,7 @@ function StatusPill({ a, s }: { a: PropAccount; s: AccountState | null }) {
   return (
     <span className={clsx("flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-bold", st === "passed" ? "bg-[#30D158]/15 text-[#7CE59A]" : st === "blown" ? "bg-[#FF7A85]/15 text-[#FFA3AB]" : a.phase === "funded" ? "bg-[#FFD60A]/12 text-[#FFE27A]" : "bg-white/[0.08] text-white/70")}>
       {st === "passed" ? <CheckCircle2 className="h-3.5 w-3.5" /> : st === "blown" ? <XCircle className="h-3.5 w-3.5" /> : <CircleDashed className="h-3.5 w-3.5" />}
-      {st === "passed" ? "Passed" : st === "blown" ? "Blown" : a.phase === "funded" ? (s?.payoutReady ? "Payout-ready" : "Funded") : a.trades.length ? "In evaluation" : "New"}
+      {st === "passed" ? "Passed" : st === "blown" ? (a.phase === "live" ? "Stopped out" : "Blown") : a.phase === "live" ? "Live money" : a.phase === "funded" ? (s?.payoutReady ? "Payout-ready" : "Funded") : a.trades.length ? "In evaluation" : "New"}
     </span>
   );
 }
@@ -159,7 +167,7 @@ function AccountCard({ a, s, onOpen }: { a: PropAccount; s: AccountState | null;
           </div>
           <div className="mt-3 space-y-2">
             {a.phase === "eval" && <Bar label="Target" v={s.profit} max={p.target} color="#30D158" text={`${money(s.profit)} / ${usd(p.target)}`} />}
-            <Bar label="Drawdown left" v={s.buffer} max={p.drawdown} color={VIOLET} text={usd(s.buffer)} />
+            <Bar label={a.phase === "live" ? "Room to your stop" : "Drawdown left"} v={s.buffer} max={p.drawdown} color={VIOLET} text={usd(s.buffer)} />
           </div>
           <p className="mt-3 flex items-center justify-between text-[11.5px] text-white/45">
             <span>
@@ -211,8 +219,6 @@ function Detail({ a, s, hasData, dataTo, onBack, onSave, onRemove, onReplay, onA
   if (!s) return <p className="text-white/50">This account&apos;s firm program is no longer in the list.</p>;
   const p = s.program;
   const done = s.status !== "active";
-  const auto = a.mode !== "manual";
-  const manual = a.mode !== "auto";
   return (
     <div className="space-y-5">
       <button onClick={onBack} className="flex items-center gap-1.5 text-[13px] font-semibold text-white/60 hover:text-white">
@@ -240,7 +246,7 @@ function Detail({ a, s, hasData, dataTo, onBack, onSave, onRemove, onReplay, onA
               </button>
             )}
             <p className="text-[13px] text-white/55">
-              {p.firm} {p.sizeLabel}, {p.program}. {a.phase === "funded" ? "Funded" : "Evaluation"} on {a.symbol} {a.tf}.
+              {a.phase === "live" ? `Your own ${p.sizeLabel}, no firm rules.` : `${p.firm} ${p.sizeLabel}, ${p.program}. ${a.phase === "funded" ? "Funded" : "Evaluation"}.`} {a.symbol} {a.tf}.
             </p>
           </div>
           <StatusPill a={a} s={s} />
@@ -299,13 +305,7 @@ function Detail({ a, s, hasData, dataTo, onBack, onSave, onRemove, onReplay, onA
               <p className="text-[14px] font-semibold text-white">{s.headline}</p>
               <p className="mt-0.5 text-[12.5px] text-white/55">{s.detail}</p>
             </div>
-            {!done && <TradeSize a={a} s={s} onSave={onSave} />}
             <div className="mt-4 flex flex-wrap gap-2">
-              {!done && manual && (
-                <button onClick={() => onReplay(a)} className="flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[14.5px] font-bold text-black active:scale-[0.98]">
-                  <Hand className="h-4 w-4" /> {a.cursorT ? `Continue replay · ${timeOf(a.cursorT)}` : `Start replay · ${sdate(a.startDate)}`}
-                </button>
-              )}
               {s.status === "passed" && a.phase === "eval" && (
                 <button onClick={() => onFunded(a, s)} className="flex items-center gap-2 rounded-full bg-[#30D158] px-5 py-3 text-[14.5px] font-bold text-black">
                   <Trophy className="h-4 w-4" /> Continue as funded
@@ -319,10 +319,10 @@ function Detail({ a, s, hasData, dataTo, onBack, onSave, onRemove, onReplay, onA
             </div>
           </div>
           <div className="grid grid-cols-2 content-start gap-2.5">
-            {a.phase === "eval" ? <Meter k="Profit target" v={s.profit} max={p.target} color="#30D158" text={`${money(s.profit)} of ${usd(p.target)}`} /> : <Meter k="Payout" v={s.profit} max={500} color="#30D158" text={s.payoutReady ? "Eligible" : `${money(s.profit)} · $500 minimum`} />}
-            <Meter k="Drawdown left" v={s.buffer} max={p.drawdown} color={VIOLET} text={`${usd(s.buffer)} · floor ${usd(s.threshold)}`} />
-            <Meter k="Trading days" v={s.daysTraded} max={Math.max(1, p.minDays)} color="#5AC8FA" text={`${s.daysTraded} of ${p.minDays} minimum`} />
-            {s.consistency.applies ? <Meter k="Consistency" v={s.consistency.ok ? 1 : 0.35} max={1} color={s.consistency.ok ? "#30D158" : "#FFD60A"} text={`Best day ${usd(s.bestDay)} · limit ${usd(s.consistency.limit)}`} /> : <Meter k="Consistency" v={1} max={1} color="#30D158" text="No rule on this account" />}
+            {a.phase === "live" ? <Meter k="Return" v={Math.max(0, s.profit)} max={p.size} color="#30D158" text={`${money(s.profit)}, ${((s.profit / p.size) * 100).toFixed(1)}%`} /> : a.phase === "eval" ? <Meter k="Profit target" v={s.profit} max={p.target} color="#30D158" text={`${money(s.profit)} of ${usd(p.target)}`} /> : <Meter k="Payout" v={s.profit} max={500} color="#30D158" text={s.payoutReady ? "Eligible" : `${money(s.profit)} · $500 minimum`} />}
+            <Meter k={a.phase === "live" ? "Room to your stop" : "Drawdown left"} v={s.buffer} max={p.drawdown} color={VIOLET} text={`${usd(s.buffer)} · ${a.phase === "live" ? "stops at" : "floor"} ${usd(s.threshold)}`} />
+            {a.phase === "live" ? <Meter k="Trading days" v={1} max={1} color="#5AC8FA" text={`${s.daysTraded} traded`} /> : <Meter k="Trading days" v={s.daysTraded} max={Math.max(1, p.minDays)} color="#5AC8FA" text={`${s.daysTraded} of ${p.minDays} minimum`} />}
+            {s.consistency.applies ? <Meter k="Consistency" v={s.consistency.ok ? 1 : 0.35} max={1} color={s.consistency.ok ? "#30D158" : "#FFD60A"} text={`Best day ${usd(s.bestDay)} · limit ${usd(s.consistency.limit)}`} /> : <Meter k="Consistency" v={1} max={1} color="#30D158" text={a.phase === "live" ? "No firm rules: only your broker's margin" : "No rule on this account"} />}
           </div>
         </div>
       </section>
@@ -334,9 +334,11 @@ function Detail({ a, s, hasData, dataTo, onBack, onSave, onRemove, onReplay, onA
 
       <Rules a={a} s={s} />
 
-      {auto && !done && <AutoRun a={a} onAutoRun={onAutoRun} />}
+      <GamePlanCard a={a} s={s} />
 
-      <EdgeLab a={a} s={s} hasData={hasData} dataTo={dataTo} onSave={onSave} />
+      <WhoTrades a={a} s={s} onSave={onSave} onReplay={onReplay} onAutoRun={onAutoRun} />
+
+      {a.phase === "live" ? <LiveLab a={a} s={s} hasData={hasData} onSave={onSave} /> : <EdgeLab a={a} s={s} hasData={hasData} dataTo={dataTo} onSave={onSave} />}
 
       <DayLedger days={s.days} program={p} name={a.name} />
 
@@ -344,28 +346,6 @@ function Detail({ a, s, hasData, dataTo, onBack, onSave, onRemove, onReplay, onA
         <Ledger a={a} />
         <Timeline a={a} />
       </div>
-    </div>
-  );
-}
-
-/** Size is a decision made at the moment of trading, so it lives next to the buttons that trade. */
-function TradeSize({ a, s, onSave }: { a: PropAccount; s: AccountState; onSave: (a: PropAccount) => Promise<PropAccount> }) {
-  const p = s.program;
-  const roots = isSymbol(a.symbol) ? SYMBOLS[a.symbol].roots : undefined;
-  const cap = a.micro ? p.maxMicros : p.maxMinis;
-  const pv = isSymbol(a.symbol) ? SYMBOLS[a.symbol].pointValue : undefined;
-  const perPoint = pv ? (a.micro ? pv.micro : pv.full) * a.contracts : 0;
-  return (
-    <div className="mt-4 rounded-[18px] bg-black/25 p-3.5 ring-1 ring-inset ring-white/[0.06]">
-      <div className="flex flex-wrap items-center gap-2">
-        <Seg size="sm" label="Contract" value={a.micro ? 1 : 0} onChange={(v) => onSave({ ...a, micro: v === 1, contracts: Math.min(a.contracts, v === 1 ? p.maxMicros : p.maxMinis) })} options={[{ v: 1, l: roots?.micro ?? "Micro" }, { v: 0, l: roots?.full ?? "Full" }]} />
-        <Seg size="sm" label="Sizing" value={a.sizing} onChange={(v) => onSave({ ...a, sizing: v })} options={[{ v: "fixed" as const, l: "Contracts" }, { v: "risk" as const, l: "% risk" }]} />
-        {a.sizing === "fixed" ? <Num value={a.contracts} onChange={(c) => onSave({ ...a, contracts: Math.max(1, Math.min(cap, Math.round(c))) })} min={1} max={cap} width="w-20" /> : <Num value={a.riskPct} onChange={(r) => onSave({ ...a, riskPct: r })} min={0.1} max={5} step={0.1} suffix="%" width="w-24" />}
-      </div>
-      <p className="mt-2 text-[12px] leading-snug text-white/50">
-        {a.sizing === "fixed" ? `${perPoint ? `$${perPoint.toLocaleString("en-US")} a point. ` : ""}A 20-point stop risks $${(perPoint * 20).toLocaleString("en-US")}, ${Math.round(((perPoint * 20) / Math.max(1, s.buffer)) * 100)}% of the room you have left. ` : `Each trade risks about $${Math.round((p.size * a.riskPct) / 100).toLocaleString("en-US")}, ${Math.round(((p.size * a.riskPct) / 100 / Math.max(1, s.buffer)) * 100)}% of the room you have left. `}
-        The firm allows {cap}.
-      </p>
     </div>
   );
 }
@@ -391,76 +371,6 @@ function Meter({ k, v, max, color, text }: { k: string; v: number; max: number; 
   );
 }
 
-// ── Run a strategy forward on the account ──
-
-function AutoRun({ a, onAutoRun }: { a: PropAccount; onAutoRun: (a: PropAccount, r: AutoRunRequest) => Promise<AutoRunResult> }) {
-  const bt = useVisionStore((s) => s.bt);
-  const [choice, setChoice] = useState<ReaderChoice | "custom">(bt.logic === "custom" && bt.rules ? "custom" : bt.reader);
-  const [session, setSession] = useState<SessionKey>(bt.session ?? "ny");
-  const [horizon, setHorizon] = useState<"pass" | number>("pass");
-  const [busy, setBusy] = useState(false);
-  const [out, setOut] = useState<AutoRunResult | null>(null);
-  const run = async () => {
-    setBusy(true);
-    setOut(null);
-    const r = await onAutoRun(a, { strategy: choice === "custom" ? { logic: "custom" } : { logic: "vision", reader: choice }, session, horizon });
-    setOut(r);
-    setBusy(false);
-  };
-  return (
-    <section className="rounded-[26px] border border-white/[0.07] bg-[#121214]/80 p-5 backdrop-blur-2xl">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-[12px] bg-[#5AC8FA]/14 text-[#9BE1FF]">
-          <Bot className="h-5 w-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[16px] font-bold text-white">Run a strategy on this account</p>
-          <p className="text-[12.5px] text-white/50">Your pick at the size above, from {a.cursorT ? timeOf(a.cursorT) : sdate(a.startDate)}, on the firm&apos;s rules. Adds to the same balance.</p>
-        </div>
-      </div>
-      <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
-        <label className="block">
-          <span className="mb-1.5 block text-[12px] font-semibold text-white/55">Strategy</span>
-          <select value={choice} onChange={(e) => setChoice(e.target.value as ReaderChoice | "custom")} className="w-full rounded-xl bg-white/[0.07] px-3 py-2.5 text-[13.5px] text-white ring-1 ring-inset ring-white/[0.08]">
-            <option value="auto">Every Vision strategy</option>
-            {READER_ORDER.map((r) => (
-              <option key={r} value={r}>
-                {READERS[r].label}
-              </option>
-            ))}
-            <option value="custom" disabled={!bt.rules}>
-              Your rules (from Strategy test){bt.rules ? "" : " — write them there first"}
-            </option>
-          </select>
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-[12px] font-semibold text-white/55">Session</span>
-          <select value={session} onChange={(e) => setSession(e.target.value as SessionKey)} className="w-full rounded-xl bg-white/[0.07] px-3 py-2.5 text-[13.5px] text-white ring-1 ring-inset ring-white/[0.08]">
-            {(Object.keys(SESSION_WINDOWS) as SessionKey[]).map((k) => (
-              <option key={k} value={k}>
-                {SESSION_WINDOWS[k].label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-[12px] font-semibold text-white/55">How far</span>
-          <select value={String(horizon)} onChange={(e) => setHorizon(e.target.value === "pass" ? "pass" : Number(e.target.value))} className="w-full rounded-xl bg-white/[0.07] px-3 py-2.5 text-[13.5px] text-white ring-1 ring-inset ring-white/[0.08]">
-            <option value="pass">{a.phase === "eval" ? "Until it passes or blows" : "Until it blows (a year at most)"}</option>
-            <option value="5">Next 5 trading days</option>
-            <option value="20">Next 20 trading days</option>
-            <option value="60">Next 60 trading days</option>
-          </select>
-        </label>
-        <button onClick={run} disabled={busy} className="flex items-center justify-center gap-2 rounded-[14px] bg-gradient-to-b from-[#8EE3FF] to-[#3AB4F2] px-5 py-2.5 text-[14px] font-bold text-black disabled:opacity-60">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />} {busy ? "Trading…" : "Run"}
-        </button>
-      </div>
-      {out && <p className={clsx("mt-3 rounded-2xl px-4 py-2.5 text-[13px]", "error" in out ? "bg-[#FF7A85]/12 text-[#FFA3AB]" : "bg-[#5AC8FA]/10 text-white/85")}>{"error" in out ? out.error : out.text}</p>}
-    </section>
-  );
-}
-
 // ── Balance against the floor ──
 
 function Curve({ s, color }: { s: AccountState; color: string }) {
@@ -482,7 +392,7 @@ function Curve({ s, color }: { s: AccountState; color: string }) {
   return (
     <section className="rounded-[26px] border border-white/[0.07] bg-[#121214]/80 p-5 backdrop-blur-2xl">
       <header className="mb-2 flex items-center justify-between">
-        <h3 className="text-[12px] font-semibold uppercase tracking-[0.1em] text-white/45">Balance vs. the floor</h3>
+        <h3 className="text-[12px] font-semibold uppercase tracking-[0.1em] text-white/45">{p.firmId === "live" ? "Balance vs. your stop" : "Balance vs. the floor"}</h3>
         <span className="text-[12px] text-white/55">{h ? `${h.date === "start" ? "Start" : sdate(h.date)}: $${Math.round(h.balance).toLocaleString("en-US")} · floor $${Math.round(h.floor).toLocaleString("en-US")}` : `${DD_LABEL[p.ddType]} drawdown`}</span>
       </header>
       {pts.length < 2 ? (
@@ -515,7 +425,7 @@ function Curve({ s, color }: { s: AccountState; color: string }) {
       )}
       <p className="mt-2 flex flex-wrap gap-4 text-[11.5px] text-white/50">
         <span className="flex items-center gap-1.5"><span className="h-0.5 w-4" style={{ background: color }} /> Balance</span>
-        <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-[#FF7A85]" /> Drawdown floor</span>
+        <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-[#FF7A85]" /> {p.firmId === "live" ? "Your stop" : "Drawdown floor"}</span>
         {target && <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 border-t border-dashed border-[#30D158]" /> Target</span>}
       </p>
     </section>
@@ -594,7 +504,11 @@ function Rules({ a, s }: { a: PropAccount; s: AccountState }) {
   const cap = a.micro ? p.maxMicros : p.maxMinis;
   const maxQty = a.trades.reduce((m, t) => Math.max(m, t.qty), 0);
   const worstDay = s.curve.reduce((m, c) => Math.min(m, c.pnl), 0);
-  const rows: { ok: boolean | null; t: string; d: string }[] = [
+  const rows: { ok: boolean | null; t: string; d: string }[] = a.phase === "live" ? [
+    { ok: s.status !== "blown", t: `Stop at ${usd(s.threshold)}`, d: `The loss you set when you opened it. ${usd(s.buffer)} of room.` },
+    { ok: true, t: "Day margin", d: "Your broker sets how many contracts the balance covers. Common day margin is built in." },
+    { ok: null, t: "Taxes and data fees", d: "Not counted here. A live account pays both." },
+  ] : [
     ...(a.phase === "eval" ? [{ ok: s.profit >= p.target ? true : null, t: `Reach ${usd(p.target)} profit`, d: `${money(s.profit)} so far` }] : []),
     { ok: s.status !== "blown", t: `Stay above the ${DD_LABEL[p.ddType].toLowerCase()} floor`, d: `Floor ${usd(s.threshold)} · ${usd(s.buffer)} of room${p.lock != null ? ` · stops trailing at ${usd(p.size + p.lock)}` : ""}` },
     { ok: p.dll == null ? true : worstDay > -p.dll, t: p.dll ? `Lose less than ${usd(p.dll)} in a day` : "No daily loss limit", d: `Worst day ${money(worstDay)}` },
@@ -605,7 +519,7 @@ function Rules({ a, s }: { a: PropAccount; s: AccountState }) {
   return (
     <section className="rounded-[26px] border border-white/[0.07] bg-[#121214]/80 p-5 backdrop-blur-2xl">
       <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-white/45">
-        {p.firm} rules · {p.sizeLabel}
+        {a.phase === "live" ? "Your rules" : `${p.firm} rules · ${p.sizeLabel}`}
       </h3>
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
         {rows.map((r) => (

@@ -67,7 +67,23 @@ export const FIRM_PROGRAMS: FirmProgram[] = PROP_FIRMS.filter((f) => f.id !== "c
   })),
 );
 
-export const programByKey = (key: string) => FIRM_PROGRAMS.find((p) => p.key === key) ?? null;
+/**
+ * Your own money at a broker, as a program: no target and no firm's rules, only
+ * the point where you said you'd stop. Keys read live:<balance>:<stop % of balance>.
+ */
+export function liveProgram(balance: number, stopPct: number): FirmProgram {
+  return { key: `live:${balance}:${stopPct}`, firmId: "live", tierId: "live", firm: "Live money", program: "Your broker account", size: balance, sizeLabel: `$${balance.toLocaleString("en-US")}`, target: 1e12, drawdown: (balance * stopPct) / 100, ddType: "static", lock: null, dll: null, consistencyPct: 100, consistencyBasis: "totalProfit", minDays: 0, maxMinis: 1000, maxMicros: 1000, model: "instant", cost: 0, costCadence: "one-time", split: 100, keep100Upto: 0, notes: "" };
+}
+
+export const isLive = (key: string) => key.startsWith("live:");
+
+export const programByKey = (key: string): FirmProgram | null => {
+  if (isLive(key)) {
+    const [, b, stop] = key.split(":");
+    return Number(b) > 0 && Number(stop) > 0 ? liveProgram(Number(b), Number(stop)) : null;
+  }
+  return FIRM_PROGRAMS.find((p) => p.key === key) ?? null;
+};
 
 /** One program per firm at the requested size, for side-by-side grading. */
 export function programsAtSize(size: number) {

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { ChevronDown, FlaskConical, Loader2, Play, Repeat, Route, Shield, Sparkles, Stethoscope } from "lucide-react";
 import type { Study } from "@/lib/server/library/lab";
+import type { Versus, Worth } from "@/lib/vision/economics";
+import { Stat, toneOf } from "./LabBits";
 import type { AccountState, PropAccount } from "@/lib/vision/account";
 import { accountUnits, autopsy, firmTraps, goNoGo, planLabel, simulate, type Autopsy, type FirmRow, type FirmTrap, type GoNoGo, type PlanRow, type SizingPlan } from "@/lib/vision/lab";
 import { SYMBOLS, isSymbol } from "@/lib/vision/markets";
@@ -20,6 +22,7 @@ type Job = { stage: string; done: number; total: number; error?: string } | null
 
 function useStudy(a: PropAccount) {
   const [study, setStudy] = useState<Study | null>(null);
+  const [key, setKey] = useState("");
   const [job, setJob] = useState<Job>(null);
   const [loaded, setLoaded] = useState(false);
   const url = `/api/library/lab?program=${encodeURIComponent(a.program)}&symbol=${a.symbol}&micro=${a.micro ? 1 : 0}`;
@@ -28,6 +31,7 @@ function useStudy(a: PropAccount) {
     if (!r?.ok) return setLoaded(true);
     const j = await r.json();
     setStudy(j.study);
+    setKey(j.limitsKey ?? "");
     setJob(j.job);
     setLoaded(true);
   }, [url]);
@@ -43,12 +47,12 @@ function useStudy(a: PropAccount) {
     const { j } = await post({ action: "study", program: a.program, symbol: a.symbol, micro: a.micro });
     setJob(j.job ?? { stage: "Getting ready", done: 0, total: 1, error: j.error });
   }, [a.program, a.symbol, a.micro]);
-  return { study, job, loaded, start };
+  return { study, job, loaded, start, limitsKey: key };
 }
 
 /** The firm's game, the strategy and size that beat it, and what went wrong when they didn't. */
 export function EdgeLab({ a, s, hasData, dataTo, onSave }: { a: PropAccount; s: AccountState; hasData: boolean; dataTo?: number; onSave: (a: PropAccount) => Promise<PropAccount> }) {
-  const { study, job, loaded, start } = useStudy(a);
+  const { study, job, loaded, start, limitsKey } = useStudy(a);
   const set = useVisionStore((x) => x.set);
   const p = s.program;
   const word = isSymbol(a.symbol) ? (a.micro ? SYMBOLS[a.symbol].roots?.micro : SYMBOLS[a.symbol].roots?.full) ?? "contracts" : "contracts";
@@ -76,13 +80,18 @@ export function EdgeLab({ a, s, hasData, dataTo, onSave }: { a: PropAccount; s: 
   };
 
   // New data in the library: study again without being asked, and the log records what changed.
-  const stale = !!study && ((!!dataTo && new Date(dataTo * 1000).toISOString().slice(0, 10) > study.dataTo) || !study.shootout);
+  const stale = !!study && ((!!dataTo && new Date(dataTo * 1000).toISOString().slice(0, 10) > study.dataTo) || !study.shootout || !study.money || (!!limitsKey && study.limitsKey !== limitsKey));
   useEffect(() => {
     if (stale && !job) void start();
   }, [stale, job, start]);
 
   const cur = study?.walk.current;
-  const [tab, setTab] = useState<LabTab>("firms");
+  const [group, setGroup] = useState<LabGroup>("money");
+  const [tab, setTab] = useState<LabTab>("money");
+  const pickGroup = (g: LabGroup) => {
+    setGroup(g);
+    setTab(TABS[g][0]);
+  };
   const go = study ? goNoGo(study.walk.steps, study.coin.rate, p.cost) : null;
   const clear = !!study && !!cur && cur.odds.low >= study.coin.rate && study.walk.passRate > study.coin.rate;
   const top = study?.shootout?.[0];
@@ -155,22 +164,202 @@ export function EdgeLab({ a, s, hasData, dataTo, onSave }: { a: PropAccount; s: 
               {out && <p className="mt-2.5 text-[12.5px] leading-snug text-[#9BE1FF]">{out}</p>}
             </div>
           </div>
-          <div className="overflow-x-auto border-t border-white/[0.06] px-6 pt-4">
-            <Seg size="sm" value={tab} onChange={setTab} label="Lab section" options={[{ v: "firms" as const, l: "Best firm" }, { v: "size" as const, l: "Sizing" }, { v: "attempts" as const, l: "Attempts" }, { v: "patterns" as const, l: "Patterns" }, { v: "traps" as const, l: "Firm's traps" }, ...(a.trades.length ? [{ v: "account" as const, l: "This account" }] : [])]} />
+          {study.health.status !== "normal" && study.health.status !== "unknown" && (
+            <p className={clsx("mx-6 mb-4 rounded-[14px] px-4 py-2.5 text-[13px] leading-snug", study.health.status === "alarm" ? "bg-[#FF7A85]/12 text-[#FFC2C7]" : "bg-[#FFD60A]/10 text-[#FFE27A]")}>
+              <strong className="font-semibold">{study.health.status === "alarm" ? "Health alarm. " : "Worth watching. "}</strong>{study.health.text}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-3 border-t border-white/[0.06] px-6 pt-4">
+            <Seg size="sm" value={group} onChange={pickGroup} label="Lab section" options={[{ v: "money" as const, l: "Money" }, { v: "proof" as const, l: "Proof" }, { v: "you" as const, l: "You and the firm" }]} />
+            <span className="h-5 w-px bg-white/[0.1]" />
+            <div className="flex flex-wrap gap-1">
+              {TABS[group].map((t) => (
+                <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)} className={clsx("rounded-full px-3 py-1.5 text-[12.5px] font-medium", tab === t ? "bg-white/[0.12] text-white" : "text-white/50 hover:text-white")}>{TAB_NAME[t]}</button>
+              ))}
+            </div>
           </div>
+          {tab === "money" && <MoneyTab study={study} current={a.program} />}
+          {tab === "worth" && <WorthTab study={study} />}
           {tab === "firms" && <Shootout study={study} current={a.program} go={go!} top={top} word={word} />}
           {tab === "size" && <SizeLab study={study} word={word} />}
           {tab === "attempts" && <Attempts study={study} word={word} />}
+          {tab === "stress" && <StressTab study={study} />}
+          {tab === "news" && <NewsTab study={study} />}
           {tab === "patterns" && <Learned study={study} word={word} />}
+          {tab === "game" && <GameTab study={study} />}
           {tab === "traps" && <Traps traps={traps} />}
-          {tab === "account" && a.trades.length > 0 && <AccountAutopsy a={a} s={s} word={word} />}
+          {tab === "account" && (a.trades.length > 0 ? <AccountAutopsy a={a} s={s} word={word} /> : <p className="p-6 text-[13px] text-white/50">Trade this account and it reads each attempt here: what went wrong and which change would have saved it.</p>)}
+          {tab === "versus" && <VersusTab a={a} />}
         </>
       )}
     </section>
   );
 }
 
-type LabTab = "firms" | "size" | "attempts" | "patterns" | "traps" | "account";
+type LabGroup = "money" | "proof" | "you";
+type LabTab = "money" | "worth" | "firms" | "size" | "attempts" | "stress" | "news" | "patterns" | "game" | "traps" | "account" | "versus";
+const TABS: Record<LabGroup, LabTab[]> = { money: ["money", "worth", "firms", "size"], proof: ["attempts", "stress", "news", "patterns"], you: ["account", "versus", "game", "traps"] };
+const TAB_NAME: Record<LabTab, string> = { money: "Money in your pocket", worth: "Eval vs. funded", firms: "Best firm", size: "Sizing", attempts: "Attempts", stress: "Stress test", news: "News days", patterns: "Patterns", game: "The prop game", traps: "Firm's traps", account: "This account", versus: "You vs. the machine" };
+
+function WorthRows({ rows, current }: { rows: Worth[]; current?: string }) {
+  return (
+    <div className="mt-3 overflow-x-auto">
+      <div className="min-w-[720px]">
+        <div className="grid grid-cols-[minmax(0,1.6fr)_82px_82px_72px_64px_78px_66px] gap-3 px-3 pb-1.5 text-[11.5px] font-medium text-white/45">
+          <span />
+          <span className="text-right">A year, average</span>
+          <span className="text-right">Bad year</span>
+          <span className="text-right">Fees</span>
+          <span className="text-right">Paid out</span>
+          <span className="text-right">To 1st payout</span>
+          <span className="text-right">Days</span>
+        </div>
+        {rows.map((r) => (
+          <div key={r.label} className={clsx("grid grid-cols-[minmax(0,1.6fr)_82px_82px_72px_64px_78px_66px] items-center gap-3 rounded-[12px] px-3 py-2 text-[12.5px] tabular-nums", r.key === current && "bg-white/[0.07]")}>
+            <span className="min-w-0 truncate text-white/85" title={r.label}>{r.label}{r.model === "instant" && <span className="ml-1.5 text-white/40">straight to funded</span>}</span>
+            <span className={clsx("text-right font-semibold", r.meanNet >= 0 ? "text-[#7CE59A]" : "text-[#FFA3AB]")}>{money(r.meanNet)}</span>
+            <span className="text-right text-white/55">{money(r.p10)}</span>
+            <span className="text-right text-white/55">{usd(r.meanSpent)}</span>
+            <span className="text-right text-white/70">{pct(r.pPayout)}</span>
+            <span className="text-right text-white/55">{r.medianCostToPayout != null ? usd(r.medianCostToPayout) : "Never"}</span>
+            <span className="text-right text-white/55">{r.medianDaysToPayout ?? "—"}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MoneyTab({ study, current }: { study: Study; current: string }) {
+  const top = study.money[0];
+  return (
+    <div className="p-6">
+      <p className="text-[15px] font-semibold text-white">{top.meanNet > 0 ? `${top.label} left the most: ${money(top.meanNet)} a year on average, after every fee.` : "On these trades, no firm paid more than it cost over a year, on average."}</p>
+      <p className="mt-0.5 text-[12.5px] leading-snug text-white/50">A year of buying, resetting, activating, trading funded and taking payouts at each firm, started on many dates in your history. &quot;Paid out&quot; is the share of years with at least one payout.</p>
+      <WorthRows rows={study.money} current={current} />
+      <p className="mt-3 text-[11.5px] leading-snug text-white/40">{study.firmNote} Payouts: everything above one drawdown of cushion, at the firm&apos;s split. Taxes aren&apos;t counted.</p>
+    </div>
+  );
+}
+
+function WorthTab({ study }: { study: Study }) {
+  const evals = study.riskMore.filter((r) => r.model === "eval");
+  const instant = study.riskMore.filter((r) => r.model === "instant").sort((a, b) => b.meanNet - a.meanNet);
+  const best = [...evals].sort((a, b) => b.meanNet - a.meanNet)[0];
+  const low = evals[0];
+  const topInstant = instant[0];
+  return (
+    <div className="p-6">
+      {best ? (
+        <p className="text-[15px] font-semibold text-white">
+          {best === low ? "Risking more didn't help: the smallest size did best." : best.meanNet > 0 ? `Risking more paid, up to a point: ${best.label.toLowerCase()} made ${money(best.meanNet)} a year.` : `No risk level made money in a year here. ${best.label} lost least, ${usd(best.meanNet)}.`}
+          {topInstant ? ` The best straight-to-funded account ${topInstant.meanNet >= 0 ? "made" : "lost"} ${usd(topInstant.meanNet)}.` : ""}
+        </p>
+      ) : <p className="text-[15px] font-semibold text-white">This is an instant account. Compare it with evaluations in Money in your pocket.</p>}
+      <p className="mt-0.5 text-[12.5px] leading-snug text-white/50">Each row changes only the risk during the evaluation; funded accounts stay at your funded limit. A higher size passes faster but buys more resets. These rows show which wins, in dollars.</p>
+      <WorthRows rows={study.riskMore} />
+    </div>
+  );
+}
+
+function StressTab({ study }: { study: Study }) {
+  const t = study.stress;
+  return (
+    <div className="p-6">
+      <p className="text-[15px] font-semibold text-white">{t.verdict}</p>
+      <p className="mt-0.5 text-[12.5px] text-white/50">Same plan, {pct(t.base)} pass rate as tested. {pct(t.luck)} of no-skill worlds did at least as well.</p>
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4">
+        <Stat k="If the days came in another order" v={`${pct(t.shuffled.low)} to ${pct(t.shuffled.high)}`} sub={`Typically ${pct(t.shuffled.median)}`} />
+        <Stat k="Random direction, same sizes" v={pct(t.noSkill.median)} sub={`Best case ${pct(t.noSkill.high)}`} />
+        <Stat k="One winner in ten missed" v={pct(t.missedFills)} tone={t.missedFills < t.base * 0.7 ? "neg" : undefined} />
+        {t.slippage.map((x) => <Stat key={x.ticks} k={`${x.ticks} more tick${x.ticks > 1 ? "s" : ""} of slippage`} v={pct(x.passRate)} tone={x.passRate < t.base * 0.7 ? "neg" : undefined} />)}
+      </dl>
+      {study.fills && (
+        <div className="mt-5 border-t border-white/[0.06] pt-4">
+          <p className="text-[14px] font-semibold text-white">Checked against one-second bars</p>
+          <p className="mt-0.5 text-[13px] leading-snug text-white/65">{study.fills.text}</p>
+          <p className="mt-1 text-[12px] tabular-nums text-white/40">{study.fills.trades} trades from {nice(study.fills.from)} to {nice(study.fills.to)}, the only stretch with one-second data. Total {study.fills.totalR >= 0 ? "+" : ""}{study.fills.totalR.toFixed(1)}R.</p>
+        </div>
+      )}
+      <div className="mt-5 border-t border-white/[0.06] pt-4">
+        <p className="text-[14px] font-semibold text-white">Strategy health</p>
+        <p className="mt-0.5 text-[13px] leading-snug text-white/65">{study.health.text}</p>
+        {study.health.status !== "unknown" && <p className="mt-1 text-[12px] tabular-nums text-white/40">Recent {study.health.recentR >= 0 ? "+" : ""}{study.health.recentR.toFixed(2)}R a trade, history {study.health.historyR >= 0 ? "+" : ""}{study.health.historyR.toFixed(2)}R. Losing run now {study.health.streak}, longest before {study.health.worstStreak}.</p>}
+      </div>
+    </div>
+  );
+}
+
+function NewsTab({ study }: { study: Study }) {
+  const n = study.news;
+  const best = [...n.skip].sort((a, b) => b.passRate - a.passRate)[0];
+  return (
+    <div className="grid gap-6 p-6 md:grid-cols-2">
+      <div>
+        <h4 className="text-[15px] font-semibold text-white">How it does on news days</h4>
+        <div className="mt-2 space-y-1.5">
+          {n.rows.map((r) => (
+            <p key={r.key} className="grid grid-cols-[minmax(0,1fr)_60px_56px_64px] gap-2 text-[12.5px] tabular-nums">
+              <span className="truncate text-white/75">{r.label}</span>
+              <span className="text-right text-white/50">{r.trades}</span>
+              <span className="text-right text-white/50">{pct(r.winRate)}</span>
+              <span className={clsx("text-right font-medium", r.avgR >= 0 ? "text-[#7CE59A]" : "text-[#FFA3AB]")}>{r.avgR >= 0 ? "+" : ""}{r.avgR.toFixed(2)}R</span>
+            </p>
+          ))}
+        </div>
+      </div>
+      <div>
+        <h4 className="text-[15px] font-semibold text-white">{best.passRate > n.base + 0.02 ? `${best.label}: ${pct(best.passRate)} against ${pct(n.base)}` : "Sitting out news barely changes the pass rate"}</h4>
+        <div className="mt-2 space-y-1.5">
+          {n.skip.map((x) => <p key={x.key} className="flex justify-between text-[12.5px] tabular-nums"><span className="text-white/75">{x.label}</span><span className="font-medium text-white">{pct(x.passRate)}</span></p>)}
+        </div>
+        <p className="mt-3 text-[11.5px] text-white/40">Release dates from the St. Louis Fed. Set any of these to sit out under Limits and firm rules.</p>
+      </div>
+    </div>
+  );
+}
+
+function GameTab({ study }: { study: Study }) {
+  return (
+    <div className="grid gap-x-8 gap-y-5 p-6 md:grid-cols-2">
+      {study.insights.map((x) => (
+        <div key={x.title}>
+          <p className="text-[14.5px] font-semibold leading-snug text-white">{x.title}</p>
+          <p className="mt-1 text-[13px] leading-snug text-white/60">{x.body}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function VersusTab({ a }: { a: PropAccount }) {
+  const [report, setReport] = useState<Versus | null | undefined>(undefined);
+  useEffect(() => {
+    post({ action: "versus", account: a }).then(({ j }) => setReport(j.report ?? null));
+  }, [a]);
+  if (report === undefined) return <p className="p-6 text-[13px] text-white/40">Comparing your trades…</p>;
+  if (!report) return <p className="p-6 text-[13px] text-white/50">Trade some days by hand with I trade it, and this compares them with the plan on the same days: what you skipped, cut early or sized up, and what each habit made or cost.</p>;
+  return (
+    <div className="p-6">
+      <p className="text-[15px] font-semibold text-white">Over the {report.days} days you traded, you {report.gap >= 0 ? "beat" : "trailed"} the machine by {usd(report.gap)}.</p>
+      <dl className="mt-3 grid grid-cols-2 gap-6 md:max-w-xl">
+        <Stat k="You" v={money(report.you.pnl)} tone={report.you.pnl >= 0 ? "pos" : "neg"} sub={`${report.you.trades} trades, ${pct(report.you.winRate)} wins`} />
+        <Stat k="The machine, same days and size" v={money(report.machine.pnl)} tone={report.machine.pnl >= 0 ? "pos" : "neg"} sub={`${report.machine.trades} trades, ${pct(report.machine.winRate)} wins`} />
+      </dl>
+      <div className="mt-4 space-y-3">
+        {report.leaks.map((l) => (
+          <div key={l.id} className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[13.5px] font-medium text-white">{l.title}</p>
+              <p className="text-[12.5px] leading-snug text-white/50">{l.detail}</p>
+            </div>
+            <span className={clsx("shrink-0 text-[14px] font-semibold tabular-nums", toneOf(l.dollars))}>{money(l.dollars)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function Traps({ traps }: { traps: FirmTrap[] }) {
   return (
@@ -241,7 +430,8 @@ function AccountAutopsy({ a, s, word }: { a: PropAccount; s: AccountState; word:
     const price = { pointValue: a.micro ? pv.micro : pv.full, fee: a.micro ? 1.04 : 3.64, micro: a.micro };
     const days = accountUnits(a.trades, price);
     const qtys = a.trades.map((t) => t.qty).sort((x, y) => x - y);
-    const plan: SizingPlan = { kind: "fixed", amount: qtys[qtys.length >> 1] ?? 1, dayStop: 0, dayCap: false, coast: false };
+    // The sizes really traded, so this reads the attempt that happened; rescues try other sizes on the same trades.
+    const plan: SizingPlan = { kind: "actual", amount: qtys[qtys.length >> 1] ?? 1, dayStop: 0, dayCap: false, coast: false };
     const att = simulate(days, s.program, plan, price, { horizon: days.length });
     return autopsy(days, 0, att, s.program, plan, price, word);
   }, [a.trades, a.symbol, a.micro, s.program, word]);

@@ -21,6 +21,10 @@ export type EntryRule =
   | { kind: "fvg" }
   | { kind: "rsi"; len: number; low: number; high: number }
   | { kind: "structure" }
+  | { kind: "narrow_orb"; minutes: number; lookback: number }
+  | { kind: "inside_orb"; minutes: number }
+  | { kind: "gap_fade"; minGap: number }
+  | { kind: "last_half"; signal: "first30" | "overnight" }
   | { kind: "reader"; reader: ReaderId };
 
 export type StopRule = { kind: "atr"; mult: number; len: number } | { kind: "points"; pts: number } | { kind: "ticks"; n: number } | { kind: "swing"; bars: number } | { kind: "signal" } | { kind: "plan" };
@@ -58,6 +62,10 @@ export const ENTRY_LABEL: Record<EntryRule["kind"], string> = {
   fvg: "Fair value gap retest",
   rsi: "RSI reversal",
   structure: "Break of structure (CHoCH / BOS)",
+  narrow_orb: "Opening range breakout after the narrowest day in a week",
+  inside_orb: "Opening range breakout after an inside day",
+  gap_fade: "Fade the opening gap back to the prior close",
+  last_half: "Last half hour, in the direction of earlier returns",
   reader: "One of your Vision strategies",
 };
 
@@ -205,6 +213,10 @@ export function describeRules(r: CustomRules) {
     e.kind === "pdhl_retest" ? `Close above the prior day's high, a pullback that tags it within ${e.bars} bars, and a bullish close back above` :
     e.kind === "pdhl_sweep" ? "Price trades below the prior day's low and closes back above it with a bullish candle" :
     e.kind === "orb" ? `First close above the high of New York's first ${e.minutes} minutes` :
+    e.kind === "narrow_orb" ? `After the narrowest session of the last ${e.lookback}, first close above the high of New York's first ${e.minutes} minutes` :
+    e.kind === "inside_orb" ? `After a session inside the one before it, first close above the high of New York's first ${e.minutes} minutes` :
+    e.kind === "gap_fade" ? `New York opens more than ${e.minGap}× ATR below the prior close, and the first bar closes bullish` :
+    e.kind === "last_half" ? `At 3:30 pm, ${e.signal === "first30" ? "the first half hour of the session was up" : "the overnight session was up"}` :
     e.kind === "vwap_cross" ? "Close crosses from below VWAP to above it" :
     e.kind === "ema_cross" ? `The ${e.fast} EMA crosses above the ${e.slow} EMA` :
     e.kind === "fvg" ? "Price pulls back into an open bullish fair value gap and closes bullish above its bottom" :
@@ -214,6 +226,8 @@ export function describeRules(r: CustomRules) {
   const short =
     e.kind === "reader" ? "The same, mirrored" :
     e.kind === "rsi" ? `RSI(${e.len}) crosses back below ${e.high}` :
+    e.kind === "gap_fade" ? `New York opens more than ${e.minGap}× ATR above the prior close, and the first bar closes bearish` :
+    e.kind === "last_half" ? `At 3:30 pm, ${e.signal === "first30" ? "the first half hour of the session was down" : "the overnight session was down"}` :
     e.kind === "ema_cross" ? `The ${e.fast} EMA crosses below the ${e.slow} EMA` :
     e.kind === "structure" ? "Close below the last confirmed swing low" :
     "Mirror of the long at the low / below";
@@ -229,7 +243,7 @@ export function describeRules(r: CustomRules) {
 /** Short chips for the parsed rules. */
 export function ruleChips(r: CustomRules) {
   const e = r.entry;
-  const entry = e.kind === "orb" ? `ORB ${e.minutes}m` : e.kind === "ema_cross" ? `EMA ${e.fast}/${e.slow}` : e.kind === "rsi" ? `RSI(${e.len})` : e.kind === "reader" ? READERS[e.reader].short : { pdhl_retest: "Prev day H/L · break & retest", pdhl_sweep: "Prev day H/L · sweep", vwap_cross: "VWAP cross", fvg: "FVG retest", structure: "CHoCH / BOS" }[e.kind];
+  const entry = e.kind === "orb" ? `ORB ${e.minutes}m` : e.kind === "ema_cross" ? `EMA ${e.fast}/${e.slow}` : e.kind === "rsi" ? `RSI(${e.len})` : e.kind === "reader" ? READERS[e.reader].short : { pdhl_retest: "Prev day H/L · break & retest", pdhl_sweep: "Prev day H/L · sweep", vwap_cross: "VWAP cross", fvg: "FVG retest", structure: "CHoCH / BOS", narrow_orb: "Narrow day ORB", inside_orb: "Inside day ORB", gap_fade: "Gap fade", last_half: "Last half hour" }[e.kind as "pdhl_retest"];
   const stop = r.stop.kind === "atr" ? `${r.stop.mult}× ATR(${r.stop.len})` : r.stop.kind === "points" ? `SL ${r.stop.pts} pts` : r.stop.kind === "ticks" ? `SL ${r.stop.n} ticks` : r.stop.kind === "swing" ? `Swing ${r.stop.bars}` : r.stop.kind === "signal" ? "Signal-bar stop" : "Own stop";
   const tgt = r.target.kind === "r" ? `${r.target.r}:1 R` : r.target.kind === "points" ? `TP ${r.target.pts} pts` : "Own target";
   return [entry, stop, tgt, ...(r.trend !== "none" ? [r.trend === "ema200" ? "200 EMA trend" : "VWAP side"] : []), ...(r.breakEvenR ? [`BE ${r.breakEvenR}R`] : []), ...(r.maxPerDay ? [`${r.maxPerDay}/day`] : [])];
@@ -341,6 +355,39 @@ export function customDetector(bars: Bar[], anchor: Anchor, r: CustomRules, tick
     return { reader: e.kind === "reader" ? e.reader : "custom", side, entry: c, stop, target };
   };
 
+  // Each session's high, low and returns, worked out once when a rule first asks. Only earlier
+  // sessions' whole ranges are read; first30 and overnight are read at 3:30 pm, after they ended.
+  type DayFacts = { h: number; l: number; rthClose: number; first30: number; overnight: number; sessionOpen: number; rthOpen: number };
+  let ranges: { days: DayFacts[]; index: Map<string, number> } | null = null;
+  const sessionRanges = () => {
+    if (ranges) return ranges;
+    const days: DayFacts[] = [];
+    const index = new Map<string, number>();
+    for (let i = 0; i < n; i++) {
+      const key = sess[i].session;
+      let k = index.get(key);
+      if (k == null) {
+        k = days.length;
+        index.set(key, k);
+        days.push({ h: -Infinity, l: Infinity, rthClose: NaN, first30: NaN, overnight: NaN, sessionOpen: bars[i].o, rthOpen: NaN });
+      }
+      const d = days[k];
+      d.h = Math.max(d.h, bars[i].h);
+      d.l = Math.min(d.l, bars[i].l);
+      const m = sess[i].minute;
+      if (m >= 9 * 60 + 30 && m < 16 * 60) {
+        if (!Number.isFinite(d.rthOpen)) {
+          d.rthOpen = bars[i].o;
+          d.overnight = d.rthOpen - d.sessionOpen;
+        }
+        d.rthClose = bars[i].c;
+        if (m < 10 * 60) d.first30 = bars[i].c - d.rthOpen;
+      }
+    }
+    ranges = { days, index };
+    return ranges;
+  };
+
   return (i: number) => {
     if (i < 2 || i >= n) return null;
     const b = bars[i];
@@ -386,6 +433,52 @@ export function customDetector(bars: Bar[], anchor: Anchor, r: CustomRules, tick
         if (lo < L && b.c > L && bull) return once("long", () => plan("long", i));
         if (hi > H && b.c < H && bear) return once("short", () => plan("short", i));
         return null;
+      }
+      case "narrow_orb":
+      case "inside_orb": {
+        const m = sess[i].minute;
+        const open = 9 * 60 + 30;
+        if (m < open || m >= 16 * 60) return null;
+        if (m < open + e.minutes) {
+          orHi.set(day, Math.max(orHi.get(day) ?? -Infinity, b.h));
+          orLo.set(day, Math.min(orLo.get(day) ?? Infinity, b.l));
+          return null;
+        }
+        const list = sessionRanges();
+        const k = list.index.get(day);
+        if (k == null || k < 8) return null;
+        const prior = list.days[k - 1];
+        const ok = e.kind === "inside_orb" ? prior.h <= list.days[k - 2].h && prior.l >= list.days[k - 2].l : list.days.slice(k - e.lookback, k).every((x) => x.h - x.l >= prior.h - prior.l);
+        if (!ok) return null;
+        const H = orHi.get(day);
+        const L = orLo.get(day);
+        if (H == null || L == null) return null;
+        if (b.c > H && p.c <= H) return once("long", () => plan("long", i));
+        if (b.c < L && p.c >= L) return once("short", () => plan("short", i));
+        return null;
+      }
+      case "gap_fade": {
+        const m = sess[i].minute;
+        if (m < 9 * 60 + 30 || p == null || sess[i - 1].minute >= 9 * 60 + 30) return null;
+        const list = sessionRanges();
+        const k = list.index.get(day);
+        const prior = k != null && k > 0 ? list.days[k - 1] : null;
+        if (!prior || !Number.isFinite(prior.rthClose)) return null;
+        const gap = b.o - prior.rthClose;
+        if (Math.abs(gap) < e.minGap * atr14[i]) return null;
+        if (gap < 0 && bull) return once("long", () => plan("long", i, { stop: b.l - atr14[i] * 0.25, target: prior.rthClose }));
+        if (gap > 0 && bear) return once("short", () => plan("short", i, { stop: b.h + atr14[i] * 0.25, target: prior.rthClose }));
+        return null;
+      }
+      case "last_half": {
+        const m = sess[i].minute;
+        // The bar that closes at or just after 3:30 pm, whatever the timeframe.
+        const span = n > 1 ? (bars[1].t - bars[0].t) / 60 : 5;
+        if (m >= 15 * 60 + 30 || m + span < 15 * 60 + 30) return null;
+        const facts = sessionRanges().days[sessionRanges().index.get(day) ?? -1];
+        const edge = e.signal === "first30" ? facts?.first30 : facts?.overnight;
+        if (edge == null || edge === 0 || !Number.isFinite(edge)) return null;
+        return once(edge > 0 ? "long" : "short", () => plan(edge > 0 ? "long" : "short", i));
       }
       case "orb": {
         const m = sess[i].minute;

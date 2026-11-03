@@ -60,7 +60,7 @@ Every trade is in the log with a running balance. Tapping one plots it: Vision's
 
 ### Prop firm desk
 
-Named practice accounts at any firm, tested by hand, by strategy or both. New accounts are set up in four steps (firm, account, market and start, name). Contracts and risk are chosen on the account, next to the buttons that trade it.
+Named practice accounts at any firm, or your own money at a broker, tested by hand, by strategy or both. Each account has two clear modes, **I trade it** and **It trades for me**; every trade and day is labelled, and each side keeps its own record. Today's game plan shows the largest size, stop-for-the-day level, best-day limit and losses left from where the account stands. New accounts are set up in four steps (firm, account, market and start, name). Contracts and risk are chosen on the account, next to the buttons that trade it.
 
 The lab (`src/lib/vision/lab.ts`, `src/lib/server/library/lab.ts`, `/api/library/lab`) works on each account:
 
@@ -77,7 +77,19 @@ The lab (`src/lib/vision/lab.ts`, `src/lib/server/library/lab.ts`, `/api/library
 
 Day by day (`DayLedger`), on accounts and Strategy test: each traded day's trades, wins, P&L, R, balance, intraday range, and with a firm the floor, room left, tightest room, daily limit used, best-day share and progress to target, flagged and downloadable.
 
-Not modelled: activation fees, news bans, payout caps and fills in fast markets. Fees are $1.04 a micro and $3.64 a full contract round trip; stops and entries lose a tick.
+**Limits** (`src/lib/vision/limits.ts`): risk per trade as a share of the drawdown, by account type and market (funded 20%, evaluations 30% so risking more can be tested, gold 10% everywhere by default), live risk as a share of the balance, the consistency rule to assume on funded accounts, trading hours and days, and news days to sit out. Studies, Autopilot, strategy runs and replay all obey them, and changing them re-runs studies.
+
+**Money** (`src/lib/vision/economics.ts`): `life` follows a year at a firm in dollars: fees, renewals, activation, failures, the funded stretch and payouts, from many start dates. It ranks firms by what reaches the trader and compares evaluation risk levels with straight-to-funded accounts. Activation fees and payout caps are in `firmExtras` where known; the source is shown, and unknowns count as $0 and say so.
+
+**Proof**: the stress test re-deals the days, adds slippage, misses one winner in ten and randomises direction to measure luck. The health alarm compares the last 40 trades with the strategy's past stretches. News days uses CPI and jobs dates from the St. Louis Fed (`econ-calendar.ts`) with FOMC. One-second bars (NQ, Jul 24 to Oct 23, 2026) audit whether stop or target came first. These run on a study's current strategy.
+
+**You vs. the machine** compares your hand trades with the plan on the same days and prices each habit: off-plan trades, skipped signals, early exits, oversizing and exits past the stop. **The prop game** states what the numbers say about the account's rules. **Several accounts** starts copies, or NQ, ES and gold together, on the same days. **Firm rule check** flags rules that are old, disputed or never confirmed.
+
+**Strategy scout** (`src/lib/vision/scout.ts`): ideas from papers and books as rules, on NQ, ES and gold, judged on the newest 30% of trades. Recommended needs positive results on old and new data, a t-stat of 2 on the new, 60% of years green and a pass rate above no edge. Ideas you add join the variants. `npm run lab:scout` runs it; `library/lab/scout-candidates.json` holds additions, which a weekly task can append to.
+
+**Live money**: `live:<balance>:<stop %>` programs have no target or firm rules, only your stop and common day margin. Its lab compounds a strategy from $1,000 to $50,000 at each risk level, shows what share of signals a small balance can't take, and compares a year with the best prop account on the same trades. No real orders are placed.
+
+Not modelled: news bans, firm-specific payout calendars, taxes and fills in fast markets. Fees are $1.04 a micro and $3.64 a full contract round trip; stops and entries lose a tick.
 
 ### Replay
 

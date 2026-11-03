@@ -14,6 +14,7 @@ import type { Verdict } from "@/lib/vision/verdict";
 import { programByKey } from "@/lib/proving/firms";
 import { useVisionStore, type BacktestSettings } from "@/store/visionStore";
 import { dateOf, money, useAccounts, useContext, useHistory, useLibrary, useSaved, type Loaded, type SavedItem } from "./data";
+import { DEFAULT_LIMITS, riskCap, type RiskLimits } from "@/lib/vision/limits";
 import { PropDesk, type AutoRunRequest, type AutoRunResult } from "./prop/PropDesk";
 import { Library } from "./Library";
 import { Replay } from "./Replay";
@@ -190,6 +191,8 @@ export function BacktestWorkspace() {
     const program = s0.program;
     const cap = a.micro ? program.maxMicros : program.maxMinis;
     const bt0 = useVisionStore.getState().bt;
+    const limits = await fetch("/api/library/lab?view=limits", { cache: "no-store" }).then((r) => r.json()).then((j) => j.limits as RiskLimits).catch(() => DEFAULT_LIMITS);
+    const capUsd = a.phase === "live" ? (program.size * limits.livePct) / 100 : program.drawdown * riskCap(limits, a.symbol, a.phase);
     const rules = req.strategy.logic === "custom" ? (bt0.rules ?? parseRules(bt0.text).rules) : null;
     const pv = m ? (a.micro ? m.pointValue!.micro : m.pointValue!.full) : 1;
     const r = runBacktest(loaded.bars, {
@@ -224,7 +227,14 @@ export function BacktestWorkspace() {
     let used = 0;
     let st = s0;
     for (const d of days.slice(0, req.horizon === "pass" ? undefined : req.horizon)) {
-      const add: AccountTrade[] = fresh.filter((t) => t.session === d).map((t) => ({ id: `a${t.entryT}${t.n}`, entryT: t.entryT, exitT: t.exitT, session: t.session, side: t.side, qty: t.units, entry: t.entry, exit: t.exit, stop: t.stop, target: t.target, pnl: t.pnl, r: t.r, worst: t.mae * t.riskUsd, best: t.mfe * t.riskUsd, reason: t.outcome, source: "auto", strategy: name }));
+      // Anything over the trader's risk limit is cut to fit, and skipped if one contract is too much.
+      const add: AccountTrade[] = fresh.filter((t) => t.session === d).flatMap((t) => {
+        const qty = Math.min(t.units, Math.floor(capUsd / Math.max(0.01, t.riskUsd / t.units)));
+        if (qty <= 0) return [];
+        const f = qty / t.units;
+        return [{ id: `a${t.entryT}${t.n}`, entryT: t.entryT, exitT: t.exitT, session: t.session, side: t.side, qty, entry: t.entry, exit: t.exit, stop: t.stop, target: t.target, pnl: t.pnl * f, r: t.r, worst: t.mae * t.riskUsd * f, best: t.mfe * t.riskUsd * f, reason: t.outcome, source: "auto" as const, strategy: name }];
+      });
+      if (!add.length) continue;
       next = { ...next, trades: [...next.trades, ...add], cursorT: add[add.length - 1].exitT };
       used += add.length;
       st = accountState(next)!;

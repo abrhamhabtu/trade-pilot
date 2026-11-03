@@ -14,6 +14,10 @@ const ENTRY_DEFAULTS: Record<EntryRule["kind"], EntryRule> = {
   fvg: { kind: "fvg" },
   rsi: { kind: "rsi", len: 14, low: 30, high: 70 },
   structure: { kind: "structure" },
+  narrow_orb: { kind: "narrow_orb", minutes: 30, lookback: 7 },
+  inside_orb: { kind: "inside_orb", minutes: 30 },
+  gap_fade: { kind: "gap_fade", minGap: 0.5 },
+  last_half: { kind: "last_half", signal: "first30" },
   reader: { kind: "reader", reader: "dbvwap" },
 };
 const STOP_DEFAULTS: Record<StopRule["kind"], StopRule> = { atr: { kind: "atr", mult: 1.5, len: 14 }, points: { kind: "points", pts: 20 }, ticks: { kind: "ticks", n: 40 }, swing: { kind: "swing", bars: 8 }, signal: { kind: "signal" }, plan: { kind: "plan" } };

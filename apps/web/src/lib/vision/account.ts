@@ -46,7 +46,7 @@ export interface PropAccount {
   createdAt: number;
   updatedAt: number;
   program: string;
-  phase: "eval" | "funded";
+  phase: "eval" | "funded" | "live";
   /** The evaluation this funded account came from. */
   parentId?: string;
   symbol: string;
@@ -65,6 +65,12 @@ export interface PropAccount {
   /** Attempts before the current one, kept for the record. */
   history: { at: number; result: string; trades: number; pnl: number }[];
   resets: number;
+}
+
+/** Who placed the trades: split so each side's record stands on its own. */
+export function splitBySource(trades: AccountTrade[]) {
+  const side = (xs: AccountTrade[]) => ({ trades: xs.length, days: new Set(xs.map((t) => t.session)).size, pnl: xs.reduce((a, t) => a + t.pnl, 0), r: xs.reduce((a, t) => a + t.r, 0), winRate: xs.length ? xs.filter((t) => t.pnl > 0).length / xs.length : 0 });
+  return { you: side(trades.filter((t) => t.source === "manual")), auto: side(trades.filter((t) => t.source === "auto")) };
 }
 
 export const ACCOUNT_COLORS = ["#5AC8FA", "#BF5AF2", "#30D158", "#FF9F0A", "#FF375F", "#64D2FF", "#FFD60A", "#AC8E68"];
@@ -111,7 +117,7 @@ export function toDaySims(trades: AccountTrade[]): DaySim[] {
       }
       return {
         date,
-        trades: ts.map((t) => ({ id: t.id, date, side: t.side, entryT: t.entryT, entryPx: t.entry, exitT: t.exitT, exitPx: t.exit, stopPx: t.stop, targetPx: t.target, qty: t.qty, pnl: t.pnl, r: t.r, exit: "time", why: t.reason, mfe: t.best, mae: t.worst }) as SimTrade),
+        trades: ts.map((t) => ({ id: t.id, date, side: t.side, entryT: t.entryT, entryPx: t.entry, exitT: t.exitT, exitPx: t.exit, stopPx: t.stop, targetPx: t.target, qty: t.qty, pnl: t.pnl, r: t.r, exit: "time", why: t.reason, mfe: t.best, mae: t.worst, who: t.source }) as SimTrade),
         pnl: realized,
         path,
         t0: ts[0].entryT,
@@ -147,7 +153,7 @@ export function accountState(a: PropAccount): AccountState | null {
   const ev = a.phase === "eval" ? evaluate(days, p, size) : null;
   const status: AccountState["status"] = blownOn || ev?.verdict === "failed" ? "blown" : ev?.verdict === "passed" ? "passed" : "active";
   const months = days.length ? Math.max(1, Math.ceil((Date.parse(days[days.length - 1].date) - Date.parse(days[0].date)) / (30 * 86_400_000))) : 1;
-  const fees = (p.costCadence === "monthly" ? p.cost * months : p.cost) * (a.phase === "funded" ? 0 : 1) + a.resets * p.cost;
+  const fees = (p.costCadence === "monthly" ? p.cost * months : p.cost) * (a.phase === "eval" ? 1 : 0) + a.resets * p.cost;
   const last = days[days.length - 1];
   const payoutReady = a.phase === "funded" && profit >= 500 && traded.length >= p.minDays && consistency.ok;
   const headline =
@@ -155,6 +161,10 @@ export function accountState(a: PropAccount): AccountState | null {
       ? ev?.headline ?? `Drawdown hit on ${blownOn}`
       : status === "passed"
         ? ev!.headline
+        : a.phase === "live"
+          ? traded.length
+            ? `${profit >= 0 ? "Up" : "Down"} ${usd(profit)}, ${((profit / p.size) * 100).toFixed(1)}%`
+            : "Ready for its first trade"
         : a.phase === "funded"
           ? payoutReady
             ? "Payout-eligible"
@@ -164,7 +174,7 @@ export function accountState(a: PropAccount): AccountState | null {
           : traded.length
             ? `${usd(Math.max(0, p.target - profit))} to the target`
             : "Ready for its first trade";
-  const detail = status === "blown" ? (ev?.detail ?? `Balance touched the ${DD_LABEL[p.ddType].toLowerCase()} floor.`) : status === "passed" ? ev!.detail : ev?.detail ?? `Floor $${Math.round(acct.threshold).toLocaleString("en-US")}; ${traded.length} of ${p.minDays} minimum days.`;
+  const detail = status === "blown" ? (ev?.detail ?? (a.phase === "live" ? "It reached the loss you said you'd stop at." : `Balance touched the ${DD_LABEL[p.ddType].toLowerCase()} floor.`)) : a.phase === "live" && status === "active" ? `Stops at $${Math.round(acct.threshold).toLocaleString("en-US")}, the loss you set. ${traded.length} days traded.` : status === "passed" ? ev!.detail : ev?.detail ?? `Floor $${Math.round(acct.threshold).toLocaleString("en-US")}; ${traded.length} of ${p.minDays} minimum days.`;
   return {
     program: p,
     days,

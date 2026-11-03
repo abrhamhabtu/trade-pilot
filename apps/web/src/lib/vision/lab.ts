@@ -36,6 +36,8 @@ export interface UnitTrade {
   points: number;
   outcome: string;
   reader: string;
+  /** The size it was really traded at, on an account's own trades. */
+  qty?: number;
 }
 
 export interface UnitDay {
@@ -56,8 +58,8 @@ export const toUnitDays = (trades: UnitTrade[]): UnitDay[] => {
 // ── Sizing plans ───────────────────────────────────────────────────────────────
 
 export interface SizingPlan {
-  /** fixed: the same size always. room: risk a share of the dollars left above the floor, so size shrinks as the floor closes in and grows once it locks. */
-  kind: "fixed" | "room";
+  /** fixed: the same size always. room: risk a share of the dollars left above the floor, so size shrinks as the floor closes in and grows once it locks. actual: the size each trade really was. */
+  kind: "fixed" | "room" | "actual";
   /** Contracts for fixed; share of the room (0.2 = 20%) for room. */
   amount: number;
   /** Stop for the day at this share of the room, lost in the day. 0 = no stop. */
@@ -69,7 +71,7 @@ export interface SizingPlan {
 }
 
 export const planLabel = (p: SizingPlan, contract: string) => {
-  const base = p.kind === "fixed" ? `${p.amount} ${contract}` : `Risk ${Math.round(p.amount * 100)}% of the room left`;
+  const base = p.kind === "actual" ? "The sizes you traded" : p.kind === "fixed" ? `${p.amount} ${contract}` : `Risk ${Math.round(p.amount * 100)}% of the room left`;
   const extra = [p.dayStop ? `stop the day at ${Math.round(p.dayStop * 100)}% of room` : "", p.dayCap ? "stop at the best-day limit" : ""].filter(Boolean);
   return extra.length ? `${base}, ${extra.join(", ")}` : base;
 };
@@ -77,7 +79,7 @@ export const planLabel = (p: SizingPlan, contract: string) => {
 export const planKey = (p: SizingPlan) => `${p.kind}:${p.amount}:${p.dayStop}:${p.dayCap ? 1 : 0}:${p.coast ? 1 : 0}`;
 
 /** The plans worth testing at a firm: flat sizes as the baseline, then room-based ones with the guards. */
-export function planGrid(p: FirmProgram, micro: boolean): SizingPlan[] {
+export function planGrid(p: FirmProgram, micro: boolean, maxRisk?: number): SizingPlan[] {
   const cap = micro ? p.maxMicros : p.maxMinis;
   const flat = (micro ? [1, 2, 3, 5, 8, 10, 15, 20, 30] : [1, 2, 3, 5, 8]).filter((q) => q <= cap);
   const out: SizingPlan[] = flat.map((amount) => ({ kind: "fixed", amount, dayStop: 0, dayCap: false, coast: false }));
@@ -86,7 +88,8 @@ export function planGrid(p: FirmProgram, micro: boolean): SizingPlan[] {
     { dayStop: 0.4, dayCap: false },
     { dayStop: 0.4, dayCap: p.consistencyPct < 100 },
   ];
-  for (const amount of [0.08, 0.12, 0.16, 0.22, 0.3]) for (const g of guards) out.push({ kind: "room", amount, coast: true, ...g });
+  // A room plan above the limit would only be clamped back to it, under a label that says otherwise.
+  for (const amount of [0.08, 0.12, 0.16, 0.22, 0.3].filter((x) => !maxRisk || x <= maxRisk + 1e-9)) for (const g of guards) out.push({ kind: "room", amount, coast: true, ...g });
   for (const amount of flat) out.push({ kind: "fixed", amount, dayStop: 0.4, dayCap: p.consistencyPct < 100, coast: true });
   const seen = new Set<string>();
   return out.filter((x) => !seen.has(planKey(x)) && !!seen.add(planKey(x)));
@@ -100,6 +103,10 @@ export interface Pricing {
   /** Dollars per contract, round trip. */
   fee: number;
   micro: boolean;
+  /** Most a trade may risk, as a share of the account's drawdown. A trade too big at one contract is skipped. */
+  maxRisk?: number;
+  /** Broker's day margin per contract; live accounts can't hold more than the balance covers. */
+  margin?: number;
 }
 
 export interface PricedTrade {
@@ -149,11 +156,14 @@ const consistencyOk = (p: FirmProgram, bestDay: number, profit: number) => {
 };
 
 /** The size a plan calls for on this trade, given where the account stands. */
-function sizeFor(plan: SizingPlan, t: UnitTrade, room: number, atTarget: boolean, price: Pricing, cap: number) {
-  if (plan.coast && atTarget) return 1;
-  if (plan.kind === "fixed") return Math.min(plan.amount, cap);
+function sizeFor(plan: SizingPlan, t: UnitTrade, room: number, atTarget: boolean, price: Pricing, cap: number, drawdown: number, balance: number) {
   const perContract = t.risk * price.pointValue + price.fee;
-  return Math.min(cap, Math.floor((room * plan.amount) / perContract));
+  const limit = Math.min(cap, price.maxRisk ? Math.floor((drawdown * price.maxRisk) / perContract) : cap, price.margin ? Math.floor(balance / price.margin) : cap);
+  if (plan.coast && atTarget) return Math.min(1, limit);
+  if (plan.kind === "actual") return t.qty ?? plan.amount;
+  if (plan.kind === "fixed") return Math.min(plan.amount, limit);
+  // Never below one contract: shrinking to nothing would leave an account parked above its floor for ever, still paying fees.
+  return Math.min(limit, Math.max(1, Math.floor((room * plan.amount) / perContract)));
 }
 
 /**
@@ -187,7 +197,7 @@ export function simulate(days: UnitDay[], p: FirmProgram, plan: SizingPlan, pric
     let halted: AttemptDay["halted"] = "";
     for (const t of day.trades) {
       const room = open + realized - a.threshold;
-      const qty = sizeFor(plan, t, room, atTarget, price, cap);
+      const qty = sizeFor(plan, t, room, atTarget, price, cap, p.drawdown, open + realized);
       if (qty <= 0) continue;
       const fee = price.fee * qty;
       const pnl = t.points * price.pointValue * qty - fee;
@@ -435,7 +445,7 @@ export interface SizingStudy {
 
 export function sizingStudy(days: UnitDay[], p: FirmProgram, price: Pricing, o: { cap?: number } = {}): SizingStudy {
   const split = Math.floor(days.length * 0.7);
-  const rows: PlanRow[] = planGrid(p, price.micro).map((plan) => ({
+  const rows: PlanRow[] = planGrid(p, price.micro, price.maxRisk).map((plan) => ({
     plan,
     train: rollingOdds(days, p, plan, price, { lo: 0, hi: split, cap: o.cap ?? 60 }),
     test: rollingOdds(days, p, plan, price, { lo: split, hi: days.length, cap: o.cap ?? 60 }),
@@ -625,7 +635,7 @@ export function choose(pool: { v: Variant; days: UnitDay[] }[], date: string, p:
     .slice(0, o.shortlist ?? 4);
   let best: { v: Variant; plan: SizingPlan; odds: Odds } | null = null;
   for (const x of scored)
-    for (const plan of planGrid(p, price.micro)) {
+    for (const plan of planGrid(p, price.micro, price.maxRisk)) {
       const odds = rollingOdds(x.days, p, plan, price, { lo: x.lo, hi: x.hi, cap: 24 });
       if (!best || odds.low > best.odds.low || (odds.low === best.odds.low && odds.passRate > best.odds.passRate)) best = { v: x.v, plan, odds };
     }
@@ -742,7 +752,7 @@ export function firmShootout(days: UnitDay[], programs: FirmProgram[], price: Pr
   return programs
     .map((p) => {
       let best: { plan: SizingPlan; odds: Odds } | null = null;
-      for (const plan of planGrid(p, price.micro)) {
+      for (const plan of planGrid(p, price.micro, price.maxRisk)) {
         const odds = rollingOdds(days, p, plan, price, { cap: 30 });
         if (!best || odds.low > best.odds.low || (odds.low === best.odds.low && odds.passRate > best.odds.passRate)) best = { plan, odds };
       }
@@ -781,7 +791,7 @@ export function accountUnits(trades: AccountLike[], price: Pricing): UnitDay[] {
     trades.map((t) => {
       const q = Math.max(1, t.qty);
       const per = q * price.pointValue;
-      return { entryT: t.entryT, exitT: t.exitT, session: t.session, side: t.side, entry: t.entry, stop: t.stop, target: t.target, exit: t.exit, risk: Math.abs(t.entry - t.stop), worst: t.worst / per, best: t.best / per, points: (t.pnl + price.fee * q) / per, outcome: t.reason, reader: t.strategy ?? "By hand" };
+      return { entryT: t.entryT, exitT: t.exitT, session: t.session, side: t.side, entry: t.entry, stop: t.stop, target: t.target, exit: t.exit, risk: Math.abs(t.entry - t.stop), worst: t.worst / per, best: t.best / per, points: (t.pnl + price.fee * q) / per, outcome: t.reason, reader: t.strategy ?? "By hand", qty: q };
     }),
   );
 }
