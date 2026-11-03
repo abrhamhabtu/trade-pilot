@@ -54,7 +54,10 @@ function Chips<T extends string | number>({ value, options, onChange, disabled }
           title={o.title}
           onClick={() => onChange(o.v)}
           aria-pressed={o.v === value}
-          className={clsx("rounded-full px-3 py-1.5 text-[12.5px] font-semibold ring-1 transition disabled:opacity-40", o.v === value ? "bg-[#5AC8FA]/15 text-white ring-[#5AC8FA]/55" : "bg-white/[0.04] text-white/60 ring-white/[0.07] hover:bg-white/[0.08] hover:text-white")}
+          className={clsx(
+            "rounded-full px-3 py-1.5 text-[12.5px] font-semibold ring-1 transition disabled:opacity-40",
+            o.v === value ? "bg-[#5AC8FA]/15 text-white ring-[#5AC8FA]/55" : "bg-white/[0.04] text-white/60 ring-white/[0.07] hover:bg-white/[0.08] hover:text-white",
+          )}
         >
           {o.l}
         </button>
@@ -63,7 +66,23 @@ function Chips<T extends string | number>({ value, options, onChange, disabled }
   );
 }
 
-export function SetupPanel({ lib, has, onRun, running, progress, rules = true, runLabel = "Run backtest" }: { lib: Library | null; has: { fomc: boolean; early: boolean; vix: boolean }; onRun: () => void; running: boolean; progress: number | null; rules?: boolean; runLabel?: string }) {
+export function SetupPanel({
+  lib,
+  has,
+  onRun,
+  running,
+  progress,
+  rules = true,
+  runLabel = "Run backtest",
+}: {
+  lib: Library | null;
+  has: { fomc: boolean; early: boolean; vix: boolean };
+  onRun: () => void;
+  running: boolean;
+  progress: number | null;
+  rules?: boolean;
+  runLabel?: string;
+}) {
   const bt = useVisionStore((s) => s.bt);
   const setBt = useVisionStore((s) => s.setBt);
   const sym = isSymbol(bt.symbol) ? SYMBOLS[bt.symbol] : null;
@@ -96,6 +115,58 @@ export function SetupPanel({ lib, has, onRun, running, progress, rules = true, r
     for (const p of FIRM_PROGRAMS) m.set(`${p.firm} · ${p.program}`, [...(m.get(`${p.firm} · ${p.program}`) ?? []), p]);
     return [...m.entries()];
   }, []);
+
+  const balanceField = (
+    <Field label="Start balance" hint={propOn ? `Set by ${program!.firm} ${program!.sizeLabel}` : undefined}>
+      <Chips value={propOn ? program!.size : bt.balance} onChange={(balance) => setBt({ balance })} disabled={propOn} options={BALANCES.map((b) => ({ v: b, l: `${b / 1000}K` }))} />
+    </Field>
+  );
+  const propField = (
+    <div className={clsx("rounded-[18px] p-3 ring-1 transition", propOn ? "bg-[#BF5AF2]/[0.08] ring-[#BF5AF2]/40" : "bg-white/[0.03] ring-white/[0.06]")}>
+      <div className="flex items-center gap-2.5">
+        <span className={clsx("grid h-8 w-8 place-items-center rounded-[10px]", propOn ? "bg-[#BF5AF2] text-white" : "bg-white/[0.07] text-white/60")}>
+          <Building2 className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13.5px] font-semibold text-white">Prop firm mode</p>
+          <p className="text-[11.5px] text-white/45">{rules ? "Pass odds, days to pass, best size and every firm compared" : "Drawdown, daily loss limit and target, live"}</p>
+        </div>
+        <div className="w-[46px]">
+          <Toggle label="" on={bt.prop.on} onChange={(on) => setBt({ prop: { ...bt.prop, on } })} />
+        </div>
+      </div>
+      {bt.prop.on && (
+        <div className="mt-3 space-y-2">
+          <select
+            value={bt.prop.program}
+            onChange={(e) => setBt({ prop: { ...bt.prop, program: e.target.value } })}
+            aria-label="Firm and account"
+            className="w-full rounded-xl bg-white/[0.07] px-3 py-2 text-[13px] text-white ring-1 ring-inset ring-white/[0.08]"
+          >
+            {programs.map(([name, ps]) => (
+              <optgroup key={name} label={name}>
+                {ps.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.firm} {p.sizeLabel} · {p.program}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          {program && (
+            <div className="grid grid-cols-2 gap-1.5 text-[12px]">
+              <Rule k="Profit target" v={money(program.target)} />
+              <Rule k={`${DD_LABEL[program.ddType]} DD`} v={money(program.drawdown)} />
+              <Rule k="Daily loss limit" v={program.dll ? money(program.dll) : "None"} />
+              <Rule k="Consistency" v={program.consistencyPct >= 100 ? "None" : `${program.consistencyPct}% best day`} />
+              <Rule k="Min days" v={String(program.minDays)} />
+              <Rule k="Max size" v={`${program.maxMinis} minis / ${program.maxMicros} micros`} />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -135,8 +206,25 @@ export function SetupPanel({ lib, has, onRun, running, progress, rules = true, r
             value={source}
             onChange={(v) => setBt({ source: v })}
             options={[
-              { v: "library" as const, l: <span className="flex items-center justify-center gap-1.5"><Database className="h-3.5 w-3.5" /> Your library</span>, disabled: !series, title: series ? undefined : `No ${bt.symbol} in your library yet` },
-              { v: "feed" as const, l: <span className="flex items-center justify-center gap-1.5"><Radio className="h-3.5 w-3.5" /> Free feed</span>, disabled: !sym },
+              {
+                v: "library" as const,
+                l: (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <Database className="h-3.5 w-3.5" /> Your library
+                  </span>
+                ),
+                disabled: !series,
+                title: series ? undefined : `No ${bt.symbol} in your library yet`,
+              },
+              {
+                v: "feed" as const,
+                l: (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <Radio className="h-3.5 w-3.5" /> Free feed
+                  </span>
+                ),
+                disabled: !sym,
+              },
             ]}
           />
         </Field>
@@ -147,16 +235,24 @@ export function SetupPanel({ lib, has, onRun, running, progress, rules = true, r
           <Seg full size="sm" value={bt.days} onChange={(days) => setBt({ days })} options={PERIODS} />
           {bt.days === -1 && (
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <input type="date" value={bt.from ?? ""} onChange={(e) => setBt({ from: e.target.value })} className="rounded-xl bg-white/[0.06] px-3 py-2 text-[13px] text-white [color-scheme:dark] ring-1 ring-inset ring-white/[0.07]" aria-label="From" />
-              <input type="date" value={bt.to ?? ""} onChange={(e) => setBt({ to: e.target.value })} className="rounded-xl bg-white/[0.06] px-3 py-2 text-[13px] text-white [color-scheme:dark] ring-1 ring-inset ring-white/[0.07]" aria-label="To" />
+              <input
+                type="date"
+                value={bt.from ?? ""}
+                onChange={(e) => setBt({ from: e.target.value })}
+                className="rounded-xl bg-white/[0.06] px-3 py-2 text-[13px] text-white [color-scheme:dark] ring-1 ring-inset ring-white/[0.07]"
+                aria-label="From"
+              />
+              <input
+                type="date"
+                value={bt.to ?? ""}
+                onChange={(e) => setBt({ to: e.target.value })}
+                className="rounded-xl bg-white/[0.06] px-3 py-2 text-[13px] text-white [color-scheme:dark] ring-1 ring-inset ring-white/[0.07]"
+                aria-label="To"
+              />
             </div>
           )}
         </Field>
-        {rules && (
-          <Field label="Start balance" hint={propOn ? `Set by ${program!.firm} ${program!.sizeLabel}` : undefined}>
-            <Chips value={propOn ? program!.size : bt.balance} onChange={(balance) => setBt({ balance })} disabled={propOn} options={BALANCES.map((b) => ({ v: b, l: `${b / 1000}K` }))} />
-          </Field>
-        )}
+        {rules && balanceField}
         <Field label="Trading session" hint={SESSION_WINDOWS[bt.session].detail + (bt.session === "asia" || bt.session === "london" ? ". VWAP strategies read the day's VWAP outside New York." : "")}>
           <Chips value={bt.session} onChange={(session) => setBt({ session })} options={SESSIONS.map((k) => ({ v: k, l: SESSION_WINDOWS[k].label }))} />
         </Field>
@@ -169,8 +265,22 @@ export function SetupPanel({ lib, has, onRun, running, progress, rules = true, r
             value={bt.logic}
             onChange={(logic) => setBt({ logic, ...(logic === "custom" && !bt.rules ? { rules: parseRules(bt.text).rules } : {}) })}
             options={[
-              { v: "vision" as const, l: <span className="flex items-center justify-center gap-1.5"><ScanEye className="h-3.5 w-3.5" /> Vision strategies</span> },
-              { v: "custom" as const, l: <span className="flex items-center justify-center gap-1.5"><MessageSquareText className="h-3.5 w-3.5" /> Your words</span> },
+              {
+                v: "vision" as const,
+                l: (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <ScanEye className="h-3.5 w-3.5" /> Vision strategies
+                  </span>
+                ),
+              },
+              {
+                v: "custom" as const,
+                l: (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <MessageSquareText className="h-3.5 w-3.5" /> Your words
+                  </span>
+                ),
+              },
             ]}
           />
         )}
@@ -182,7 +292,9 @@ export function SetupPanel({ lib, has, onRun, running, progress, rules = true, r
                 onClick={() => setBt({ reader: r })}
                 className={clsx("flex w-full items-start gap-2.5 rounded-[13px] px-3 py-2 text-left transition", bt.reader === r ? "bg-[#5AC8FA]/12 ring-1 ring-[#5AC8FA]/45" : "hover:bg-white/[0.05]")}
               >
-                <span className={clsx("mt-1 grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full ring-2", bt.reader === r ? "ring-[#5AC8FA]" : "ring-white/25")}>{bt.reader === r && <span className="h-1.5 w-1.5 rounded-full bg-[#5AC8FA]" />}</span>
+                <span className={clsx("mt-1 grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full ring-2", bt.reader === r ? "ring-[#5AC8FA]" : "ring-white/25")}>
+                  {bt.reader === r && <span className="h-1.5 w-1.5 rounded-full bg-[#5AC8FA]" />}
+                </span>
                 <span>
                   <span className="block text-[13.5px] font-semibold text-white">{r === "auto" ? "Every strategy" : READERS[r].label}</span>
                   <span className="block text-[11.5px] leading-snug text-white/45">{r === "auto" ? "Takes whichever of your strategies fires first" : READERS[r].blurb}</span>
@@ -194,7 +306,11 @@ export function SetupPanel({ lib, has, onRun, running, progress, rules = true, r
           <>
             <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
               {TEMPLATES.map((t) => (
-                <button key={t.id} onClick={() => applyTemplate(t.text)} className={clsx("whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-semibold ring-1", bt.text === t.text ? "bg-white text-black ring-white" : "bg-white/[0.04] text-white/65 ring-white/[0.08] hover:text-white")}>
+                <button
+                  key={t.id}
+                  onClick={() => applyTemplate(t.text)}
+                  className={clsx("whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-semibold ring-1", bt.text === t.text ? "bg-white text-black ring-white" : "bg-white/[0.04] text-white/65 ring-white/[0.08] hover:text-white")}
+                >
                   {t.name}
                 </button>
               ))}
@@ -217,7 +333,17 @@ export function SetupPanel({ lib, has, onRun, running, progress, rules = true, r
       {rules && (
         <Step n={3} title="Risk & rules" sub="Size, costs, management and filters">
           <Field label="Direction">
-            <Seg full size="sm" value={bt.side} onChange={(side) => setBt({ side })} options={[{ v: "both" as const, l: "Both" }, { v: "long" as const, l: "Longs" }, { v: "short" as const, l: "Shorts" }]} />
+            <Seg
+              full
+              size="sm"
+              value={bt.side}
+              onChange={(side) => setBt({ side })}
+              options={[
+                { v: "both" as const, l: "Both" },
+                { v: "long" as const, l: "Longs" },
+                { v: "short" as const, l: "Shorts" },
+              ]}
+            />
           </Field>
           {crypto ? (
             <Field label="Risk per trade" hint="Each trade is sized so the stop costs this much.">
@@ -234,9 +360,29 @@ export function SetupPanel({ lib, has, onRun, running, progress, rules = true, r
                 }
               >
                 <div className="flex flex-wrap gap-2">
-                  <Seg size="sm" value={bt.sizing} onChange={(sizing) => setBt({ sizing })} options={[{ v: "fixed" as const, l: "Contracts" }, { v: "risk" as const, l: "% risk" }]} />
-                  {bt.sizing === "fixed" ? <Num value={bt.contracts} onChange={(contracts) => setBt({ contracts: Math.round(contracts) })} min={1} max={50} width="w-24" /> : <Num value={bt.riskPct} onChange={(riskPct) => setBt({ riskPct })} min={0.1} max={10} step={0.1} suffix="%" width="w-24" />}
-                  <Seg size="sm" value={bt.micro ? 1 : 0} onChange={(v) => setBt({ micro: v === 1 })} options={[{ v: 1, l: "Micro" }, { v: 0, l: "Full" }]} />
+                  <Seg
+                    size="sm"
+                    value={bt.sizing}
+                    onChange={(sizing) => setBt({ sizing })}
+                    options={[
+                      { v: "fixed" as const, l: "Contracts" },
+                      { v: "risk" as const, l: "% risk" },
+                    ]}
+                  />
+                  {bt.sizing === "fixed" ? (
+                    <Num value={bt.contracts} onChange={(contracts) => setBt({ contracts: Math.round(contracts) })} min={1} max={50} width="w-24" />
+                  ) : (
+                    <Num value={bt.riskPct} onChange={(riskPct) => setBt({ riskPct })} min={0.1} max={10} step={0.1} suffix="%" width="w-24" />
+                  )}
+                  <Seg
+                    size="sm"
+                    value={bt.micro ? 1 : 0}
+                    onChange={(v) => setBt({ micro: v === 1 })}
+                    options={[
+                      { v: 1, l: "Micro" },
+                      { v: 0, l: "Full" },
+                    ]}
+                  />
                 </div>
               </Field>
             )
@@ -255,10 +401,31 @@ export function SetupPanel({ lib, has, onRun, running, progress, rules = true, r
           {bt.logic === "vision" && (
             <div className="grid grid-cols-2 gap-2">
               <Field label="Break-even">
-                <Seg full size="sm" value={bt.breakEvenR ?? 0} onChange={(v) => setBt({ breakEvenR: v || null })} options={[{ v: 0, l: "Off" }, { v: 1, l: "1R" }, { v: 1.5, l: "1.5R" }]} />
+                <Seg
+                  full
+                  size="sm"
+                  value={bt.breakEvenR ?? 0}
+                  onChange={(v) => setBt({ breakEvenR: v || null })}
+                  options={[
+                    { v: 0, l: "Off" },
+                    { v: 1, l: "1R" },
+                    { v: 1.5, l: "1.5R" },
+                  ]}
+                />
               </Field>
               <Field label="Trades a day">
-                <Seg full size="sm" value={bt.maxPerDay ?? 0} onChange={(v) => setBt({ maxPerDay: v || null })} options={[{ v: 0, l: "Any" }, { v: 1, l: "1" }, { v: 2, l: "2" }, { v: 3, l: "3" }]} />
+                <Seg
+                  full
+                  size="sm"
+                  value={bt.maxPerDay ?? 0}
+                  onChange={(v) => setBt({ maxPerDay: v || null })}
+                  options={[
+                    { v: 0, l: "Any" },
+                    { v: 1, l: "1" },
+                    { v: 2, l: "2" },
+                    { v: 3, l: "3" },
+                  ]}
+                />
               </Field>
             </div>
           )}
@@ -268,52 +435,27 @@ export function SetupPanel({ lib, has, onRun, running, progress, rules = true, r
               <Toggle label="Skip early-close days" on={bt.skipEarly} onChange={(skipEarly) => setBt({ skipEarly })} disabled={!has.early} />
               <div className="flex items-center justify-between gap-2 py-1">
                 <span className={clsx("text-[13.5px]", has.vix ? "text-white/80" : "text-white/35")}>VIX (prior close)</span>
-                <Seg size="sm" value={has.vix ? bt.vix : "any"} onChange={(vix) => setBt({ vix })} options={[{ v: "any" as const, l: "Any" }, { v: "low" as const, l: "<15", disabled: !has.vix }, { v: "mid" as const, l: "15–25", disabled: !has.vix }, { v: "high" as const, l: "25+", disabled: !has.vix }]} />
+                <Seg
+                  size="sm"
+                  value={has.vix ? bt.vix : "any"}
+                  onChange={(vix) => setBt({ vix })}
+                  options={[
+                    { v: "any" as const, l: "Any" },
+                    { v: "low" as const, l: "<15", disabled: !has.vix },
+                    { v: "mid" as const, l: "15–25", disabled: !has.vix },
+                    { v: "high" as const, l: "25+", disabled: !has.vix },
+                  ]}
+                />
               </div>
             </div>
           </Field>
+        </Step>
+      )}
 
-          {!crypto && (
-            <div className={clsx("rounded-[18px] p-3 ring-1 transition", propOn ? "bg-[#BF5AF2]/[0.08] ring-[#BF5AF2]/40" : "bg-white/[0.03] ring-white/[0.06]")}>
-              <div className="flex items-center gap-2.5">
-                <span className={clsx("grid h-8 w-8 place-items-center rounded-[10px]", propOn ? "bg-[#BF5AF2] text-white" : "bg-white/[0.07] text-white/60")}>
-                  <Building2 className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13.5px] font-semibold text-white">Prop firm mode</p>
-                  <p className="text-[11.5px] text-white/45">Grade the run against a firm&apos;s rules and find the size that passes</p>
-                </div>
-                <div className="w-[46px]">
-                  <Toggle label="" on={bt.prop.on} onChange={(on) => setBt({ prop: { ...bt.prop, on } })} />
-                </div>
-              </div>
-              {bt.prop.on && (
-                <div className="mt-3 space-y-2">
-                  <select value={bt.prop.program} onChange={(e) => setBt({ prop: { ...bt.prop, program: e.target.value } })} aria-label="Firm and account" className="w-full rounded-xl bg-white/[0.07] px-3 py-2 text-[13px] text-white ring-1 ring-inset ring-white/[0.08]">
-                    {programs.map(([name, ps]) => (
-                      <optgroup key={name} label={name}>
-                        {ps.map((p) => (
-                          <option key={p.key} value={p.key}>
-                            {p.firm} {p.sizeLabel} · {p.program}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                  {program && (
-                    <div className="grid grid-cols-2 gap-1.5 text-[12px]">
-                      <Rule k="Profit target" v={money(program.target)} />
-                      <Rule k={`${DD_LABEL[program.ddType]} DD`} v={money(program.drawdown)} />
-                      <Rule k="Daily loss limit" v={program.dll ? money(program.dll) : "None"} />
-                      <Rule k="Consistency" v={program.consistencyPct >= 100 ? "None" : `${program.consistencyPct}% best day`} />
-                      <Rule k="Min days" v={String(program.minDays)} />
-                      <Rule k="Max size" v={`${program.maxMinis} minis / ${program.maxMicros} micros`} />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+      {!crypto && (
+        <Step n={rules ? 4 : 3} title={rules ? "Prop firm" : "Account"} sub={rules ? "Grade the run against a firm's rules and beat it" : "Your balance, and a firm's rules running live as you trade"}>
+          {!rules && balanceField}
+          {propField}
         </Step>
       )}
 
