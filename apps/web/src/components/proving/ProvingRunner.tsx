@@ -10,6 +10,7 @@ import { advance, feedFor, loadFeed, testCareer } from "@/lib/proving/runner";
 import type { CareerEvent } from "@/lib/proving/career";
 import { STRATEGIES } from "@/lib/proving/engine";
 import { chime } from "@/components/pilot/flow/judge";
+import { nyClock } from "@/lib/pilot/market";
 
 const TICK_MS = 60_000;
 
@@ -73,6 +74,21 @@ export function ProvingRunner() {
           const life = testCareer(next);
           if (firstRun) continue; // a fresh replay would ping for every historical trade
           const label = `${t.name} · ${STRATEGIES[t.cfg.strategy].short}`;
+          // Catching up after the app was closed: one summary, not a pop-up per missed trade.
+          const today = nyClock(Date.now()).date;
+          const missed = days.filter((d) => d.date < today && !t.days[d.date]);
+          if (missed.length > 1) {
+            const net = missed.reduce((a, d) => a + d.pnl, 0);
+            const events = (life?.events.slice(before) ?? []).filter((ev) => CAREER_PING[ev.kind]);
+            const last = events[events.length - 1];
+            push({
+              color: t.color,
+              title: `${t.name}: caught up ${missed.length} sessions`,
+              body: `${net >= 0 ? "+" : "-"}${money(Math.abs(net))} while TradePilot was closed.${last ? ` Latest: ${CAREER_PING[last.kind]!.title.toLowerCase()}.` : ""}`,
+              tone: net >= 0 ? "go" : "wait",
+            });
+            continue;
+          }
           for (const tr of days.flatMap((d) => d.trades)) {
             const was = prevTrades.get(tr.id);
             if (was === undefined)
