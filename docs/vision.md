@@ -60,7 +60,7 @@ Every trade is in the log with a running balance. Tapping one plots it: Vision's
 
 ### Prop firm desk
 
-Named practice accounts at any firm, tested by hand, by strategy or both. New accounts are set up in four steps (firm, account, market and start, name); firms are compared side by side with a bar drawn to scale (room you may lose against what you must make) and their no-edge odds. Contracts and risk are chosen on the account, next to the buttons that trade it.
+Named practice accounts at any firm, tested by hand, by strategy or both. New accounts are set up in four steps (firm, account, market and start, name). Contracts and risk are chosen on the account, next to the buttons that trade it.
 
 The lab (`src/lib/vision/lab.ts`, `src/lib/server/library/lab.ts`, `/api/library/lab`) works on each account:
 
@@ -70,6 +70,7 @@ The lab (`src/lib/vision/lab.ts`, `src/lib/server/library/lab.ts`, `/api/library
 - **Sizing plans**: flat sizes, risk as a share of the room above the floor, a day stop at 40% of the room, a stop near the best-day limit, and one contract once at the target. `simulate` is tested to agree with the firm evaluator to the cent. Plans are ranked on the older 70% of days and shown on the newer 30%.
 - **Ranges**: overlapping starts count as roughly independent attempts (days available over days per attempt), so a pass rate comes with a wide range when there are few real tries.
 - **Walk-forward**: attempts in date order. Before each, the shortlist (best expectancy t-stat over the prior three years) and plan are chosen from earlier data only. Its pass rate is the number to believe; the plan held still is shown beside it.
+- **Best firm**: the current strategy at every firm's account of this size, each with its best sizing, ranked by points over a no-edge trader at that firm. Beside it, attempts split by one rule set beforehand: start only when the cautious estimate beats no edge.
 - **Autopsy**: names what ended an attempt (trailing floor, size, one day, a streak, giving back profit, stuck over the target) and replays the same trades under other plans to show which change would have saved it. Also runs on an account's own trades, by hand or automated.
 - **Autopilot**: from the account's start date, chooses, trades, reads the result, pays for a reset and goes again until it passes or reaches 10 attempts. Each attempt goes in the account's history.
 - **Studying again**: runs by itself when the library has newer data than the study, and the study log records whether the plan changed. An account's own trades don't feed the choice of plan.

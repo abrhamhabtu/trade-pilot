@@ -327,18 +327,18 @@ function Detail({ a, s, hasData, dataTo, onBack, onSave, onRemove, onReplay, onA
         </div>
       </section>
 
-      <EdgeLab a={a} s={s} hasData={hasData} dataTo={dataTo} onSave={onSave} />
-
-      {auto && !done && <AutoRun a={a} onAutoRun={onAutoRun} />}
-
-      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <Curve s={s} color={a.color} />
         <Calendar s={s} />
       </div>
 
-      <DayLedger days={s.days} program={p} name={a.name} />
-
       <Rules a={a} s={s} />
+
+      {auto && !done && <AutoRun a={a} onAutoRun={onAutoRun} />}
+
+      <EdgeLab a={a} s={s} hasData={hasData} dataTo={dataTo} onSave={onSave} />
+
+      <DayLedger days={s.days} program={p} name={a.name} />
 
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
         <Ledger a={a} />

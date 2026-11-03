@@ -559,8 +559,9 @@ export interface WalkStep {
   variant: string;
   variantLabel: string;
   plan: SizingPlan;
-  /** What the choice looked like on the data it saw. */
+  /** What the choice looked like on the data it saw, and the cautious end of that range. */
   expected: number;
+  expectedLow: number;
   start: string;
   end: string;
   result: EndReason;
@@ -675,7 +676,7 @@ export function* walkSteps(variants: Variant[], p: FirmProgram, price: Pricing, 
     const changed: string[] = [];
     if (prev && prev.v.id !== pick.v.id) changed.push(`Moved to ${pick.v.label}: its record over the past ${Math.round(750 / 252)} years is now stronger than ${prev.v.label}.`);
     if (prev && planKey(prev.plan) !== planKey(pick.plan)) changed.push(`Sizing is now: ${planLabel(pick.plan, contract)}.`);
-    const step: WalkStep = { n: steps.length + 1, trainedTo: all[k - 1], variant: pick.v.id, variantLabel: pick.v.label, plan: pick.plan, expected: pick.odds.passRate, start: date, end: lastDay, result: att.end, profit: att.profit, days: att.daysTraded, autopsy: report, change: changed.join(" ") || (prev ? "Kept the same plan: nothing earlier argued for changing it." : "First attempt."), attempt: att };
+    const step: WalkStep = { n: steps.length + 1, trainedTo: all[k - 1], variant: pick.v.id, variantLabel: pick.v.label, plan: pick.plan, expected: pick.odds.passRate, expectedLow: pick.odds.low, start: date, end: lastDay, result: att.end, profit: att.profit, days: att.daysTraded, autopsy: report, change: changed.join(" ") || (prev ? "Kept the same plan: nothing earlier argued for changing it." : "First attempt."), attempt: att };
     steps.push(step);
     prev = pick;
     yield step;
@@ -719,6 +720,55 @@ export function baselineWalk(v: Variant, p: FirmProgram, plan: SizingPlan, price
     k += Math.max(1, att.days.length);
   }
   return { passed, failed, passRate: passed + failed ? passed / (passed + failed) : 0, attempts: passed + failed };
+}
+
+// ── Which firm, and whether to start at all ───────────────────────────────────
+
+export interface FirmRow {
+  key: string;
+  firm: string;
+  program: string;
+  cost: number;
+  plan: SizingPlan;
+  odds: Odds;
+  /** The same rules for a trader with no edge. */
+  coin: number;
+  /** Points of pass rate this strategy adds over no edge at these rules. */
+  edge: number;
+}
+
+/** The same trades at every firm's account of this size, each with the sizing that suits its rules. */
+export function firmShootout(days: UnitDay[], programs: FirmProgram[], price: Pricing): FirmRow[] {
+  return programs
+    .map((p) => {
+      let best: { plan: SizingPlan; odds: Odds } | null = null;
+      for (const plan of planGrid(p, price.micro)) {
+        const odds = rollingOdds(days, p, plan, price, { cap: 30 });
+        if (!best || odds.low > best.odds.low || (odds.low === best.odds.low && odds.passRate > best.odds.passRate)) best = { plan, odds };
+      }
+      const coin = coinFlipOdds(p, { runs: 800 }).rate;
+      return { key: p.key, firm: p.firm, program: p.program, cost: p.cost, plan: best!.plan, odds: best!.odds, coin, edge: best!.odds.passRate - coin };
+    })
+    .sort((a, b) => b.edge - a.edge);
+}
+
+export interface GoNoGo {
+  /** Attempts whose cautious expected odds, known beforehand, cleared the no-edge number. */
+  taken: { attempts: number; passed: number; failed: number; passRate: number; costPerPass: number | null };
+  skipped: { attempts: number; passed: number; failed: number; passRate: number };
+  saved: number;
+}
+
+/** Attempts split by a rule fixed in advance: start only when even the cautious estimate beats no edge. */
+export function goNoGo(steps: Pick<WalkStep, "expectedLow" | "result">[], coin: number, cost: number): GoNoGo {
+  const tally = (xs: typeof steps) => {
+    const passed = xs.filter((x) => x.result === "passed").length;
+    const failed = xs.filter((x) => x.result === "floor").length;
+    return { attempts: xs.length, passed, failed, passRate: passed + failed ? passed / (passed + failed) : 0 };
+  };
+  const yes = tally(steps.filter((x) => (x.expectedLow ?? 0) >= coin));
+  const no = tally(steps.filter((x) => (x.expectedLow ?? 0) < coin));
+  return { taken: { ...yes, costPerPass: yes.passed ? (yes.attempts * cost) / yes.passed : null }, skipped: no, saved: no.attempts * cost };
 }
 
 // ── A real account, as units ───────────────────────────────────────────────────

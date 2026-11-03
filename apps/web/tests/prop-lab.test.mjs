@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { FIRM_PROGRAMS, evaluate, programByKey } from "../src/lib/proving/firms.ts";
 import { accountState, newAccount } from "../src/lib/vision/account.ts";
-import { attemptToSims, autopsy, coinFlipOdds, dayLedger, firmTraps, planGrid, rollingOdds, simulate, sizingStudy, toUnitDays, walkForward, wilson } from "../src/lib/vision/lab.ts";
+import { attemptToSims, autopsy, coinFlipOdds, dayLedger, firmShootout, firmTraps, goNoGo, planGrid, rollingOdds, simulate, sizingStudy, toUnitDays, walkForward, wilson } from "../src/lib/vision/lab.ts";
 
 const price = { pointValue: 2, fee: 1.04, micro: true };
 const flat = (amount) => ({ kind: "fixed", amount, dayStop: 0, dayCap: false, coast: false });
@@ -168,4 +168,15 @@ test("the day ledger's floor and balance match the account's own curve", () => {
   assert.ok(Math.abs(rows.at(-1).floor - att.floor) < 0.01);
   assert.equal(summary.green + summary.red + summary.flat, summary.days);
   assert.ok(programByKey(p.key));
+});
+
+test("the shootout ranks firms by edge over no edge, and the signal split counts every attempt once", () => {
+  const days = toUnitDays(tape({ edge: 0.55, days: 200 }));
+  const rows = firmShootout(days, programs, price);
+  assert.equal(rows.length, programs.length);
+  assert.ok(rows.every((r, i) => !i || rows[i - 1].edge >= r.edge));
+  assert.ok(rows.every((r) => Math.abs(r.edge - (r.odds.passRate - r.coin)) < 1e-9));
+  const steps = [{ expectedLow: 0.4, result: "passed" }, { expectedLow: 0.4, result: "floor" }, { expectedLow: 0.1, result: "floor" }, { expectedLow: 0.1, result: "unfinished" }];
+  const g = goNoGo(steps, 0.3, 100);
+  assert.deepEqual([g.taken.attempts, g.taken.passRate, g.taken.costPerPass, g.skipped.attempts, g.saved], [2, 0.5, 200, 2, 200]);
 });

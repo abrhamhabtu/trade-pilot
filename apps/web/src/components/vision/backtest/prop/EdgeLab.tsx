@@ -5,11 +5,11 @@ import clsx from "clsx";
 import { ChevronDown, FlaskConical, Loader2, Play, Repeat, Route, Shield, Sparkles, Stethoscope } from "lucide-react";
 import type { Study } from "@/lib/server/library/lab";
 import type { AccountState, PropAccount } from "@/lib/vision/account";
-import { accountUnits, autopsy, firmTraps, planLabel, simulate, type Autopsy, type PlanRow, type SizingPlan } from "@/lib/vision/lab";
+import { accountUnits, autopsy, firmTraps, goNoGo, planLabel, simulate, type Autopsy, type FirmRow, type FirmTrap, type GoNoGo, type PlanRow, type SizingPlan } from "@/lib/vision/lab";
 import { SYMBOLS, isSymbol } from "@/lib/vision/markets";
 import { useVisionStore } from "@/store/visionStore";
+import { Seg } from "../ui";
 import { money } from "../data";
-import { Corridor } from "./Corridor";
 
 const usd = (n: number) => `$${Math.round(Math.abs(n)).toLocaleString("en-US")}`;
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -76,111 +76,158 @@ export function EdgeLab({ a, s, hasData, dataTo, onSave }: { a: PropAccount; s: 
   };
 
   // New data in the library: study again without being asked, and the log records what changed.
-  const stale = !!study && !!dataTo && new Date(dataTo * 1000).toISOString().slice(0, 10) > study.dataTo;
+  const stale = !!study && ((!!dataTo && new Date(dataTo * 1000).toISOString().slice(0, 10) > study.dataTo) || !study.shootout);
   useEffect(() => {
     if (stale && !job) void start();
   }, [stale, job, start]);
 
   const cur = study?.walk.current;
+  const [tab, setTab] = useState<LabTab>("firms");
+  const go = study ? goNoGo(study.walk.steps, study.coin.rate, p.cost) : null;
+  const clear = !!study && !!cur && cur.odds.low >= study.coin.rate && study.walk.passRate > study.coin.rate;
+  const top = study?.shootout?.[0];
   return (
     <section className="overflow-hidden rounded-[26px] border border-white/[0.07] bg-[#121214]/80 backdrop-blur-2xl">
-      <div className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-        {/* The firm's side */}
-        <div className="min-w-0">
-          <h3 className="text-[20px] font-semibold tracking-[-0.02em] text-white">How {p.firm} plays this</h3>
-          <div className="mt-3">
-            <Corridor p={p} size="lg" balance={s.balance} floor={s.threshold} />
-          </div>
-          <div className="mt-4 space-y-3">
-            {traps.slice(0, 4).map((t) => (
-              <div key={t.id}>
-                <p className="text-[13.5px] font-semibold text-white">{t.title}</p>
-                <p className="mt-0.5 text-[12.5px] leading-snug text-white/50">{t.how}</p>
-                <p className="mt-1 flex items-start gap-1.5 text-[12.5px] leading-snug text-[#9BE1FF]">
-                  <Shield className="mt-0.5 h-3 w-3 shrink-0" /> {t.answer}
-                </p>
-              </div>
-            ))}
+      {!loaded ? (
+        <p className="p-8 text-center text-[13px] text-white/40">Looking for an earlier study…</p>
+      ) : running ? (
+        <div className="p-6">
+          <p className="flex items-center gap-2 text-[16px] font-semibold text-white">
+            <Loader2 className="h-4 w-4 animate-spin" /> Finding your edge
+          </p>
+          <p className="mt-1 text-[13px] text-white/55">{job!.stage}</p>
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.08]">
+            <div className="h-full rounded-full bg-white transition-[width] duration-700" style={{ width: `${Math.min(100, (job!.done / Math.max(1, job!.total)) * 100)}%` }} />
           </div>
         </div>
-
-        {/* Your side */}
-        <div className="min-w-0 rounded-[20px] bg-white/[0.035] p-5">
-          {!loaded ? (
-            <p className="py-10 text-center text-[13px] text-white/40">Looking for an earlier study…</p>
-          ) : running ? (
-            <div className="py-6">
-              <p className="flex items-center gap-2 text-[15px] font-semibold text-white">
-                <Loader2 className="h-4 w-4 animate-spin" /> Finding your edge
-              </p>
-              <p className="mt-1 text-[13px] text-white/55">{job!.stage}</p>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
-                <div className="h-full rounded-full bg-white transition-[width] duration-700" style={{ width: `${Math.min(100, (job!.done / Math.max(1, job!.total)) * 100)}%` }} />
-              </div>
-              <p className="mt-3 text-[12px] leading-snug text-white/40">The first study of a market runs every strategy variant through every year of your data, which takes a while. You can leave this page. After that, each firm takes moments.</p>
-            </div>
-          ) : !study ? (
-            <div className="py-3">
-              <p className="text-[20px] font-semibold tracking-[-0.02em] text-white">Find the edge against this firm</p>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-white/55">Runs each strategy, session and exit style through your {a.symbol} history, starts this account on hundreds of days, tries dozens of sizing plans, and tells you which held up on data it had never seen.</p>
-              {job?.error && <p className="mt-3 rounded-[12px] bg-[#FF7A85]/12 px-3 py-2 text-[13px] text-[#FFA3AB]">{job.error}</p>}
-              {hasData ? (
-                <button onClick={start} className="mt-4 flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[14.5px] font-semibold text-black active:scale-[0.98]">
-                  <FlaskConical className="h-4 w-4" /> Run the study
-                </button>
-              ) : (
-                <button onClick={() => set({ btTab: "library" })} className="mt-4 rounded-full bg-white/[0.1] px-5 py-3 text-[14px] font-medium text-white">
-                  Add {a.symbol} data in the Library first
-                </button>
-              )}
-            </div>
+      ) : !study ? (
+        <div className="flex flex-wrap items-center gap-5 p-6">
+          <div className="min-w-[260px] flex-1">
+            <p className="text-[20px] font-semibold tracking-[-0.02em] text-white">Find your edge against {p.firm}</p>
+            <p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-white/55">Tests every strategy and sizing plan on your {a.symbol} history, then shows what held up on data it hadn&apos;t seen.</p>
+            {job?.error && <p className="mt-2 text-[13px] text-[#FFA3AB]">{job.error}</p>}
+          </div>
+          {hasData ? (
+            <button onClick={start} className="flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[14.5px] font-semibold text-black active:scale-[0.98]">
+              <FlaskConical className="h-4 w-4" /> Run the study
+            </button>
           ) : (
-            <div>
-              <p className="text-[13px] text-white/55">Without seeing the future, attempt by attempt since {nice(study.walk.steps[0]?.start ?? study.dataFrom)}</p>
-              <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
-                <span className={clsx("text-[52px] font-semibold leading-none tracking-[-0.04em] tabular-nums", study.walk.passRate > study.coin.rate ? "text-[#7CE59A]" : "text-[#FFA3AB]")}>{pct(study.walk.passRate)}</span>
-                <span className="text-[14px] text-white/70">pass rate</span>
-              </div>
-              <p className="mt-1.5 text-[13px] leading-snug text-white/60">
-                {study.walk.passed} passed, {study.walk.failed} failed{study.walk.unfinished ? `, ${study.walk.unfinished} unfinished` : ""}. Likely true range {pct(study.walk.range.low)} to {pct(study.walk.range.high)}. A coin-flip trader gets {pct(study.coin.rate)}{study.walk.costPerPass ? `. About ${usd(study.walk.costPerPass)} in fees per pass` : ""}.
-              </p>
-              {study.walk.passRate <= study.coin.rate && <p className="mt-2 rounded-[12px] bg-[#FF7A85]/12 px-3 py-2 text-[13px] leading-snug text-[#FFC2C7]">No strategy here beats the firm yet. Don&apos;t pay for this account with these strategies: the rules have the edge. Write your own in Strategy test and run this again.</p>}
-              {cur && (
-                <div className="mt-4 border-t border-white/[0.07] pt-4">
-                  <p className="text-[13px] text-white/55">The plan now, from everything up to {nice(study.dataTo)}</p>
-                  <p className="mt-1 text-[15px] font-semibold text-white">{cur.variantLabel}</p>
-                  <p className="text-[13.5px] text-white/75">{planLabel(cur.plan, word)}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {!done && (
-                      <button onClick={() => trade(cur.variant, cur.plan)} disabled={!!busy} className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13.5px] font-semibold text-black disabled:opacity-50">
-                        {busy === "trade" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />} Trade this plan
-                      </button>
-                    )}
-                    <button onClick={campaign} disabled={!!busy || a.trades.length > 0} title={a.trades.length ? "Autopilot starts from a clean account. Reset this one first." : undefined} className="flex items-center gap-2 rounded-full bg-white/[0.1] px-4 py-2.5 text-[13.5px] font-medium text-white hover:bg-white/[0.15] disabled:opacity-40">
-                      {busy === "campaign" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Autopilot until it passes
-                    </button>
-                    <button onClick={start} className="flex items-center gap-2 rounded-full px-3 py-2.5 text-[13.5px] font-medium text-white/60 hover:text-white">
-                      <Repeat className="h-4 w-4" /> Study again
-                    </button>
-                  </div>
-                  {a.trades.length > 0 && !done && <p className="mt-2 text-[11.5px] text-white/40">Autopilot starts from a clean account. Reset this one to use it.</p>}
-                  {out && <p className="mt-3 rounded-[12px] bg-[#5AC8FA]/10 px-3 py-2 text-[12.5px] leading-snug text-white/85">{out}</p>}
-                </div>
-              )}
-            </div>
+            <button onClick={() => set({ btTab: "library" })} className="rounded-full bg-white/[0.1] px-5 py-3 text-[14px] font-medium text-white">
+              Add {a.symbol} data first
+            </button>
           )}
         </div>
-      </div>
-
-      {a.trades.length > 0 && <AccountAutopsy a={a} s={s} word={word} />}
-      {study && (
+      ) : (
         <>
-          <SizeLab study={study} word={word} />
-          <Attempts study={study} word={word} />
-          <Learned study={study} word={word} />
+          <div className="grid gap-6 p-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center">
+            <div className="flex items-baseline gap-5">
+              <div>
+                <p className={clsx("text-[56px] font-semibold leading-none tracking-[-0.045em] tabular-nums", study.walk.passRate > study.coin.rate ? "text-white" : "text-[#FFA3AB]")}>{pct(study.walk.passRate)}</p>
+                <p className="mt-1.5 text-[12.5px] text-white/50">your pass rate</p>
+              </div>
+              <div>
+                <p className="text-[28px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-white/40">{pct(study.coin.rate)}</p>
+                <p className="mt-1.5 text-[12.5px] text-white/50">with no edge</p>
+              </div>
+            </div>
+            <div className="min-w-0 lg:border-l lg:border-white/[0.07] lg:pl-6">
+              <p className="text-[17px] font-semibold tracking-[-0.01em] text-white">{clear ? "The history clears the bar for this plan" : "The history doesn't clear the bar yet"}</p>
+              {cur && (
+                <p className="mt-0.5 text-[13.5px] leading-snug text-white/60">
+                  {cur.variantLabel}. {planLabel(cur.plan, word)}. {study.walk.passed} of {study.walk.passed + study.walk.failed} decided attempts passed, likely range {pct(study.walk.range.low)} to {pct(study.walk.range.high)}.
+                </p>
+              )}
+              {cur && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {!done && (
+                    <button onClick={() => trade(cur.variant, cur.plan)} disabled={!!busy} className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[13.5px] font-semibold text-black disabled:opacity-50">
+                      {busy === "trade" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-3.5 w-3.5 fill-current" />} Trade this plan
+                    </button>
+                  )}
+                  <button onClick={campaign} disabled={!!busy || a.trades.length > 0} title={a.trades.length ? "Autopilot starts from a clean account. Reset this one first." : undefined} className="flex items-center gap-2 rounded-full bg-white/[0.09] px-4 py-2 text-[13.5px] font-medium text-white hover:bg-white/[0.14] disabled:opacity-40">
+                    {busy === "campaign" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Autopilot
+                  </button>
+                  <button onClick={start} className="flex items-center gap-2 rounded-full px-3 py-2 text-[13.5px] font-medium text-white/55 hover:text-white">
+                    <Repeat className="h-3.5 w-3.5" /> Study again
+                  </button>
+                </div>
+              )}
+              {out && <p className="mt-2.5 text-[12.5px] leading-snug text-[#9BE1FF]">{out}</p>}
+            </div>
+          </div>
+          <div className="overflow-x-auto border-t border-white/[0.06] px-6 pt-4">
+            <Seg size="sm" value={tab} onChange={setTab} label="Lab section" options={[{ v: "firms" as const, l: "Best firm" }, { v: "size" as const, l: "Sizing" }, { v: "attempts" as const, l: "Attempts" }, { v: "patterns" as const, l: "Patterns" }, { v: "traps" as const, l: "Firm's traps" }, ...(a.trades.length ? [{ v: "account" as const, l: "This account" }] : [])]} />
+          </div>
+          {tab === "firms" && <Shootout study={study} current={a.program} go={go!} top={top} word={word} />}
+          {tab === "size" && <SizeLab study={study} word={word} />}
+          {tab === "attempts" && <Attempts study={study} word={word} />}
+          {tab === "patterns" && <Learned study={study} word={word} />}
+          {tab === "traps" && <Traps traps={traps} />}
+          {tab === "account" && a.trades.length > 0 && <AccountAutopsy a={a} s={s} word={word} />}
         </>
       )}
     </section>
+  );
+}
+
+type LabTab = "firms" | "size" | "attempts" | "patterns" | "traps" | "account";
+
+function Traps({ traps }: { traps: FirmTrap[] }) {
+  return (
+    <div className="grid gap-x-8 gap-y-4 p-6 md:grid-cols-2">
+      {traps.map((t) => (
+        <div key={t.id}>
+          <p className="text-[14px] font-semibold text-white">{t.title}</p>
+          <p className="mt-0.5 text-[12.5px] leading-snug text-white/50">{t.how}</p>
+          <p className="mt-1 flex items-start gap-1.5 text-[12.5px] leading-snug text-[#9BE1FF]">
+            <Shield className="mt-0.5 h-3 w-3 shrink-0" /> {t.answer}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── The same strategy at every firm ──
+
+function Shootout({ study, current, go, top, word }: { study: Study; current: string; go: GoNoGo; top?: FirmRow; word: string }) {
+  const rows = study.shootout ?? [];
+  return (
+    <div className="p-6">
+      {top && <p className="text-[15px] font-semibold text-white">{top.key === current ? "This firm's rules suit this strategy best" : `${top.firm}'s rules suit this strategy best`}: {pct(top.odds.passRate)} against {pct(top.coin)} with no edge.</p>}
+      <p className="mt-0.5 text-[12.5px] leading-snug text-white/50">The same trades at every firm&apos;s account of this size, each with the sizing that suits its rules. Ranked by how far they beat a no-edge trader at that firm.</p>
+      <div className="mt-3 overflow-x-auto">
+        <div className="min-w-[640px]">
+          <div className="grid grid-cols-[minmax(0,1.3fr)_60px_60px_60px_72px_minmax(0,1.2fr)] gap-3 px-3 pb-1.5 text-[11.5px] font-medium text-white/45">
+            <span>Firm</span>
+            <span className="text-right">Pass</span>
+            <span className="text-right">No edge</span>
+            <span className="text-right">Edge</span>
+            <span className="text-right">Per pass</span>
+            <span>Best sizing</span>
+          </div>
+          {rows.map((r) => (
+            <div key={r.key} className={clsx("grid grid-cols-[minmax(0,1.3fr)_60px_60px_60px_72px_minmax(0,1.2fr)] items-center gap-3 rounded-[12px] px-3 py-2 text-[12.5px] tabular-nums", r.key === current && "bg-white/[0.07]")}>
+              <span className="min-w-0 truncate text-white/85" title={`${r.firm}, ${r.program}`}>{r.firm} <span className="text-white/40">{r.program}</span></span>
+              <span className="text-right font-semibold text-white">{pct(r.odds.passRate)}</span>
+              <span className="text-right text-white/50">{pct(r.coin)}</span>
+              <span className={clsx("text-right font-semibold", r.edge > 0 ? "text-[#7CE59A]" : "text-[#FFA3AB]")}>{r.edge > 0 ? "+" : ""}{Math.round(r.edge * 100)}</span>
+              <span className="text-right text-white/60">{r.odds.costPerPass ? usd(r.odds.costPerPass) : "Never"}</span>
+              <span className="min-w-0 truncate text-white/55" title={planLabel(r.plan, word)}>{planLabel(r.plan, word)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-5 border-t border-white/[0.06] pt-4">
+        <p className="text-[15px] font-semibold text-white">Waiting for a clear signal</p>
+        <p className="mt-0.5 text-[12.5px] leading-snug text-white/50">One rule, set before each attempt: start only when even the cautious estimate beats a no-edge trader.</p>
+        <div className="mt-2.5 grid gap-x-8 gap-y-1 text-[13px] tabular-nums sm:grid-cols-2">
+          <p className="flex justify-between gap-3"><span className="text-white/70">When it said go</span><span className="font-semibold text-white">{go.taken.passed} of {go.taken.passed + go.taken.failed} passed, {pct(go.taken.passRate)}</span></p>
+          <p className="flex justify-between gap-3"><span className="text-white/70">When it said wait</span><span className="text-white/60">{go.skipped.passed} of {go.skipped.passed + go.skipped.failed} passed, {pct(go.skipped.passRate)}</span></p>
+        </div>
+        <p className="mt-1.5 text-[12px] text-white/40">{go.taken.attempts < 10 ? "Too few go signals to lean on yet. " : ""}Waiting would have skipped {go.skipped.attempts} attempts and {usd(go.saved)} in fees.</p>
+      </div>
+    </div>
   );
 }
 
@@ -201,7 +248,7 @@ function AccountAutopsy({ a, s, word }: { a: PropAccount; s: AccountState; word:
   if (!report) return null;
   const tone = s.status === "passed" ? "text-[#7CE59A]" : s.status === "blown" ? "text-[#FFA3AB]" : "text-white";
   return (
-    <div className="border-t border-white/[0.06] p-5">
+    <div className="p-6">
       <h4 className={clsx("flex items-center gap-2 text-[16px] font-semibold", tone)}>
         <Stethoscope className="h-4 w-4" /> {s.status === "passed" ? "Why this one passed" : s.status === "blown" ? "Why this one failed" : "Where this attempt stands"}
       </h4>
@@ -258,7 +305,7 @@ function SizeLab({ study, word }: { study: Study; word: string }) {
   const shown = all ? rows : rows.slice(0, 7);
   const edge = (r: PlanRow) => r.test.passRate - (flat?.test.passRate ?? 0);
   return (
-    <div className="border-t border-white/[0.06] p-5">
+    <div className="p-6">
       <h4 className="flex items-center gap-2 text-[16px] font-semibold text-white">
         <FlaskConical className="h-4 w-4" /> Size that beats the rules
       </h4>
@@ -309,7 +356,7 @@ function Attempts({ study, word }: { study: Study; word: string }) {
   const [open, setOpen] = useState<number | null>(lastFail?.n ?? steps.at(-1)?.n ?? null);
   const step = steps.find((x) => x.n === open);
   return (
-    <div className="border-t border-white/[0.06] p-5">
+    <div className="p-6">
       <h4 className="flex items-center gap-2 text-[16px] font-semibold text-white">
         <Route className="h-4 w-4" /> Every attempt, in date order
       </h4>
@@ -360,7 +407,7 @@ function Learned({ study, word }: { study: Study; word: string }) {
   const max = Math.max(1, ...study.years.map((y) => y.passed + y.failed + y.other));
   const fails = study.walk.failed + study.walk.unfinished;
   return (
-    <div className="grid gap-6 border-t border-white/[0.06] p-5 lg:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid gap-6 p-6 lg:grid-cols-2 2xl:grid-cols-3">
       <div className="min-w-0">
         <h4 className="text-[15px] font-semibold text-white">Year by year</h4>
         <div className="mt-2 space-y-1">

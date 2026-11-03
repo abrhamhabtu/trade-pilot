@@ -11,9 +11,9 @@ import { READERS, READER_ORDER, type ReaderId } from "@/lib/vision/analyze";
 import { runBacktest } from "@/lib/vision/backtest";
 import { SESSION_WINDOWS, type SessionKey } from "@/lib/vision/custom";
 import { accountState, resetAccount, type AccountTrade, type PropAccount } from "@/lib/vision/account";
-import { baselineWalk, coinFlipOdds, planKey, planLabel, rollingOdds, simulate, sizingStudy, toUnitDays, walkSteps, type Attempt, type Odds, type Pricing, type SizingPlan, type SizingStudy, type UnitTrade, type Variant, type WalkResult } from "@/lib/vision/lab";
+import { baselineWalk, coinFlipOdds, firmShootout, planKey, planLabel, rollingOdds, simulate, sizingStudy, toUnitDays, walkSteps, type Attempt, type FirmRow, type Odds, type Pricing, type SizingPlan, type SizingStudy, type UnitTrade, type Variant, type WalkResult } from "@/lib/vision/lab";
 import { SYMBOLS, TF_SECONDS, isSymbol, type Timeframe } from "@/lib/vision/markets";
-import { programByKey } from "@/lib/proving/firms";
+import { FIRM_PROGRAMS, programByKey } from "@/lib/proving/firms";
 import { LIB, getContext, getIndex, queryBars } from "./index";
 
 const VERSION = "v1";
@@ -161,6 +161,8 @@ export interface Study {
   years: { year: string; passed: number; failed: number; other: number }[];
   rescues: { change: string; count: number }[];
   generations: Generation[];
+  /** The current strategy at every firm's account of this size. */
+  shootout: FirmRow[];
 }
 
 const studyFile = (program: string, symbol: string, micro: boolean) => path.join(ROOT, "studies", `${program.replace(/[^a-z0-9-]/gi, "_")}-${symbol}-${micro ? "micro" : "full"}.json`);
@@ -235,6 +237,10 @@ async function study(o: { program: string; symbol: string; micro: boolean }, job
   });
   league.sort((a, b) => b.odds.low - a.odds.low);
 
+  job.stage = "Comparing every firm";
+  await breathe();
+  const shootout = firmShootout(days, FIRM_PROGRAMS.filter((x) => x.size === p.size && x.model === p.model), price);
+
   const causeCount = new Map<string, { id: string; title: string; count: number }>();
   const rescueCount = new Map<string, number>();
   const years = new Map<string, { year: string; passed: number; failed: number; other: number }>();
@@ -279,6 +285,7 @@ async function study(o: { program: string; symbol: string; micro: boolean }, job
     walk: { ...walk, steps: walk.steps.map(stripAttempt) },
     sizing,
     league: league.slice(0, 16),
+    shootout,
     causes: [...causeCount.values()].sort((a, b) => b.count - a.count),
     years: [...years.values()].sort((a, b) => a.year.localeCompare(b.year)),
     rescues: [...rescueCount.entries()].map(([change, count]) => ({ change, count })).sort((a, b) => b.count - a.count).slice(0, 5),
