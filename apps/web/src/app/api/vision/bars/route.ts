@@ -21,6 +21,14 @@ const YAHOO: Record<Timeframe, { interval: string; range: string }> = {
   "4h": { interval: "60m", range: "1y" },
 };
 const MAX_BARS = 1500;
+// Backtests ask for everything the free feed holds at each timeframe.
+const LONG: Record<Timeframe, { interval: string; range: string }> = {
+  "1m": { interval: "1m", range: "7d" },
+  "5m": { interval: "5m", range: "60d" },
+  "15m": { interval: "15m", range: "60d" },
+  "1h": { interval: "60m", range: "730d" },
+  "4h": { interval: "60m", range: "730d" },
+};
 const contracts = new Map<string, { at: number; id: string | number; name: string }>();
 
 async function contract(broker: "projectx" | "tradovate", root: string) {
@@ -33,8 +41,8 @@ async function contract(broker: "projectx" | "tradovate", root: string) {
   return out;
 }
 
-async function yahoo(source: string, tf: Timeframe): Promise<Bar[]> {
-  const { interval, range } = YAHOO[tf];
+async function yahoo(source: string, tf: Timeframe, long = false): Promise<Bar[]> {
+  const { interval, range } = (long ? LONG : YAHOO)[tf];
   const bars = await cached(`vision:${source}:${interval}:${range}`, 20_000, async () => (await yahooBars(source, interval, range)).bars, 10_000);
   if (!bars) throw new Error("No bars");
   return tf === "4h" ? aggregate(bars, TF_SECONDS["4h"]) : bars;
@@ -44,6 +52,8 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const symbol = params.get("symbol") ?? "";
   const tf = params.get("tf") ?? "15m";
+  const long = params.get("long") === "1";
+  const max = long ? Math.min(30_000, Number(params.get("max")) || 20_000) : MAX_BARS;
   if (!isSymbol(symbol) || SYMBOLS[symbol].kind !== "futures" || !isTimeframe(tf)) return NextResponse.json({ error: "Unknown symbol or timeframe." }, { status: 400 });
   const sym = SYMBOLS[symbol];
   const minutes = TF_SECONDS[tf] / 60;
@@ -74,11 +84,15 @@ export async function GET(request: Request) {
     source = "yahoo";
   }
   try {
-    if (source === "yahoo") bars = await yahoo(sym.source, tf);
+    if (source === "yahoo" || long) {
+      bars = await yahoo(sym.source, tf, long);
+      source = "yahoo";
+      contractName = null;
+    }
   } catch {
     return NextResponse.json({ error: "The market data source is unavailable right now." }, { status: 502 });
   }
-  const cut = bars.slice(-MAX_BARS);
+  const cut = bars.slice(-max);
   return NextResponse.json(
     {
       symbol,

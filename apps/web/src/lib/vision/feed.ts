@@ -31,7 +31,7 @@ async function coinbaseCandles(product: string, tf: Timeframe, pages = 4): Promi
   const g = GRANULARITY[tf];
   let end = Math.floor(Date.now() / 1000);
   const rows: number[][] = [];
-  for (let p = 0; p < (tf === "4h" ? 5 : pages); p++) {
+  for (let p = 0; p < (tf === "4h" ? Math.max(5, pages) : pages); p++) {
     const start = end - g * 300;
     const res = await fetch(`${COINBASE}/products/${product}/candles?granularity=${g}&start=${new Date(start * 1000).toISOString()}&end=${new Date(end * 1000).toISOString()}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`Coinbase returned ${res.status}`);
@@ -51,6 +51,16 @@ async function serverBars(symbol: VisionSymbolId, tf: Timeframe) {
   if (!res.ok) throw new Error(j.error || "Bars unavailable");
   const bars: Bar[] = j.t.map((t: number, i: number) => ({ t, o: j.o[i], h: j.h[i], l: j.l[i], c: j.c[i], v: j.v[i] }));
   return { bars, source: j.source as FeedSource, delayed: !!j.delayed, contract: (j.contract as string) ?? null, note: (j.note as string) ?? "" };
+}
+
+/** As much history as the free feeds hold, for backtests: ~9,000 bars of crypto, Yahoo's limits for futures. */
+export async function loadHistory(symbol: VisionSymbolId, tf: Timeframe): Promise<Bar[]> {
+  const sym = SYMBOLS[symbol];
+  if (sym.kind === "crypto") return coinbaseCandles(sym.source, tf, 30);
+  const res = await fetch(`/api/vision/bars?symbol=${symbol}&tf=${tf}&long=1&max=30000`, { cache: "no-store" });
+  const j = await res.json();
+  if (!res.ok) throw new Error(j.error || "Bars unavailable");
+  return j.t.map((t: number, i: number) => ({ t, o: j.o[i], h: j.h[i], l: j.l[i], c: j.c[i], v: j.v[i] }));
 }
 
 export async function loadBars(symbol: VisionSymbolId, tf: Timeframe, pages = 4) {

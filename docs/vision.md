@@ -38,6 +38,16 @@ Real futures orders go through `POST /api/vision/execute` after arming a venue f
 - **Pine Script**: the same reader as a TradingView Pine v6 indicator, with numbered steps, the plan and alerts whose JSON the TradePilot webhook accepts.
 - **Second read**: with a model connected in Pilot AI settings, the Copilot can ask it for a short take using only the computed facts.
 
+## Backtest mode
+
+The Live | Backtest switch in Vision's header turns the page cyan and swaps the live charts for three sections. Nothing in backtest mode touches the paper book, the trade history or a broker.
+
+- **Strategy test** (`src/lib/vision/backtest.ts`, run in `backtest.worker.ts`): the live readers over history, one position at a time. Entry at the signal bar's close plus slippage; stop and target on whole ticks; the stop wins a bar that touches both; a time exit after the max hold; commission per contract (per trade when sizing crypto by risk). Filters: entry hours (NY open 9:30–11:30, RTH or all), direction, FOMC days, early closes and a VIX band taken from the prior close. Results: net P&L, win rate, profit factor, expectancy, drawdown, the equity and drawdown curves, each strategy run on its own, breakdowns by hour, weekday, month, VIX, FOMC, side and strategy, and every trade, drawn on the chart when tapped. Runs export as CSV or save to the Library.
+- **Replay**: bar-by-bar playback from any date with a hidden future, up to 25×, a jump to the next setup, a ticket with stop and target, and Vision's marks as setups form. Sessions save to the Library.
+- **Library** (`src/lib/server/library/`, `/api/library/*`): files dropped in the browser or added by a path in the home folder, kept on this machine under `.tradepilot/library/`. Originals download unchanged. OHLCV CSVs (Databento `ts_event` or `ts_utc` with `continuous`, or plain time/open/high/low/close/volume) become 1-minute series per symbol, stored per year; 1-second bars fold into minutes. Split zips (`.part00`/`.part01` onward) join once they read as a whole zip, and the parts are then dropped. The free-data pack supplies FOMC days, CME early closes and holidays, and VIX. Saved runs and sessions download as CSV or JSON.
+
+Databento's continuous contracts are front month by volume and not back-adjusted, so a trade over a roll can see the roll's price step. Without library data, history comes from the free feeds: Yahoo for futures (about 60 days of 5-minute bars) and Coinbase for crypto.
+
 ## Not verified
 
 The Pine Script has not been compiled in TradingView, and broker bars and orders have not been run against a live login. Test both before relying on them.

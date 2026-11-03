@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { Code2, Columns2, Copy, Download, ScanEye, Square, Volume2, VolumeX, X } from "lucide-react";
+import { Code2, Columns2, Copy, Download, FlaskConical, Radio, ScanEye, Square, Volume2, VolumeX, X } from "lucide-react";
 import { useVisionStore, type VisionPosition, type VisionTrade, type Venue } from "@/store/visionStore";
 import { useSessionFlow } from "@/store/sessionFlowStore";
 import { BY_KIND, SYMBOLS, formatPrice, type MarketKind, type VisionSymbolId } from "@/lib/vision/markets";
@@ -13,6 +13,7 @@ import { PROVIDERS } from "@/lib/pilot/models";
 import { chime } from "@/components/pilot/flow/judge";
 import { ChartCard, type ChartState } from "./ChartCard";
 import { CopilotPanel } from "./CopilotPanel";
+import { BacktestWorkspace } from "./backtest/Workspace";
 
 const signed = (n: number) => `${n >= 0 ? "+" : "-"}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const dayOf = (ms: number) => new Date(ms).toLocaleDateString("en-CA");
@@ -23,6 +24,21 @@ const EMPTY_BOOK: Book = { positions: [], trades: [], handled: [] };
 const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 export function VisionPage() {
+  const mode = useVisionStore((s) => s.mode);
+  const set = useVisionStore((s) => s.set);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  if (!hydrated) return null;
+  if (mode === "live") return <LiveVision />;
+  return (
+    <div className="space-y-5 pb-6">
+      <TopBar mode={mode} onMode={(m) => set({ mode: m })} />
+      <BacktestWorkspace />
+    </div>
+  );
+}
+
+function LiveVision() {
   const s = useVisionStore();
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
@@ -238,7 +254,7 @@ export function VisionPage() {
 
   return (
     <div className="space-y-5 pb-6">
-      <TopBar kind={s.kind} onKind={switchKind} layout={s.charts.length as 1 | 2} onLayout={setLayout} onPine={() => setPine(true)} sound={s.sound} onSound={() => s.set({ sound: !s.sound })} />
+      <TopBar mode="live" onMode={(mode) => s.set({ mode })} kind={s.kind} onKind={switchKind} layout={s.charts.length as 1 | 2} onLayout={setLayout} onPine={() => setPine(true)} sound={s.sound} onSound={() => s.set({ sound: !s.sound })} />
 
       <TickerStrip rows={tickers} active={focused.symbol} onPick={pickSymbol} />
 
@@ -285,10 +301,15 @@ export function VisionPage() {
               if (!position) return;
               if (isDemo(fi)) {
                 const exit = focusPrice ?? position.entry;
-                setDemo((d) => ({ ...d, positions: d.positions.filter((p) => p.id !== position.id), trades: [...d.trades, { ...position, exit, closedAt: Date.now(), pnl: (position.side === "long" ? exit - position.entry : position.entry - exit) * position.qty * position.pointValue, reason: "manual" }] }));
+                setDemo((d) => ({
+                  ...d,
+                  positions: d.positions.filter((p) => p.id !== position.id),
+                  trades: [...d.trades, { ...position, exit, closedAt: Date.now(), pnl: (position.side === "long" ? exit - position.entry : position.entry - exit) * position.qty * position.pointValue, reason: "manual" }],
+                }));
                 return;
               }
-              if (position.venue !== "paper") await fetch("/api/vision/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "flatten", symbol: position.symbol, micro: s.micro }) }).catch(() => undefined);
+              if (position.venue !== "paper")
+                await fetch("/api/vision/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "flatten", symbol: position.symbol, micro: s.micro }) }).catch(() => undefined);
               const t = s.close(position.id, prices[position.symbol] ?? position.entry, "manual");
               if (t) ping(t.pnl >= 0 ? "go" : "wait");
             }}
@@ -306,55 +327,133 @@ export function VisionPage() {
   );
 }
 
-function TopBar({ kind, onKind, layout, onLayout, onPine, sound, onSound }: { kind: MarketKind; onKind: (k: MarketKind) => void; layout: 1 | 2; onLayout: (n: 1 | 2) => void; onPine: () => void; sound: boolean; onSound: () => void }) {
-  const model = useModelStore((s) => s.model);
-  const hydrate = useModelStore((s) => s.hydrate);
-  useEffect(() => hydrate(), [hydrate]);
-  const ready = modelReady(model);
+type LiveBar = { kind: MarketKind; onKind: (k: MarketKind) => void; layout: 1 | 2; onLayout: (n: 1 | 2) => void; onPine: () => void; sound: boolean; onSound: () => void };
+
+function TopBar(props: { mode: "live" | "backtest"; onMode: (m: "live" | "backtest") => void } & (LiveBar | { kind?: undefined })) {
+  const { mode, onMode } = props;
+  const backtest = mode === "backtest";
   return (
     <header className="flex flex-wrap items-end justify-between gap-4 pt-1">
       <div className="flex items-center gap-4">
-        <span className="grid h-12 w-12 place-items-center rounded-[15px] bg-gradient-to-br from-[#FFB27D] to-[#FF7A2D] text-black shadow-[0_14px_34px_-12px_rgba(255,138,61,0.9)]">
-          <ScanEye className="h-6 w-6" />
+        <span
+          className={clsx(
+            "grid h-12 w-12 place-items-center rounded-[15px] text-black transition-all duration-500",
+            backtest ? "bg-gradient-to-br from-[#A6E8FF] to-[#2FA8EE] shadow-[0_14px_34px_-12px_rgba(90,200,250,0.9)]" : "bg-gradient-to-br from-[#FFB27D] to-[#FF7A2D] shadow-[0_14px_34px_-12px_rgba(255,138,61,0.9)]",
+          )}
+        >
+          {backtest ? <FlaskConical className="h-6 w-6" /> : <ScanEye className="h-6 w-6" />}
         </span>
         <div>
-          <h1 className="text-[40px] font-bold leading-none tracking-[-0.04em] text-white">Vision</h1>
-          <p className="mt-1 text-[15px] text-white/50">Reads the chart with your strategies, marks the setup, and shows its odds from real history.</p>
+          <h1 className="text-[40px] font-bold leading-none tracking-[-0.04em] text-white">Vision{backtest && <span className="text-[#9BE1FF]"> Backtest</span>}</h1>
+          <p className="mt-1 text-[15px] text-white/50">{backtest ? "Your strategies over years of history, replayed and measured." : "Reads the chart with your strategies, marks the setup, and shows its odds from real history."}</p>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Seg value={kind} options={[{ v: "crypto" as const, l: "Crypto" }, { v: "futures" as const, l: "Futures" }]} onChange={onKind} />
-        <Seg
-          value={layout}
-          options={[
-            { v: 1 as const, l: <span className="flex items-center gap-1.5"><Square className="h-3.5 w-3.5" /> 1</span> },
-            { v: 2 as const, l: <span className="flex items-center gap-1.5"><Columns2 className="h-3.5 w-3.5" /> 2</span> },
-          ]}
-          onChange={onLayout}
-          label="Charts"
-        />
-        <IconBtn label={sound ? "Sound on" : "Sound off"} onClick={onSound}>
-          {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-        </IconBtn>
-        <a href="/app/pilot?tab=settings" className="flex h-10 items-center gap-2 rounded-full bg-white/[0.07] px-3.5 text-[13px] font-semibold text-white/80 ring-1 ring-white/[0.06] hover:bg-white/[0.11]" title="Change the model in Pilot AI settings">
-          <span className={clsx("h-2 w-2 rounded-full", ready ? "bg-[#FF8A3D]" : "bg-white/35")} />
-          {ready ? model.model || PROVIDERS[model.provider].label : "Built-in reader"}
-        </a>
-        <button onClick={onPine} className="flex h-10 items-center gap-2 rounded-full bg-[#FF8A3D] px-4 text-[14px] font-semibold text-black shadow-[0_10px_26px_-10px_rgba(255,138,61,0.9)] hover:brightness-105 active:scale-[0.97]">
-          <Code2 className="h-4 w-4" /> Pine Script
-        </button>
+        <ModeSwitch mode={mode} onMode={onMode} />
+        {props.kind !== undefined && <LiveControls {...(props as LiveBar)} />}
       </div>
     </header>
   );
 }
 
+function ModeSwitch({ mode, onMode }: { mode: "live" | "backtest"; onMode: (m: "live" | "backtest") => void }) {
+  const bt = mode === "backtest";
+  return (
+    <div role="group" aria-label="Vision mode" className="relative grid grid-cols-2 rounded-[14px] bg-white/[0.07] p-[3px]">
+      <span aria-hidden className={clsx("absolute bottom-[3px] left-[3px] top-[3px] w-[calc((100%-6px)/2)] rounded-[11px] transition-all duration-500 ease-spring", bt ? "translate-x-full bg-[#5AC8FA]" : "bg-[#FF8A3D]")} />
+      <button
+        onClick={() => onMode("live")}
+        aria-pressed={!bt}
+        className={clsx("relative flex items-center justify-center gap-1.5 rounded-[11px] px-4 py-1.5 text-[14px] font-bold", !bt ? "text-black" : "text-white/55 hover:text-white/85")}
+      >
+        <Radio className="h-3.5 w-3.5" /> Live
+      </button>
+      <button
+        onClick={() => onMode("backtest")}
+        aria-pressed={bt}
+        className={clsx("relative flex items-center justify-center gap-1.5 rounded-[11px] px-4 py-1.5 text-[14px] font-bold", bt ? "text-black" : "text-white/55 hover:text-white/85")}
+      >
+        <FlaskConical className="h-3.5 w-3.5" /> Backtest
+      </button>
+    </div>
+  );
+}
+
+function LiveControls({ kind, onKind, layout, onLayout, onPine, sound, onSound }: LiveBar) {
+  const model = useModelStore((s) => s.model);
+  const hydrate = useModelStore((s) => s.hydrate);
+  useEffect(() => hydrate(), [hydrate]);
+  const ready = modelReady(model);
+  return (
+    <>
+      <Seg
+        value={kind}
+        options={[
+          { v: "crypto" as const, l: "Crypto" },
+          { v: "futures" as const, l: "Futures" },
+        ]}
+        onChange={onKind}
+      />
+      <Seg
+        value={layout}
+        options={[
+          {
+            v: 1 as const,
+            l: (
+              <span className="flex items-center gap-1.5">
+                <Square className="h-3.5 w-3.5" /> 1
+              </span>
+            ),
+          },
+          {
+            v: 2 as const,
+            l: (
+              <span className="flex items-center gap-1.5">
+                <Columns2 className="h-3.5 w-3.5" /> 2
+              </span>
+            ),
+          },
+        ]}
+        onChange={onLayout}
+        label="Charts"
+      />
+      <IconBtn label={sound ? "Sound on" : "Sound off"} onClick={onSound}>
+        {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+      </IconBtn>
+      <a
+        href="/app/pilot?tab=settings"
+        className="flex h-10 items-center gap-2 rounded-full bg-white/[0.07] px-3.5 text-[13px] font-semibold text-white/80 ring-1 ring-white/[0.06] hover:bg-white/[0.11]"
+        title="Change the model in Pilot AI settings"
+      >
+        <span className={clsx("h-2 w-2 rounded-full", ready ? "bg-[#FF8A3D]" : "bg-white/35")} />
+        {ready ? model.model || PROVIDERS[model.provider].label : "Built-in reader"}
+      </a>
+      <button onClick={onPine} className="flex h-10 items-center gap-2 rounded-full bg-[#FF8A3D] px-4 text-[14px] font-semibold text-black shadow-[0_10px_26px_-10px_rgba(255,138,61,0.9)] hover:brightness-105 active:scale-[0.97]">
+        <Code2 className="h-4 w-4" /> Pine Script
+      </button>
+    </>
+  );
+}
+
 function Seg<T extends string | number>({ value, options, onChange, label }: { value: T; options: { v: T; l: React.ReactNode }[]; onChange: (v: T) => void; label?: string }) {
-  const i = Math.max(0, options.findIndex((o) => o.v === value));
+  const i = Math.max(
+    0,
+    options.findIndex((o) => o.v === value),
+  );
   return (
     <div role="group" aria-label={label} className="relative grid rounded-[14px] bg-white/[0.07] p-[3px]" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
-      <span aria-hidden className="absolute bottom-[3px] left-[3px] top-[3px] rounded-[11px] bg-white/[0.16] transition-transform duration-500 ease-spring" style={{ width: `calc((100% - 6px) / ${options.length})`, transform: `translateX(${i * 100}%)` }} />
+      <span
+        aria-hidden
+        className="absolute bottom-[3px] left-[3px] top-[3px] rounded-[11px] bg-white/[0.16] transition-transform duration-500 ease-spring"
+        style={{ width: `calc((100% - 6px) / ${options.length})`, transform: `translateX(${i * 100}%)` }}
+      />
       {options.map((o) => (
-        <button key={String(o.v)} onClick={() => onChange(o.v)} aria-pressed={o.v === value} className={clsx("relative rounded-[11px] px-4 py-1.5 text-[14px] font-semibold", o.v === value ? "text-white" : "text-white/50 hover:text-white/80")}>
+        <button
+          key={String(o.v)}
+          onClick={() => onChange(o.v)}
+          aria-pressed={o.v === value}
+          className={clsx("relative rounded-[11px] px-4 py-1.5 text-[14px] font-semibold", o.v === value ? "text-white" : "text-white/50 hover:text-white/80")}
+        >
           {o.l}
         </button>
       ))}
@@ -383,7 +482,10 @@ function TickerStrip({ rows, active, onPick }: { rows: ReturnType<typeof useTick
           <button
             key={r.id}
             onClick={() => onPick(r.id)}
-            className={clsx("flex items-center gap-3 rounded-[22px] border px-4 py-3 text-left backdrop-blur-xl transition", r.id === active ? "border-[#FF8A3D]/40 bg-[#FF8A3D]/[0.08]" : "border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.05]")}
+            className={clsx(
+              "flex items-center gap-3 rounded-[22px] border px-4 py-3 text-left backdrop-blur-xl transition",
+              r.id === active ? "border-[#FF8A3D]/40 bg-[#FF8A3D]/[0.08]" : "border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.05]",
+            )}
           >
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[13px] font-bold text-black" style={{ background: sm.color }}>
               {sm.id.slice(0, 1)}
@@ -430,10 +532,16 @@ function PnlStrip({ trades, positions, prices, accountSize }: { trades: VisionTr
       <div>
         <p className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-white/45">
           Today&apos;s P&amp;L <span className="rounded-full bg-white/[0.07] px-2 py-0.5 normal-case tracking-normal text-white/60">{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-          {positions.length > 0 && <span className="flex items-center gap-1 normal-case tracking-normal text-[#FF8A3D]"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF8A3D]" /> live</span>}
+          {positions.length > 0 && (
+            <span className="flex items-center gap-1 normal-case tracking-normal text-[#FF8A3D]">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF8A3D]" /> live
+            </span>
+          )}
           <span className="rounded-full bg-white/[0.07] px-2 py-0.5 normal-case tracking-normal text-white/50">paper + live</span>
         </p>
-        <p className={clsx("mt-2 bg-clip-text text-[56px] font-bold leading-none tracking-[-0.045em] tabular-nums text-transparent", total >= 0 ? "bg-gradient-to-b from-[#FFC9A3] to-[#FF7A2D]" : "bg-gradient-to-b from-white to-white/60")}>{signed(total)}</p>
+        <p className={clsx("mt-2 bg-clip-text text-[56px] font-bold leading-none tracking-[-0.045em] tabular-nums text-transparent", total >= 0 ? "bg-gradient-to-b from-[#FFC9A3] to-[#FF7A2D]" : "bg-gradient-to-b from-white to-white/60")}>
+          {signed(total)}
+        </p>
         <div className="mt-3 flex flex-wrap gap-2 text-[12.5px] font-semibold">
           <Chip>{`${total >= 0 ? "+" : ""}${((total / accountSize) * 100).toFixed(2)}% of $${(accountSize / 1000).toFixed(0)}K`}</Chip>
           <Chip>{trades.length ? `${Math.round((wins / trades.length) * 100)}% win rate` : "No trades yet"}</Chip>
@@ -505,8 +613,7 @@ function VenueSlot({ kind, arm }: { kind: MarketKind; arm: ReturnType<typeof use
       .catch(() => setAccounts([]));
   }, [open]);
 
-  if (kind === "crypto")
-    return <p className="rounded-2xl bg-white/[0.03] px-3 py-2 text-[12px] text-white/45">Crypto trades on paper. Exchange execution plugs into the venue interface when you add API keys.</p>;
+  if (kind === "crypto") return <p className="rounded-2xl bg-white/[0.03] px-3 py-2 text-[12px] text-white/45">Crypto trades on paper. Exchange execution plugs into the venue interface when you add API keys.</p>;
   if (!arm.available) return <p className="rounded-2xl bg-white/[0.03] px-3 py-2 text-[12px] text-white/45">Paper trading. Real orders work in the local app only.</p>;
   if (arm.armed)
     return (
@@ -572,7 +679,11 @@ function VenueSlot({ kind, arm }: { kind: MarketKind; arm: ReturnType<typeof use
           disabled={!chosen || !firm || confirm !== "ARM"}
           onClick={async () => {
             setErr("");
-            const r = await fetch("/api/vision/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "arm", venue, accountId: chosen!.id, accountName: chosen!.name, maxQty, firmAllows: firm, confirm }) });
+            const r = await fetch("/api/vision/execute", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "arm", venue, accountId: chosen!.id, accountName: chosen!.name, maxQty, firmAllows: firm, confirm }),
+            });
             const j = await r.json().catch(() => ({}));
             if (!r.ok) setErr(j.error ?? "Could not arm.");
             else {
@@ -607,7 +718,13 @@ function PineSheet({ onClose }: { onClose: () => void }) {
   }, [onClose]);
   return (
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55 backdrop-blur-[6px] sm:items-center sm:p-6" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Pine Script" onClick={(e) => e.stopPropagation()} className="tp-sheet flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[30px] border border-white/[0.08] bg-[#161618]/95 backdrop-blur-2xl sm:rounded-[30px]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Pine Script"
+        onClick={(e) => e.stopPropagation()}
+        className="tp-sheet flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[30px] border border-white/[0.08] bg-[#161618]/95 backdrop-blur-2xl sm:rounded-[30px]"
+      >
         <header className="flex items-start gap-3 px-6 pb-3 pt-5">
           <span className="grid h-10 w-10 place-items-center rounded-[13px] bg-[#FF8A3D] text-black">
             <Code2 className="h-5 w-5" />

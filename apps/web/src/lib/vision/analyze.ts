@@ -618,6 +618,8 @@ export interface AnalyzeOptions {
   historyBars?: Bar[];
   /** Ignore setups that fired before this bar (demo mode: only the staged one). */
   minIndex?: number;
+  /** Read only the setup that fired on exactly this bar (backtest trade viewer). */
+  atIndex?: number;
 }
 
 /**
@@ -637,7 +639,9 @@ export function analyze(all: Bar[], opts: AnalyzeOptions = {}): Scan {
 
   let setup: Setup | null = null;
   const maxAge = opts.maxAge ?? 30;
-  for (let i = last; i >= Math.max(30, last - maxAge, opts.minIndex ?? 0); i--) {
+  const hi = opts.atIndex ?? last;
+  const lo = opts.atIndex ?? Math.max(30, last - maxAge, opts.minIndex ?? 0);
+  for (let i = hi; i >= lo; i--) {
     const f = detectAt(c, i, readers);
     if (!f) continue;
     const r = replay(bars, f, bars.length);

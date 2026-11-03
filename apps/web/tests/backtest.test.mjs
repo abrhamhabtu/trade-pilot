@@ -1,0 +1,77 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { runBacktest, tradesCsv } from "../src/lib/vision/backtest.ts";
+import { buildDemo } from "../src/lib/vision/demo.ts";
+import { sessionOf } from "../src/lib/pilot/market.ts";
+
+const NONE = { fomc: [], early: [], vix: {} };
+const base = { reader: "auto", anchor: "utc", side: "both", pointValue: 2, contracts: 1, commission: 0, slippageTicks: 0, tick: 0.25, maxHold: 60, skipFomc: false, skipEarly: false, vix: "any", context: NONE };
+
+// A few staged sessions back to back: enough setups to test the fill rules on.
+function sample() {
+  const bars = [];
+  for (const [k, reader] of ["sweep", "dbvwap", "sd", "sweep", "vwappb"].entries()) {
+    const d = buildDemo({ reader, win: k % 2 === 0, price: 20000, tfSeconds: 300, anchor: "utc", seed: 11 + k });
+    assert.ok(d, `demo for ${reader}`);
+    const shift = bars.length ? bars.at(-1).t + 300 - d.bars[0].t : 0;
+    const off = bars.length ? bars.at(-1).c - d.bars[0].o : 0;
+    for (const b of d.bars) bars.push({ t: b.t + shift, o: b.o + off, h: b.h + off, l: b.l + off, c: b.c + off, v: b.v });
+  }
+  return bars;
+}
+
+test("a backtest takes one trade at a time, on whole ticks, entering at the signal close", () => {
+  const bars = sample();
+  const r = runBacktest(bars, { ...base, slippageTicks: 1 });
+  assert.ok(r.trades.length >= 3, `trades: ${r.trades.length}`);
+  for (const [k, t] of r.trades.entries()) {
+    assert.ok(Math.abs(t.stop / 0.25 - Math.round(t.stop / 0.25)) < 1e-9, "stop on a tick");
+    assert.ok(Math.abs(t.target / 0.25 - Math.round(t.target / 0.25)) < 1e-9, "target on a tick");
+    const dir = t.side === "long" ? 1 : -1;
+    assert.equal(t.entry, bars[t.entryIndex].c + dir * 0.25);
+    if (k) assert.ok(t.entryIndex > r.trades[k - 1].exitIndex, "no overlapping trades");
+    if (t.outcome === "target") assert.equal(t.exit, t.target);
+    if (t.outcome === "stop") assert.equal(t.exit, t.stop - dir * 0.25);
+  }
+  assert.equal(tradesCsv(r).split("\n").length, r.trades.length + 1);
+});
+
+test("the stop wins a bar that touches both", () => {
+  const bars = sample();
+  const first = runBacktest(bars, base).trades[0];
+  const k = first.entryIndex + 1;
+  bars[k] = { ...bars[k], h: Math.max(first.stop, first.target) + 1, l: Math.min(first.stop, first.target) - 1 };
+  const t = runBacktest(bars, base).trades[0];
+  assert.equal(t.outcome, "stop");
+  assert.equal(t.exitIndex, k);
+});
+
+test("sizing by risk loses the risk amount at the stop", () => {
+  const r = runBacktest(sample(), { ...base, pointValue: 1, riskDollars: 250, commission: 1 });
+  const stops = r.trades.filter((t) => t.outcome === "stop");
+  assert.ok(stops.length > 0);
+  for (const t of stops) assert.ok(Math.abs(t.pnl + 251) < 1e-6, `pnl ${t.pnl}`);
+});
+
+test("entry hours and direction filters skip what they should", () => {
+  const bars = sample();
+  const all = runBacktest(bars, base);
+  const hours = [600, 720];
+  const r = runBacktest(bars, { ...base, hours });
+  for (const t of r.trades) {
+    const m = sessionOf(t.entryT).minute;
+    assert.ok(m >= hours[0] && m < hours[1]);
+  }
+  assert.ok(r.trades.length < all.trades.length || all.trades.every((t) => sessionOf(t.entryT).minute >= 600 && sessionOf(t.entryT).minute < 720));
+  const longs = runBacktest(bars, { ...base, side: "long" });
+  assert.ok(longs.trades.every((t) => t.side === "long"));
+});
+
+test("stats add up", () => {
+  const r = runBacktest(sample(), base);
+  const s = r.stats;
+  assert.equal(s.wins + s.losses, s.trades);
+  assert.ok(Math.abs(s.pnl - r.trades.reduce((a, t) => a + t.pnl, 0)) < 1e-6);
+  assert.ok(Math.abs(r.equity.at(-1).pnl - s.pnl) < 1e-6);
+  assert.equal(r.by.side.reduce((a, g) => a + g.n, 0), s.trades);
+});

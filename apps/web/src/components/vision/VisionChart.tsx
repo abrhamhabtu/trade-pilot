@@ -423,6 +423,8 @@ function Overlay({ geo, bars, scan, setup, full, phase, position, closed, fmt }:
         )}
 
         {position && y(position.entry) != null && <line x1={0} x2={plotW} y1={y(position.entry)!} y2={y(position.entry)!} stroke="#fff" strokeOpacity="0.7" strokeDasharray="2 3" />}
+        {position && !full && y(position.stop) != null && <line x1={0} x2={plotW} y1={y(position.stop)!} y2={y(position.stop)!} stroke={RED} strokeOpacity="0.7" strokeDasharray="4 3" />}
+        {position && !full && y(position.target) != null && <line x1={0} x2={plotW} y1={y(position.target)!} y2={y(position.target)!} stroke={ORANGE} strokeOpacity="0.7" strokeDasharray="4 3" />}
 
         {phase.scan != null && (
           <g>
