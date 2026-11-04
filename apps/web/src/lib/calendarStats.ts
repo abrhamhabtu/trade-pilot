@@ -6,7 +6,7 @@
 // ───────────────────────────────────────────────────────────────────────────────
 
 import { ECON_CALENDAR } from "@/lib/vision/econ-calendar";
-import { scheduledEvents } from "@/lib/pilot/market";
+import { nyClock, scheduledEvents } from "@/lib/pilot/market";
 
 export interface CalTrade {
   date: string;
@@ -137,6 +137,16 @@ export function newsOn(date: string, fomc?: Set<string>): NewsKind[] {
   if (JOBS.has(date) || (date > ECON_CALENDAR.jobs[ECON_CALENDAR.jobs.length - 1] && sched.some((e) => /Payrolls/.test(e.title)))) out.push("jobs");
   if (fomc?.has(date) || sched.some((e) => /FOMC/.test(e.title))) out.push("fomc");
   return out;
+}
+
+/** When each release lands, in New York minutes of the day. */
+export const NEWS_MINUTE: Record<NewsKind, number> = { cpi: 8 * 60 + 30, jobs: 8 * 60 + 30, fomc: 14 * 60 };
+
+/** A New York time on a date, shown in the trader's own time zone. New York is always behind UTC, so one step finds it. */
+export function localTimeOf(date: string, nyMinute: number, timeZone?: string) {
+  const guess = Date.parse(`${dayOf(date)}T00:00:00Z`) + nyMinute * 60_000;
+  const behind = (nyMinute - nyClock(guess).minute + 1440) % 1440;
+  return new Date(guess + behind * 60_000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone }).replace(/\s?AM$/, " am").replace(/\s?PM$/, " pm");
 }
 
 export interface Upcoming {

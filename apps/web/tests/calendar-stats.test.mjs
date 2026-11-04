@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MIN_SAMPLE, addDays, buildDays, currentStreak, inMonth, minuteOf, monthCsv, newsOn, pace, patterns, summarize, toReview, upcoming, weekdayOf, weekdaysLeft } from "../src/lib/calendarStats.ts";
+import { MIN_SAMPLE, NEWS_MINUTE, addDays, buildDays, currentStreak, inMonth, localTimeOf, minuteOf, monthCsv, newsOn, pace, patterns, summarize, toReview, upcoming, weekdayOf, weekdaysLeft } from "../src/lib/calendarStats.ts";
 
 const t = (date, netPL, time, extra = {}) => ({ date, netPL, time, outcome: netPL > 0 ? "win" : "loss", ...extra });
 
@@ -97,4 +97,15 @@ test("the CSV has a row per day", () => {
   const csv = monthCsv(buildDays([t("2026-06-01", 12.5, "9:30 AM", { symbol: "NQ" })])).split("\n");
   assert.equal(csv.length, 2);
   assert.match(csv[1], /^2026-06-01,Mon,12\.50,1,1,0/);
+});
+
+test("news times follow the trader's time zone, through daylight saving changes", () => {
+  // CPI at 8:30 am New York, in winter and in summer.
+  assert.equal(localTimeOf("2026-11-10", NEWS_MINUTE.cpi, "America/Los_Angeles"), "5:30 am");
+  assert.equal(localTimeOf("2026-07-14", NEWS_MINUTE.cpi, "America/Los_Angeles"), "5:30 am");
+  assert.equal(localTimeOf("2026-11-10", NEWS_MINUTE.cpi, "America/New_York"), "8:30 am");
+  assert.equal(localTimeOf("2026-07-14", NEWS_MINUTE.cpi, "UTC"), "12:30 pm");
+  assert.equal(localTimeOf("2026-11-10", NEWS_MINUTE.cpi, "UTC"), "1:30 pm");
+  // The FOMC decision at 2 pm New York.
+  assert.equal(localTimeOf("2026-12-09", NEWS_MINUTE.fomc, "America/Los_Angeles"), "11:00 am");
 });

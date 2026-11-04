@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
-import { ArrowRight, CalendarClock, ChevronLeft, ChevronRight, Download, FileText, Landmark, NotebookPen, Sparkles, Target, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Download, FileText, Landmark, NotebookPen, Sparkles, Target, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { useHistoryParam } from '@/hooks/useHistoryParam';
-import { MIN_SAMPLE, buildDays, currentStreak, dayOf, daysInMonth, inMonth, monthCsv, monthKey, newsOn, NEWS_LABEL, pace, patterns, summarize, toReview, upcoming, weekdayOf, ymd, type Bucket, type CalDay } from '@/lib/calendarStats';
+import { MIN_SAMPLE, NEWS_LABEL, NEWS_MINUTE, buildDays, currentStreak, dayOf, daysInMonth, inMonth, localTimeOf, monthCsv, monthKey, newsOn, pace, patterns, summarize, toReview, upcoming, weekdayOf, ymd, type Bucket, type CalDay } from '@/lib/calendarStats';
 import { payoutWindow } from '@/lib/payoutSchedule';
 import { localSessionDate } from '@/lib/sessionRisk';
 import { useAccountStore } from '@/store/accountStore';
@@ -117,7 +117,8 @@ export function CalendarPage({ trades, accountId }: { trades: Trade[]; accountId
   const review = useMemo(() => toReview(days, (d) => hasNote(d, accountId), 5), [days, hasNote, accountId, notes]); // eslint-disable-line react-hooks/exhaustive-deps
   const found = useMemo(() => patterns(days, trades, fomc), [days, trades, fomc]);
   const weekendTrades = month.some((d) => [0, 6].includes(weekdayOf(d.date)));
-  const showWeekends = weekends || weekendTrades;
+  const payoutOnWeekend = !!payout && payout.date.startsWith(monthKey(y, m)) && [0, 6].includes(weekdayOf(payout.date));
+  const showWeekends = weekends || weekendTrades || payoutOnWeekend;
   const cols = showWeekends ? [0, 1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5];
 
   // Weeks as rows, Sunday first, with each week's total over all its days.
@@ -140,6 +141,9 @@ export function CalendarPage({ trades, accountId }: { trades: Trade[]; accountId
   }, [y, m, byDate]);
   const weekBest = Math.max(1, ...weeks.map((w) => Math.abs(w.pnl)));
   const tradeDates = useMemo(() => days.map((d) => d.date), [days]);
+  // What's coming that this month's grid can't show: a link to it, not a second list.
+  const elsewhere = coming.filter((e) => !e.date.startsWith(monthKey(y, m))).slice(0, 3);
+  const showMonth = (date: string) => setCursor({ y: Number(date.slice(0, 4)), m: Number(date.slice(5, 7)) - 1 });
   const selectedTrades = selected ? trades.filter((t) => dayOf(t.date) === selected) : [];
   const delta = sum.pnl - prev.pnl;
   const empty = !trades.length;
@@ -191,6 +195,16 @@ export function CalendarPage({ trades, accountId }: { trades: Trade[]; accountId
       ) : (
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
           <section className="min-w-0 rounded-[26px] border border-white/[0.07] bg-tp-card/70 p-3 sm:p-4">
+            {elsewhere.length > 0 && (
+              <div className="mb-3 flex flex-wrap items-center gap-1.5 px-1 text-[12.5px]">
+                <span className="text-zinc-500">Next up</span>
+                {elsewhere.map((e) => (
+                  <button key={e.date + e.kind} onClick={() => showMonth(e.date)} title={e.detail} className="rounded-full bg-white/[0.05] px-2.5 py-1 text-zinc-300 hover:bg-white/[0.1]">
+                    <span className="tabular-nums text-zinc-500">{nice(e.date).replace(/^\w+, /, '')}</span> {e.title}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr)) minmax(70px, 0.7fr)` }}>
               {cols.map((c) => <div key={c} className="pb-1 text-center text-[12.5px] font-medium text-zinc-500">{SHORT[c]}</div>)}
               <div className="pb-1 text-center text-[12.5px] font-medium text-zinc-500">Week</div>
@@ -206,28 +220,45 @@ export function CalendarPage({ trades, accountId }: { trades: Trade[]; accountId
                     const future = !!today && date > today;
                     const isPayout = payout?.date === date;
                     const heat = d ? 0.07 + (Math.abs(d.pnl) / biggest) * 0.3 : 0;
-                    const label = `${nice(date)}${d ? `, ${money(d.pnl)}, ${d.trades} trade${d.trades === 1 ? "" : "s"}` : ', no trades'}${news.length ? `, ${news.map((n) => NEWS_LABEL[n]).join(' and ')}` : ''}`;
+                    // Times need the browser's time zone, so they wait until the page is on screen.
+                    const timeOf = (n: (typeof news)[number]) => (today ? localTimeOf(date, NEWS_MINUTE[n]) : '');
+                    const newsText = news.map((n) => `${NEWS_LABEL[n]} at ${timeOf(n)} your time${n === 'jobs' && future ? ' (usual date)' : ''}`).join(', ');
+                    const payoutText = isPayout && payout ? `Payout eligible${payout.amount > 0 ? `, about ${usd(payout.amount)} to you` : ''}${future ? ', if every day until then qualifies' : ''}` : '';
+                    const label = [nice(date), d ? `${money(d.pnl)}, ${d.trades} trade${d.trades === 1 ? '' : 's'}` : future ? '' : 'no trades', newsText, payoutText].filter(Boolean).join('. ');
+                    const flagged = !d && (news.length > 0 || isPayout);
                     const Tag = d ? 'button' : 'div';
                     return (
                       <Tag key={c} {...(d ? { onClick: () => setSelected(date), type: 'button' as const } : {})} aria-label={label} title={label}
-                        className={clsx('relative flex min-h-[92px] flex-col overflow-hidden rounded-[14px] p-2 text-left ring-1 ring-inset transition sm:min-h-[104px] sm:p-2.5', d ? 'hover:brightness-125 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white' : '', isToday ? 'ring-tp-blue' : d ? 'ring-white/[0.05]' : 'ring-white/[0.03]', future && 'opacity-70')}
+                        className={clsx('relative flex min-h-[92px] flex-col overflow-hidden rounded-[14px] p-2 text-left ring-1 ring-inset transition sm:min-h-[104px] sm:p-2.5', d ? 'hover:brightness-125 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white' : '', isToday ? 'ring-tp-blue' : isPayout ? 'ring-tp-yellow/40' : flagged && future ? 'ring-tp-yellow/20' : d ? 'ring-white/[0.05]' : 'ring-white/[0.03]', flagged && future && 'bg-tp-yellow/[0.04]')}
                         style={d ? { background: d.pnl >= 0 ? `rgb(var(--tp-green) / ${heat})` : `rgb(var(--tp-red) / ${heat})` } : undefined}>
                         <span className="flex items-center gap-1">
-                          <span className={clsx('text-[12px] font-medium tabular-nums', isToday ? 'text-tp-blue' : d ? 'text-zinc-300' : 'text-zinc-600')}>{Number(date.slice(8))}</span>
+                          <span className={clsx('text-[12px] font-medium tabular-nums', isToday ? 'text-tp-blue' : d || flagged ? 'text-zinc-300' : 'text-zinc-600')}>{Number(date.slice(8))}</span>
+                          {isToday && <span className="text-[11px] font-medium text-tp-blue">Today</span>}
                           <span className="flex-1" />
-                          {news.map((n) => <span key={n} title={NEWS_LABEL[n]} className="rounded-full bg-tp-yellow/15 px-1 text-[9.5px] font-semibold uppercase leading-[15px] text-tp-yellow">{n === 'jobs' ? 'NFP' : n}</span>)}
+                          {d && news.map((n) => <span key={n} className="rounded-full bg-tp-yellow/15 px-1 text-[9.5px] font-semibold uppercase leading-[15px] text-tp-yellow">{n === 'jobs' ? 'NFP' : n}</span>)}
                           {hasNote(date, accountId) && <FileText aria-label="Has a note" className="h-3 w-3 text-zinc-400" />}
-                          {(adj || isPayout) && <Wallet aria-label={isPayout ? 'Payout eligible' : 'Balance change'} className={clsx('h-3 w-3', isPayout ? 'text-tp-yellow' : 'text-zinc-300')} />}
+                          {adj && !isPayout && <Wallet aria-label="Balance change" className="h-3 w-3 text-zinc-300" />}
                         </span>
                         {d && (
                           <span className="relative mt-1">
                             <span className={clsx('block truncate text-[15px] font-semibold tabular-nums tracking-[-0.02em] sm:text-[16px]', d.pnl >= 0 ? 'text-zinc-50' : 'text-[#FFB4AE]')}>{compact(d.pnl)}</span>
                             <span className="block truncate text-[11px] tabular-nums text-zinc-400">{d.wins}W {d.losses}L</span>
+                            {isPayout && payout && <span className="block truncate text-[11px] font-medium text-tp-yellow">{payout.amount > 0 ? `Payout, ${compact(payout.amount).replace('+', '')}` : 'Payout eligible'}</span>}
+                          </span>
+                        )}
+                        {!d && news.length > 0 && (
+                          <span className="mt-1 space-y-0.5">
+                            {news.map((n) => (
+                              <span key={n} className="block min-w-0">
+                                <span className="block truncate text-[12.5px] font-medium leading-tight text-zinc-100">{NEWS_LABEL[n]}</span>
+                                <span className="block truncate text-[11px] leading-tight tabular-nums text-zinc-400">{timeOf(n)}</span>
+                              </span>
+                            ))}
                           </span>
                         )}
                         {!d && adj && <span className="mt-1 truncate text-[11.5px] capitalize text-zinc-400">{adj.type} {usd(adj.amount)}</span>}
-                        {!d && !adj && isPayout && <span className="mt-1 text-[11.5px] font-medium text-tp-yellow">Payout eligible</span>}
-                        {d && <DayPath path={d.path} up={d.pnl >= 0} />}
+                        {!d && isPayout && payout && <span className="mt-1 block truncate text-[12px] font-medium text-tp-yellow">{payout.amount > 0 ? `Payout, ${compact(payout.amount).replace('+', '')}` : 'Payout eligible'}</span>}
+                        {d && !isPayout && <DayPath path={d.path} up={d.pnl >= 0} />}
                       </Tag>
                     );
                   })}
@@ -244,7 +275,7 @@ export function CalendarPage({ trades, accountId }: { trades: Trade[]; accountId
               ))}
             </div>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1 text-[12px] text-zinc-500">
-              <span>Stronger color means a bigger day. Tap a day to review it. The ← and → keys change months.</span>
+              <span>Stronger color means a bigger day. News times are in your time zone. Tap a traded day to review it.</span>
               {!weekendTrades && <button aria-pressed={weekends} onClick={() => {
                 setWeekends(!weekends);
                 store(WEEKENDS_KEY, weekends ? '0' : '1');
@@ -257,18 +288,6 @@ export function CalendarPage({ trades, accountId }: { trades: Trade[]; accountId
               setGoal(g);
               store(GOAL_KEY, String(g));
             }} month={month} y={y} m={m} today={today} current={!!today && today.startsWith(monthKey(y, m))} />
-            <Rail icon={<CalendarClock className="h-4 w-4" />} title="Coming up">
-              {coming.length === 0 ? <p className="text-[13px] text-zinc-500">No big scheduled news in the next 30 days.</p> : (
-                <ul className="space-y-2">
-                  {coming.slice(0, 6).map((e) => (
-                    <li key={e.date + e.kind} className="flex items-baseline gap-2.5 text-[13px]">
-                      <span className="w-[74px] shrink-0 tabular-nums text-zinc-500">{nice(e.date).replace(/^\w+, /, '')}{e.date === today ? ' ·' : ''}</span>
-                      <span className="min-w-0"><span className={clsx('font-medium', e.kind === 'payout' ? 'text-tp-yellow' : 'text-zinc-100')}>{e.date === today ? `Today: ${e.title}` : e.title}</span><span className="block text-[11.5px] leading-snug text-zinc-500">{e.detail}</span></span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Rail>
             {!empty && (
               <Rail icon={<NotebookPen className="h-4 w-4" />} title="Worth reviewing">
                 {review.length === 0 ? <p className="text-[13px] text-zinc-500">Every losing day has a note.</p> : (
@@ -298,7 +317,7 @@ export function CalendarPage({ trades, accountId }: { trades: Trade[]; accountId
 
       <DayReviewModal isOpen={selected !== null} onClose={() => setSelected(null)} date={selected ?? ''} trades={selectedTrades} accountId={accountId} tradingDays={tradeDates} onNavigate={(d) => {
         setSelected(d, { replace: true });
-        setCursor({ y: Number(d.slice(0, 4)), m: Number(d.slice(5, 7)) - 1 });
+        showMonth(d);
       }} />
     </div>
   );
