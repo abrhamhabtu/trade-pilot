@@ -43,9 +43,23 @@ interface CalendarProps {
   accountId?: string;
 }
 
+/** Below this panel width, eight columns can't fit a day's numbers. */
+const COMPACT_BELOW = 720;
+
 export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) => {
   const { hasNote } = useDailyNotesStore();
   const { accounts, selectedAccountId } = useAccountStore();
+
+  // The dashboard lets this panel be any width, so it goes by its own size, not the window's.
+  const box = useRef<HTMLDivElement>(null);
+  const [boxWidth, setBoxWidth] = useState(0);
+  useEffect(() => {
+    if (!box.current) return;
+    const ro = new ResizeObserver(([e]) => setBoxWidth(e.contentRect.width));
+    ro.observe(box.current);
+    return () => ro.disconnect();
+  }, []);
+  const compact = boxWidth > 0 && boxWidth < COMPACT_BELOW;
   
   // Get adjustments for the current account
   const adjustments = useMemo(() => {
@@ -280,6 +294,15 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
   };
   
   const weeklyData = getWeeklyData();
+
+  // When narrow, weekends give up their columns unless something happened on them.
+  const weekendsMatter = weeklyData.some((w) => [w.days[0], w.days[6]].some((d) => {
+    if (!d) return false;
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    return !!getDayData(d) || payoutDay?.date === key;
+  }));
+  const columns = compact && !weekendsMatter ? [1, 2, 3, 4, 5] : [0, 1, 2, 3, 4, 5, 6];
+  const gridColumns = compact ? `repeat(${columns.length}, minmax(0, 1fr)) minmax(62px, 0.9fr)` : undefined;
   
   // Calculate monthly totals from actual data for the current viewing month
   // Includes both trading P&L and balance adjustments (payouts/deposits) to match TopOne
@@ -334,6 +357,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
   
   return (
     <div 
+      ref={box}
       className="flex flex-col rounded-xl border border-white/5 hover:border-transparent hover:shadow-lg transition-all duration-200 relative overflow-hidden group"
       
     >
@@ -392,23 +416,23 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
         
         <div className="px-4 py-4 sm:px-5 sm:py-5">
           {/* Week day headers */}
-          <div className="mb-2 grid grid-cols-[repeat(7,minmax(0,1fr))_minmax(88px,0.75fr)] gap-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="text-center text-sm font-medium text-zinc-400">
-                {day}
+          <div className={clsx('mb-2 grid gap-2', !compact && 'grid-cols-[repeat(7,minmax(0,1fr))_minmax(88px,0.75fr)]')} style={{ gridTemplateColumns: gridColumns }}>
+            {columns.map((c) => (
+              <div key={c} className="text-center text-sm font-medium text-zinc-400">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][c]}
               </div>
             ))}
-            <div className="text-center text-sm font-medium text-zinc-400">Weekly</div>
+            <div className="text-center text-sm font-medium text-zinc-400">{compact ? 'Week' : 'Weekly'}</div>
           </div>
 
           {/* Calendar weeks — fixed-height cells like reference */}
           <div className="flex flex-col gap-2">
-            {weeklyData.map((week, weekIndex) => (
-              <div key={weekIndex} className="grid grid-cols-[repeat(7,minmax(0,1fr))_minmax(88px,0.75fr)] gap-2">
+            {weeklyData.filter((week) => columns.some((c) => week.days[c])).map((week, weekIndex) => (
+              <div key={weekIndex} className={clsx('grid gap-2', !compact && 'grid-cols-[repeat(7,minmax(0,1fr))_minmax(88px,0.75fr)]')} style={{ gridTemplateColumns: gridColumns }}>
                 {/* Days of the week */}
-                {week.days.map((day, dayIndex) => {
+                {columns.map((c) => week.days[c]).map((day, dayIndex) => {
                   if (!day) {
-                    return <div key={`empty-${weekIndex}-${dayIndex}`} className="h-20 rounded-lg sm:h-[5.25rem]" />;
+                    return <div key={`empty-${weekIndex}-${dayIndex}`} className={compact ? 'h-[4.25rem] rounded-lg' : 'h-20 rounded-lg sm:h-[5.25rem]'} />;
                   }
                     
                     const dayData = getDayData(day);
@@ -423,7 +447,57 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                     const dayHasAdjustment = hasAdjustment(dateString);
                     const dayAdjustment = getAdjustmentForDate(dateString);
                     const payoutEligible = payoutDay?.date === dateString;
-                    
+
+                    // Narrow: the day and its P&L, with the rest in the tooltip and a row of dots.
+                    if (compact) {
+                      const traded = !!hasTradesForDay;
+                      const up = traded && dayData!.pnl >= 0;
+                      const details = [
+                        traded ? `${formatCurrency(dayData!.pnl)}, ${dayData!.trades} trade${dayData!.trades === 1 ? '' : 's'}, ${winRate}% win rate` : dayHasAdjustment ? `${dayAdjustment?.type} ${formatCurrency(dayAdjustment?.amount ?? 0)}` : 'No trades',
+                        dayHasNote ? 'Has a note' : '',
+                        payoutEligible ? 'Payout eligible' : '',
+                      ].filter(Boolean).join('. ');
+                      return (
+                        <div
+                          key={`${weekIndex}-${day}`}
+                          role={traded ? 'button' : undefined}
+                          tabIndex={traded ? 0 : undefined}
+                          aria-label={`${monthNames[month]} ${day}. ${details}`}
+                          title={details}
+                          onClick={() => handleDayClick(day)}
+                          onKeyDown={(e) => {
+                            if (traded && (e.key === 'Enter' || e.key === ' ')) {
+                              e.preventDefault();
+                              handleDayClick(day);
+                            }
+                          }}
+                          className={clsx(
+                            'flex h-[4.25rem] min-w-0 flex-col rounded-lg border px-1.5 py-1.5 transition-colors',
+                            isToday ? 'border-blue-500' : traded ? (up ? 'border-emerald-500/25' : 'border-rose-500/30') : 'border-white/5',
+                            traded ? (up ? 'cursor-pointer bg-emerald-500/10 hover:bg-emerald-500/20' : 'cursor-pointer bg-rose-500/10 hover:bg-rose-500/20') : isToday ? 'bg-blue-500/10' : '',
+                            isFuture && !payoutEligible && 'opacity-50'
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={clsx('text-[11.5px] font-medium tabular-nums', traded ? 'text-zinc-300' : 'text-zinc-500')}>{day}</span>
+                            <span className="flex items-center gap-[3px]" aria-hidden>
+                              {dayHasNote && <span className="h-1 w-1 rounded-full bg-zinc-300" />}
+                              {dayHasAdjustment && <span className="h-1 w-1 rounded-full bg-violet-400" />}
+                              {payoutEligible && <span className="h-1 w-1 rounded-full bg-amber-400" />}
+                            </span>
+                          </div>
+                          {traded ? (
+                            <div className="mt-auto min-w-0">
+                              <div className={clsx('truncate text-[13px] font-semibold leading-tight tabular-nums tracking-tight', up ? 'text-emerald-300' : 'text-rose-300')}>{formatCurrencyCompact(dayData!.pnl)}</div>
+                              <div className="truncate text-[10.5px] leading-tight tabular-nums text-zinc-400">{dayData!.trades} trade{dayData!.trades === 1 ? '' : 's'}</div>
+                            </div>
+                          ) : dayHasAdjustment && dayAdjustment ? (
+                            <div className={clsx('mt-auto truncate text-[11px] font-semibold tabular-nums', dayAdjustment.amount >= 0 ? 'text-emerald-400' : 'text-rose-400')}>{formatCurrencyCompact(dayAdjustment.amount)}</div>
+                          ) : null}
+                        </div>
+                      );
+                    }
+
                     return (
                       <div
                         key={`${weekIndex}-${day}`}
@@ -541,6 +615,18 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                   })}
                   
                   {/* Weekly summary - Updated with gradient theme */}
+                  {compact ? (
+                    <div className="flex h-[4.25rem] min-w-0 flex-col justify-end rounded-lg bg-white/[0.03] px-1.5 py-1.5">
+                      {week.tradingDays > 0 ? (
+                        <>
+                          <div className={clsx('truncate text-[13px] font-semibold leading-tight tabular-nums tracking-tight', week.pnl > 0 ? 'text-emerald-400' : week.pnl < 0 ? 'text-rose-400' : 'text-zinc-200')}>{formatCurrencyCompact(week.pnl)}</div>
+                          <div className="truncate text-[10.5px] leading-tight text-zinc-500">{week.tradingDays} day{week.tradingDays === 1 ? '' : 's'}</div>
+                        </>
+                      ) : (
+                        <div className="text-[12px] text-zinc-600">—</div>
+                      )}
+                    </div>
+                  ) : (
                   <div className="flex h-20 flex-col rounded-lg border border-white/10 bg-white/[0.03] p-2 sm:h-[5.25rem] sm:p-2.5">
                     <div className="text-xs text-zinc-500">Week {weekIndex + 1}</div>
                     <div className={clsx(
@@ -553,6 +639,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
                       {week.tradingDays} days
                     </div>
                   </div>
+                  )}
                 </div>
               ))}
           </div>
