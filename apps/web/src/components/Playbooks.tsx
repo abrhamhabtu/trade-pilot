@@ -74,6 +74,7 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'prop-firm-platform-tradeify': 'Prop Firm',
   'prop-firm-math-sizing': 'Prop Firm',
   'asia-session-gold-popoff': 'Asia Session',
+  'asia-session-topdown': 'Asia Session',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -98,6 +99,7 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'prop-firm-platform-tradeify': { dir: 'Long', variant: 1 },
   'prop-firm-math-sizing': { dir: 'Long', variant: 0 },
   'asia-session-gold-popoff': { dir: 'Long', variant: 2 },
+  'asia-session-topdown': { dir: 'Long', variant: 1 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -134,6 +136,7 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'prop-firm-platform-tradeify': 'Scale capital on a futures prop platform, no eval',
   'prop-firm-math-sizing': 'Divide the max loss by 7 and survive the streak',
   'asia-session-gold-popoff': 'Box the 4:15 candle, trade the pop-off',
+  'asia-session-topdown': 'Daily context, 4h bias, 15m and 5m entry',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
@@ -2492,6 +2495,134 @@ export const tradingStrategies: PlaybookStrategy[] = [
           url: 'https://www.tiktok.com/t/ZTPJWUsL8/',
           notes:
             'TikTok by joanna_sagrero (100s, 189 likes, 6K views). Gold futures Asia session strategy: at 4:00-4:15 PM Pacific (Asia open) draw a box around the 4:15 PM candle, then wait for price to pop off either side. No indicators, deliberately simple, beginner-friendly. She says there are a couple of things to check before entering but teaches those step by step in her paid community. Public clip gives the frame only; exact confirmation, stop and target are not disclosed.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'asia-session-topdown',
+    name: 'Asia Session Top-Down Breakdown (nikivanwyk)',
+    description:
+      'Silent chart walkthrough of the Asia session on MNQ: daily context, 4h bias, then 15m and 5m entries at the Fibonacci 0.618-0.705 zone. A top-down process demo.',
+    difficulty: 'Intermediate',
+    timeframe: '1D / 4h / 15m / 5m',
+    winRate: 62,
+    riskReward: '1:2',
+    marketCondition: 'MNQ, Asia session',
+    overview:
+      'A screen-recorded top-down breakdown of the Asia session on Micro E-mini Nasdaq (MNQZ2026). The clip opens on the daily chart for context, drops to the 4-hour for the swing bias, then to the 15-minute and 5-minute for the entry view during the Asia session. A Fibonacci retracement is drawn on the visible swing, with the 0.618 and 0.705 levels marked (0.705 around 29,961.78 and 0.618 around 29,947 on the shown chart), and price is traded from that retracement zone into the session. Important context: there is no audio narration and no on-screen rule list, so the clip demonstrates the top-down workflow rather than stating a rule set. The takeaway is the process itself: higher timeframe sets the bias, the session levels and the Fib zone set the location, and the 15m or 5m confirms the entry. Treat the specific levels as an example, not a signal to copy.',
+    glossary: [
+      { term: 'Top-down analysis', meaning: 'Start on the highest timeframe for context and bias, then step down to 4h, 15m and 5m for the entry.' },
+      { term: 'MNQ', meaning: 'Micro E-mini Nasdaq-100 futures, the instrument shown throughout the walkthrough.' },
+      { term: 'Fibonacci retracement', meaning: 'The 0.618 and 0.705 levels marked on the shown swing; the retracement zone is where the entry is considered.' },
+      { term: 'Asia session', meaning: 'The overnight session; on MNQ it sets the range that the US session later reacts to.' },
+      { term: 'Timeframe alignment', meaning: 'The daily and 4h bias agreeing with the 15m and 5m entry, which is the point of the top-down drill.' },
+    ],
+    anatomy: [
+      {
+        title: 'Daily chart for context',
+        points: [
+          'Open on the daily to see the larger swing and where price sits.',
+          'Note the most recent impulse and the levels that matter.',
+          'This is the context, not the entry.',
+        ],
+      },
+      {
+        title: '4-hour for the bias',
+        points: [
+          'Drop to 4h to read the current swing and direction.',
+          'Mark the Fibonacci retracement of that swing.',
+          'The 0.618 and 0.705 levels become the zone of interest.',
+        ],
+      },
+      {
+        title: '15-minute for the session structure',
+        points: [
+          'Use the 15m to see how the Asia session is building.',
+          'Watch how price behaves as it reaches the Fib zone.',
+          'This is where the setup starts to become actionable.',
+        ],
+      },
+      {
+        title: '5-minute for the entry',
+        points: [
+          'Drop to 5m for the trigger inside the zone.',
+          'Look for the reaction at the retracement level and the session level together.',
+          'The clip demonstrates the drill; it does not spell out the exact trigger.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Establish bias on the daily and 4h before looking for an entry',
+      'Mark the Fibonacci 0.618 and 0.705 retracement of the active swing',
+      'Wait for price to reach the retracement zone during the Asia session',
+      'Drop to the 15m and 5m for confirmation inside the zone',
+      'Take the entry only when the higher timeframe bias and the lower timeframe reaction agree',
+    ],
+    exitRules: [
+      'The clip does not state an explicit target or stop; use your own rules',
+      'Natural targets are the prior swing high or low and the session range extension',
+      'Invalidate the idea if price closes through the 0.705 or the swing origin',
+    ],
+    riskManagement: [
+      'Asia liquidity is thinner than the US session, so size down and expect slower fills',
+      'The Fib zone is a location, not a guarantee; require the lower timeframe reaction',
+      'If the daily and 4h disagree, stand aside rather than force the 5m entry',
+      'Place the stop beyond the swing point that invalidates the retracement',
+    ],
+    examples: [
+      {
+        title: 'The walkthrough itself',
+        description: 'What the clip demonstrates.',
+        setup: 'MNQZ2026, daily context, 4h swing with Fib 0.618 and 0.705 marked.',
+        entry: 'Step down to 15m and 5m as price reaches the retracement zone during Asia.',
+        exit: 'Not stated; manage with your own target and stop.',
+        result: 'A repeatable top-down drill for locating Asia session trades',
+      },
+      {
+        title: 'The Fib zone on the shown chart',
+        description: 'The specific levels visible in the video.',
+        setup: 'Swing shown with 1 at 30,010.50 and 0 at 29,845.50.',
+        entry: '0.705 near 29,961.78 and 0.618 near 29,947 as the zone.',
+        exit: 'Invalidation at the swing origin if the retracement fails.',
+        result: 'Illustrative levels only; recalculate on your own chart',
+      },
+    ],
+    tips: [
+      'Use this as a template for your own top-down routine, not a copy-trade signal',
+      'The value is the order of operations: daily, 4h, 15m, 5m',
+      'Recalculate the Fib on the current swing; the numbers in the clip are from its own date',
+      'Pair it with the Gold Pop-Off card for two different Asia session approaches',
+      'There is no audio, so watch the timeframe changes and the drawings rather than listening',
+    ],
+    commonMistakes: [
+      'Skipping the higher timeframe and entering straight off the 5m',
+      'Copying the clip exact Fib prices instead of recalculating',
+      'Treating a retracement zone as an automatic entry without a reaction',
+      'Trading thin Asia liquidity with full US-session size',
+    ],
+    source: {
+      url: 'https://www.tiktok.com/t/ZPLxpNrxe/',
+      title: 'nikivanwyk — Asia Session breakdown (TikTok)',
+    },
+    sourceClaims: [
+      'The video is an Asia session breakdown on MNQZ2026',
+      'It walks daily, 4h, 15m and 5m timeframes',
+      'A Fibonacci retracement with 0.618 and 0.705 levels is marked',
+      'No audio narration or explicit on-screen rule list',
+    ],
+    openQuestions: [
+      'No spoken or written rule set: entry trigger, stop and target are not specified',
+      'The exact date and swing used in the clip differ from your current chart',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-asia-session-topdown',
+          title: 'Asia Session breakdown — nikivanwyk (MNQ top-down walkthrough)',
+          url: 'https://www.tiktok.com/t/ZPLxpNrxe/',
+          notes:
+            'TikTok by nikivanwyk (4m55s, 2,768 likes, 28.5K views). Silent screen-share titled Trade Asia Session w/ Me, then Top-Down Analysis. Walks MNQZ2026 from daily context to 4h bias to 15m and 5m entries, with a Fibonacci retracement marking the 0.618 and 0.705 zone (about 29,947 and 29,961.78 on the shown chart). No audio and no explicit rule list; the content is the top-down process and the retracement-zone location.',
         },
       ],
     },
