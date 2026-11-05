@@ -73,6 +73,7 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'opt-failed-break-reversal': 'Reversal',
   'prop-firm-platform-tradeify': 'Prop Firm',
   'prop-firm-math-sizing': 'Prop Firm',
+  'asia-session-gold-popoff': 'Asia Session',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -96,6 +97,7 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'opt-failed-break-reversal': { dir: 'Short', variant: 1 },
   'prop-firm-platform-tradeify': { dir: 'Long', variant: 1 },
   'prop-firm-math-sizing': { dir: 'Long', variant: 0 },
+  'asia-session-gold-popoff': { dir: 'Long', variant: 2 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -131,11 +133,12 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'opt-failed-break-reversal': 'Back inside the range, target the far side',
   'prop-firm-platform-tradeify': 'Scale capital on a futures prop platform, no eval',
   'prop-firm-math-sizing': 'Divide the max loss by 7 and survive the streak',
+  'asia-session-gold-popoff': 'Box the 4:15 candle, trade the pop-off',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
 // Category filters create their own browsable sections (e.g. Prop Firm Strategy).
-const CATEGORY_FILTERS = ['Prop Firm', 'London & Prev Day'];
+const CATEGORY_FILTERS = ['Prop Firm', 'London & Prev Day', 'Asia Session'];
 const ALL_FILTERS = [...RANK_FILTERS, ...CATEGORY_FILTERS];
 
 const MEDALS = [
@@ -2359,6 +2362,136 @@ export const tradingStrategies: PlaybookStrategy[] = [
           url: 'https://www.tiktok.com/t/ZPLxp6NFr/',
           notes:
             'TikTok by diegotradez (70s, 7,111 likes, 78.6K views). 50K prop account: 3k profit target, 2k max loss limit. Bad sizing: $600 risk, three losses = 1,800, basically the MLL. Fix: 2,000 / 7 = 285.71, about $285 risk per trade, giving seven consecutive losses of room. Ask when you last lost seven in a row. 1:2 on 285.71 = 571.43 per winner; 570 x 8 = 4,560, max payout territory. Core message: 99% fail because they never do the math. Run it before your next eval.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'asia-session-gold-popoff',
+    name: 'Gold Asia Session Pop-Off (joanna_sagrero)',
+    description:
+      'Gold futures in the Asia session: at 4:00-4:15 PM Pacific, box the 4:15 candle, then trade whichever side pops off the box. Simple, indicator-free breakout.',
+    difficulty: 'Beginner',
+    timeframe: '1m - 5m / Asia session (4:00-4:15 PM Pacific)',
+    winRate: 65,
+    riskReward: '1:2',
+    marketCondition: 'Gold futures (GC), Asia session open',
+    overview:
+      'Joanna calls this the chillest strategy she has ever had, and it is built for Gold futures during the Asia session. The setup time is around 4:00 to 4:15 PM Pacific Standard Time, which is the Asia session open. At 4:15 PM Pacific you draw a small box around that candle, then you wait for one side to pop off: price breaking up or down out of the box. That is the whole frame, and she emphasizes how simple it is: no indicators, no clutter, nothing complicated, simple enough for a complete beginner. She does say there are a couple of things she checks before entering, and she teaches those step by step inside her community rather than in the public clip. So this card documents the mechanical frame accurately and flags the confirmation criteria as not publicly disclosed. It is a clean example of a session-opening range breakout, and the same box-and-pop idea generalizes to other sessions.',
+    glossary: [
+      { term: 'Asia session', meaning: 'The overnight session driven by Asian markets; for US traders it opens in the late afternoon Pacific time.' },
+      { term: '4:15 PM Pacific candle', meaning: 'The specific candle she boxes at the Asia open. The box is the reference range for the trade.' },
+      { term: 'Pop-off', meaning: 'Price breaking decisively out of one side of the box, up or down. The breakout is the trigger.' },
+      { term: 'Gold futures (GC)', meaning: 'The instrument: COMEX gold futures, which trade nearly 24 hours and move in Asia on China and Japan flows.' },
+      { term: 'Box', meaning: 'A drawn rectangle around the reference candle that marks the breakout range.' },
+    ],
+    anatomy: [
+      {
+        title: 'Be at the chart at 4:00-4:15 PM Pacific',
+        points: [
+          'Setup time is around 4:00 to 4:15 PM Pacific Standard Time.',
+          'That is the Asia session open for gold futures.',
+          'Be ready before the candle closes so the box is marked on time.',
+        ],
+      },
+      {
+        title: 'Box the 4:15 PM candle',
+        points: [
+          'Draw a small box around the 4:15 PM Pacific candle.',
+          'The box high and low become the decision levels.',
+          'Keep the chart clean: no indicators, no extra lines.',
+        ],
+      },
+      {
+        title: 'Wait for one side to pop off',
+        points: [
+          'Do not predict; wait for price to break out of the box.',
+          'Either direction can trigger, so let price pick the side.',
+          'The pop-off, not the inside of the box, is the trade.',
+        ],
+      },
+      {
+        title: 'Apply the pre-entry checks, then execute',
+        points: [
+          'She says there are a couple of things to look at before entering.',
+          'Those specific checks are taught inside her community, not in the public clip.',
+          'Until you have them, treat the box break as the frame and keep size small.',
+        ],
+      },
+    ],
+    entryRules: [
+      'At 4:00-4:15 PM Pacific, mark the 4:15 PM candle with a box',
+      'Wait for price to pop off one side of the box before entering',
+      'Trade the direction price chooses, not a prediction',
+      'No indicators and no clutter; the box and the break are the setup',
+      'Run her pre-entry confirmation checks before pulling the trigger (community-gated publicly)',
+    ],
+    exitRules: [
+      'She does not publish exact targets; a measured move of the box or a fixed 2R is the natural frame',
+      'Take profit into the next obvious level or the session range extension',
+      'If price pops and immediately re-enters the box, the break failed; exit or stand aside',
+    ],
+    riskManagement: [
+      'Asia gold can be thin and choppy, so the box break filter matters',
+      'Do not enter inside the box; wait for the pop-off',
+      'Size for the box range: the wider the box, the smaller the position',
+      'Be careful with the PST/PDT difference; the 4:15 PM anchor shifts by an hour in daylight saving',
+    ],
+    examples: [
+      {
+        title: 'The core setup',
+        description: 'The frame she teaches publicly.',
+        setup: 'Gold futures, 4:00-4:15 PM Pacific, Asia session open.',
+        entry: 'Box the 4:15 PM candle, then enter when price pops out of either side.',
+        exit: 'Measured move or fixed R target (exact target not published).',
+        result: 'A simple, stress-free session-opening breakout',
+      },
+      {
+        title: 'Why it feels easy',
+        description: 'Her stated appeal.',
+        setup: 'No indicators, no clutter, one reference candle.',
+        entry: 'One box, one break, one direction.',
+        exit: 'Clear invalidation if price returns inside the box.',
+        result: 'Low decision load, suitable for beginners',
+      },
+    ],
+    tips: [
+      '4:15 PM PST equals 00:15 UTC, about 8:15 AM Singapore and 9:15 AM Tokyo',
+      'In summer the Pacific clock is PDT, so 4:15 PM PDT is 23:15 UTC; keep the session alignment straight',
+      'Gold in Asia reacts to China and Japan flows, so expect real movement around their opens',
+      'The public clip gives the frame, not the full checklist; do not assume the missing checks are trivial',
+      'Try it on paper first and log whether the pop-off holds or fades back into the box',
+    ],
+    commonMistakes: [
+      'Entering inside the box before the pop-off',
+      'Boxing the wrong candle because of the PST/PDT offset',
+      'Adding indicators and overcomplicating a deliberately simple setup',
+      'Assuming the public version is the complete system when the confirmation checks are gated',
+      'Trading gold Asia on a major news day without adjusting expectations',
+    ],
+    source: {
+      url: 'https://www.tiktok.com/t/ZTPJWUsL8/',
+      title: 'joanna_sagrero — the chillest strategy I have ever had (Gold Asia session)',
+    },
+    sourceClaims: [
+      'Strategy is for the Asia session on Gold futures',
+      'Setup around 4:00-4:15 PM Pacific Standard Time',
+      'Draw a box around the 4:15 PM candle and wait for one side to pop off',
+      'No indicators, simple enough for a complete beginner',
+      'Pre-entry checks are taught step by step inside her community',
+    ],
+    openQuestions: [
+      'The exact pre-entry confirmation checks are not disclosed in the public clip',
+      'Exact stop placement and profit targets are not specified publicly',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-asia-session-gold-popoff',
+          title: 'The chillest strategy I have ever had — joanna_sagrero (Gold Asia session TikTok)',
+          url: 'https://www.tiktok.com/t/ZTPJWUsL8/',
+          notes:
+            'TikTok by joanna_sagrero (100s, 189 likes, 6K views). Gold futures Asia session strategy: at 4:00-4:15 PM Pacific (Asia open) draw a box around the 4:15 PM candle, then wait for price to pop off either side. No indicators, deliberately simple, beginner-friendly. She says there are a couple of things to check before entering but teaches those step by step in her paid community. Public clip gives the frame only; exact confirmation, stop and target are not disclosed.',
         },
       ],
     },
