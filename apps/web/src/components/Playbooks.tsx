@@ -72,6 +72,7 @@ const CATEGORY_BY_ID: Record<string, string> = {
   'opt-trend-pullback-spread': 'VWAP',
   'opt-failed-break-reversal': 'Reversal',
   'prop-firm-platform-tradeify': 'Prop Firm',
+  'prop-firm-math-sizing': 'Prop Firm',
 };
 const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }> = {
   'support-resistance': { dir: 'Long', variant: 0 },
@@ -94,6 +95,7 @@ const CHART_DIR_BY_ID: Record<string, { dir: 'Long' | 'Short'; variant: number }
   'opt-trend-pullback-spread': { dir: 'Long', variant: 0 },
   'opt-failed-break-reversal': { dir: 'Short', variant: 1 },
   'prop-firm-platform-tradeify': { dir: 'Long', variant: 1 },
+  'prop-firm-math-sizing': { dir: 'Long', variant: 0 },
 };
 const DIFFICULTY_STYLE: Record<string, string> = {
   Beginner: 'bg-tp-green/15 text-tp-green',
@@ -128,6 +130,7 @@ const TAGLINE_BY_ID: Record<string, string> = {
   'opt-trend-pullback-spread': 'Pullback to VWAP, defined risk both ways',
   'opt-failed-break-reversal': 'Back inside the range, target the far side',
   'prop-firm-platform-tradeify': 'Scale capital on a futures prop platform, no eval',
+  'prop-firm-math-sizing': 'Divide the max loss by 7 and survive the streak',
 };
 
 const RANK_FILTERS = ['All', 'Futures', 'Options', 'Beginner', 'Intermediate', 'Advanced'];
@@ -2219,6 +2222,143 @@ export const tradingStrategies: PlaybookStrategy[] = [
           url: 'https://www.tiktok.com/t/ZTynGuesA/',
           notes:
             'TikTok by smithy.christine (30s, 432 views). An influencer promo for Tradeify, a futures prop platform: up to $750,000 in capital with no evaluation, a free A-to-Z education video library, and a pitch to scale your trading capital. CTA to comment for starter links. Promotional content; verify actual terms on the official site. No entry, sizing, or payout method in the clip.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prop-firm-math-sizing',
+    name: 'Prop Firm Math: 7-Loss Sizing (diegotradez)',
+    description:
+      'Size off the max loss limit: 2k MLL ÷ 7 = about $285 risk per trade. Survive seven straight losses, take 1:2 for ~$570 a win, and eight wins puts you in max payout territory.',
+    difficulty: 'Beginner',
+    timeframe: 'Any timeframe',
+    winRate: 60,
+    riskReward: '1:2',
+    marketCondition: 'Prop firm evals (50K example)',
+    overview:
+      'Diego walks through the arithmetic most failed prop firm traders never do, using a 50K account with a 3k profit target and a 2k max loss limit (MLL). Risk $600 a trade and three losses (600 x 3 = 1,800) basically puts you at the MLL. Instead, divide the 2k MLL by 7: 2,000 / 7 = 285.71, so about $285 of risk per trade. That lets you lose seven trades in a row and still be alive. The question to ask yourself is simple: when was the last time you lost seven trades in a row? At $285 risk with a 1:2 reward, a winner pays 285.71 x 2 = 571.43, roughly $570. Then 570 x 8 = 4,560, which already puts you in max payout territory on many firms, and five to six such wins clears the 3k target. His point: the math, not the setup, is why 99% of people fail prop firms. Run these numbers before your next evaluation.',
+    glossary: [
+      { term: 'MLL', meaning: 'Max loss limit. On a 50K eval in his example it is 2k; it is the number your sizing must respect.' },
+      { term: 'Profit target', meaning: 'The gain needed to pass, 3k on the 50K example.' },
+      { term: 'Seven-loss rule', meaning: 'A deliberate sizing buffer that lets you lose seven consecutive trades without breaching the MLL (MLL / 7).' },
+      { term: '1:2 R/R', meaning: 'Risk one to make two. On $285 risk a winner pays about $570.' },
+      { term: 'Max payout territory', meaning: 'The profit level at which many prop firms allow the maximum payout; here reached by roughly eight $570 wins.' },
+    ],
+    anatomy: [
+      {
+        title: 'Know the two account numbers',
+        points: [
+          '50K account: 3k profit target and 2k max loss limit.',
+          'Sizing is decided by the MLL, not by feel.',
+          'Write both numbers down before the first trade.',
+        ],
+      },
+      {
+        title: 'Divide the MLL by seven',
+        points: [
+          '2,000 / 7 = 285.71, so risk about $285 a trade.',
+          'That gives you seven consecutive losses of room.',
+          'Contrast: $600 risk x 3 losses = 1,800, essentially the MLL.',
+        ],
+      },
+      {
+        title: 'Check your streak history',
+        points: [
+          'Ask when you last lost seven trades in a row.',
+          'If the answer is rarely or never, the sizing is survivable.',
+          'If you lose seven often, the problem is the edge, not the math.',
+        ],
+      },
+      {
+        title: 'Do the payout math',
+        points: [
+          '1:2 on $285 risk = $571 per winner.',
+          'Eight winners: 570 x 8 = 4,560, max payout territory.',
+          'Five to six winners clears the 3k target.',
+        ],
+      },
+    ],
+    entryRules: [
+      'Risk per trade = MLL / 7 (2,000 / 7 = about $285 on a 50K)',
+      'Never size so that three losses equal the MLL (e.g. $600 risk)',
+      'Trade for at least 1:2 so a winner pays about double the risk',
+      'Recalculate the divisor for your firm actual MLL and target',
+    ],
+    exitRules: [
+      'Take the 1:2; about eight winners ($570 each) reaches max payout territory',
+      'Five to six winners clears a 3k target at this size',
+      'Keep the MLL/7 size constant instead of pressing after wins',
+    ],
+    riskManagement: [
+      'The whole point is surviving seven consecutive losses',
+      'The $600 trap: three losses = $1,800, basically your MLL',
+      'Your own worst losing streak is the real input to the divisor',
+      'The math makes payouts reachable without gambling the account',
+    ],
+    examples: [
+      {
+        title: 'The bad sizing',
+        description: 'What most people do.',
+        setup: '50K account, 2k MLL, $600 risk per trade.',
+        entry: 'Three losing trades in a row.',
+        exit: '600 x 3 = 1,800 of the 2k MLL gone.',
+        result: 'Account effectively dead after three losses',
+      },
+      {
+        title: 'The seven-loss sizing',
+        description: 'The fix.',
+        setup: '2k MLL divided by 7 allowed losses.',
+        entry: 'Risk 285.71 per trade.',
+        exit: 'Seven losses in a row = about 2,000, still inside the rule.',
+        result: 'Survives the streak that kills most evals',
+      },
+      {
+        title: 'The payout math',
+        description: 'Why the small size still pays.',
+        setup: '285.71 risk at 1:2.',
+        entry: 'One winner pays 571.43.',
+        exit: '570 x 8 = 4,560.',
+        result: 'Max payout territory, and about 5.3 wins clears the 3k target',
+      },
+    ],
+    tips: [
+      'Run this calculator before your next eval, not after',
+      'Recompute for the firm actual MLL and target',
+      'Seven is his buffer; adjust the divisor to your own worst streak',
+      'Pair it with the Law of 10 (100-trade risk) and Funding to Payout Scaling cards',
+      'The edge still has to exist; the math only keeps you alive long enough to show it',
+    ],
+    commonMistakes: [
+      'Risking $600 a trade and dying in three losses',
+      'Sizing by feel instead of off the MLL',
+      'Not knowing your worst losing streak',
+      'Ignoring the payout threshold math and over-trading after a win',
+      'Treating the math as an edge when it is only survival',
+    ],
+    source: {
+      url: 'https://www.tiktok.com/t/ZPLxp6NFr/',
+      title: 'diegotradez — 99% of people fail prop firms because they never do the math (TikTok)',
+    },
+    sourceClaims: [
+      '50K account example: 3k profit target and 2k max loss limit',
+      '600 x 3 = 1,800, so $600 risk basically hits the 2k MLL in three losses',
+      '2,000 / 7 = 285.71, about $285 per trade to survive seven straight losses',
+      '1:2 on 285.71 = 571.43, and 570 x 8 = 4,560, max payout territory',
+      '99% of people fail prop firms because they never do the math',
+    ],
+    openQuestions: [
+      'The divisor of seven is his chosen buffer, not a universal rule; your own streak history should set it',
+      'Firm-specific payout thresholds and MLL rules vary, so the 4,560 figure is an example',
+    ],
+    seed: {
+      videos: [
+        {
+          id: 'vid-prop-firm-math-sizing',
+          title: 'The math of passing a 50K prop firm account — diegotradez (TikTok)',
+          url: 'https://www.tiktok.com/t/ZPLxp6NFr/',
+          notes:
+            'TikTok by diegotradez (70s, 7,111 likes, 78.6K views). 50K prop account: 3k profit target, 2k max loss limit. Bad sizing: $600 risk, three losses = 1,800, basically the MLL. Fix: 2,000 / 7 = 285.71, about $285 risk per trade, giving seven consecutive losses of room. Ask when you last lost seven in a row. 1:2 on 285.71 = 571.43 per winner; 570 x 8 = 4,560, max payout territory. Core message: 99% fail because they never do the math. Run it before your next eval.',
         },
       ],
     },
