@@ -188,7 +188,7 @@ export function VideoLibrary(props: Props) {
     </>
   );
 }
-function EmbeddedVideo({ src, title, originalUrl }: {
+export function EmbeddedVideo({ src, title, originalUrl }: {
   src: string;
   title: string;
   originalUrl: string;
@@ -199,9 +199,49 @@ function EmbeddedVideo({ src, title, originalUrl }: {
     const timer = setTimeout(() => setStatus((current) => current === "loaded" ? current : "slow"), 10000);
     return () => clearTimeout(timer);
   }, [attempt]);
+  const youtubeId = src.match(/youtube(?:-nocookie)?\.com\/embed\/([\w-]{11})/)?.[1];
+  const [blocked, setBlocked] = useState(false);
+  useEffect(() => {
+    setBlocked(false);
+    if (!youtubeId) return;
+    let live = true;
+    fetch(`/api/playbooks/embeddable?youtube=${youtubeId}`)
+      .then((r) => r.json())
+      .then((d: { embeddable?: boolean }) => live && setBlocked(d.embeddable === false))
+      .catch(() => undefined);
+    return () => { live = false; };
+  }, [youtubeId]);
   function retry() {
     setStatus("loading");
     setAttempt((current) => current + 1);
+  }
+  if (blocked && youtubeId) {
+    return (
+      <a
+        href={originalUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="group relative block h-full w-full overflow-hidden bg-black"
+        aria-label={`Watch ${title} on YouTube`}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`}
+          alt=""
+          className="absolute inset-0 h-full w-full scale-105 object-cover opacity-60 transition duration-500 group-hover:scale-100 group-hover:opacity-75"
+        />
+        <span className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/10" />
+        <span className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-white text-black shadow-2xl transition group-hover:scale-110">
+            <Play size={26} className="ml-1 fill-current" />
+          </span>
+          <span className="text-[15px] font-semibold text-white">Watch on YouTube</span>
+          <span className="max-w-[300px] text-[12.5px] leading-relaxed text-zinc-300">
+            The creator only lets this video play on YouTube. It opens in a new tab{/[?&]t=\d/.test(originalUrl) ? ", at the right moment" : ""}.
+          </span>
+        </span>
+      </a>
+    );
   }
   return (
     <div className="pw-embed">

@@ -31,9 +31,13 @@ import {
   Revision,
   VideoReference,
   videoSource,
+  isShortVideoLink,
+  resolveVideoUrl,
+  withPlayableVideos,
   writeLibrary,
 } from "@/lib/playbookLibrary";
 import "./workspace.css";
+import { GuideVideos } from "./GuideVideos";
 import { VideoLibrary } from "./VideoLibrary";
 
 type Props = {
@@ -131,6 +135,8 @@ export function StrategyWorkspace({
           };
         }
         next = mergeSeedVideos(next, starter?.videos || []);
+        // Videos saved from share links can't play until their full address is known.
+        next = await withPlayableVideos(next);
         if (next !== data) await writeLibrary(strategyId, next);
         if (!active) return;
         setLibrary(next);
@@ -236,7 +242,17 @@ export function StrategyWorkspace({
       )}
       {tab === "guide" ? (
         typeof guide === "function" ? (
-          guide({
+          <>
+          {library.videos.length > 0 && (
+            <GuideVideos
+              videos={library.videos}
+              onNotes={() => {
+                setTab("workspace");
+                requestAnimationFrame(() => document.getElementById("videos")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+              }}
+            />
+          )}
+          {guide({
             screenshots: library.screenshots,
             selectedImage: library.guideImageId || "",
             selectImage: (id) => {
@@ -248,7 +264,8 @@ export function StrategyWorkspace({
             addImage: () => setEditor({ kind: "image" }),
             openImage: setLightbox,
             ready: ready && !busy,
-          })
+          })}
+          </>
         ) : (
           guide
         )
@@ -934,15 +951,18 @@ function LibraryEditor({
                   : [...library.screenshots, item],
               });
             } else {
-              if (!videoSource(url.trim()))
+              const full = await resolveVideoUrl(url.trim());
+              if (!videoSource(full))
                 return setError(
-                  "Use an HTTPS Instagram post/Reel, TikTok full video link, YouTube, Vimeo, or direct MP4 / WebM URL.",
+                  isShortVideoLink(url.trim())
+                    ? "TikTok didn't say which video that link is. Open it in TikTok and copy the full @creator/video link."
+                    : "Use an HTTPS Instagram post/Reel, TikTok link, YouTube, Vimeo, or direct MP4 / WebM URL.",
                 );
               const item: VideoReference = {
                 id,
                 title: title.trim(),
                 notes,
-                url: url.trim(),
+                url: full,
               };
               await onSave({
                 ...library,
@@ -1096,13 +1116,12 @@ function LibraryEditor({
               </label>
               <p className="pw-footnote">
                 Instagram · TikTok · YouTube · Vimeo · MP4 / WebM. Use a public
-                video link, not embed code. For TikTok, use the full
-                @creator/video link.
+                video link, not embed code. TikTok share links work too.
               </p>
-              {videoSource(url) && (
+              {(videoSource(url) || isShortVideoLink(url)) && (
                 <p className="pw-detected">
                   <Check size={14} />
-                  {videoSource(url)?.provider} link recognized
+                  {videoSource(url)?.provider ?? "TikTok"} link recognized
                 </p>
               )}
             </>

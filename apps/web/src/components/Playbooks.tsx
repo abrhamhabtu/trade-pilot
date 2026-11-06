@@ -2102,7 +2102,7 @@ export const tradingStrategies: PlaybookStrategy[] = [
       'Chasing a claimed payout number without your own process',
     ],
     source: {
-      url: 'https://www.tiktok.com/t/ZTytCYoGe/',
+      url: 'https://www.tiktok.com/@fittraderdad/video/7695226063168769294',
       title: 'fittraderdad — get those payouts the right way (TikTok)',
     },
     sourceClaims: [
@@ -2118,7 +2118,7 @@ export const tradingStrategies: PlaybookStrategy[] = [
         {
           id: 'vid-prop-firm-payout-discipline',
           title: 'Get payouts the right way — fittraderdad (TikTok)',
-          url: 'https://www.tiktok.com/t/ZTytCYoGe/',
+          url: 'https://www.tiktok.com/@fittraderdad/video/7695226063168769294',
           notes:
             'TikTok by fittraderdad (523 likes, 138s, no audio narration). Persistent on-screen message: "This is how you rinse these prop firms" over a payout result screen. Caption: get those payouts the right way, tagged trading psychology. Motivational/process clip, not a mechanical method — pair with the Prop Firm systems (Funding to Payout Scaling, Law of 10, Copy Trading Blueprint) for the actual numbers.',
         },
@@ -2208,7 +2208,7 @@ export const tradingStrategies: PlaybookStrategy[] = [
       'Gambling on a big-capital platform without a money system',
     ],
     source: {
-      url: 'https://www.tiktok.com/t/ZTynGuesA/',
+      url: 'https://www.tiktok.com/@smithy.christine/video/7694498654652042526',
       title: 'smithy.christine — Tradeify is the best trading platform I\u2019ve used (TikTok promo)',
     },
     sourceClaims: [
@@ -2225,7 +2225,7 @@ export const tradingStrategies: PlaybookStrategy[] = [
         {
           id: 'vid-prop-firm-platform-tradeify',
           title: 'Tradeify is the best trading platform I\u2019ve used — smithy.christine (TikTok promo)',
-          url: 'https://www.tiktok.com/t/ZTynGuesA/',
+          url: 'https://www.tiktok.com/@smithy.christine/video/7694498654652042526',
           notes:
             'TikTok by smithy.christine (30s, 432 views). An influencer promo for Tradeify, a futures prop platform: up to $750,000 in capital with no evaluation, a free A-to-Z education video library, and a pitch to scale your trading capital. CTA to comment for starter links. Promotional content; verify actual terms on the official site. No entry, sizing, or payout method in the clip.',
         },
@@ -2343,7 +2343,7 @@ export const tradingStrategies: PlaybookStrategy[] = [
       'Treating the math as an edge when it is only survival',
     ],
     source: {
-      url: 'https://www.tiktok.com/t/ZPLxp6NFr/',
+      url: 'https://www.tiktok.com/@diegotradez/video/7699193253261790478',
       title: 'diegotradez — 99% of people fail prop firms because they never do the math (TikTok)',
     },
     sourceClaims: [
@@ -2362,7 +2362,7 @@ export const tradingStrategies: PlaybookStrategy[] = [
         {
           id: 'vid-prop-firm-math-sizing',
           title: 'The math of passing a 50K prop firm account — diegotradez (TikTok)',
-          url: 'https://www.tiktok.com/t/ZPLxp6NFr/',
+          url: 'https://www.tiktok.com/@diegotradez/video/7699193253261790478',
           notes:
             'TikTok by diegotradez (70s, 7,111 likes, 78.6K views). 50K prop account: 3k profit target, 2k max loss limit. Bad sizing: $600 risk, three losses = 1,800, basically the MLL. Fix: 2,000 / 7 = 285.71, about $285 risk per trade, giving seven consecutive losses of room. Ask when you last lost seven in a row. 1:2 on 285.71 = 571.43 per winner; 570 x 8 = 4,560, max payout territory. Core message: 99% fail because they never do the math. Run it before your next eval.',
         },
@@ -2473,7 +2473,7 @@ export const tradingStrategies: PlaybookStrategy[] = [
       'Trading gold Asia on a major news day without adjusting expectations',
     ],
     source: {
-      url: 'https://www.tiktok.com/t/ZTPJWUsL8/',
+      url: 'https://www.tiktok.com/@joanna_sagrero/video/7697481647305788703',
       title: 'joanna_sagrero — the chillest strategy I have ever had (Gold Asia session)',
     },
     sourceClaims: [
@@ -2492,7 +2492,7 @@ export const tradingStrategies: PlaybookStrategy[] = [
         {
           id: 'vid-asia-session-gold-popoff',
           title: 'The chillest strategy I have ever had — joanna_sagrero (Gold Asia session TikTok)',
-          url: 'https://www.tiktok.com/t/ZTPJWUsL8/',
+          url: 'https://www.tiktok.com/@joanna_sagrero/video/7697481647305788703',
           notes:
             'TikTok by joanna_sagrero (100s, 189 likes, 6K views). Gold futures Asia session strategy: at 4:00-4:15 PM Pacific (Asia open) draw a box around the 4:15 PM candle, then wait for price to pop off either side. No indicators, deliberately simple, beginner-friendly. She says there are a couple of things to check before entering but teaches those step by step in her paid community. Public clip gives the frame only; exact confirmation, stop and target are not disclosed.',
         },
@@ -2602,7 +2602,7 @@ export const tradingStrategies: PlaybookStrategy[] = [
       'Trading thin Asia liquidity with full US-session size',
     ],
     source: {
-      url: 'https://www.tiktok.com/t/ZPLxpNrxe/',
+      url: 'https://www.tiktok.com/@nikivanwyk/video/7699115550475111710',
       title: 'nikivanwyk — Asia Session breakdown (TikTok)',
     },
     sourceClaims: [
@@ -2620,7 +2620,7 @@ export const tradingStrategies: PlaybookStrategy[] = [
         {
           id: 'vid-asia-session-topdown',
           title: 'Asia Session breakdown — nikivanwyk (MNQ top-down walkthrough)',
-          url: 'https://www.tiktok.com/t/ZPLxpNrxe/',
+          url: 'https://www.tiktok.com/@nikivanwyk/video/7699115550475111710',
           notes:
             'TikTok by nikivanwyk (4m55s, 2,768 likes, 28.5K views). Silent screen-share titled Trade Asia Session w/ Me, then Top-Down Analysis. Walks MNQZ2026 from daily context to 4h bias to 15m and 5m entries, with a Fibonacci retracement marking the 0.618 and 0.705 zone (about 29,947 and 29,961.78 on the shown chart). No audio and no explicit rule list; the content is the top-down process, the retracement-zone location, and the order execution: buy stop and buy limit orders in Tradovate with stop-loss modifications as the trade is managed.',
         },
