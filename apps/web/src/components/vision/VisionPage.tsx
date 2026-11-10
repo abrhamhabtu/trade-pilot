@@ -4,7 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { BellRing, Code2, Columns2, FlaskConical, Radio, ScanEye, Square, Volume2, VolumeX, X } from "lucide-react";
 import { readOf, useVisionStore, type VisionPosition, type VisionTrade, type Venue } from "@/store/visionStore";
-import { isReader } from "@/lib/vision/analyze";
+import { infoOf, isReader, type SetupSource } from "@/lib/vision/analyze";
+import { accountState, type AccountTrade, type PropAccount } from "@/lib/vision/account";
+import { guardAccountOf, tradeGuard, type GuardResult } from "@/lib/vision/guard";
+import { nyClock, scheduledEvents, sessionOf } from "@/lib/pilot/market";
+import { useAccounts } from "./backtest/data";
+import { useLimits } from "./backtest/prop/useLab";
 import { BY_KIND, SYMBOLS, formatPrice, type MarketKind, type VisionSymbolId } from "@/lib/vision/markets";
 import { useTickers } from "@/lib/vision/feed";
 import { viewOf } from "@/lib/vision/chartView";
@@ -49,6 +54,37 @@ function LiveVision() {
   const [demo, setDemo] = useState<Book>(EMPTY_BOOK);
   const tickers = useTickers(s.kind);
   const arm = useArm();
+  // ── Pass mode: the Prop desk account the guard sizes against ──
+  const desk = useAccounts();
+  const { limits } = useLimits();
+  const guardAcct = s.guardAccount ? (desk.accounts?.find((a) => a.id === s.guardAccount) ?? null) : null;
+  const nyDate = nyClock(Date.now()).date;
+  const guardOf = (st: ChartState | null | undefined, symbol: VisionSymbolId): GuardResult | null => {
+    const setup = st?.scan?.setup;
+    if (!guardAcct || !setup || setup.outcome !== "open" || st?.mode === "demo" || SYMBOLS[symbol].kind !== "futures") return null;
+    const state = accountState(guardAcct);
+    if (!state) return null;
+    return tradeGuard({ setup, symbol, micro: s.micro, account: guardAccountOf(guardAcct, state, nyDate), limits, now: Date.now(), events: scheduledEvents(nyDate), wanted: s.contracts });
+  };
+  /** A closed Pass mode trade, written to its account the way Replay writes hand trades. */
+  const record = useCallback(
+    (t: VisionTrade) => {
+      if (!t.accountId) return;
+      const a = desk.accounts?.find((x) => x.id === t.accountId);
+      if (!a) return;
+      const entryT = Math.floor(t.openedAt / 1000);
+      const risk = Math.abs(t.entry - t.stop) * t.qty * t.pointValue;
+      const source = (t.setupId.match(/^(.+)-(?:long|short)-[0-9]+$/)?.[1] ?? "") as SetupSource;
+      const at: AccountTrade = { id: `v${t.id}`, entryT, exitT: Math.floor(t.closedAt / 1000), session: sessionOf(entryT).session, side: t.side, qty: t.qty, entry: t.entry, exit: t.exit, stop: t.stop, target: t.target, pnl: t.pnl, r: risk ? t.pnl / risk : 0, worst: Math.min(0, t.pnl), best: Math.max(0, t.pnl), reason: t.reason, source: t.auto ? "auto" : "manual", strategy: source ? infoOf(source).label : undefined };
+      if (a.trades.some((x) => x.id === at.id)) return;
+      const before = accountState(a)?.status;
+      const next: PropAccount = { ...a, trades: [...a.trades, at] };
+      const after = accountState(next);
+      if (after && after.status !== before && after.status !== "active") next.events = [...next.events, { at: Date.now(), kind: after.status === "passed" ? "passed" : "blown", text: after.headline }];
+      void desk.save(next);
+    },
+    [desk],
+  );
 
   const fi = Math.min(s.focus, s.charts.length - 1);
   const focused = s.charts[fi];
@@ -134,6 +170,16 @@ function LiveVision() {
       } else {
         qty = Math.max(1, Math.round(v.contracts));
         pointValue = v.micro ? sm.pointValue!.micro : sm.pointValue!.full;
+        // Pass mode sizes from the account's rules; a "no" never reaches a real venue or auto-execute.
+        const g = demoMode ? null : guardOf(st, symbol);
+        if (g) {
+          if (g.verdict === "no" && (venue !== "paper" || auto)) {
+            handle(`Pass mode: ${g.reasons.find((r) => r.tone === "stop")?.text ?? "the rules say no"}`);
+            ping("wait");
+            return;
+          }
+          qty = Math.max(1, g.suggested);
+        }
       }
       if (qty <= 0) {
         handle();
@@ -154,13 +200,13 @@ function LiveVision() {
           return;
         }
       }
-      const p = { symbol, side: setup.side, qty, entry: price, stop: setup.stop, target: setup.target, setupId: setup.id, auto, venue, pointValue };
+      const p = { symbol, side: setup.side, qty, entry: price, stop: setup.stop, target: setup.target, setupId: setup.id, auto, venue, pointValue, accountId: demoMode ? undefined : (guardAcct?.id ?? undefined) };
       if (demoMode) setDemo((d) => ({ ...d, positions: [...d.positions, { ...p, id: uid(), openedAt: bars[bars.length - 1].t * 1000 }], handled: [...d.handled, setup.id] }));
       else v.open(p);
       setAutoNote("");
       ping("go");
     },
-    [arm.armed, ping, demo],
+    [arm.armed, ping, demo, guardAcct, limits, nyDate], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // ── Watching open positions: real ones on real prices, demo ones on the demo bars ──
@@ -178,10 +224,13 @@ function LiveVision() {
       const targetHit = p.side === "long" ? hi >= p.target : lo <= p.target;
       if (stopHit || targetHit) {
         const t = v.close(p.id, stopHit ? p.stop : p.target, stopHit ? "stop" : "target");
-        if (t) ping(t.pnl >= 0 ? "go" : "wait");
+        if (t) {
+          record(t);
+          ping(t.pnl >= 0 ? "go" : "wait");
+        }
       }
     }
-  }, [prices, ranges, ping]);
+  }, [prices, ranges, ping, record]);
   useEffect(() => {
     if (!demo.positions.length) return;
     const closing: VisionTrade[] = [];
@@ -280,6 +329,7 @@ function LiveVision() {
                 closed={recentClose(bookFor(i), c.symbol)}
                 tradeLabel={tradeLabel}
                 view={viewOf(c.view, s.charts.length === 2)}
+                riskNote={guardNote(guardOf(states[i], c.symbol), c.symbol, s.micro)}
                 onView={(view) => s.setChart(i, { view })}
                 onFocus={() => s.focus !== i && s.set({ focus: i })}
                 onTf={(tf) => s.setChart(i, { tf })}
@@ -320,12 +370,17 @@ function LiveVision() {
               if (position.venue !== "paper")
                 await fetch("/api/vision/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "flatten", symbol: position.symbol, micro: s.micro }) }).catch(() => undefined);
               const t = s.close(position.id, prices[position.symbol] ?? position.entry, "manual");
-              if (t) ping(t.pnl >= 0 ? "go" : "wait");
+              if (t) {
+                record(t);
+                ping(t.pnl >= 0 ? "go" : "wait");
+              }
             }}
             handled={!!setupId && book.handled.includes(setupId) && !position && !closedForSetup}
             lastTrade={lastTrade}
             closedForSetup={closedForSetup}
             sizing={sizing}
+            guard={guardOf(state, focused.symbol)}
+            pass={{ accounts: sym.kind === "futures" ? (desk.accounts ?? []).filter((a) => accountState(a)?.status === "active") : [], chosen: s.guardAccount, onChoose: (id) => s.set({ guardAccount: id }), real: sym.kind === "futures" && !!arm.armed }}
             venueSlot={isDemo(fi) ? <p className="rounded-2xl bg-[#FF8A3D]/10 px-3 py-2 text-[12px] text-[#FFB27D]">Demo trades are simulated and kept apart from your paper results.</p> : <VenueSlot kind={sym.kind} arm={arm} />}
           />
         </div>
@@ -715,3 +770,11 @@ function VenueSlot({ kind, arm }: { kind: MarketKind; arm: ReturnType<typeof use
   );
 }
 
+
+/** The one line Pass mode puts inside the risk box: size, dollars at risk, share of the room. */
+function guardNote(g: GuardResult | null, symbol: VisionSymbolId, micro: boolean) {
+  if (!g) return undefined;
+  const root = micro ? SYMBOLS[symbol].roots!.micro : SYMBOLS[symbol].roots!.full;
+  if (g.verdict === "no") return "Pass mode: rules say no";
+  return `${g.suggested} ${root} · $${Math.round(g.riskUsd).toLocaleString("en-US")} · ${Math.round(g.riskShareOfRoom * 100)}% of room`;
+}

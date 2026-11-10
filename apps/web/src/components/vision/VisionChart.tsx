@@ -95,6 +95,7 @@ export function VisionChart({
   levels = [],
   others = [],
   onPromote,
+  riskNote,
 }: {
   bars: Bar[];
   sym: VisionSymbol;
@@ -113,6 +114,8 @@ export function VisionChart({
   /** Other reads still open nearby (Discover), drawn as chips that can be promoted. */
   others?: Setup[];
   onPromote?: (s: Setup) => void;
+  /** Pass mode's line inside the risk box. */
+  riskNote?: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
@@ -327,7 +330,7 @@ export function VisionChart({
       )}
       {label && <span data-ov="mode-label" className="pointer-events-none absolute bottom-[34px] left-14 z-10 rounded-full bg-[#FF8A3D]/15 px-2.5 py-0.5 text-[11px] font-bold tracking-[0.08em] text-[#FFB27D] ring-1 ring-[#FF8A3D]/30">{label}</span>}
       <div ref={box} className="absolute inset-0" />
-      {geo && bars.length > 0 && <Overlay geo={geo} bars={bars} scan={scan} setup={setup} full={full} phase={phase} position={position} closed={closed ?? null} fmt={fmt} view={view} levels={levels} sessions={sym.kind === "futures" && layers(view).sessions} modeLabel={!!label} others={others} onPromote={onPromote} />}
+      {geo && bars.length > 0 && <Overlay geo={geo} bars={bars} scan={scan} setup={setup} full={full} phase={phase} position={position} closed={closed ?? null} fmt={fmt} view={view} levels={levels} sessions={sym.kind === "futures" && layers(view).sessions} modeLabel={!!label} others={others} onPromote={onPromote} riskNote={riskNote} />}
       {geo && bars.length > 0 && review && <ReviewOverlay geo={geo} bars={bars} r={review} fmt={fmt} />}
     </div>
   );
@@ -368,6 +371,7 @@ function Overlay({
   modeLabel,
   others,
   onPromote,
+  riskNote,
 }: {
   geo: Geo;
   bars: Bar[];
@@ -384,6 +388,7 @@ function Overlay({
   modeLabel: boolean;
   others: Setup[];
   onPromote?: (s: Setup) => void;
+  riskNote?: string;
 }) {
   const { w, h, plotW, x, y, bar } = geo;
   const L = layers(view);
@@ -490,8 +495,15 @@ function Overlay({
     };
     add("r-reward", `+${s!.rr.toFixed(1)}R`, yE!, yT!, "orange");
     add("r-risk", "−1R", yE!, yS!, "red");
+    // Pass mode's size, at the left of the risk box when it fits beside the −1R tag.
+    if (riskNote) {
+      const tw = textWidth(riskNote, 10.5) + 12;
+      const riskTag = tags.find((t) => t.id === "r-risk");
+      const space = (riskTag ? riskTag.x : right) - xi! - 8;
+      if (Math.abs(yS! - yE!) >= 18 && space >= tw) tags.push({ id: "risk-note", text: riskNote, x: xi! + 4, y: (yE! + yS!) / 2 - 8, w: tw, tone: "red" });
+    }
     return tags;
-  }, [boxes, s, yE, yT, yS, xi, right]);
+  }, [boxes, s, yE, yT, yS, xi, right, riskNote]);
 
   // ── The right-hand gutter: levels in price order ──
   const gutter = useMemo(() => {
@@ -559,6 +571,11 @@ function Overlay({
       const text = `FILLED ${position.qty} @ ${fmt(position.entry)}`;
       if (fx != null && fy != null) labels.push({ id: "filled", kind: "fill", text, w: textWidth(text, 10.5) + 22, h: 20, ax: fx, ay: fy, prefer: position.side === "long" ? ["b", "br", "bl", "t"] : ["t", "tr", "tl", "b"], priority: 80, optional: true });
     }
+    // Pass mode's size line: inside the risk box when it fits (an rTag), otherwise just outside it, placed like any label.
+    if (riskNote && boxes && !rTags.some((t) => t.id === "risk-note")) {
+      const edge = s!.side === "long" ? Math.max(yE!, yS!) : Math.min(yE!, yS!);
+      labels.push({ id: "risk-note", kind: "note-risk", text: riskNote, w: textWidth(riskNote, 10.5) + 16, h: 18, ax: xi! + 6, ay: edge, prefer: s!.side === "long" ? ["br", "b", "bl"] : ["tr", "t", "tl"], priority: 75, optional: true });
+    }
     if (ready && full && L.setupPill) {
       const text = `✦ ${s!.side === "long" ? "LONG" : "SHORT"} SETUP`;
       const top = Math.min(y(patternTop)!, y(patternBot)!) - 10;
@@ -571,7 +588,7 @@ function Overlay({
       }
     const out = place(labels, obstacles, { x: 0, y: 0, w: gutterX - 2, h: h - 28 }, prev.current);
     return labels.map((l, k) => ({ l, p: out[k] }));
-  }, [bars, x, y, bar, plotW, h, volTop, gutterX, modeLabel, boxes, xi, yE, yT, yS, right, pins, rTags, chips, closed, position, fmt, ready, full, L.setupPill, s, xs, patternTop, patternBot, notesOn]);
+  }, [bars, x, y, bar, plotW, h, volTop, gutterX, modeLabel, boxes, xi, yE, yT, yS, right, pins, rTags, chips, closed, position, fmt, ready, full, L.setupPill, s, xs, patternTop, patternBot, notesOn, riskNote]);
   useEffect(() => {
     prev.current = placed.map((q) => q.p);
   }, [placed]);
@@ -768,6 +785,12 @@ function Overlay({
           return (
             <span key={l.id} data-ov={l.id} className="tp-fade-in absolute flex items-center truncate rounded-lg border border-white/[0.12] bg-[#1B1B1E]/[0.94] px-2.5 text-[12px] font-semibold text-white shadow-[0_10px_28px_-10px_rgba(0,0,0,0.9)]" style={{ ...style, width: p.compact ? l.compact!.w : l.w, height: p.compact ? l.compact!.h : l.h }}>
               <span className="truncate">{l.text}</span>
+            </span>
+          );
+        if (l.kind === "note-risk")
+          return (
+            <span key={l.id} data-ov={l.id} className="tp-fade-in absolute flex items-center justify-center whitespace-nowrap rounded-md bg-[#FF5A4E]/15 font-mono text-[10.5px] font-semibold tabular-nums text-[#FF8D85]" style={{ ...style, width: l.w, height: l.h }}>
+              {l.text}
             </span>
           );
         if (l.kind === "pill")

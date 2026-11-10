@@ -10,6 +10,8 @@ import { ChartRead } from "./ChartRead";
 import { PROVIDERS } from "@/lib/pilot/models";
 import type { VisionPosition, VisionTrade } from "@/store/visionStore";
 import type { ChartState, Explain, QuickTest } from "./ChartCard";
+import type { GuardResult } from "@/lib/vision/guard";
+import type { PropAccount } from "@/lib/vision/account";
 import { NewBadge, VerdictBadge } from "./DiscoverPanel";
 
 const usd = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -46,6 +48,8 @@ export function CopilotPanel({
   lastTrade,
   closedForSetup,
   sizing,
+  guard,
+  pass,
   venueSlot,
 }: {
   sym: VisionSymbol;
@@ -63,6 +67,9 @@ export function CopilotPanel({
   lastTrade: VisionTrade | null;
   closedForSetup: VisionTrade | null;
   sizing: string;
+  /** Pass mode's read of the setup on screen against the chosen account. */
+  guard: GuardResult | null;
+  pass: { accounts: PropAccount[]; chosen: string | null; onChoose: (id: string | null) => void; real: boolean };
   venueSlot: React.ReactNode;
 }) {
   const scan: Scan | null = state?.scan ?? null;
@@ -245,6 +252,7 @@ export function CopilotPanel({
               <Row k="Size" v={sizing} />
             </dl>
             {state?.explain && state.mode !== "demo" && <ExplainCard e={state.explain} />}
+            {state?.mode !== "demo" && sym.kind === "futures" && <PassMode pass={pass} guard={guard} />}
             <ol className="mt-4 flex items-start justify-between">
               {steps.map((st, k) => (
                 <li key={st.k} className="relative flex flex-1 flex-col items-center">
@@ -278,8 +286,13 @@ export function CopilotPanel({
                 <p className="rounded-2xl bg-white/[0.04] px-3 py-2.5 text-[13.5px] text-white/55">{autoNote || "Skipped. Scanning for the next setup."}</p>
               ) : (
                 <div className="grid grid-cols-[1.4fr_1fr] gap-2">
-                  <button onClick={onOpen} disabled={!setup.fresh || !phase?.projection} className="rounded-2xl bg-[#FF8A3D] py-3 text-[15px] font-bold text-black shadow-[0_12px_30px_-12px_rgba(255,138,61,0.9)] transition active:scale-[0.98] disabled:opacity-40" title={setup.fresh ? "" : "This setup fired a while ago; wait for a fresh one"}>
-                    {setup.side === "long" ? "▲ Open long" : "▼ Open short"}
+                  <button
+                    onClick={onOpen}
+                    disabled={!setup.fresh || !phase?.projection || (guard?.verdict === "no" && pass.real)}
+                    className={clsx("rounded-2xl py-3 text-[15px] font-bold shadow-[0_12px_30px_-12px_rgba(255,138,61,0.9)] transition active:scale-[0.98] disabled:opacity-40", guard?.verdict === "no" ? "bg-white/[0.1] text-white" : "bg-[#FF8A3D] text-black")}
+                    title={setup.fresh ? (guard?.verdict === "no" && pass.real ? "The account's rules say no; real orders are blocked" : "") : "This setup fired a while ago; wait for a fresh one"}
+                  >
+                    {guard?.verdict === "no" ? (pass.real ? "Rules say no" : "Take anyway (paper)") : `${setup.side === "long" ? "▲ Open long" : "▼ Open short"}${guard ? ` · ${guard.suggested}` : ""}`}
                   </button>
                   <button onClick={onSkip} disabled={!phase?.projection} className="rounded-2xl bg-white/[0.08] py-3 text-[15px] font-semibold text-white transition hover:bg-white/[0.12] active:scale-[0.98] disabled:opacity-40">
                     Skip
@@ -464,6 +477,53 @@ function QuickResult({ q, onFull }: { q: QuickTest; onFull: () => void }) {
           Full test →
         </button>
       </p>
+    </div>
+  );
+}
+
+/** Trading for: a Prop desk account, sized by its rules; or the paper book, as before. */
+function PassMode({ pass, guard }: { pass: { accounts: PropAccount[]; chosen: string | null; onChoose: (id: string | null) => void }; guard: GuardResult | null }) {
+  const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
+  return (
+    <div className="mt-3 rounded-2xl bg-white/[0.04] p-3">
+      <label className="flex items-center gap-2 text-[12.5px] text-white/60">
+        Trading for
+        <select value={pass.chosen ?? ""} onChange={(e) => pass.onChoose(e.target.value || null)} className="min-w-0 flex-1 rounded-lg bg-white/[0.07] px-2 py-1 text-[12.5px] font-semibold text-white outline-none">
+          <option value="">Paper book</option>
+          {pass.accounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {!pass.chosen && pass.accounts.length === 0 && <p className="mt-1.5 text-[11.5px] text-white/40">Make a practice account in Backtest → Prop firm to size trades by its rules here.</p>}
+      {guard && (
+        <div className="mt-2.5 space-y-2">
+          <div className="flex items-baseline gap-2">
+            <span className={clsx("rounded-full px-2 py-0.5 text-[11px] font-bold", guard.verdict === "go" ? "bg-[#FF8A3D] text-black" : guard.verdict === "reduce" ? "bg-[#FF8A3D]/15 text-[#FFB27D]" : "bg-[#FF5A4E]/20 text-[#FF8D85]")}>{guard.verdict === "go" ? "Within the rules" : guard.verdict === "reduce" ? "Smaller size" : "Rules say no"}</span>
+            {guard.verdict !== "no" && (
+              <span className="text-[13px] tabular-nums text-white/80">
+                {guard.suggested} contract{guard.suggested === 1 ? "" : "s"} · {usd(guard.riskUsd)} at risk · {Math.round(guard.riskShareOfRoom * 100)}% of room
+              </span>
+            )}
+          </div>
+          <ul className="space-y-0.5">
+            {guard.reasons.map((r) => (
+              <li key={r.text} className={clsx("text-[12px] leading-snug", r.tone === "stop" ? "text-[#FF8D85]" : r.tone === "warn" ? "text-[#FFB27D]" : "text-white/55")}>
+                {r.tone === "stop" ? "✕" : r.tone === "warn" ? "!" : "·"} {r.text}
+              </li>
+            ))}
+          </ul>
+          {guard.verdict !== "no" && (
+            <p className="text-[12px] leading-snug text-white/60">
+              If it loses: {usd(guard.ifLoss.room)} of room left, {guard.ifLoss.lossesLeftAtThisSize} more like this.
+              {guard.ifWin.shareOfTarget != null ? ` If it wins: ${Math.round(guard.ifWin.shareOfTarget * 100)}% of the way to the target.` : ` If it wins: balance ${usd(guard.ifWin.balance)}.`}
+            </p>
+          )}
+          <p className="text-[10.5px] text-white/30">What the firm's rules and your limits allow. Not advice about the trade.</p>
+        </div>
+      )}
     </div>
   );
 }

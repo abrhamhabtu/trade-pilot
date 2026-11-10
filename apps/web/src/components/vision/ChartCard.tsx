@@ -144,6 +144,7 @@ export function ChartCard({
   closed,
   tradeLabel,
   view,
+  riskNote,
   onFocus,
   onTf,
   onRead,
@@ -160,6 +161,8 @@ export function ChartCard({
   closed: VisionTrade | null;
   tradeLabel: string;
   view: ChartView;
+  /** Pass mode's size line for the risk box. */
+  riskNote?: string;
   onFocus: () => void;
   onView: (v: ChartView) => void;
   onTf: (tf: Timeframe) => void;
@@ -568,6 +571,7 @@ export function ChartCard({
             view={view}
             levels={gutter}
             others={mode === "demo" ? [] : (scan?.others ?? [])}
+            riskNote={mode === "live" ? riskNote : undefined}
             onPromote={promote}
           />
         ) : (

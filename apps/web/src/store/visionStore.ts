@@ -45,6 +45,8 @@ export interface VisionPosition {
   venue: Venue;
   /** Dollars per 1.0 price move per unit (contract or coin). */
   pointValue: number;
+  /** Pass mode: the Prop desk account this trade is written to when it closes. */
+  accountId?: string;
 }
 
 export interface VisionTrade extends VisionPosition {
