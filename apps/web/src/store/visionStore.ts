@@ -3,7 +3,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { MarketKind, Timeframe, VisionSymbolId } from '@/lib/vision/markets';
-import type { ReaderChoice, Side } from '@/lib/vision/analyze';
+import type { ReaderChoice, SetupSource, Side } from '@/lib/vision/analyze';
+import { DISCOVER_DEFAULTS, type ChartRead, type Dials } from '@/lib/vision/discover';
 import { TEMPLATES, type CustomRules, type SessionKey } from '@/lib/vision/custom';
 import type { ChartView } from '@/lib/vision/chartView';
 
@@ -16,6 +17,18 @@ export interface ChartSlot {
   reader?: ReaderChoice;
   /** What the chart draws; unset follows the layout (clean when two share the screen). */
   view?: ChartView;
+  /** What reads the chart: a reader, all of them, Discover, or one pattern or scout idea. Older saves only have `reader`. */
+  read?: ChartRead;
+}
+
+/** What a chart slot is read with, for saves from before `read` existed. */
+export const readOf = (c: ChartSlot): ChartRead => c.read ?? c.reader ?? 'auto';
+
+export interface BacktestPreset {
+  id: string;
+  name: string;
+  bt: BacktestSettings;
+  lastRun?: { at: number; netR: number; trades: number };
 }
 
 export interface VisionPosition {
@@ -84,7 +97,7 @@ export interface JournalEntry {
   note: string;
 }
 
-interface VisionState {
+export interface VisionState {
   mode: 'live' | 'backtest';
   btTab: 'test' | 'prop' | 'replay' | 'library';
   /** The prop account open in the Prop firm tab. */
@@ -112,7 +125,19 @@ interface VisionState {
   trades: VisionTrade[];
   /** Setups already acted on or skipped, so a setup is never taken twice. */
   handled: string[];
-  set: (patch: Partial<Omit<VisionState, 'set' | 'open' | 'close' | 'handle' | 'setChart' | 'resetPaper' | 'setBt' | 'setJournal'>>) => void;
+  /** Patterns and ideas the trader keeps: they join "My strategies" and "Any of my strategies". */
+  pinned: SetupSource[];
+  /** Discover's dials, for what the panel shows. Real orders always use the defaults. */
+  discover: Dials;
+  /** The Prop desk account Pass mode sizes against, or none. */
+  guardAccount: string | null;
+  presets: BacktestPreset[];
+  /** Bumped to start a backtest run without a click. */
+  btRunNonce: number;
+  /** Open Strategy test (or Replay) with these settings, and optionally run it. */
+  openBacktest: (patch: Partial<BacktestSettings>, opts?: { run?: boolean; tab?: 'test' | 'replay' }) => void;
+  togglePin: (id: SetupSource) => void;
+  set: (patch: Partial<Omit<VisionState, 'set' | 'open' | 'close' | 'handle' | 'setChart' | 'resetPaper' | 'setBt' | 'setJournal' | 'openBacktest' | 'togglePin'>>) => void;
   setBt: (patch: Partial<BacktestSettings>) => void;
   setChart: (index: number, patch: Partial<ChartSlot>) => void;
   open: (p: Omit<VisionPosition, 'id' | 'openedAt'>) => void;
@@ -154,6 +179,13 @@ export const useVisionStore = create<VisionState>()(
       positions: [],
       trades: [],
       handled: [],
+      pinned: [],
+      discover: { ...DISCOVER_DEFAULTS },
+      guardAccount: null,
+      presets: [],
+      btRunNonce: 0,
+      openBacktest: (patch, opts = {}) => set((s) => ({ mode: 'backtest', btTab: opts.tab ?? 'test', bt: { ...s.bt, ...patch }, btRunNonce: opts.run ? s.btRunNonce + 1 : s.btRunNonce })),
+      togglePin: (id) => set((s) => ({ pinned: s.pinned.includes(id) ? s.pinned.filter((x) => x !== id) : [...s.pinned, id] })),
       set: (patch) => set(patch),
       setChart: (index, patch) => set((s) => ({ charts: s.charts.map((c, i) => (i === index ? { ...c, ...patch } : c)) })),
       open: (p) => set((s) => ({ positions: [...s.positions, { ...p, id: uid(), openedAt: Date.now() }], handled: [...s.handled.slice(-200), p.setupId] })),
@@ -171,14 +203,28 @@ export const useVisionStore = create<VisionState>()(
     {
       name: 'tp_vision_v1',
       storage: createJSONStorage(() => localStorage),
-      // New backtest settings get their defaults on top of what was saved before.
-      merge: (saved, current) => {
-        const p = (saved ?? {}) as Partial<VisionState>;
-        const bt = { ...current.bt, ...p.bt } as BacktestSettings;
-        // Sessions were once 'rth'; that is New York now.
-        if ((bt.session as string) === 'rth') bt.session = 'ny';
-        return { ...current, ...p, bt };
-      },
+      merge: (saved, current) => mergeVision(saved, current),
     },
   ),
 );
+
+/**
+ * A save from any earlier version, on top of today's defaults: new settings
+ * get their defaults, nested ones are merged, and nothing saved is lost.
+ */
+export function mergeVision(saved: unknown, current: VisionState): VisionState {
+  const p = (saved ?? {}) as Partial<VisionState>;
+  const bt = { ...current.bt, ...p.bt } as BacktestSettings;
+  // Sessions were once 'rth'; that is New York now.
+  if ((bt.session as string) === 'rth') bt.session = 'ny';
+  return {
+    ...current,
+    ...p,
+    bt,
+    pinned: Array.isArray(p.pinned) ? p.pinned : current.pinned,
+    discover: { ...current.discover, ...p.discover },
+    presets: Array.isArray(p.presets) ? p.presets : current.presets,
+    // A run that was pending when the page closed doesn't start again on load.
+    btRunNonce: 0,
+  };
+}

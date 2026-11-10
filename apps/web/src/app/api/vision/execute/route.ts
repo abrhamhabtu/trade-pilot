@@ -3,6 +3,7 @@ import { localOnly, noStore } from "@/lib/server/guard";
 import { notify } from "@/lib/server/notify";
 import { appendLine, readJson, updateJson } from "@/lib/server/store";
 import { VENUES } from "@/lib/server/vision/venues";
+import { provenHere } from "@/lib/server/library/lab";
 import { SYMBOLS, isSymbol } from "@/lib/vision/markets";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,6 +79,10 @@ export async function POST(req: Request) {
       const side = body.side === "short" ? "short" : "long";
       if (!Number.isInteger(qty) || qty < 1 || qty > arm.maxQty) return noStore({ error: `Size must be 1 to ${arm.maxQty} contracts.` }, 400);
       if (![refPx, stopPts, targetPts].every((n) => Number.isFinite(n) && n > 0)) return noStore({ error: "The plan needs a price, a stop and a target." }, 400);
+      // The setup's source decides, not the page: the five readers, or an idea this server's own study rates Proven on this market.
+      const source = String(body.setupId ?? "").match(/^(.+)-(?:long|short)-\d+$/)?.[1];
+      if (!source) return noStore({ error: "Real orders need the setup they come from." }, 400);
+      if (!(await provenHere(source, symbol))) return noStore({ error: "Discover found this one; real orders only take strategies proven on this market." }, 403);
       const id = await venue.placeBracket({ accountId: arm.accountId, accountName: arm.accountName, symbol, micro, side, qty, refPx, stopPts, targetPts, tag: `tp-vision-${Date.now().toString(36)}` });
       const text = `🚀 Vision ${side === "long" ? "BUY" : "SELL"} ${qty} ${micro ? SYMBOLS[symbol].roots!.micro : SYMBOLS[symbol].roots!.full} on ${venue.label} · stop ${stopPts} pts, target ${targetPts} pts (order ${id})`;
       await appendLine("live-log.jsonl", { at: Date.now(), level: "order", text });

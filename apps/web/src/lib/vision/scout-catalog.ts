@@ -1,0 +1,41 @@
+// The scout's research ideas, written as rules. Kept apart from the scout's
+// judging so the chart and Discover's worker can load the list without the
+// prop firm tables and the lab.
+
+import type { CustomRules } from "./custom";
+
+export interface ScoutCandidate {
+  id: string;
+  name: string;
+  idea: string;
+  source: string;
+  url?: string;
+  tf: "5m" | "15m";
+  rules: CustomRules;
+}
+
+const base: Omit<CustomRules, "entry"> = { side: "both", stop: { kind: "atr", mult: 1.5, len: 14 }, target: { kind: "r", r: 2 }, trend: "none", session: "ny", maxPerDay: null, breakEvenR: null };
+
+export const SCOUT_CATALOG: ScoutCandidate[] = [
+  { id: "intraday-momentum", name: "Last half hour momentum", idea: "When the first half hour of the session is up, buy into the close at 3:30; when down, sell. Late-day flows tend to follow the morning.", source: "Gao, Han, Li and Zhou, Market Intraday Momentum, Journal of Financial Economics, 2018", url: "https://ideas.repec.org/a/eee/jfinec/v129y2018i2p394-414.html", tf: "5m", rules: { ...base, entry: { kind: "last_half", signal: "first30" }, session: null, target: { kind: "r", r: 3 } } },
+  { id: "overnight-momentum", name: "Overnight into the close", idea: "The overnight move, not the first half hour, sets the last half hour's direction. Found where the first half hour didn't work.", source: "Liu and Tse, on S&P ETFs and 12 index futures, 2017, as cited in Jin et al., Journal of Futures Markets, 2020", url: "https://ideas.repec.org/a/wly/jfutmk/v40y2020i4p632-650.html", tf: "5m", rules: { ...base, entry: { kind: "last_half", signal: "overnight" }, session: null, target: { kind: "r", r: 3 } } },
+  { id: "nr7-orb", name: "Narrow day breakout", idea: "After the narrowest session in seven, range tends to expand. Take the opening range breakout only then.", source: "Toby Crabel, Day Trading with Short Term Price Patterns and Opening Range Breakout, 1990", tf: "5m", rules: { ...base, entry: { kind: "narrow_orb", minutes: 30, lookback: 7 }, maxPerDay: 1 } },
+  { id: "nr4-orb", name: "Short narrow day breakout", idea: "The same contraction idea over four sessions: more trades, a weaker signal.", source: "Toby Crabel, 1990", tf: "15m", rules: { ...base, entry: { kind: "narrow_orb", minutes: 30, lookback: 4 }, maxPerDay: 1 } },
+  { id: "inside-orb", name: "Inside day breakout", idea: "A session inside the one before it is compression. Crabel expected trend days after them.", source: "Toby Crabel, 1990", tf: "5m", rules: { ...base, entry: { kind: "inside_orb", minutes: 30 }, maxPerDay: 1 } },
+  { id: "orb-30", name: "30-minute opening range", idea: "The plain version as a benchmark: first close beyond the first 30 minutes' range.", source: "Toby Crabel, 1990", url: "https://ungeracademy.com/?p=7020", tf: "5m", rules: { ...base, entry: { kind: "orb", minutes: 30 }, maxPerDay: 1 } },
+  { id: "orb-60-trend", name: "One-hour range with trend", idea: "A wider opening range, taken only with the 200 EMA, trades less and avoids early fakeouts.", source: "Common practitioner variation; no published evidence found", tf: "15m", rules: { ...base, entry: { kind: "orb", minutes: 60 }, trend: "ema200", maxPerDay: 1 } },
+  { id: "gap-fade", name: "Opening gap fade", idea: "Overnight gaps often fill. When New York opens well away from yesterday's close, trade back toward it.", source: "Common practitioner idea; no published futures evidence found", tf: "5m", rules: { ...base, entry: { kind: "gap_fade", minGap: 0.5 }, stop: { kind: "plan" }, target: { kind: "plan" }, maxPerDay: 1 } },
+  { id: "gap-fade-big", name: "Large gap fade", idea: "The same, only for larger gaps, where traders overreact most.", source: "Common practitioner idea; no published futures evidence found", tf: "5m", rules: { ...base, entry: { kind: "gap_fade", minGap: 1.5 }, stop: { kind: "plan" }, target: { kind: "plan" }, maxPerDay: 1 } },
+  { id: "coin-flip", name: "Coin flip", idea: "A random side at 9:35 with a 1:1 stop and target. It has no edge by design. It's here as the line every real idea has to beat, and costs should make it lose slowly.", source: "A common baseline; a TradingView open-source CoinFlip script reports near 50% wins on FX", url: "https://www.tradingview.com/script/06NHc5R9-CoinFlip-Indicator-Strategy/", tf: "5m", rules: { ...base, entry: { kind: "coin_flip", minute: 575, seed: 1 }, target: { kind: "r", r: 1 }, stop: { kind: "atr", mult: 1, len: 14 }, session: null, maxPerDay: 1 } },
+  { id: "open-reversal", name: "First-hour reversal", idea: "After a large move at the open, index futures tended to reverse later in the day, more so after large rises.", source: "Grant, Wolf and Yu, Journal of Banking and Finance, 2005, on 1987 to 2002 data", url: "https://researchwith.montclair.edu/en/publications/intraday-price-reversals-in-the-us-stock-index-futures-market-a-1/", tf: "5m", rules: { ...base, entry: { kind: "open_reversal", minMove: 1.5 }, target: { kind: "r", r: 1.5 }, session: null, maxPerDay: 1 } },
+  { id: "open-reversal-15", name: "First-hour reversal, slower", idea: "The same idea on 15-minute bars, needing a bigger move first.", source: "Grant, Wolf and Yu, 2005", url: "https://researchwith.montclair.edu/en/publications/intraday-price-reversals-in-the-us-stock-index-futures-market-a-1/", tf: "15m", rules: { ...base, entry: { kind: "open_reversal", minMove: 2 }, target: { kind: "r", r: 2 }, session: null, maxPerDay: 1 } },
+  { id: "opening-drive", name: "Opening drive", idea: "The opposite bet: a strong first half hour keeps going. Testing both shows which way your market leans.", source: "Common practitioner idea; no published evidence found", tf: "5m", rules: { ...base, entry: { kind: "opening_drive", minMove: 1.5 }, session: null, maxPerDay: 1 } },
+  { id: "globex-break", name: "Overnight range break", idea: "The overnight high and low are widely watched. Trade the first New York close beyond them.", source: "Common practitioner setup; no published evidence found", tf: "5m", rules: { ...base, entry: { kind: "globex_break" }, session: null, maxPerDay: 1 } },
+  { id: "globex-break-trend", name: "Overnight break with trend", idea: "The same break, only with the 200 EMA behind it.", source: "Common practitioner setup; no published evidence found", tf: "15m", rules: { ...base, entry: { kind: "globex_break" }, trend: "ema200", session: null, maxPerDay: 1 } },
+  { id: "pd-sweep", name: "Prior day sweep and reclaim", idea: "Stops rest beyond yesterday's high and low. Price runs them, then closes back inside.", source: "Liquidity-sweep trading, popular on social media; no published evidence found", tf: "5m", rules: { ...base, entry: { kind: "pdhl_sweep" }, stop: { kind: "signal" }, maxPerDay: 2 } },
+  { id: "pd-retest", name: "Prior day break and retest", idea: "Break yesterday's level, come back to test it, then go. Follows breakouts that hold.", source: "Common practitioner setup; no published evidence found", tf: "15m", rules: { ...base, entry: { kind: "pdhl_retest", bars: 12 }, maxPerDay: 1 } },
+  { id: "fvg-trend", name: "Fair value gap with VWAP", idea: "Pullbacks into a fair value gap, only on the side of VWAP.", source: "ICT-style trading, popular on social media; no published evidence found", tf: "5m", rules: { ...base, entry: { kind: "fvg" }, trend: "vwap", stop: { kind: "signal" }, maxPerDay: 2 } },
+  { id: "rsi2-trend", name: "RSI(2) dip in a trend", idea: "Short-term extremes against the 200 EMA tend to snap back. A daily idea tried intraday.", source: "Larry Connors' RSI(2), adapted here to intraday bars", tf: "15m", rules: { ...base, entry: { kind: "rsi", len: 2, low: 10, high: 90 }, trend: "ema200", target: { kind: "r", r: 1.5 }, maxPerDay: 2 } },
+  { id: "ema-open", name: "EMA 9/21 in the morning", idea: "A fast cross during the first two hours, when trends tend to start.", source: "Common retail setup; no published evidence found", tf: "5m", rules: { ...base, entry: { kind: "ema_cross", fast: 9, slow: 21 }, session: "open", maxPerDay: 2 } },
+  { id: "bos-vwap", name: "Break of structure with VWAP", idea: "A close through the last swing, only with VWAP behind it.", source: "Smart-money-concepts trading; no published evidence found", tf: "5m", rules: { ...base, entry: { kind: "structure" }, trend: "vwap", stop: { kind: "swing", bars: 10 }, maxPerDay: 2 } },
+];

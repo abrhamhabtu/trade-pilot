@@ -4,7 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Check, ChevronDown, FlaskConical, Layers, Play, RefreshCw, Sparkles, Square, X } from "lucide-react";
 import { PRESETS, type ChartView, type Density } from "@/lib/vision/chartView";
-import { READERS, READER_ORDER, analyze, readerStats, type ReaderChoice, type ReaderId, type Scan, type Side } from "@/lib/vision/analyze";
+import { READERS, READER_ORDER, _internal, analyze, infoOf, isReader, readerStats, type ReaderChoice, type ReaderId, type Scan, type Setup, type SetupSource, type Side } from "@/lib/vision/analyze";
+import { DISCOVER_DEFAULTS, calendarOf, detectorFor, fitLine, ideasFor, isNew, judgeStudy, rankIdeas, scenarioAt, scenarioSeries, sourceLine, type ChartRead, type Idea, type Ranked, type Scenario, type Verdict } from "@/lib/vision/discover";
+import { enrich, patternContext } from "@/lib/vision/patterns";
+import { useDiscover } from "@/lib/vision/useDiscover";
+import type { SessionKey } from "@/lib/vision/custom";
+import type { Bucket } from "@/lib/vision/levels";
+import { useVisionStore, type BacktestSettings } from "@/store/visionStore";
+import { DiscoverPanel, FitChip, NewBadge, VERDICT, VerdictBadge, statLine } from "./DiscoverPanel";
 import { buildDemo, type Demo } from "@/lib/vision/demo";
 import { useFeed, type Feed } from "@/lib/vision/feed";
 import type { DayLevels } from "@/lib/vision/levels";
@@ -69,14 +76,53 @@ export interface ChartState {
   mode: ChartMode;
   /** Replaying history: nothing on screen may be traded. */
   replaying: boolean;
+  /** Auto-execute may take the setup on screen: one of the five readers, or a pinned idea Proven on this market. */
+  allowAuto: boolean;
+  /** What the setup on screen is, in Discover's words, for the copilot. */
+  explain: Explain | null;
 }
+
+export interface Explain {
+  id: SetupSource;
+  label: string;
+  idea: string;
+  isNew: boolean;
+  verdict: Verdict | null;
+  reason: string;
+  fit: string;
+  source: string;
+  /** Other reads that fired on the same bar and side. */
+  also: string[];
+  playbook?: string;
+  pinned: boolean;
+  /** Open Strategy test on this idea and run it. */
+  test: () => void;
+  pin: () => void;
+}
+
+const SESSION_OF: Record<Bucket, SessionKey> = { asia: "asia", london: "london", pre: "all", "ny-open": "open", "ny-mid": "ny", "ny-pm": "ny", off: "all" };
+
+/**
+ * Strategy test settings for one idea, in the session it fits now when it
+ * really trades there; otherwise in all of its own hours, so a test never comes
+ * back empty just because it is the wrong time of day.
+ */
+export function backtestPatch(idea: Idea, symbol: string, tf: Timeframe, bucket: Bucket | null, tradesThere = Infinity): Partial<BacktestSettings> {
+  const session = bucket && tradesThere >= 30 ? SESSION_OF[bucket] : "all";
+  return idea.kind === "reader"
+    ? { symbol, tf, source: "library", logic: "vision", reader: idea.id as ReaderId, session }
+    : { symbol, tf, source: "library", logic: "custom", rules: idea.rules, text: `${idea.label}.`, session };
+}
+
+const isChoice = (r: ChartRead): r is ReaderChoice => r === "auto" || isReader(r);
+export const readLabel = (r: ChartRead) => (r === "discover" ? "Discover" : r === "auto" ? "Any of my strategies" : infoOf(r).label);
 
 type DemoOpts = { reader: ReaderChoice; side: Side | "random"; outcome: "random" | "win" | "loss"; speed: 1 | 2 | 4 };
 
 export function ChartCard({
   symbol,
   tf,
-  reader,
+  read,
   focused,
   compact,
   position,
@@ -85,14 +131,14 @@ export function ChartCard({
   view,
   onFocus,
   onTf,
-  onReader,
+  onRead,
   onView,
   onClose,
   onState,
 }: {
   symbol: VisionSymbolId;
   tf: Timeframe;
-  reader: ReaderChoice;
+  read: ChartRead;
   focused: boolean;
   compact: boolean;
   position: VisionPosition | null;
@@ -102,7 +148,7 @@ export function ChartCard({
   onFocus: () => void;
   onView: (v: ChartView) => void;
   onTf: (tf: Timeframe) => void;
-  onReader: (r: ReaderChoice) => void;
+  onRead: (r: ChartRead) => void;
   onClose?: () => void;
   onState: (s: ChartState) => void;
 }) {
@@ -118,20 +164,121 @@ export function ChartCard({
   const [menu, setMenu] = useState<"reader" | "demo" | "layers" | null>(null);
   const mode: ChartMode = demo ? "demo" : replay ? "replay" : "live";
   const bars = demo ? demo.d.bars.slice(0, demo.cursor) : replay ? feed.bars.slice(0, replay.cursor) : feed.bars;
+  const reader: ReaderChoice = isChoice(read) ? read : "auto";
   const activeReader: ReaderChoice = demo ? demo.d.reader : reader;
+  const pinned = useVisionStore((s) => s.pinned);
+  const togglePin = useVisionStore((s) => s.togglePin);
+  const dials = useVisionStore((s) => s.discover);
+  const setStore = useVisionStore((s) => s.set);
+  const openBacktest = useVisionStore((s) => s.openBacktest);
+  const [panel, setPanel] = useState(false);
+  const futures = sym.kind === "futures";
+  // Detectors read the chart for Discover, for one pattern or idea, and for "any of mine" once something is pinned. Demo stays on the readers.
+  const viaDetectors = !demo && (!isChoice(read) || (read === "auto" && pinned.length > 0));
   // Day levels come from their own 5m history; replay and demo bars aren't today's, so they get none.
   const day = useLevels(symbol, tf, feed.bars);
   const gutter = useMemo(() => (mode === "live" ? gutterLevels(day.now, sessionStartIndex(feed.bars)) : []), [day.now, mode, feed.bars.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const disc = useDiscover(symbol, tf, viaDetectors || menu === "reader" || panel);
+  const ideas = useMemo(() => ideasFor(symbol, tf, futures), [symbol, tf, futures]);
+  const discKey = `${disc.source}:${disc.studies.size}:${disc.m}`;
+  const levelKey = `${day.ready}:${day.now?.session ?? ""}:${day.now?.orH ?? ""}:${day.now?.ibH ?? ""}:${day.now?.asiaH ?? ""}`;
 
   // Analyse closed bars only: recompute when a bar closes, not on every tick.
   const closedKey = `${mode}:${activeReader}:${bars.length > 1 ? `${bars.length}:${bars[bars.length - 2].t}` : ""}`;
-  const scan = useMemo(
-    () => (bars.length > 1 ? analyze(bars, { forming: true, fmt, reader: activeReader, anchor, maxAge: demo ? 80 : 30, historyBars: demo ? feed.bars : undefined, minIndex: demo ? demo.d.fires - 2 : undefined }) : null),
-    [closedKey], // eslint-disable-line react-hooks/exhaustive-deps
-  );
+  // Today in plain facts, from the closed bars.
+  const scenario = useMemo<Scenario | null>(() => {
+    if (mode === "demo" || bars.length < 62) return null;
+    const closed = bars.slice(0, -1);
+    const c = patternContext(closed, anchor, day.perBar.slice(0, closed.length));
+    return scenarioAt(c, closed.length - 1, calendarOf(), scenarioSeries(c), sym.label);
+  }, [closedKey, levelKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ranked = useMemo<Ranked[]>(() => (scenario ? rankIdeas(ideas, disc.studies, scenario, dials, disc.m) : ideas.map((idea) => ({ idea, study: null, judged: null, fit: null }))), [scenario, ideas, discKey, dials]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rankOf = useMemo(() => new Map(ranked.map((r) => [r.idea.id as string, r])), [ranked]);
+  const enrichWith = (n: number) => (c: Parameters<typeof enrich>[0]) => enrich(c, anchor, day.perBar.slice(0, n));
+  const base = useMemo(() => {
+    if (bars.length <= 1) return null;
+    if (!viaDetectors) return analyze(bars, { forming: true, fmt, reader: activeReader, anchor, maxAge: demo ? 80 : 30, historyBars: demo ? feed.bars : undefined, minIndex: demo ? demo.d.fires - 2 : undefined });
+    const closed = bars.slice(0, -1);
+    const chosen = read === "discover" ? ideas.filter((i) => !(dials.hideLosing && rankOf.get(i.id)?.judged?.verdict === "losing")) : read === "auto" ? ideas.filter((i) => i.kind === "reader" || pinned.includes(i.id)) : ideas.filter((i) => i.id === read);
+    return analyze(bars, {
+      forming: true,
+      fmt,
+      anchor,
+      maxAge: 30,
+      detectors: chosen.map((i) => detectorFor(i, closed, anchor, sym.tick)),
+      enrich: enrichWith(closed.length),
+      rank: (id) => rankOf.get(id)?.fit?.score ?? -9,
+      readName: read === "discover" ? "everything Discover reads" : readLabel(read),
+    });
+  }, [closedKey, read, viaDetectors, pinned.join(","), discKey, levelKey, dials.hideLosing]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A chip clicked on the chart: that read becomes the one explained, with its own history.
+  const [promoted, setPromoted] = useState<Setup | null>(null);
+  useEffect(() => setPromoted(null), [symbol, tf, read, mode]);
+  const scan = useMemo<Scan | null>(() => {
+    if (!base || !promoted) return base;
+    const rest = [...(base.others ?? []).filter((o) => o.id !== promoted.id), ...(base.setup && base.setup.id !== promoted.id ? [base.setup] : [])];
+    return { ...base, setup: promoted, others: rest.slice(0, 4) };
+  }, [base, promoted]);
+  const promote = (o: Setup) => {
+    const idea = ideas.find((i) => i.id === o.reader);
+    if (!idea || bars.length < 2) return;
+    const closed = bars.slice(0, -1);
+    const s = analyze(bars, { forming: true, fmt, anchor, atIndex: o.index, detectors: [detectorFor(idea, closed, anchor, sym.tick)], enrich: enrichWith(closed.length) }).setup;
+    if (s) setPromoted(s);
+  };
   const [rescan, setRescan] = useState(0);
   const setup = scan?.setup ?? null;
-  const phase = usePhase(`${symbol}|${tf}|${activeReader}|${setup?.id ?? "none"}|${rescan}|${mode}|${bars.length ? 1 : 0}`, setup ? setup.callouts.length : 0);
+  const phaseKey = `${symbol}|${tf}|${activeReader}|${read}|${setup?.id ?? "none"}|${rescan}|${mode}|${bars.length ? 1 : 0}`;
+  const phase = usePhase(phaseKey, setup ? setup.callouts.length : 0);
+  const testIdea = (idea: Idea) => {
+    const b = scenario?.bucket ?? null;
+    const n = b ? (disc.studies.get(idea.id)?.dims.bucket[b]?.[0] ?? 0) : 0;
+    openBacktest(backtestPatch(idea, symbol, tf, b, n), { run: true });
+  };
+  const explain = useMemo<Explain | null>(() => {
+    if (!setup) return null;
+    const r = rankOf.get(setup.reader);
+    const info = infoOf(setup.reader);
+    const idea = r?.idea ?? ideas.find((i) => i.id === setup.reader);
+    return {
+      id: setup.reader,
+      label: info.label,
+      idea: idea?.idea ?? info.blurb,
+      isNew: isNew(setup.reader, pinned),
+      verdict: r?.judged?.verdict ?? null,
+      reason: r?.judged?.reason ?? "",
+      fit: r?.fit && r.study ? fitLine(r.fit, r.study) : "",
+      source: r?.study ? sourceLine(r.study) : "",
+      also: (setup.also ?? []).map((a) => infoOf(a).label),
+      playbook: idea?.playbooks?.[0],
+      pinned: pinned.includes(setup.reader),
+      test: () => idea && testIdea(idea),
+      pin: () => togglePin(setup.reader),
+    };
+  }, [setup?.id, rankOf, pinned, scenario?.bucket]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Real money only follows the five readers, or a pinned idea that is Proven here at the strict defaults.
+  const allowAuto = useMemo(() => {
+    if (!setup) return false;
+    if (isReader(setup.reader)) return true;
+    if (!pinned.includes(setup.reader) || disc.source !== "library") return false;
+    const st = disc.studies.get(setup.reader);
+    return !!st && judgeStudy(st, DISCOVER_DEFAULTS, disc.m).verdict === "proven";
+  }, [setup?.reader, pinned, discKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // How often each idea fired on the bars loaded here, for the panel.
+  const firesHere = useMemo(() => {
+    if (!panel || bars.length < 62) return null;
+    const closed = bars.slice(0, -1);
+    const c = enrich(_internal.context(closed, anchor), anchor, day.perBar.slice(0, closed.length));
+    const out = new Map<string, number>();
+    for (const idea of ideas) {
+      const d = detectorFor(idea, closed, anchor, sym.tick);
+      let n = 0;
+      for (let i = 30; i < closed.length; i++) if (c.atr[i] && d.detect(c, i)) n++;
+      out.set(idea.id, n);
+    }
+    return out;
+  }, [panel, closedKey, levelKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const live = useMemo(() => new Set([...(setup && setup.outcome === "open" ? [setup.reader] : []), ...(scan?.others ?? []).map((o) => o.reader)] as string[]), [setup, scan?.others]);
   const report = useRef(onState);
   report.current = onState;
 
@@ -181,9 +328,8 @@ export function ChartCard({
   };
 
   // A reveal still belonging to the previous setup reports as not done, so nothing acts on it early.
-  const phaseKey = `${symbol}|${tf}|${activeReader}|${setup?.id ?? "none"}|${rescan}|${mode}|${bars.length ? 1 : 0}`;
   const current = phase.key === phaseKey ? phase : { ...phase, done: false, projection: false, step: "scanning" as Step };
-  useEffect(() => report.current({ feed, bars, scan, phase: current, mode, replaying: mode === "replay" }), [feed, bars, scan, phase, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => report.current({ feed, bars, scan, phase: current, mode, replaying: mode === "replay", allowAuto, explain }), [feed, bars, scan, phase, mode, allowAuto, explain]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loaded = feed.bars.length > 80;
   const stats = useMemo(() => (menu === "reader" && loaded ? readerStats(feed.bars, { forming: true, anchor }) : {}), [menu, loaded, symbol, tf]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -196,7 +342,7 @@ export function ChartCard({
   const banner = (() => {
     if (feed.loading && !feed.bars.length && mode === "live") return { title: "Loading the chart", detail: `Pulling ${sym.label} ${tf} bars` };
     if (feed.error && !feed.bars.length && mode === "live") return { title: "No data right now", detail: feed.error };
-    if (phase.step === "scanning") return { title: `Scanning the chart${activeReader === "auto" ? "" : ` · ${READERS[activeReader as ReaderId].label}`}`, detail: "Reading structure, liquidity, volume and momentum on every candle" };
+    if (phase.step === "scanning") return { title: `Scanning the chart${mode === "demo" ? (activeReader === "auto" ? "" : ` · ${READERS[activeReader as ReaderId].label}`) : read === "auto" && !viaDetectors ? "" : ` · ${readLabel(read)}`}`, detail: read === "discover" && mode !== "demo" ? `Every idea at once, ranked for today: ${scenario?.text ?? "reading the day"}` : "Reading structure, liquidity, volume and momentum on every candle" };
     if (setup && phase.step === "marking") {
       const c = setup.callouts[Math.max(0, phase.revealed - 1)];
       return { title: c ? (c.n === 1 ? `Marks the ${c.title.toLowerCase()}` : c.title) : "Pattern recognised", detail: c?.detail ?? "" };
@@ -206,10 +352,15 @@ export function ChartCard({
     if (position) return { title: position.auto ? "Auto-executed" : "Price follows the plan", detail: `${position.side === "long" ? "Long" : "Short"} ${position.qty} filled at ${fmt(position.entry)} · stop ${fmt(position.stop)} · target ${fmt(position.target)}` };
     if (setup && setup.outcome === "target") return { title: "Prediction confirmed", detail: `Reached ${fmt(setup.target)}. Scanning for the next setup` };
     if (setup && setup.outcome === "stop") return { title: "Stopped out", detail: `The ${setup.side} setup hit ${fmt(setup.stop)}. Scanning for the next one` };
-    if (setup && setup.outcome === "open")
+    if (setup && setup.outcome === "open") {
+      // A read that isn't one of the five readers is named with its badge, so nobody mistakes it for a proven strategy.
+      const named = explain && !isReader(explain.id) ? `${explain.label}${explain.isNew ? " · NEW" : ""}${explain.verdict ? ` · ${VERDICT[explain.verdict].label}` : ""}` : null;
+      const more = scan?.others?.length ? ` · ${scan.others.length + (scan.extra ?? 0)} more read${scan.others.length + (scan.extra ?? 0) === 1 ? "" : "s"} open` : "";
+      const agree = setup.also?.length ? ` · ${setup.also.length + 1} reads agree` : "";
       return setup.fresh
-        ? { title: "Your call", detail: `${matchLine(setup)}. Take it, skip it, or let auto-execute take it` }
-        : { title: `${setup.side === "long" ? "Long" : "Short"} setup in play`, detail: `Fired ${scan!.closed - 1 - setup.index} bars ago; the plan is still open · ${matchLine(setup)}` };
+        ? { title: named ?? "Your call", detail: `${matchLine(setup)}${agree}${more}. ${explain && !allowAuto ? "Your call: auto-execute only takes strategies you have proven" : "Take it, skip it, or let auto-execute take it"}` }
+        : { title: named ?? `${setup.side === "long" ? "Long" : "Short"} setup in play`, detail: `Fired ${scan!.closed - 1 - setup.index} bars ago; the plan is still open · ${matchLine(setup)}${agree}${more}` };
+    }
     if (mode === "demo") return { title: "Demo", detail: "Simulated price. The setup forms in a moment" };
     if (mode === "replay") return { title: "Replaying history", detail: "Watching the latest real setup play out. Nothing here can be traded" };
     const below = scan?.pools.below;
@@ -219,7 +370,7 @@ export function ChartCard({
   const progress = phase.step === "scanning" ? (phase.scan ?? 0) : phase.step === "marking" ? 0.35 + 0.18 * phase.revealed : 1;
   const sourceLabel = mode === "demo" ? "Simulated" : feed.source === "coinbase" ? "Coinbase · live" : feed.source === "tradovate" ? `Tradovate · live${feed.contract ? ` · ${feed.contract}` : ""}` : feed.source === "projectx" ? `TopstepX · live${feed.contract ? ` · ${feed.contract}` : ""}` : feed.source === "yahoo" ? "Delayed ~10 min" : "";
   const fresh = Date.now() - feed.lastTick < (sym.kind === "crypto" ? 15_000 : 60_000);
-  const readerLabel = activeReader === "auto" ? "Any strategy" : READERS[activeReader as ReaderId].label;
+  const readerLabel = mode === "demo" ? (activeReader === "auto" ? "Any strategy" : READERS[activeReader as ReaderId].label) : readLabel(read);
 
   return (
     <section
@@ -265,43 +416,39 @@ export function ChartCard({
             <ChevronDown className="h-3.5 w-3.5 text-white/50" />
           </button>
           {menu === "reader" && (
-            <Popover onClose={() => setMenu(null)}>
-              <p className="px-3 pb-1 pt-2 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-white/40">Read this chart with</p>
-              {(["auto", ...READER_ORDER] as ReaderChoice[]).map((r) => {
-                const st = r === "auto" ? null : stats[r as ReaderId];
-                const disabled = r === "orb" && TF_SECONDS[tf] > 900;
-                return (
-                  <button
-                    key={r}
-                    disabled={disabled}
-                    onClick={() => {
-                      onReader(r);
-                      setMenu(null);
-                    }}
-                    className={clsx("flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition disabled:opacity-35", r === reader ? "bg-white/[0.08]" : "hover:bg-white/[0.05]")}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[14px] font-semibold text-white">{r === "auto" ? "Any strategy" : READERS[r as ReaderId].label}</span>
-                      <span className="block truncate text-[12px] text-white/45">{r === "auto" ? "Whichever of your setups fires first" : disabled ? "Needs 15m bars or faster" : READERS[r as ReaderId].blurb}</span>
-                    </span>
-                    {st && (
-                      <span className="text-right text-[11.5px] tabular-nums">
-                        <span className={clsx("block font-semibold", st.expectancyR == null ? "text-white/40" : st.expectancyR >= 0 ? "text-[#FFB27D]" : "text-[#FF8D85]")}>
-                          {st.expectancyR == null ? "unrated" : `${st.expectancyR >= 0 ? "+" : ""}${st.expectancyR.toFixed(2)}R`}
-                        </span>
-                        <span className="block text-white/40">
-                          {st.matches} here{st.hitRate != null ? ` · ${Math.round(st.hitRate * 100)}%` : ""}
-                        </span>
-                      </span>
-                    )}
-                    {r === reader && <Check className="h-4 w-4 shrink-0 text-[#FF8A3D]" />}
-                  </button>
-                );
-              })}
-              <p className="px-3 pb-2 pt-1 text-[11px] leading-snug text-white/35">Edge and hit rate are this reader on the bars loaded here, target vs stop. Unrated means under 8 decided signals.</p>
+            <Popover onClose={() => setMenu(null)} wide>
+              <ReadMenu
+                read={read}
+                tf={tf}
+                stats={stats}
+                ranked={ranked}
+                pinned={pinned}
+                loading={disc.status === "loading"}
+                source={disc.source}
+                demo={mode === "demo"}
+                onPick={(r) => {
+                  onRead(r);
+                  setMenu(null);
+                }}
+                onTest={(idea) => {
+                  setMenu(null);
+                  testIdea(idea);
+                }}
+                onAll={() => {
+                  setMenu(null);
+                  setPanel(true);
+                }}
+              />
             </Popover>
           )}
         </div>
+
+        {mode !== "demo" && (
+          <button onClick={() => setPanel(true)} title="Everything that fits this chart right now" className={clsx("flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold ring-1 transition", read === "discover" ? "bg-gradient-to-r from-[#FFB27D] to-[#FF7A2D] text-black ring-transparent" : "bg-white/[0.07] text-white ring-white/[0.06] hover:bg-white/[0.1]")}>
+            ✦ Discover
+            {disc.status === "loading" && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />}
+          </button>
+        )}
 
         <div className="relative">
           <button
@@ -397,17 +544,43 @@ export function ChartCard({
             story={mode !== "live"}
             view={view}
             levels={gutter}
+            others={mode === "demo" ? [] : (scan?.others ?? [])}
+            onPromote={promote}
           />
         ) : (
           <div className="tp-shimmer m-3 rounded-2xl" style={{ height: compact ? 380 : 560 }} />
         )}
       </div>
       {feed.note && mode === "live" && <p className="px-5 pb-3 text-[12px] text-white/45">{feed.note}</p>}
+      {panel && (
+        <DiscoverPanel
+          onClose={() => setPanel(false)}
+          title={`${sym.label} ${tf}`}
+          scenario={scenario}
+          ranked={ranked}
+          data={disc}
+          pinned={pinned}
+          onPin={togglePin}
+          current={read}
+          onShow={(r) => {
+            onRead(r);
+            setPanel(false);
+          }}
+          live={live}
+          firesHere={firesHere}
+          onBacktest={(r) => {
+            setPanel(false);
+            testIdea(r.idea);
+          }}
+          dials={dials}
+          onDials={(d) => setStore({ discover: d })}
+        />
+      )}
     </section>
   );
 }
 
-function Popover({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+function Popover({ children, onClose, wide }: { children: React.ReactNode; onClose: () => void; wide?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const away = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && onClose();
@@ -421,7 +594,7 @@ function Popover({ children, onClose }: { children: React.ReactNode; onClose: ()
     };
   }, [onClose]);
   return (
-    <div ref={ref} className="tp-card-in absolute left-0 top-11 z-40 w-[340px] rounded-[20px] border border-white/[0.1] bg-[#1B1B1E]/[0.97] p-1.5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
+    <div ref={ref} className={clsx("tp-card-in absolute left-0 top-11 z-40 max-h-[70vh] overflow-y-auto rounded-[20px] border border-white/[0.1] bg-[#1B1B1E]/[0.97] p-1.5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] backdrop-blur-2xl", wide ? "w-[400px]" : "w-[340px]")}>
       {children}
     </div>
   );
@@ -521,4 +694,121 @@ function gutterLevels(l: DayLevels | null, from: number): GutterLevel[] {
     seen.set(g.price, g);
     return true;
   });
+}
+
+/** The strategy dropdown: Discover, your strategies, and what Discover found on this chart. */
+function ReadMenu({
+  read,
+  tf,
+  stats,
+  ranked,
+  pinned,
+  loading,
+  source,
+  demo,
+  onPick,
+  onTest,
+  onAll,
+}: {
+  read: ChartRead;
+  tf: Timeframe;
+  stats: Partial<Record<ReaderId, { expectancyR: number | null; matches: number; hitRate: number | null }>>;
+  ranked: Ranked[];
+  pinned: SetupSource[];
+  loading: boolean;
+  source: "library" | "recent" | null;
+  demo: boolean;
+  onPick: (r: ChartRead) => void;
+  onTest: (idea: Idea) => void;
+  onAll: () => void;
+}) {
+  const mine = ranked.filter((r) => pinned.includes(r.idea.id));
+  const found = ranked.filter((r) => !isReader(r.idea.id) && !pinned.includes(r.idea.id));
+  const top = found.slice(0, 3);
+  const row = (r: ChartRead, title: React.ReactNode, sub: React.ReactNode, right?: React.ReactNode, disabled = false, test?: Idea) => (
+    <div key={r} className={clsx("group flex items-center gap-1 rounded-xl transition", r === read ? "bg-white/[0.08]" : "hover:bg-white/[0.05]", disabled && "opacity-35")}>
+      <button disabled={disabled} onClick={() => onPick(r)} className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left">
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-1.5 text-[14px] font-semibold text-white">{title}</span>
+          <span className="block truncate text-[12px] text-white/45">{sub}</span>
+        </span>
+        {right}
+        {r === read && <Check className="h-4 w-4 shrink-0 text-[#FF8A3D]" />}
+      </button>
+      {test && (
+        <button aria-label={`Backtest ${test.label}`} title="Backtest it" onClick={() => onTest(test)} className="mr-1.5 grid h-7 w-7 shrink-0 place-items-center rounded-full text-white/40 opacity-0 transition hover:bg-white/[0.1] hover:text-white group-hover:opacity-100">
+          <FlaskConical className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+  const studied = (r: Ranked) => (
+    <span className="shrink-0 text-right text-[11.5px] tabular-nums">
+      {r.study ? (
+        <>
+          <span className={clsx("block font-semibold", r.study.newer.avgR >= 0 ? "text-[#FFB27D]" : "text-[#FF8D85]")}>
+            {r.study.newer.avgR >= 0 ? "+" : ""}
+            {r.study.newer.avgR.toFixed(2)}R
+          </span>
+          <span className="block text-white/40">t {r.study.newer.t.toFixed(1)}</span>
+        </>
+      ) : (
+        <span className="text-white/35">{loading ? "rating…" : "not rated"}</span>
+      )}
+    </span>
+  );
+  const divider = (t: string) => <p className="px-3 pb-1 pt-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-white/35">{t}</p>;
+  return (
+    <>
+      <p className="px-3 pb-1 pt-2 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-white/40">Read this chart with</p>
+      {row("discover", <span className="bg-gradient-to-r from-[#FFB27D] to-[#FF7A2D] bg-clip-text text-transparent">✦ Discover</span>, "Finds what fits this chart right now, including setups you don't trade yet", undefined, demo)}
+      {row("auto", "Any of my strategies", pinned.length ? "Whichever of yours fires first, pins included" : "Whichever of yours fires first")}
+      {divider("My strategies")}
+      {READER_ORDER.map((r) => {
+        const st = stats[r];
+        const off = r === "orb" && TF_SECONDS[tf] > 900;
+        return row(
+          r,
+          READERS[r].label,
+          off ? "Needs 15m bars or faster" : READERS[r].blurb,
+          st ? (
+            <span className="shrink-0 text-right text-[11.5px] tabular-nums">
+              <span className={clsx("block font-semibold", st.expectancyR == null ? "text-white/40" : st.expectancyR >= 0 ? "text-[#FFB27D]" : "text-[#FF8D85]")}>{st.expectancyR == null ? "unrated" : `${st.expectancyR >= 0 ? "+" : ""}${st.expectancyR.toFixed(2)}R`}</span>
+              <span className="block text-white/40">
+                {st.matches} here{st.hitRate != null ? ` · ${Math.round(st.hitRate * 100)}%` : ""}
+              </span>
+            </span>
+          ) : undefined,
+          off,
+          ranked.find((x) => x.idea.id === r)?.idea,
+        );
+      })}
+      {mine.map((r) => row(r.idea.id as ChartRead, <>{r.idea.label} {r.judged && <VerdictBadge v={r.judged.verdict} title={r.judged.reason} />}</>, statLine(r), studied(r), demo, r.idea))}
+      {!demo && (
+        <>
+          {divider("Found on this chart")}
+          {top.map((r) =>
+            row(
+              r.idea.id as ChartRead,
+              <>
+                {r.idea.label} <NewBadge />
+                {r.judged && <VerdictBadge v={r.judged.verdict} title={r.judged.reason} />}
+                <FitChip r={r} />
+              </>,
+              r.idea.idea,
+              studied(r),
+              false,
+              r.idea,
+            ),
+          )}
+          <button onClick={onAll} className="mt-1 flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-[13px] font-semibold text-[#FFB27D] hover:bg-white/[0.05]">
+            See all {found.length} →
+          </button>
+        </>
+      )}
+      <p className="px-3 pb-2 pt-1 text-[11px] leading-snug text-white/35">
+        Your strategies show their record on the bars loaded here. Found ideas are rated on {source === "library" ? "your library's years of history" : "recent history only"}, after costs, on the newest 30% of trades.
+      </p>
+    </>
+  );
 }

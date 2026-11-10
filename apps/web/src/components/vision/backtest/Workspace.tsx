@@ -29,6 +29,8 @@ type Run = { result: BacktestResult; loaded: Loaded; settings: BacktestSettings;
 const strategyName = (s: BacktestSettings) => (s.logic === "custom" ? "Your rules" : s.reader === "auto" ? "Every strategy" : READERS[s.reader].label);
 const flat = (t: Record<string, unknown>) => Object.fromEntries(Object.entries(t).map(([k, v]) => [k, /T$/.test(k) && typeof v === "number" ? new Date(v * 1000).toISOString() : v]));
 
+let lastRunNonce = 0;
+
 export function BacktestWorkspace() {
   const tab = useVisionStore((s) => s.btTab);
   const bt = useVisionStore((s) => s.bt);
@@ -147,6 +149,17 @@ export function BacktestWorkspace() {
       set({ btTab: "replay" });
     }
   };
+
+  // "Backtest this" from the chart, Discover or the quick bar: run once the library index is in, so a run never falls back to delayed free data by accident.
+  const runNonce = useVisionStore((s) => s.btRunNonce);
+  const libReady = !!library.lib || !!library.error;
+  useEffect(() => {
+    // The request usually arrives before this tab mounts, so the last run is kept outside the component.
+    if (runNonce === lastRunNonce || !libReady || running) return;
+    lastRunNonce = runNonce;
+    if (useVisionStore.getState().btTab === "replay") void startReplay();
+    else void start();
+  }, [runNonce, libReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Prop accounts ──
   const windowFor = (a: PropAccount, daysAhead: number) => {

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { ColorType, CrosshairMode, LineStyle, createChart, type IChartApi, type IPriceLine, type ISeriesApi, type UTCTimestamp } from "lightweight-charts";
 import type { Bar } from "@/lib/pilot/market";
-import { READERS, infoOf, type Scan } from "@/lib/vision/analyze";
+import { READERS, infoOf, type Scan, type Setup } from "@/lib/vision/analyze";
 import { PRESETS, layers, type ChartView } from "@/lib/vision/chartView";
 import { HARD, place, stack, textWidth, type Label, type Obstacle, type Placed } from "@/lib/vision/layout";
 import { sessionRuns } from "@/lib/vision/levels";
@@ -93,6 +93,8 @@ export function VisionChart({
   review,
   view = PRESETS.standard,
   levels = [],
+  others = [],
+  onPromote,
 }: {
   bars: Bar[];
   sym: VisionSymbol;
@@ -108,6 +110,9 @@ export function VisionChart({
   view?: ChartView;
   /** Day levels for the gutter. */
   levels?: GutterLevel[];
+  /** Other reads still open nearby (Discover), drawn as chips that can be promoted. */
+  others?: Setup[];
+  onPromote?: (s: Setup) => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
@@ -322,7 +327,7 @@ export function VisionChart({
       )}
       {label && <span data-ov="mode-label" className="pointer-events-none absolute bottom-[34px] left-14 z-10 rounded-full bg-[#FF8A3D]/15 px-2.5 py-0.5 text-[11px] font-bold tracking-[0.08em] text-[#FFB27D] ring-1 ring-[#FF8A3D]/30">{label}</span>}
       <div ref={box} className="absolute inset-0" />
-      {geo && bars.length > 0 && <Overlay geo={geo} bars={bars} scan={scan} setup={setup} full={full} phase={phase} position={position} closed={closed ?? null} fmt={fmt} view={view} levels={levels} sessions={sym.kind === "futures" && layers(view).sessions} modeLabel={!!label} />}
+      {geo && bars.length > 0 && <Overlay geo={geo} bars={bars} scan={scan} setup={setup} full={full} phase={phase} position={position} closed={closed ?? null} fmt={fmt} view={view} levels={levels} sessions={sym.kind === "futures" && layers(view).sessions} modeLabel={!!label} others={others} onPromote={onPromote} />}
       {geo && bars.length > 0 && review && <ReviewOverlay geo={geo} bars={bars} r={review} fmt={fmt} />}
     </div>
   );
@@ -361,6 +366,8 @@ function Overlay({
   levels,
   sessions,
   modeLabel,
+  others,
+  onPromote,
 }: {
   geo: Geo;
   bars: Bar[];
@@ -375,6 +382,8 @@ function Overlay({
   levels: GutterLevel[];
   sessions: boolean;
   modeLabel: boolean;
+  others: Setup[];
+  onPromote?: (s: Setup) => void;
 }) {
   const { w, h, plotW, x, y, bar } = geo;
   const L = layers(view);
@@ -446,6 +455,30 @@ function Overlay({
     return out;
   }, [s, full, L.pins, phase.revealed, x, y, volTop]);
 
+  // ── Chips: other reads still open, a diamond past their trigger bar's extreme, clear of the pins ──
+  const chips = useMemo(() => {
+    if (!L.others) return [];
+    const taken = pins.map((p) => ({ x: p.px - PIN / 2 - 2, y: p.cy - PIN / 2 - 2, w: PIN + 4, h: PIN + 4 }));
+    const out: { o: Setup; n: number; cx: number; cy: number }[] = [];
+    others.slice(0, 4).forEach((o, k) => {
+      const b = bars[o.index];
+      const cx = x(o.index);
+      const edge = b ? y(o.side === "long" ? b.l : b.h) : null;
+      if (cx == null || edge == null) return;
+      const dir = o.side === "long" ? 1 : -1;
+      let cy = edge + dir * 16;
+      for (let tries = 0; tries < 4; tries++) {
+        const r = { x: cx - 10, y: cy - 10, w: 20, h: 20 };
+        if (!taken.some((t) => r.x < t.x + t.w && t.x < r.x + r.w && r.y < t.y + t.h && t.y < r.y + r.h)) break;
+        cy += dir * 20;
+      }
+      cy = Math.max(LEGEND.h + 12, Math.min(volTop - 12, cy));
+      taken.push({ x: cx - 10, y: cy - 10, w: 20, h: 20 });
+      out.push({ o, n: k + 1, cx, cy });
+    });
+    return out;
+  }, [L.others, others, pins, bars, x, y, volTop]);
+
   // ── Reward and risk tags, inside the plan box at its right edge ──
   const rTags = useMemo(() => {
     if (!boxes) return [];
@@ -508,6 +541,7 @@ function Overlay({
     }
     for (const p of pins) obstacles.push({ x: p.px - PIN / 2 - 2, y: p.cy - PIN / 2 - 2, w: PIN + 4, h: PIN + 4, weight: HARD });
     for (const t of rTags) obstacles.push({ x: t.x - 2, y: t.y - 2, w: t.w + 4, h: 20, weight: HARD });
+    for (const c of chips) obstacles.push({ x: c.cx - 11, y: c.cy - 11, w: 22, h: 22, weight: HARD });
 
     const labels: (Label & { text: string; kind: string })[] = [];
     if (closed && Date.now() - closed.closedAt < 90_000 && y(closed.exit) != null) {
@@ -537,7 +571,7 @@ function Overlay({
       }
     const out = place(labels, obstacles, { x: 0, y: 0, w: gutterX - 2, h: h - 28 }, prev.current);
     return labels.map((l, k) => ({ l, p: out[k] }));
-  }, [bars, x, y, bar, plotW, h, volTop, gutterX, modeLabel, boxes, xi, yE, yT, yS, right, pins, rTags, closed, position, fmt, ready, full, L.setupPill, s, xs, patternTop, patternBot, notesOn]);
+  }, [bars, x, y, bar, plotW, h, volTop, gutterX, modeLabel, boxes, xi, yE, yT, yS, right, pins, rTags, chips, closed, position, fmt, ready, full, L.setupPill, s, xs, patternTop, patternBot, notesOn]);
   useEffect(() => {
     prev.current = placed.map((q) => q.p);
   }, [placed]);
@@ -696,6 +730,20 @@ function Overlay({
           {p.c.n}
         </span>
       ))}
+      {chips.map((c) => (
+        <button
+          key={c.o.id}
+          data-ov={`chip-${c.n}`}
+          onClick={() => onPromote?.(c.o)}
+          title={`${infoOf(c.o.reader).label} · ${c.o.side} · still open. Click to read it.`}
+          className="tp-fade-in pointer-events-auto absolute grid h-[18px] w-[18px] place-items-center"
+          style={{ left: c.cx - 9, top: c.cy - 9 }}
+        >
+          <span className={clsx("absolute inset-[2px] rotate-45 rounded-[3px] ring-1 ring-black/60 transition hover:scale-110", c.o.side === "long" ? "bg-[#FFB27D]" : "bg-[#FF8D85]")} />
+          <span className="relative text-[9.5px] font-black text-black">{c.n}</span>
+        </button>
+      ))}
+
       {hoverPin != null &&
         (() => {
           const p = pins.find((q) => q.c.n === hoverPin);

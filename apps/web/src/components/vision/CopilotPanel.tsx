@@ -2,14 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { Check, Loader2, Sparkles, Zap } from "lucide-react";
-import { infoOf, type Scan } from "@/lib/vision/analyze";
+import { BookOpen, Check, FlaskConical, Loader2, Pin, PinOff, Sparkles, Zap } from "lucide-react";
+import { infoOf, isReader, type Scan } from "@/lib/vision/analyze";
 import { formatPrice, type VisionSymbol } from "@/lib/vision/markets";
 import { useModelStore, modelReady } from "@/lib/pilot/modelStore";
 import { ChartRead } from "./ChartRead";
 import { PROVIDERS } from "@/lib/pilot/models";
 import type { VisionPosition, VisionTrade } from "@/store/visionStore";
-import type { ChartState } from "./ChartCard";
+import type { ChartState, Explain } from "./ChartCard";
+import { NewBadge, VerdictBadge } from "./DiscoverPanel";
 
 const usd = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const signed = (n: number) => `${n >= 0 ? "+" : "-"}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -243,6 +244,7 @@ export function CopilotPanel({
               {h!.expectancyR !== null && <Row k="Edge per trade" v={`${h!.expectancyR >= 0 ? "+" : ""}${h!.expectancyR.toFixed(2)}R`} tone={h!.expectancyR >= 0 ? "orange" : "red"} />}
               <Row k="Size" v={sizing} />
             </dl>
+            {state?.explain && state.mode !== "demo" && <ExplainCard e={state.explain} />}
             <ol className="mt-4 flex items-start justify-between">
               {steps.map((st, k) => (
                 <li key={st.k} className="relative flex flex-1 flex-col items-center">
@@ -388,3 +390,39 @@ function Stat({ k, v, tone }: { k: string; v: string; tone?: "orange" | "red" })
 }
 
 export { usd };
+
+/** What the read on screen is, in Discover's words: the idea, its verdict and sample, and what to do with it. */
+function ExplainCard({ e }: { e: Explain }) {
+  const mine = isReader(e.id);
+  return (
+    <div className="mt-3 rounded-2xl bg-white/[0.04] p-3">
+      {!mine && (
+        <>
+          <p className="flex flex-wrap items-center gap-1.5 text-[13.5px] font-semibold text-white">
+            {e.label} {e.isNew && <NewBadge />} {e.verdict && <VerdictBadge v={e.verdict} title={e.reason} />}
+          </p>
+          <p className="mt-1 text-[12.5px] leading-snug text-white/65">{e.idea}</p>
+          {e.reason && <p className="mt-1.5 text-[12px] leading-snug text-white/50">{e.reason}</p>}
+          {e.fit && <p className="mt-1 text-[11.5px] text-[#FFB27D]/80">{e.fit}</p>}
+          {e.source && <p className="mt-1 text-[11px] text-white/35">{e.source}</p>}
+        </>
+      )}
+      {e.also.length > 0 && <p className={clsx("text-[12px] text-white/55", !mine && "mt-1.5")}>{e.also.length + 1} reads agree: also {e.also.join(", ")}. Shown, never added into the odds.</p>}
+      <div className={clsx("flex flex-wrap gap-1.5", (!mine || e.also.length > 0) && "mt-2")}>
+        <button onClick={e.test} className="flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[12px] font-semibold text-white/85 hover:bg-white/[0.12]">
+          <FlaskConical className="h-3.5 w-3.5" /> Backtest it
+        </button>
+        {!mine && (
+          <button onClick={e.pin} className={clsx("flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold", e.pinned ? "bg-[#FF8A3D] text-black" : "bg-white/[0.08] text-white/85 hover:bg-white/[0.12]")}>
+            {e.pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />} {e.pinned ? "Unpin" : "Pin"}
+          </button>
+        )}
+        {e.playbook && (
+          <a href={`/app/playbooks?playbook=${e.playbook}`} className="flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[12px] font-semibold text-white/85 hover:bg-white/[0.12]">
+            <BookOpen className="h-3.5 w-3.5" /> Playbook
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}

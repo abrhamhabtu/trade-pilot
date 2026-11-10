@@ -7,7 +7,10 @@
 
 import { promises as fs } from "fs";
 import path from "path";
-import { READERS, READER_ORDER, type ReaderId } from "@/lib/vision/analyze";
+import { READERS, READER_ORDER, isReader, type ReaderId } from "@/lib/vision/analyze";
+import { DISCOVER_DEFAULTS, ideasFor, judgeStudy, pack, scenarioSeries, studyRows, summarize, unpack, type DetectorStudy, type PackedRow, type StudyEnv } from "@/lib/vision/discover";
+import { levelsFor } from "@/lib/vision/levels";
+import { patternContext } from "@/lib/vision/patterns";
 import { inHours, runBacktest } from "@/lib/vision/backtest";
 import { nyClock } from "@/lib/pilot/market";
 import { SESSION_WINDOWS, type SessionKey } from "@/lib/vision/custom";
@@ -854,4 +857,122 @@ export async function scout(job: LabJob) {
   await fs.mkdir(path.join(LIB, "lab"), { recursive: true });
   await writeJson(RESULTS, { at: Date.now(), results });
   jobs.delete("scout");
+}
+
+// ── Discover ───────────────────────────────────────────────────────────────────
+// Every idea Discover can show (the readers, Vision's patterns and the scout's
+// ideas) run over every year of a market at 5m and 15m, each trade tagged with
+// the scenario it fired in. Stored per year, so new data only costs the newest.
+
+const DISCOVER_DIR = path.join(ROOT, "discover");
+const DISCOVER_TFS: Timeframe[] = ["5m", "15m"];
+const discoverFile = (symbol: string, tf: Timeframe, year: number) => path.join(DISCOVER_DIR, symbol.replace(/[^A-Z0-9]/gi, ""), `${tf}-${year}.json`);
+
+export interface DiscoverState {
+  symbol: string;
+  tf: Timeframe;
+  /** Ideas studied on this market across both timeframes: the m in the Bonferroni bar. */
+  m: number;
+  studies: DetectorStudy[];
+  /** When the newest year was last run. */
+  at: number | null;
+}
+
+export async function getDiscover(symbol: string, tf: Timeframe): Promise<DiscoverState | null> {
+  const idx = await getIndex();
+  const info = idx.series[symbol];
+  if (!info || !DISCOVER_TFS.includes(tf)) return null;
+  const merged = new Map<string, PackedRow[]>();
+  let at: number | null = null;
+  let any = false;
+  const ids = new Set<string>();
+  for (const t of DISCOVER_TFS)
+    for (const year of info.years) {
+      const file = discoverFile(symbol, t, year);
+      const got = await fs.readFile(file, "utf8").then((x) => JSON.parse(x) as { rows: Record<string, PackedRow[]> }, () => null);
+      if (!got) continue;
+      for (const id of Object.keys(got.rows)) ids.add(`${t}|${id}`);
+      if (t !== tf) continue;
+      any = true;
+      at = Math.max(at ?? 0, (await fs.stat(file)).mtimeMs);
+      for (const [id, rows] of Object.entries(got.rows)) merged.set(id, [...(merged.get(id) ?? []), ...rows]);
+    }
+  if (!any) return null;
+  const scout = await getScout();
+  const studies = [...merged.entries()].map(([id, rows]) => {
+    const st = summarize(id as DetectorStudy["id"], tf, rows.map(unpack), "library");
+    if (id.startsWith("scout:")) {
+      const r = scout.results.find((x) => x.id === `${id.slice(6)}@${symbol}`);
+      if (r) st.scout = { verdict: r.verdict, reason: r.reason, newerT: r.newer.t };
+    }
+    return st;
+  });
+  return { symbol, tf, m: ids.size, studies, at };
+}
+
+/** The server's own say on whether a setup source may place a real order on this market: the five readers always; anything else only when Proven here, at the default dials. */
+export async function provenHere(source: string, symbol: string): Promise<boolean> {
+  if (isReader(source)) return true;
+  for (const tf of DISCOVER_TFS) {
+    const s = await getDiscover(symbol, tf).catch(() => null);
+    const st = s?.studies.find((x) => x.id === source);
+    if (s && st && judgeStudy(st, DISCOVER_DEFAULTS, s.m).verdict === "proven") return true;
+  }
+  return false;
+}
+
+export async function runDiscover(o: { symbol: string }) {
+  const key = `discover|${o.symbol}`;
+  if (jobs.has(key) && !jobs.get(key)!.error) return jobs.get(key)!;
+  const job: LabJob = { key, stage: "Getting ready", done: 0, total: 1 };
+  jobs.set(key, job);
+  void discoverStudy(job, o.symbol)
+    .then(() => jobs.delete(key))
+    .catch((e) => {
+      job.error = e instanceof Error ? e.message : "The Discover study failed.";
+    });
+  return job;
+}
+
+async function discoverStudy(job: LabJob, symbol: string) {
+  const idx = await getIndex();
+  const info = idx.series[symbol];
+  if (!info) throw new Error(`No ${symbol} in your library yet. Add your data in the Library tab.`);
+  if (!isSymbol(symbol) || SYMBOLS[symbol].kind !== "futures") throw new Error("Discover studies futures markets only.");
+  const market = SYMBOLS[symbol];
+  const raw = await getContext();
+  const context = { fomc: raw.fomc, vix: raw.vix, early: (symbol === "GC" ? raw.earlyCloses.metals : raw.earlyCloses.equity).map((d) => d.date) };
+  const extra = await readJson<ScoutCandidate[]>(EXTRA, []);
+  const lastYear = new Date(info.to * 1000).getUTCFullYear();
+  const todo: { year: number; tf: Timeframe; file: string }[] = [];
+  for (const year of info.years)
+    for (const tf of DISCOVER_TFS) {
+      const file = discoverFile(symbol, tf, year);
+      const old = await fs.readFile(file, "utf8").then((x) => JSON.parse(x) as { to: number }, () => null);
+      if (!old || (year === lastYear && old.to < info.to)) todo.push({ year, tf, file });
+    }
+  const per = (tf: Timeframe) => ideasFor(symbol, tf, true, extra).length;
+  job.total = todo.reduce((n, x) => n + per(x.tf), 0) || 1;
+  job.done = 0;
+  await fs.mkdir(path.dirname(discoverFile(symbol, "5m", 2000)), { recursive: true });
+  for (const { year, tf, file } of todo) {
+    const from = Date.UTC(year, 0, 1) / 1000;
+    const to = Date.UTC(year + 1, 0, 1) / 1000;
+    job.stage = `Studying every idea on ${symbol} ${tf}, ${year}`;
+    const { bars } = await queryBars(symbol, from - 45 * 86_400, to + 7 * 86_400, TF_SECONDS[tf], Infinity);
+    const rows: Record<string, PackedRow[]> = {};
+    const ideas = ideasFor(symbol, tf, true, extra);
+    if (bars.length > 200) {
+      const ctx = patternContext(bars, "rth", levelsFor(bars));
+      const series = scenarioSeries(ctx);
+      const env: StudyEnv = { anchor: "rth", tick: market.tick, pointValue: market.pointValue!.micro, fee: FEES.micro, maxHold: tf === "5m" ? 48 : 24, context };
+      for (const idea of ideas) {
+        await breathe();
+        const out = studyRows(bars, [idea], env, { ctx, series }, { from, to });
+        rows[idea.id] = (out[idea.id] ?? []).map(pack);
+        job.done++;
+      }
+    } else job.done += ideas.length;
+    await fs.writeFile(file, JSON.stringify({ to: info.to, rows }));
+  }
 }

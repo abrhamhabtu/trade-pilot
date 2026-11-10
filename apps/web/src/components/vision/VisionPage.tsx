@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { BellRing, Code2, Columns2, FlaskConical, Radio, ScanEye, Square, Volume2, VolumeX, X } from "lucide-react";
-import { useVisionStore, type VisionPosition, type VisionTrade, type Venue } from "@/store/visionStore";
+import { readOf, useVisionStore, type VisionPosition, type VisionTrade, type Venue } from "@/store/visionStore";
+import { isReader } from "@/lib/vision/analyze";
 import { BY_KIND, SYMBOLS, formatPrice, type MarketKind, type VisionSymbolId } from "@/lib/vision/markets";
 import { useTickers } from "@/lib/vision/feed";
 import { viewOf } from "@/lib/vision/chartView";
@@ -143,7 +144,8 @@ function LiveVision() {
         const r = await fetch("/api/vision/execute", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "order", symbol, micro: v.micro, side: setup.side, qty, refPx: price, stopPts: Math.abs(price - setup.stop), targetPts: Math.abs(setup.target - price) }),
+          // The setup's id names its source, so the server can refuse anything that isn't proven.
+          body: JSON.stringify({ action: "order", symbol, micro: v.micro, side: setup.side, qty, refPx: price, stopPts: Math.abs(price - setup.stop), targetPts: Math.abs(setup.target - price), setupId: setup.id }),
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) {
@@ -208,6 +210,12 @@ function LiveVision() {
       if (!st || st.replaying || !setup || !setup.fresh || !st.phase.done) return;
       const book = st.mode === "demo" ? demo : { positions: s.positions, handled: s.handled };
       if (book.handled.includes(setup.id) || book.positions.some((p) => p.symbol === c.symbol)) return;
+      // Discover can show anything; auto-execute only takes the five readers or a pinned idea Proven on this market.
+      if (!st.allowAuto && st.mode !== "demo") {
+        useVisionStore.getState().handle(setup.id);
+        setAutoNote("Discover found this one; auto-execute only takes strategies you have proven.");
+        return;
+      }
       const h = setup.history;
       const passes = h.hitRate !== null && h.hitRate >= s.minHitRate && (!s.requireEdge || (h.expectancyR ?? -1) > 0);
       // Demo shows the whole flow, so its filters only explain; they do not block.
@@ -265,7 +273,7 @@ function LiveVision() {
                 key={`${i}`}
                 symbol={c.symbol}
                 tf={c.tf}
-                reader={c.reader ?? "auto"}
+                read={readOf(c)}
                 focused={s.charts.length > 1 && fi === i}
                 compact={s.charts.length === 2}
                 position={positionIn(bookFor(i), c.symbol)}
@@ -275,7 +283,7 @@ function LiveVision() {
                 onView={(view) => s.setChart(i, { view })}
                 onFocus={() => s.focus !== i && s.set({ focus: i })}
                 onTf={(tf) => s.setChart(i, { tf })}
-                onReader={(reader) => s.setChart(i, { reader })}
+                onRead={(read) => s.setChart(i, { read, ...(read === "auto" || isReader(read) ? { reader: read } : {}) })}
                 onClose={s.charts.length === 2 ? () => s.set({ charts: s.charts.filter((_, k) => k !== i), focus: 0 }) : undefined}
                 onState={stateSetters[i]}
               />
