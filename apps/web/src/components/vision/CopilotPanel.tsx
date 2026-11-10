@@ -422,6 +422,7 @@ function ExplainCard({ e }: { e: Explain }) {
           {e.source && <p className="mt-1 text-[11px] text-white/35">{e.source}</p>}
         </>
       )}
+      {e.divergence && <p className={clsx("text-[12px] text-[#FFB27D]", !mine && "mt-1.5")}>{e.divergence}. Some read this as a stronger turn; Discover measures it rather than assume it.</p>}
       {e.also.length > 0 && <p className={clsx("text-[12px] text-white/55", !mine && "mt-1.5")}>{e.also.length + 1} reads agree: also {e.also.join(", ")}. Shown, never added into the odds.</p>}
       <div className={clsx("flex flex-wrap gap-1.5", (!mine || e.also.length > 0) && "mt-2")}>
         <button onClick={e.test} className="flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[12px] font-semibold text-white/85 hover:bg-white/[0.12]">

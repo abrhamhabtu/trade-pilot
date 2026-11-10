@@ -24,6 +24,8 @@ import { BUCKET_LABEL, type Bucket } from "./levels";
 import { TF_SECONDS, type Timeframe, type VisionSymbolId } from "./markets";
 import { PATTERNS, patternDetector, patternsFor, type Family, type PCtx } from "./patterns";
 import { SCOUT_CATALOG, type ScoutCandidate } from "./scout-catalog";
+import { SWEEP_FAMILY, pairConfirmed } from "./smt";
+import type { DayLevels } from "./levels";
 
 // ── Your dials ─────────────────────────────────────────────────────────────────
 
@@ -288,14 +290,20 @@ export interface Row {
   dayType: DayType;
   vol: Vol;
   gap: Gap;
+  /** Sweeps on NQ or ES: whether the other index took out its matching level too. Measured, never used to rank. */
+  smt?: boolean | null;
 }
-export type PackedRow = [number, 0 | 1, number, number, number, number, number];
+export type PackedRow = [number, 0 | 1, number, number, number, number, number, (-1 | 0 | 1)?];
 const BUCKETS: Bucket[] = ["asia", "london", "pre", "ny-open", "ny-mid", "ny-pm", "off"];
 const DAYTYPES: DayType[] = ["trend", "range", "mixed", "none"];
 const VOLS: Vol[] = ["quiet", "normal", "wild"];
 const GAPS: Gap[] = ["up", "flat", "down", "none"];
-export const pack = (r: Row): PackedRow => [r.t, r.side, Math.round(r.r * 1e4) / 1e4, BUCKETS.indexOf(r.bucket), DAYTYPES.indexOf(r.dayType), VOLS.indexOf(r.vol), GAPS.indexOf(r.gap)];
-export const unpack = (p: PackedRow): Row => ({ t: p[0], side: p[1], r: p[2], bucket: BUCKETS[p[3]], dayType: DAYTYPES[p[4]], vol: VOLS[p[5]], gap: GAPS[p[6]] });
+export const pack = (r: Row): PackedRow => {
+  const p: PackedRow = [r.t, r.side, Math.round(r.r * 1e4) / 1e4, BUCKETS.indexOf(r.bucket), DAYTYPES.indexOf(r.dayType), VOLS.indexOf(r.vol), GAPS.indexOf(r.gap)];
+  if (r.smt !== undefined) p.push(r.smt == null ? -1 : r.smt ? 1 : 0);
+  return p;
+};
+export const unpack = (p: PackedRow): Row => ({ t: p[0], side: p[1], r: p[2], bucket: BUCKETS[p[3]], dayType: DAYTYPES[p[4]], vol: VOLS[p[5]], gap: GAPS[p[6]], ...(p[7] !== undefined ? { smt: p[7] === -1 ? null : p[7] === 1 } : {}) });
 
 export interface StudyEnv {
   anchor: Anchor;
@@ -308,9 +316,19 @@ export interface StudyEnv {
 }
 
 /** Each idea's trades on these bars, tagged. Only trades entered in [from, to) are kept. */
-export function studyRows(bars: Bar[], ideas: Idea[], env: StudyEnv, scen: { ctx: PCtx; series: ScenarioSeries }, window: { from: number; to: number } = { from: -Infinity, to: Infinity }, tick?: (done: number) => void): Record<string, Row[]> {
+export function studyRows(
+  bars: Bar[],
+  ideas: Idea[],
+  env: StudyEnv,
+  scen: { ctx: PCtx; series: ScenarioSeries },
+  window: { from: number; to: number } = { from: -Infinity, to: Infinity },
+  tick?: (done: number) => void,
+  /** NQ and ES: the other index's bars on the same clock, to tag sweeps that it did not confirm. */
+  pair?: { bars: Bar[]; levels: (DayLevels | null)[] },
+): Record<string, Row[]> {
   const out: Record<string, Row[]> = {};
   ideas.forEach((idea, k) => {
+    let detector: Detector | undefined;
     const r = runBacktest(bars, {
       reader: "auto",
       custom: idea.rules,
@@ -332,7 +350,15 @@ export function studyRows(bars: Bar[], ideas: Idea[], env: StudyEnv, scen: { ctx
     });
     out[idea.id] = r.trades
       .filter((t) => t.entryT >= window.from && t.entryT < window.to && t.riskUsd > 0)
-      .map((t) => ({ t: t.entryT, side: t.side === "long" ? 1 : 0, r: t.pnl / t.riskUsd, bucket: scen.ctx.sessions ? scen.ctx.bucket[t.entryIndex] : "off", dayType: scen.series.dayType[t.entryIndex], vol: scen.series.vol[t.entryIndex], gap: scen.series.gap[t.entryIndex] }));
+      .map((t) => {
+        const row: Row = { t: t.entryT, side: t.side === "long" ? 1 : 0, r: t.pnl / t.riskUsd, bucket: scen.ctx.sessions ? scen.ctx.bucket[t.entryIndex] : "off", dayType: scen.series.dayType[t.entryIndex], vol: scen.series.vol[t.entryIndex], gap: scen.series.gap[t.entryIndex] };
+        if (pair && SWEEP_FAMILY.has(idea.id)) {
+          // The detector again on the entry bar gives the sweep and the level it ran.
+          const f = (detector ??= detectorFor(idea, bars, env.anchor, env.tick)).detect(scen.ctx, t.entryIndex);
+          row.smt = f ? pairConfirmed({ ...f, reader: idea.id }, bars, pair.bars, pair.levels) : null;
+        }
+        return row;
+      });
     tick?.(k + 1);
   });
   return out;
@@ -366,6 +392,8 @@ export interface DetectorStudy {
   spark: number[];
   /** Deep library history, or only the recent bars the browser could fetch. */
   source: "library" | "recent";
+  /** NQ and ES sweeps: count and sum of R when the other index confirmed the sweep, and when it did not. Shown, never ranked on. */
+  smt?: { confirmed: [number, number]; diverged: [number, number] };
   /** For scout ideas: the scout's own verdict, which Discover follows. */
   scout?: { verdict: "recommended" | "watch" | "rejected"; reason: string; newerT: number };
 }
@@ -394,6 +422,14 @@ export function summarize(id: SetupSource, tf: Timeframe, rows: Row[], source: D
       cell[0]++;
       cell[1] += x.r;
     }
+  let smt: DetectorStudy["smt"];
+  for (const x of sorted) {
+    if (x.smt == null) continue;
+    smt ??= { confirmed: [0, 0], diverged: [0, 0] };
+    const cell = x.smt ? smt.confirmed : smt.diverged;
+    cell[0]++;
+    cell[1] += x.r;
+  }
   const spark: number[] = [];
   let run = 0;
   const step = Math.max(1, sorted.length / 60);
@@ -418,6 +454,7 @@ export function summarize(id: SetupSource, tf: Timeframe, rows: Row[], source: D
     dims,
     spark: spark.slice(0, 60),
     source,
+    ...(smt ? { smt } : {}),
   };
 }
 

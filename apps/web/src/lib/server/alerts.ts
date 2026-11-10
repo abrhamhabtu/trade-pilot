@@ -5,7 +5,7 @@
 
 import { randomBytes, timingSafeEqual } from "crypto";
 import { SYMBOLS, TF_SECONDS, isSymbol } from "@/lib/vision/markets";
-import { DEFAULT_RULES, DEFAULT_WAKE, DEFAULT_WATCH, SETUP_LABEL, alertText, callScript, localClock, routeAlert, scanLatest, xmlEscape, type AlertEvent, type AlertRule, type Channel, type WakeUp, type Watch } from "@/lib/vision/alerts";
+import { DEFAULT_RULES, DEFAULT_WAKE, DEFAULT_WATCH, setupLabel, alertText, callScript, localClock, routeAlert, scanLatest, xmlEscape, type AlertEvent, type AlertRule, type Channel, type WakeUp, type Watch } from "@/lib/vision/alerts";
 import { ECON_CALENDAR } from "@/lib/vision/econ-calendar";
 import { nyClock } from "@/lib/pilot/market";
 import { yahooBars } from "@/lib/pilot/yahoo";
@@ -180,7 +180,7 @@ export async function watchTick(now = Date.now(), bars: (source: string, tf: str
         for (const k of Object.keys(x)) if (k.startsWith("watch|") && now - x[k] > 3 * 86_400_000) delete x[k];
         return x;
       });
-      const e: AlertEvent = { source: "watcher", title: SETUP_LABEL[setup], symbol, side: f.side, price: f.price, stop: f.stop, target: f.target, tf: w.tf, message: "From the free feed, up to about 10 minutes late.", at: Math.floor(now / 1000) };
+      const e: AlertEvent = { source: "watcher", title: setupLabel(setup), symbol, side: f.side, price: f.price, stop: f.stop, target: f.target, tf: w.tf, message: "From the free feed, up to about 10 minutes late.", at: Math.floor(now / 1000) };
       await dispatch(e, { now });
       out.push(e);
     }

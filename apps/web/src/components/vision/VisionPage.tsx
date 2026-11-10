@@ -7,9 +7,11 @@ import { readOf, useVisionStore, type VisionPosition, type VisionTrade, type Ven
 import { infoOf, isReader, type SetupSource } from "@/lib/vision/analyze";
 import { accountState, type AccountTrade, type PropAccount } from "@/lib/vision/account";
 import { guardAccountOf, tradeGuard, type GuardResult } from "@/lib/vision/guard";
-import { nyClock, scheduledEvents, sessionOf } from "@/lib/pilot/market";
+import { nyClock, sessionOf } from "@/lib/pilot/market";
+import { dayEvents } from "@/lib/vision/events";
 import { useAccounts } from "./backtest/data";
 import { useLimits } from "./backtest/prop/useLab";
+import { MorningBrief } from "./MorningBrief";
 import { BY_KIND, SYMBOLS, formatPrice, type MarketKind, type VisionSymbolId } from "@/lib/vision/markets";
 import { useTickers } from "@/lib/vision/feed";
 import { viewOf } from "@/lib/vision/chartView";
@@ -64,7 +66,7 @@ function LiveVision() {
     if (!guardAcct || !setup || setup.outcome !== "open" || st?.mode === "demo" || SYMBOLS[symbol].kind !== "futures") return null;
     const state = accountState(guardAcct);
     if (!state) return null;
-    return tradeGuard({ setup, symbol, micro: s.micro, account: guardAccountOf(guardAcct, state, nyDate), limits, now: Date.now(), events: scheduledEvents(nyDate), wanted: s.contracts });
+    return tradeGuard({ setup, symbol, micro: s.micro, account: guardAccountOf(guardAcct, state, nyDate), limits, now: Date.now(), events: dayEvents(nyDate), wanted: s.contracts });
   };
   /** A closed Pass mode trade, written to its account the way Replay writes hand trades. */
   const record = useCallback(
@@ -313,6 +315,27 @@ function LiveVision() {
       <TopBar mode="live" onMode={(mode) => s.set({ mode })} kind={s.kind} onKind={switchKind} layout={s.charts.length as 1 | 2} onLayout={setLayout} onPine={() => undefined} sound={s.sound} onSound={() => s.set({ sound: !s.sound })} />
 
       <TickerStrip rows={tickers} active={focused.symbol} onPick={pickSymbol} />
+
+      {/* Before the New York open on weekdays: the brief for the chart in focus. */}
+      {sym.kind === "futures" && state?.mode === "live" && (() => {
+        const c = nyClock(Date.now());
+        if (c.weekday < 1 || c.weekday > 5 || c.minute >= 9 * 60 + 30) return null;
+        const st = guardAcct ? accountState(guardAcct) : null;
+        return (
+          <MorningBrief
+            symbol={sym.label}
+            price={focusPrice}
+            fmt={(n) => formatPrice(sym, n)}
+            scenario={state.brief.scenario}
+            levels={state.brief.levels}
+            ranked={state.brief.ranked}
+            account={guardAcct && st ? guardAccountOf(guardAcct, st, nyDate) : null}
+            accountName={guardAcct?.name ?? null}
+            events={dayEvents(nyDate)}
+            date={nyDate}
+          />
+        );
+      })()}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-5">

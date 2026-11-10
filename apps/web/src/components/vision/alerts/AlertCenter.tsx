@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import clsx from "clsx";
 import { BellRing, Check, Code2, Copy, ListChecks, Phone, RefreshCw, ScrollText, Send, X } from "lucide-react";
-import { CHANNELS, DEFAULT_RULES, type AlertRule, type Channel, type WakeUp, type Watch } from "@/lib/vision/alerts";
+import { CHANNELS, DEFAULT_RULES, setupLabel, type AlertRule, type Channel, type WakeUp, type Watch } from "@/lib/vision/alerts";
+import { useVisionStore } from "@/store/visionStore";
 import { PineStudio } from "./PineStudio";
 
 type Settings = { webhookKey: string; publicUrl: string; tz: string; twilio: { configured: boolean; sid: string; from: string; to: string }; rules: AlertRule[]; watch: Watch; wake: WakeUp };
@@ -256,7 +257,9 @@ function Guide({ s, setS, save }: { s: Settings; setS: (x: Settings) => void; sa
 function Rules({ s, save, reload }: { s: Settings; save: (p: Record<string, unknown>) => Promise<void>; reload: () => void }) {
   const put = (rules: AlertRule[]) => save({ rules });
   const edit = (id: string, patch: Partial<AlertRule>) => put(s.rules.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-  const SETUPS: [Watch["setups"][number], string][] = [["dbvwap", "Double-break VWAP"], ["vwap_touch", "VWAP touched"], ["orb", "Opening range break"], ["sweep", "Liquidity sweep"], ["vwappb", "VWAP pullback"], ["sd", "Supply & demand"]];
+  const pinned = useVisionStore((v) => v.pinned);
+  // Pinned ideas from Discover can be watched too; alerts only ever say look at the chart.
+  const SETUPS: [Watch["setups"][number], string][] = [["dbvwap", "Double-break VWAP"], ["vwap_touch", "VWAP touched"], ["orb", "Opening range break"], ["sweep", "Liquidity sweep"], ["vwappb", "VWAP pullback"], ["sd", "Supply & demand"], ...pinned.map((id) => [id, `${setupLabel(id)} · pinned`] as [Watch["setups"][number], string])];
   const toggle = <T,>(xs: T[], x: T) => (xs.includes(x) ? xs.filter((y) => y !== x) : [...xs, x]);
   return (
     <div className="mx-auto max-w-4xl space-y-7 p-6">

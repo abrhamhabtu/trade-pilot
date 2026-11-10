@@ -8,6 +8,11 @@ import { READERS, READER_ORDER, _internal, analyze, infoOf, isReader, readerStat
 import { DISCOVER_DEFAULTS, calendarOf, detectorFor, fitLine, ideasFor, isNew, judgeStudy, rankIdeas, scenarioAt, scenarioSeries, sourceLine, type ChartRead, type Idea, type Ranked, type Scenario, type Verdict } from "@/lib/vision/discover";
 import { enrich, patternContext } from "@/lib/vision/patterns";
 import { useDiscover } from "@/lib/vision/useDiscover";
+import { PAIR, SWEEP_FAMILY, divergenceText, pairConfirmed } from "@/lib/vision/smt";
+import { levelsFor } from "@/lib/vision/levels";
+import { loadBars } from "@/lib/vision/feed";
+import { dayEvents, nyTime } from "@/lib/vision/events";
+import { nyClock } from "@/lib/pilot/market";
 import type { SessionKey } from "@/lib/vision/custom";
 import type { Bucket } from "@/lib/vision/levels";
 import { useVisionStore, type BacktestSettings } from "@/store/visionStore";
@@ -82,6 +87,8 @@ export interface ChartState {
   allowAuto: boolean;
   /** What the setup on screen is, in Discover's words, for the copilot. */
   explain: Explain | null;
+  /** For the morning brief: today's scenario, the day's levels and what fits. */
+  brief: { scenario: Scenario | null; levels: DayLevels | null; ranked: Ranked[] };
 }
 
 export interface Explain {
@@ -96,6 +103,8 @@ export interface Explain {
   /** Other reads that fired on the same bar and side. */
   also: string[];
   playbook?: string;
+  /** "ES did not confirm the low": NQ and ES sweeps the other index didn't join. */
+  divergence?: string;
   pinned: boolean;
   /** Open Strategy test on this idea and run it. */
   test: () => void;
@@ -246,6 +255,61 @@ export function ChartCard({
   };
   const [rescan, setRescan] = useState(0);
   const setup = scan?.setup ?? null;
+  // Structure on the higher timeframes, so a 5m setup against the 1h trend is plain to see. Shown, not yet a scenario fact: alignment is measured first.
+  const [htf, setHtf] = useState<{ tf: Timeframe; value: string; tone: "up" | "down" | "flat" }[]>([]);
+  useEffect(() => {
+    setHtf([]);
+    let live = true;
+    const pull = async () => {
+      const out: { tf: Timeframe; value: string; tone: "up" | "down" | "flat" }[] = [];
+      for (const t of ["15m", "1h", "4h"] as Timeframe[]) {
+        if (TF_SECONDS[t] <= TF_SECONDS[tf]) continue;
+        try {
+          const r = await loadBars(symbol, t, 1);
+          const st = analyze(r.bars, { forming: true, anchor }).items[0];
+          if (st) out.push({ tf: t, value: st.value, tone: st.tone });
+        } catch {
+          /* a timeframe that won't load is left out */
+        }
+      }
+      if (live) setHtf(out);
+    };
+    void pull();
+    const id = setInterval(pull, 5 * 60_000);
+    return () => {
+      live = false;
+      clearInterval(id);
+    };
+  }, [symbol, tf]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Today's scheduled news as lines on the chart (futures).
+  const news = useMemo(() => {
+    if (!futures || mode !== "live") return [];
+    const date = nyClock(Date.now()).date;
+    return dayEvents(date)
+      .filter((e) => e.impact !== "low" && e.time)
+      .map((e) => ({ t: nyTime(date, e.time) ?? 0, label: `${e.time} ${e.title.replace(/ \(usual slot\)/, "")}`, high: e.impact === "high" }))
+      .filter((e) => e.t > 0);
+  }, [futures, mode, closedKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // NQ and ES sweeps: did the other index take out its matching level too? Loaded once per setup.
+  const pair = PAIR[symbol];
+  const [divergence, setDivergence] = useState<string | null>(null);
+  useEffect(() => {
+    setDivergence(null);
+    if (!pair || !setup || mode !== "live" || !SWEEP_FAMILY.has(setup.reader)) return;
+    let live = true;
+    const mine = bars;
+    loadBars(pair, tf)
+      .then((r) => {
+        if (!live || !r.bars.length) return;
+        const ok = pairConfirmed(setup, mine, r.bars, levelsFor(r.bars));
+        if (ok === false) setDivergence(divergenceText(pair, setup.side));
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [setup?.id, pair, mode, tf]); // eslint-disable-line react-hooks/exhaustive-deps
   const phaseKey = `${symbol}|${tf}|${activeReader}|${read}|${setup?.id ?? "none"}|${rescan}|${mode}|${bars.length ? 1 : 0}`;
   const phase = usePhase(phaseKey, setup ? setup.callouts.length : 0);
   const testIdea = (idea: Idea, show?: "gallery" | "drill") => {
@@ -269,6 +333,7 @@ export function ChartCard({
       source: r?.study ? sourceLine(r.study) : "",
       also: (setup.also ?? []).map((a) => infoOf(a).label),
       playbook: idea?.playbooks?.[0],
+      divergence: divergence ?? undefined,
       pinned: pinned.includes(setup.reader),
       test: () => idea && testIdea(idea),
       pin: () => togglePin(setup.reader),
@@ -281,7 +346,7 @@ export function ChartCard({
         return { trades: rs.length, meanR: rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : 0, winShare: rs.length ? rs.filter((x) => x > 0).length / rs.length : 0, curve: rs.map((x) => (run += x)), bars: closed.length, from: closed[0].t, to: closed[closed.length - 1].t };
       },
     };
-  }, [setup?.id, rankOf, pinned, scenario?.bucket]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setup?.id, rankOf, pinned, scenario?.bucket, divergence]); // eslint-disable-line react-hooks/exhaustive-deps
   // Real money only follows the five readers, or a pinned idea that is Proven here at the strict defaults.
   const allowAuto = useMemo(() => {
     if (!setup) return false;
@@ -355,7 +420,7 @@ export function ChartCard({
 
   // A reveal still belonging to the previous setup reports as not done, so nothing acts on it early.
   const current = phase.key === phaseKey ? phase : { ...phase, done: false, projection: false, step: "scanning" as Step };
-  useEffect(() => report.current({ feed, bars, scan, phase: current, mode, replaying: mode === "replay", allowAuto, explain }), [feed, bars, scan, phase, mode, allowAuto, explain]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => report.current({ feed, bars, scan, phase: current, mode, replaying: mode === "replay", allowAuto, explain, brief: { scenario, levels: day.now, ranked } }), [feed, bars, scan, phase, mode, allowAuto, explain, scenario, day.now, ranked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loaded = feed.bars.length > 80;
   const stats = useMemo(() => (menu === "reader" && loaded ? readerStats(feed.bars, { forming: true, anchor }) : {}), [menu, loaded, symbol, tf]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -382,7 +447,7 @@ export function ChartCard({
       // A read that isn't one of the five readers is named with its badge, so nobody mistakes it for a proven strategy.
       const named = explain && !isReader(explain.id) ? `${explain.label}${explain.isNew ? " · NEW" : ""}${explain.verdict ? ` · ${VERDICT[explain.verdict].label}` : ""}` : null;
       const more = scan?.others?.length ? ` · ${scan.others.length + (scan.extra ?? 0)} more read${scan.others.length + (scan.extra ?? 0) === 1 ? "" : "s"} open` : "";
-      const agree = setup.also?.length ? ` · ${setup.also.length + 1} reads agree` : "";
+      const agree = `${setup.also?.length ? ` · ${setup.also.length + 1} reads agree` : ""}${divergence ? ` · ${divergence}` : ""}`;
       return setup.fresh
         ? { title: named ?? "Your call", detail: `${matchLine(setup)}${agree}${more}. ${explain && !allowAuto ? "Your call: auto-execute only takes strategies you have proven" : "Take it, skip it, or let auto-execute take it"}` }
         : { title: named ?? `${setup.side === "long" ? "Long" : "Short"} setup in play`, detail: `Fired ${scan!.closed - 1 - setup.index} bars ago; the plan is still open · ${matchLine(setup)}${agree}${more}` };
@@ -556,6 +621,21 @@ export function ChartCard({
         </div>
       </div>
 
+      {htf.length > 0 && mode !== "demo" && (
+        <div className="mx-5 mt-2 flex flex-wrap items-center gap-1.5 text-[11.5px]">
+          {htf.map((h) => (
+            <span key={h.tf} title={`Market structure on ${h.tf}: the last two swing highs and lows`} className={clsx("rounded-full px-2 py-0.5 font-semibold", h.tone === "up" ? "bg-[#FF8A3D]/12 text-[#FFB27D]" : h.tone === "down" ? "bg-[#FF5A4E]/12 text-[#FF8D85]" : "bg-white/[0.06] text-white/55")}>
+              {h.tf} {h.tone === "up" ? "▲" : h.tone === "down" ? "▼" : "▬"} {h.value}
+            </span>
+          ))}
+          {(() => {
+            const hour = htf.find((h) => h.tf === "1h");
+            const against = setup && setup.outcome === "open" && hour && hour.tone !== "flat" && (hour.tone === "up") !== (setup.side === "long");
+            return against ? <span className="font-semibold text-[#FF8D85]">This {setup!.side} is against the 1h trend</span> : null;
+          })()}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-b-[28px] px-2 pb-2 pt-2">
         {bars.length ? (
           <VisionChart
@@ -572,6 +652,7 @@ export function ChartCard({
             levels={gutter}
             others={mode === "demo" ? [] : (scan?.others ?? [])}
             riskNote={mode === "live" ? riskNote : undefined}
+            news={news}
             onPromote={promote}
           />
         ) : (

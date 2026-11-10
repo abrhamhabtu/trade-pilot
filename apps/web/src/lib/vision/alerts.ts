@@ -6,7 +6,11 @@
 
 import type { Bar } from "@/lib/pilot/market";
 import { sessionOf } from "@/lib/pilot/market";
-import { _internal, type ReaderId } from "./analyze";
+import { _internal, infoOf, isReader, type PatternId, type SetupSource } from "./analyze";
+import { customDetector } from "./custom";
+import { levelsFor } from "./levels";
+import { PATTERNS, patternContext, patternDetector } from "./patterns";
+import { SCOUT_CATALOG } from "./scout-catalog";
 
 export type Channel = "telegram" | "discord" | "sms" | "call";
 export const CHANNELS: Channel[] = ["call", "sms", "telegram", "discord"];
@@ -43,7 +47,8 @@ export interface AlertRule {
 export interface Watch {
   enabled: boolean;
   symbols: string[];
-  setups: (ReaderId | "vwap_touch")[];
+  /** The five readers, VWAP touches, and anything pinned from Discover. */
+  setups: (SetupSource | "vwap_touch")[];
   tf: "5m" | "15m";
   /** New York minutes to watch. */
   hours: [number, number];
@@ -153,7 +158,9 @@ export function callScript(e: AlertEvent) {
 
 // ── Reading the market on the server ───────────────────────────────────────────
 
-export const SETUP_LABEL: Record<Watch["setups"][number], string> = { dbvwap: "Double-break VWAP", sd: "Supply & demand", sweep: "Liquidity sweep", orb: "Opening range breakout", vwappb: "VWAP trend pullback", vwap_touch: "VWAP touched" };
+export const SETUP_LABEL: Record<string, string> = { dbvwap: "Double-break VWAP", sd: "Supply & demand", sweep: "Liquidity sweep", orb: "Opening range breakout", vwappb: "VWAP trend pullback", vwap_touch: "VWAP touched" };
+/** The words an alert uses for any watched setup, pinned ones included. */
+export const setupLabel = (id: Watch["setups"][number]) => SETUP_LABEL[id] ?? (id === "vwap_touch" ? "VWAP touched" : id in PATTERNS ? PATTERNS[id as PatternId].label : infoOf(id as SetupSource).label);
 
 /** Whether a setup fired on the last closed bar, using the same readers as the Vision chart. */
 export function scanLatest(bars: Bar[], setup: Watch["setups"][number], tfSeconds: number, now: number) {
@@ -167,6 +174,23 @@ export function scanLatest(bars: Bar[], setup: Watch["setups"][number], tfSecond
     if (!Number.isFinite(v) || !touches(i) || touches(i - 1)) return null;
     return { t: bars[i].t, side: "" as const, price: bars[i].c, stop: null, target: null, session: sessionOf(bars[i].t).session };
   }
-  const f = _internal.detectAt(ctx, i, [setup]);
-  return f ? { t: bars[i].t, side: f.side, price: f.entry, stop: f.stop, target: f.target, session: sessionOf(bars[i].t).session } : null;
+  const hit = (f: { side: "long" | "short"; entry: number; stop: number; target: number } | null) => (f ? { t: bars[i].t, side: f.side, price: f.entry, stop: f.stop, target: f.target, session: sessionOf(bars[i].t).session } : null);
+  if (isReader(setup)) return hit(_internal.detectAt(ctx, i, [setup]));
+  // A pinned pattern reads the day's levels from the same bars the watcher fetched.
+  if (setup in PATTERNS) {
+    const closed = bars.slice(0, i + 1);
+    const c = patternContext(closed, "rth", levelsFor(closed));
+    return c.atr[i] ? hit(patternDetector(setup as PatternId).detect(c, i)) : null;
+  }
+  if (setup.startsWith("scout:")) {
+    const cand = SCOUT_CATALOG.find((c) => `scout:${c.id}` === setup);
+    if (!cand) return null;
+    const closed = bars.slice(0, i + 1);
+    const fn = customDetector(closed, "rth", cand.rules, 0.25);
+    // Some rules keep state through the day, so they run in order up to the bar.
+    let f = null;
+    for (let k = 0; k <= i; k++) f = fn(k);
+    return hit(f);
+  }
+  return null;
 }

@@ -11,6 +11,7 @@ import { READERS, READER_ORDER, isReader, type ReaderId } from "@/lib/vision/ana
 import { DISCOVER_DEFAULTS, ideasFor, judgeStudy, pack, scenarioSeries, studyRows, summarize, unpack, type DetectorStudy, type PackedRow, type StudyEnv } from "@/lib/vision/discover";
 import { levelsFor } from "@/lib/vision/levels";
 import { patternContext } from "@/lib/vision/patterns";
+import { PAIR } from "@/lib/vision/smt";
 import { inHours, runBacktest } from "@/lib/vision/backtest";
 import { nyClock } from "@/lib/pilot/market";
 import { SESSION_WINDOWS, type SessionKey } from "@/lib/vision/custom";
@@ -864,7 +865,8 @@ export async function scout(job: LabJob) {
 // ideas) run over every year of a market at 5m and 15m, each trade tagged with
 // the scenario it fired in. Stored per year, so new data only costs the newest.
 
-const DISCOVER_DIR = path.join(ROOT, "discover");
+// v2 records whether the other index confirmed each NQ and ES sweep.
+const DISCOVER_DIR = path.join(ROOT, "discover-v2");
 const DISCOVER_TFS: Timeframe[] = ["5m", "15m"];
 const discoverFile = (symbol: string, tf: Timeframe, year: number) => path.join(DISCOVER_DIR, symbol.replace(/[^A-Z0-9]/gi, ""), `${tf}-${year}.json`);
 
@@ -921,16 +923,23 @@ export async function provenHere(source: string, symbol: string): Promise<boolea
   return false;
 }
 
+// Studies run one at a time, so the app stays responsive while they work.
+let discoverQueue: Promise<unknown> = Promise.resolve();
+/** A real pause between ideas: the server answers requests in the gaps instead of after the whole study. */
+const rest = () => new Promise((r) => setTimeout(r, 25));
+
 export async function runDiscover(o: { symbol: string }) {
   const key = `discover|${o.symbol}`;
   if (jobs.has(key) && !jobs.get(key)!.error) return jobs.get(key)!;
-  const job: LabJob = { key, stage: "Getting ready", done: 0, total: 1 };
+  const job: LabJob = { key, stage: "Waiting for the study before it", done: 0, total: 1 };
   jobs.set(key, job);
-  void discoverStudy(job, o.symbol)
-    .then(() => jobs.delete(key))
-    .catch((e) => {
-      job.error = e instanceof Error ? e.message : "The Discover study failed.";
-    });
+  discoverQueue = discoverQueue.then(() =>
+    discoverStudy(job, o.symbol)
+      .then(() => jobs.delete(key))
+      .catch((e) => {
+        job.error = e instanceof Error ? e.message : "The Discover study failed.";
+      }),
+  );
   return job;
 }
 
@@ -963,12 +972,18 @@ async function discoverStudy(job: LabJob, symbol: string) {
     const rows: Record<string, PackedRow[]> = {};
     const ideas = ideasFor(symbol, tf, true, extra);
     if (bars.length > 200) {
+      await rest();
       const ctx = patternContext(bars, "rth", levelsFor(bars));
+      await rest();
       const series = scenarioSeries(ctx);
       const env: StudyEnv = { anchor: "rth", tick: market.tick, pointValue: market.pointValue!.micro, fee: FEES.micro, maxHold: tf === "5m" ? 48 : 24, context };
+      // NQ and ES: the other index over the same window, to tag sweeps it did not confirm.
+      const other = PAIR[symbol];
+      const pairBars = other && idx.series[other] ? (await queryBars(other, from - 45 * 86_400, to + 7 * 86_400, TF_SECONDS[tf], Infinity)).bars : null;
+      const pair = pairBars && pairBars.length > 200 ? { bars: pairBars, levels: levelsFor(pairBars) } : undefined;
       for (const idea of ideas) {
-        await breathe();
-        const out = studyRows(bars, [idea], env, { ctx, series }, { from, to });
+        await rest();
+        const out = studyRows(bars, [idea], env, { ctx, series }, { from, to }, undefined, pair);
         rows[idea.id] = (out[idea.id] ?? []).map(pack);
         job.done++;
       }

@@ -27,6 +27,36 @@ The picker shows, for each strategy, how often it fired on the bars loaded and i
 
 **Replay** walks the latest real setup forward bar by bar. **Demo** builds a clearly labelled simulated chart in which a chosen strategy forms and plays out to a win or a loss; every demo is checked by the real reader before it is shown, its odds come from the real chart's history, and demo trades are kept apart from paper results.
 
+## The chart (`src/components/vision/VisionChart.tsx`, `src/lib/vision/layout.ts`)
+
+Every tag is placed by one layout engine, so nothing lands on another tag: `place()` tries each label's preferred sides at a few distances, slid along the edge, and takes the spot that overlaps candles and the volume pane least; a label that still collides tries a shorter form, then hides. `stack()` keeps the right-hand gutter in price order. Labels keep last frame's spot when it is nearly as good, so they don't jitter as bars tick. Every overlay element carries `data-ov`, so overlap can be checked in the browser.
+
+One mark per fact: entry, target and stop are lines labelled on the price axis; the plan box carries only `+2.0R` and `−1R`. The story is numbered pins on the candles that made the setup, with a short title beside each while it's explained; hovering a pin shows the full note, and the banner carries the status and the record ("54% of 37 past matches reached target").
+
+The layers button sets density per chart (Clean: pins, plan lines and prices; Standard adds boxes and notes; Full adds the projection and volume) and switches day levels, session shading, the story, the plan, the projection and other setups. Two charts side by side start Clean.
+
+The gutter holds the day's levels from their own 5-minute history (`src/lib/vision/levels.ts`, `useLevels`): prior day high, low and close, overnight, Asia and London ranges, the opening range and the first hour. Each appears only once its window has closed, levels more than 3 ATR away are hidden, and crypto has none. Today's scheduled news (CPI, jobs, FOMC) is a dashed line at its bar. A strip above the chart shows structure on the higher timeframes and says when a setup runs against the 1-hour trend.
+
+## Discover (`src/lib/vision/patterns.ts`, `discover.ts`)
+
+Beyond the five readers, Vision has nine patterns built on the day's levels, each deciding on a closed bar with the readers' stop and target rules: Asia range sweep, overnight sweep and prior day sweep (run a level, close back inside), failed opening range break, initial balance break (a narrow first hour), VWAP band reversion (a poke past 2 standard deviations of a flat VWAP), fair value gap continuation, break of structure and retest, and compression breakout. Their thresholds live in `P` at the top of `patterns.ts`. The scout's research ideas join as well, never the coin flip.
+
+The strategy menu reads a chart with Discover (every idea at once), any of your strategies, one of the five, or one found idea. Discover describes today in plain facts (session, trend or range day, quiet or volatile, the gap, the news) and ranks every idea by how it did lately, nudged by how it did on days like this, with thin samples pulled toward the overall result (30 trades of weight). Other reads still open show as numbered diamonds on the chart; a click makes one the setup explained.
+
+Ideas are rated on deep history: the lab's Discover study (`/api/library/lab`, action `discover`) runs every idea on every year of the library at 5m and 15m, after fees and a tick of slippage, each trade tagged with its scenario, stored per year under `~/.tradepilot/library/lab/v1/discover-v2/`. Without library data, a worker rates them on about 60 days of recent bars, and nothing can be rated proven.
+
+The badge follows the scout's tests in order, and adds one: **Proven** needs 200 trades, positive results on the older 70% and the newest 30%, a t-stat of 2 on the newest trades, 60% green years, and a t-stat above the bar for the number of ideas tested on that market (with 51 ideas, about 3.3). **Promising** is positive on both halves but short of a test; **Unproven** is too few trades or only recent history; **Losing** loses on the newest data. Scout ideas take the scout's own verdict, made stricter by the same bar. The panel's dials change what it shows; real orders always use these defaults.
+
+Pinning a found idea adds it to your strategies and to "any of my strategies". Auto-execute takes only the five readers or a pinned idea Proven on that market, and `POST /api/vision/execute` checks the same against the server's own study, so nothing discovered places a real order until it has earned it.
+
+On NQ and ES, sweeps are tagged when the other index didn't take out its matching level ("ES did not confirm the low"), and the study records how those trades did against the rest.
+
+## Pass mode (`src/lib/vision/guard.ts`)
+
+Under "Trading for" in the copilot, pick a Prop desk practice account. For the setup on screen, Vision works out the contracts your risk cap allows on the room left, then applies the daily loss limit, the firm's contract limit, your hours and days, news you skip (10 minutes before to 30 after), the consistency rule (no win that takes today past what it allows), no more size than finishing the target needs, and, on an intraday trailing drawdown, what a round trip from +1R back to the stop costs. The copilot shows the size, the dollars and share of room at risk, the reasons, and what a loss or a win does; the chart carries one line by the risk box. A "no" blocks real venues and auto-execute; on paper it reads "Take anyway (paper)". Closed trades are written to the account like Replay's hand trades. This is arithmetic on the firm's rules and your limits, not advice.
+
+Before the New York open, a morning brief sums up the day so far, where price sits against yesterday and the night, what has held up on days like this, the account's room and the news.
+
 ## Trading
 
 Trades are on paper by default: crypto sizes to a dollar risk per trade, futures to a contract count (micro or full). Auto-execute takes only fresh setups whose history meets the minimum hit rate and, by default, a positive edge.
@@ -45,7 +75,7 @@ The Alerts button opens a step-by-step guide, alert rules, Pine scripts and a hi
 - **Phone**: calls and texts through the trader's own Twilio account (`src/lib/server/alerts.ts`). Credentials stay in `~/.tradepilot/alerts.json`, owner-readable, and are never sent back to a browser.
 - **Rules** (`src/lib/vision/alerts.ts`): words to match, channels, hours in the trader's time zone, days and a quiet period. Named rules beat the catch-all. A wake-up call before the open reads the day's CPI, jobs and FOMC dates and skips holidays.
 - **TradingView**: `POST /api/alerts/tradingview?key=` is the only route meant for the internet. The key lives in the address, not the script. It can only send an alert. Through a Cloudflare tunnel, `src/middleware.ts` answers 404 for everything else unless `TRADEPILOT_PUBLIC_APP=1`.
-- **Watcher**: each minute during chosen hours, the Vision readers plus a VWAP touch run on closed bars from the free feed, so alerts can be about 10 minutes late.
+- **Watcher**: each minute during chosen hours, the Vision readers, a VWAP touch and any pinned idea run on closed bars from the free feed, so alerts can be about 10 minutes late.
 - **Pine scripts** (`src/lib/vision/pineTools.ts`, `/api/pine`): paste or drop files, keep versions, notes and favorites. The app reads what a script is and can alert on, warns about common traps, and adds alert code. TradingView runs Pine: this app can't chart or backtest it, and the ready-made scripts haven't been compiled in TradingView.
 
 ## AI
@@ -109,9 +139,17 @@ Day by day (`DayLedger`), on accounts and Strategy test: each traded day's trade
 
 Not modelled: news bans, firm-specific payout calendars, taxes and fills in fast markets. Fees are $1.04 a micro and $3.64 a full contract round trip; stops and entries lose a tick.
 
+### Faster testing
+
+- **Quick bar** (⌘K) on Strategy test: one line such as `nq 5m orb ny open 1y 50k lucid 2 micros` (`src/lib/vision/quick.ts`). What it understood shows as chips; words it didn't use are listed; anything left is read as your rules.
+- **Run everywhere**: the current strategy on NQ, ES and GC × 5m, 15m × Asia, London, NY open and New York, one after another, cancellable. With 24 tests the best cell is partly luck, so a cell is outlined only when it holds on both halves and clears the bar for 24 tests.
+- **Setup gallery**: every trade as a small chart, filtered by outcome, side, session, month and grade. Arrows move, 1 2 3 grade A, B, C into the trade journal, Enter opens the trade; a strip compares each grade's results with all trades.
+- **Presets** save settings by name; "Re-run all" runs each on the current data and says what changed since last time.
+- **Backtest this** from the copilot, any Discover row or the strategy menu opens Strategy test with that idea and runs it; "See examples" opens the gallery and "Practise" the drill. The copilot can also test an idea on the bars loaded, labelled with how few they are.
+
 ### Replay
 
-Bar-by-bar playback with the future hidden, from any date, up to 25×: market, limit and stop orders filled against each new bar, take profit in R, stop in points, fixed or %-risk sizing, auto break-even at +1R, a synced higher-timeframe chart, Vision's marks as setups form, and "Where it formed", the sessions where the strategy fired. In prop firm mode the drawdown (trailing intraday, end of day or static), daily loss limit and target run live. Guided scenarios pick a setup, market and session and offer months to practise. Every fill can be tagged; sessions save to the Library.
+Bar-by-bar playback with the future hidden, from any date, up to 25×: market, limit and stop orders filled against each new bar, take profit in R, stop in points, fixed or %-risk sizing, auto break-even at +1R, a synced higher-timeframe chart, Vision's marks as setups form, and "Where it formed", the sessions where the strategy fired. In prop firm mode the drawdown (trailing intraday, end of day or static), daily loss limit and target run live. Guided scenarios pick a setup, market and session and offer months to practise. Every fill can be tagged; sessions save to the Library. **Random day** (R) jumps to a session where the strategy formed. **Drill** shows twenty setups up to the bar they triggered on with the plan drawn: take (T) or skip (K), see the outcome, and at the end your picks against taking all of them and the calls that cost most.
 
 ### Library
 
@@ -120,6 +158,10 @@ Bar-by-bar playback with the future hidden, from any date, up to 25×: market, l
 A full-size contract is joined with its micro (NQ with MNQ, ES with MES, GC with MGC) wherever its own file has no bars. Back-month series (`.v.1`) are ignored. Originals download unchanged. OHLCV CSVs (Databento `ts_event` or `ts_utc` with `continuous`, or plain time/open/high/low/close/volume) become 1-minute series per symbol, stored per year; 1-second bars fold into minutes. Split zips (`.part00`/`.part01` onward) join once they read as a whole zip, and a zip of parts or zips (a Google Drive download) is unpacked first. The free-data pack supplies FOMC days, CME early closes and holidays, and VIX. Saved runs and sessions download as CSV or JSON. A run loads at most 400,000 bars (about five years of 5-minute bars); longer periods keep the latest.
 
 Databento's continuous contracts are front month by volume and not back-adjusted, so a trade over a roll can see the roll's price step. Without library data, history comes from the free feeds: Yahoo for futures (about 60 days of 5-minute bars) and Coinbase for crypto.
+
+## What the deep studies found (November 2026)
+
+Run on the library (NQ, ES and gold, 2010 to 2026, 5m and 15m, micro fees and a tick of slippage): nothing is Proven on any market. The best newest-data t-stats were just under 2 (the narrow day breakout on ES 15m at 2.0, the one-hour range with trend on NQ 15m at 1.9), against a bar near 3.3 for 51 ideas. The five readers are negative after costs on micros; ideas with tight stops suffer most, since a fixed fee is a large share of a small risk. On NQ and ES, sweeps the other index did not confirm did no better than the rest (NQ 5m: −0.31R a trade over 12,347 against −0.21R over 18,524 when ES confirmed). Re-run the study as data is added; the badges will say if anything changes.
 
 ## Not verified
 

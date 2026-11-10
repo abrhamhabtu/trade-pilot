@@ -96,6 +96,7 @@ export function VisionChart({
   others = [],
   onPromote,
   riskNote,
+  news = [],
 }: {
   bars: Bar[];
   sym: VisionSymbol;
@@ -116,6 +117,8 @@ export function VisionChart({
   onPromote?: (s: Setup) => void;
   /** Pass mode's line inside the risk box. */
   riskNote?: string;
+  /** Today's scheduled news: a dashed line at its bar, a tag along the top. */
+  news?: { t: number; label: string; high: boolean }[];
 }) {
   const box = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
@@ -330,7 +333,7 @@ export function VisionChart({
       )}
       {label && <span data-ov="mode-label" className="pointer-events-none absolute bottom-[34px] left-14 z-10 rounded-full bg-[#FF8A3D]/15 px-2.5 py-0.5 text-[11px] font-bold tracking-[0.08em] text-[#FFB27D] ring-1 ring-[#FF8A3D]/30">{label}</span>}
       <div ref={box} className="absolute inset-0" />
-      {geo && bars.length > 0 && <Overlay geo={geo} bars={bars} scan={scan} setup={setup} full={full} phase={phase} position={position} closed={closed ?? null} fmt={fmt} view={view} levels={levels} sessions={sym.kind === "futures" && layers(view).sessions} modeLabel={!!label} others={others} onPromote={onPromote} riskNote={riskNote} />}
+      {geo && bars.length > 0 && <Overlay geo={geo} bars={bars} scan={scan} setup={setup} full={full} phase={phase} position={position} closed={closed ?? null} fmt={fmt} view={view} levels={levels} sessions={sym.kind === "futures" && layers(view).sessions} modeLabel={!!label} others={others} onPromote={onPromote} riskNote={riskNote} news={news} />}
       {geo && bars.length > 0 && review && <ReviewOverlay geo={geo} bars={bars} r={review} fmt={fmt} />}
     </div>
   );
@@ -372,6 +375,7 @@ function Overlay({
   others,
   onPromote,
   riskNote,
+  news,
 }: {
   geo: Geo;
   bars: Bar[];
@@ -389,6 +393,7 @@ function Overlay({
   others: Setup[];
   onPromote?: (s: Setup) => void;
   riskNote?: string;
+  news: { t: number; label: string; high: boolean }[];
 }) {
   const { w, h, plotW, x, y, bar } = geo;
   const L = layers(view);
@@ -484,6 +489,20 @@ function Overlay({
     return out;
   }, [L.others, others, pins, bars, x, y, volTop]);
 
+  // ── News: where on the time axis each of today's events falls (a bar, or past the last bar at the bar spacing) ──
+  const newsX = useMemo(() => {
+    if (!bars.length) return [];
+    const step = bars.length > 1 ? bars[bars.length - 1].t - bars[bars.length - 2].t : 300;
+    return news
+      .map((e) => {
+        const last = bars.length - 1;
+        const k = e.t <= bars[last].t ? bars.findIndex((b) => b.t + step > e.t) : last + (e.t - bars[last].t) / step;
+        const px = k >= 0 ? x(Math.round(k)) : null;
+        return px != null && px > 0 && px < gutterX ? { ...e, px } : null;
+      })
+      .filter((e): e is { t: number; label: string; high: boolean; px: number } => !!e);
+  }, [news, bars, x, gutterX]);
+
   // ── Reward and risk tags, inside the plan box at its right edge ──
   const rTags = useMemo(() => {
     if (!boxes) return [];
@@ -576,6 +595,7 @@ function Overlay({
       const edge = s!.side === "long" ? Math.max(yE!, yS!) : Math.min(yE!, yS!);
       labels.push({ id: "risk-note", kind: "note-risk", text: riskNote, w: textWidth(riskNote, 10.5) + 16, h: 18, ax: xi! + 6, ay: edge, prefer: s!.side === "long" ? ["br", "b", "bl"] : ["tr", "t", "tl"], priority: 75, optional: true });
     }
+    for (const e of newsX) labels.push({ id: `news-${e.t}`, kind: "news", text: e.label, w: textWidth(e.label, 10.5) + 14, h: 18, ax: e.px, ay: LEGEND.h + 4, prefer: ["br", "bl", "b"], priority: 65, optional: true });
     if (ready && full && L.setupPill) {
       const text = `✦ ${s!.side === "long" ? "LONG" : "SHORT"} SETUP`;
       const top = Math.min(y(patternTop)!, y(patternBot)!) - 10;
@@ -588,7 +608,7 @@ function Overlay({
       }
     const out = place(labels, obstacles, { x: 0, y: 0, w: gutterX - 2, h: h - 28 }, prev.current);
     return labels.map((l, k) => ({ l, p: out[k] }));
-  }, [bars, x, y, bar, plotW, h, volTop, gutterX, modeLabel, boxes, xi, yE, yT, yS, right, pins, rTags, chips, closed, position, fmt, ready, full, L.setupPill, s, xs, patternTop, patternBot, notesOn, riskNote]);
+  }, [bars, x, y, bar, plotW, h, volTop, gutterX, modeLabel, boxes, xi, yE, yT, yS, right, pins, rTags, chips, closed, position, fmt, ready, full, L.setupPill, s, xs, patternTop, patternBot, notesOn, riskNote, newsX]);
   useEffect(() => {
     prev.current = placed.map((q) => q.p);
   }, [placed]);
@@ -619,6 +639,11 @@ function Overlay({
           if (x0 == null || x1 == null || x1 < 0 || x0 > plotW) return null;
           return <rect key={`${r.shade}-${r.from}`} x={x0 - bar / 2} y={0} width={Math.max(0, x1 - x0 + bar)} height={volBottom} fill={SHADE[r.shade]} />;
         })}
+
+        {/* News: a dashed line at the event's bar */}
+        {newsX.map((e) => (
+          <line key={e.t} x1={e.px} x2={e.px} y1={0} y2={volBottom} stroke={e.high ? "#FF5A4E" : "rgba(255,255,255,0.5)"} strokeOpacity={e.high ? 0.55 : 0.35} strokeDasharray="3 5" />
+        ))}
 
         {/* Levels: a thin line across the plot to the gutter, with an elbow to its tag */}
         {gutter.map((q) => {
@@ -785,6 +810,12 @@ function Overlay({
           return (
             <span key={l.id} data-ov={l.id} className="tp-fade-in absolute flex items-center truncate rounded-lg border border-white/[0.12] bg-[#1B1B1E]/[0.94] px-2.5 text-[12px] font-semibold text-white shadow-[0_10px_28px_-10px_rgba(0,0,0,0.9)]" style={{ ...style, width: p.compact ? l.compact!.w : l.w, height: p.compact ? l.compact!.h : l.h }}>
               <span className="truncate">{l.text}</span>
+            </span>
+          );
+        if (l.kind === "news")
+          return (
+            <span key={l.id} data-ov={l.id} title={l.text} className="tp-fade-in absolute flex items-center justify-center whitespace-nowrap rounded-md bg-[#FF5A4E]/15 text-[10.5px] font-semibold text-[#FF8D85]" style={{ ...style, width: l.w, height: l.h }}>
+              {l.text}
             </span>
           );
         if (l.kind === "note-risk")

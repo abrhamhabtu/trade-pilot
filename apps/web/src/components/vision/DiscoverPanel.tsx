@@ -200,6 +200,7 @@ export function DiscoverPanel({
                     {r.judged && <p className="text-[12px] leading-snug text-white/60">{r.judged.reason}</p>}
                     {r.study && <p className="text-[11px] text-white/35">{sourceLine(r.study)}</p>}
                     {r.fit?.best && r.study && <p className="text-[11px] text-white/45">{fitLine(r.fit, r.study)}</p>}
+                    {r.study?.smt && <p className="text-[11px] text-white/45">{smtLine(r.study.smt)}</p>}
                     <div className="flex flex-wrap gap-1.5">
                       <Action on={() => onShow(r.idea.id as ChartRead)} active={current === r.idea.id} icon={<Eye className="h-3.5 w-3.5" />}>
                         {current === r.idea.id ? "On the chart" : "Show on chart"}
@@ -314,4 +315,10 @@ function Action({ on, icon, children, active }: { on: () => void; icon: React.Re
       {children}
     </button>
   );
+}
+
+/** The divergence tag, measured: how sweeps did when the other index joined them, and when it didn't. */
+function smtLine(m: { confirmed: [number, number]; diverged: [number, number] }) {
+  const avg = ([n, sum]: [number, number]) => (n ? `${sum / n >= 0 ? "+" : ""}${(sum / n).toFixed(2)}R over ${n}` : "no trades");
+  return `When the other index didn't confirm: ${avg(m.diverged)}. When it did: ${avg(m.confirmed)}.`;
 }
