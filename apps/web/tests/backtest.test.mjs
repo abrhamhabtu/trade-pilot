@@ -151,3 +151,40 @@ test("the verdict refuses to grade a handful of trades", async () => {
   const v = verdict({ ...r, trades: r.trades.slice(0, 3), stats: { ...r.stats, trades: 3 } });
   assert.equal(v.grade, "—");
 });
+
+test("a pattern run as your rules enters exactly where the chart detector fires", async () => {
+  const { patternContext, patternDetector, PATTERN_ORDER } = await import("../src/lib/vision/patterns.ts");
+  const { levelsFor } = await import("../src/lib/vision/levels.ts");
+  const { DEFAULT_RULES } = await import("../src/lib/vision/custom.ts");
+  // Four weekdays of 5-minute futures bars, a seeded walk with a busier New York session.
+  let s = 101;
+  const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+  const bars = [];
+  let px = 20_000;
+  for (let t = Date.UTC(2025, 0, 13, 0, 0) / 1000; t < Date.UTC(2025, 0, 17, 21, 0) / 1000; t += 300) {
+    const nyHour = (new Date(t * 1000).getUTCHours() + 19) % 24;
+    if (nyHour === 17) continue;
+    const busy = nyHour >= 9 && nyHour < 16 ? 2 : 1;
+    const o = px;
+    const c = o + (r() - 0.5) * 12 * busy;
+    bars.push({ t, o, h: Math.max(o, c) + r() * 5 * busy, l: Math.min(o, c) - r() * 5 * busy, c, v: Math.round(100 + r() * 400 * busy) });
+    px = c;
+  }
+  const ctx = patternContext(bars, "rth", levelsFor(bars));
+  let total = 0;
+  for (const id of PATTERN_ORDER) {
+    const rules = { ...DEFAULT_RULES, entry: { kind: "pattern", pattern: id }, stop: { kind: "plan" }, target: { kind: "plan" } };
+    const res = runBacktest(bars, { ...base, anchor: "rth", custom: rules });
+    const d = patternDetector(id);
+    for (const t of res.trades) {
+      const f = d.detect(ctx, t.entryIndex);
+      assert.ok(f, `${id}: a trade at ${t.entryIndex} where the detector did not fire`);
+      assert.equal(t.side, f.side);
+      assert.equal(t.entry, f.entry);
+      assert.ok(Math.abs(t.stop - f.stop) <= 0.25 && Math.abs(t.target - f.target) <= 0.25, `${id}: stop and target match to the tick`);
+      assert.equal(t.reader, "custom", "backtest rows keep their old type");
+    }
+    total += res.trades.length;
+  }
+  assert.ok(total > 3, `patterns traded on the sample (${total})`);
+});

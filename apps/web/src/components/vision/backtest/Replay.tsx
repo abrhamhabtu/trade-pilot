@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Building2, FastForward, FolderDown, MapPin, Pause, Play, RotateCcw, SkipForward, StepForward, Wand2, X } from "lucide-react";
 import { sessionOf } from "@/lib/pilot/market";
-import { READERS, READER_ORDER, _internal, analyze, type ReaderChoice, type ReaderId, type Side } from "@/lib/vision/analyze";
+import { READERS, READER_ORDER, _internal, analyze, infoOf, type ReaderChoice, type ReaderId, type Side } from "@/lib/vision/analyze";
 import { inHours } from "@/lib/vision/backtest";
 import { SESSION_WINDOWS } from "@/lib/vision/custom";
 import { TF_SECONDS, aggregate, formatPrice, type Timeframe, type VisionSymbol } from "@/lib/vision/markets";
@@ -437,7 +437,7 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
               <Wand2 className="h-5 w-5 shrink-0 text-[#FFB27D]" />
               <span className="min-w-0">
                 <span className="block text-[13.5px] font-semibold text-white">
-                  Take Vision&apos;s {plan.side} · {READERS[plan.reader].short}
+                  Take Vision&apos;s {plan.side} · {infoOf(plan.reader).short}
                 </span>
                 <span className="block truncate text-[12px] text-white/55">
                   Stop {fmt(plan.stop)} · target {fmt(plan.target)} · {plan.rr.toFixed(1)}R{plan.history.hitRate != null ? ` · ${Math.round(plan.history.hitRate * 100)}% before` : ""}

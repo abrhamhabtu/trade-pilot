@@ -6,6 +6,7 @@ import { BellRing, Code2, Columns2, FlaskConical, Radio, ScanEye, Square, Volume
 import { useVisionStore, type VisionPosition, type VisionTrade, type Venue } from "@/store/visionStore";
 import { BY_KIND, SYMBOLS, formatPrice, type MarketKind, type VisionSymbolId } from "@/lib/vision/markets";
 import { useTickers } from "@/lib/vision/feed";
+import { viewOf } from "@/lib/vision/chartView";
 import { useModelStore, modelReady } from "@/lib/pilot/modelStore";
 import { PROVIDERS } from "@/lib/pilot/models";
 import { chime } from "@/components/pilot/flow/judge";
@@ -270,6 +271,8 @@ function LiveVision() {
                 position={positionIn(bookFor(i), c.symbol)}
                 closed={recentClose(bookFor(i), c.symbol)}
                 tradeLabel={tradeLabel}
+                view={viewOf(c.view, s.charts.length === 2)}
+                onView={(view) => s.setChart(i, { view })}
                 onFocus={() => s.focus !== i && s.set({ focus: i })}
                 onTf={(tf) => s.setChart(i, { tf })}
                 onReader={(reader) => s.setChart(i, { reader })}

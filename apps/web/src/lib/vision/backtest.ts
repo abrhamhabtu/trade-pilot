@@ -17,7 +17,7 @@
 
 import type { Bar } from "@/lib/pilot/market";
 import { sessionOf } from "@/lib/pilot/market";
-import { READER_ORDER, _internal, type Anchor, type ReaderChoice, type ReaderId, type Side } from "./analyze";
+import { READER_ORDER, _internal, isReader, type Anchor, type ReaderChoice, type ReaderId, type Side } from "./analyze";
 import { customDetector, type CustomRules } from "./custom";
 
 export interface BacktestContext {
@@ -304,7 +304,8 @@ export function runBacktest(bars: Bar[], o: BacktestOptions, onProgress?: (done:
     const slot = Math.floor(s.minute / 30) * 30;
     trades.push({
       n: trades.length + 1,
-      reader: f.reader,
+      // Backtest rows name only the five readers; anything else is "your rules".
+      reader: isReader(f.reader) ? f.reader : "custom",
       side: f.side,
       entryIndex: i,
       exitIndex,

@@ -10,7 +10,9 @@
 import type { Bar } from "@/lib/pilot/market";
 import { sessionOf } from "@/lib/pilot/market";
 import { atr as atrOf, ema as emaOf, pivots, rsi as rsiOf } from "./indicators";
-import { READERS, _internal, type Anchor, type ReaderId, type Side } from "./analyze";
+import { READERS, _internal, type Anchor, type PatternId, type ReaderId, type Side } from "./analyze";
+import { PATTERNS, patternContext, patternDetector } from "./patterns";
+import { levelsFor } from "./levels";
 
 export type EntryRule =
   | { kind: "pdhl_retest"; bars: number }
@@ -29,7 +31,8 @@ export type EntryRule =
   | { kind: "open_reversal"; minMove: number }
   | { kind: "opening_drive"; minMove: number }
   | { kind: "globex_break" }
-  | { kind: "reader"; reader: ReaderId };
+  | { kind: "reader"; reader: ReaderId }
+  | { kind: "pattern"; pattern: PatternId };
 
 export type StopRule = { kind: "atr"; mult: number; len: number } | { kind: "points"; pts: number } | { kind: "ticks"; n: number } | { kind: "swing"; bars: number } | { kind: "signal" } | { kind: "plan" };
 export type TargetRule = { kind: "r"; r: number } | { kind: "points"; pts: number } | { kind: "plan" };
@@ -75,6 +78,20 @@ export const ENTRY_LABEL: Record<EntryRule["kind"], string> = {
   opening_drive: "Follow a big first half hour",
   globex_break: "Break of the overnight range",
   reader: "One of your Vision strategies",
+  pattern: "One of Vision's patterns",
+};
+
+/** Plain words for each pattern, for rules written by hand ("asia sweep, 2:1"). */
+const PATTERN_WORDS: Record<PatternId, RegExp> = {
+  asia_sweep: /asia(n)? (range )?(sweep|run|raid)|sweep of (the )?asia/,
+  on_sweep: /overnight (high|low|range)? ?(sweep|run|raid)|sweep of the overnight|on (high|low) sweep/,
+  pd_sweep: /prior day sweep and reclaim|pd sweep/,
+  orb_fail: /failed (opening range|orb)|orb fail/,
+  ib_break: /initial balance|ib break/,
+  vwap_band: /vwap band|band reversion|standard deviation band/,
+  fvg_cont: /fvg continuation|fair value gap continuation/,
+  bos_retest: /bos retest|break of structure and retest|structure retest/,
+  squeeze: /squeeze|compression breakout/,
 };
 
 export interface Template {
@@ -133,9 +150,13 @@ export function parseRules(text: string): { rules: CustomRules; used: string[]; 
                   ? ({ kind: "last_half", signal: /overnight/.test(t) ? "overnight" : "first30" } as const)
                   : null;
   const prevDay = /(previous|prior|yesterday's|yesterdays) day'?s? (high|low)|\bpd[hl]\b|prior (high|low)|previous (high|low)/.test(t);
+  const pattern = (Object.keys(PATTERN_WORDS) as PatternId[]).find((id) => PATTERN_WORDS[id].test(t));
   if (special) {
     r.entry = special;
     used.push(`Entry: ${ENTRY_LABEL[special.kind]}`);
+  } else if (pattern) {
+    r.entry = { kind: "pattern", pattern };
+    used.push(`Entry: ${PATTERNS[pattern].label}`);
   } else if (reader) {
     r.entry = { kind: "reader", reader };
     used.push(`Entry: ${READERS[reader].label}`);
@@ -262,9 +283,10 @@ export function describeRules(r: CustomRules) {
     e.kind === "fvg" ? "Price pulls back into an open bullish fair value gap and closes bullish above its bottom" :
     e.kind === "rsi" ? `RSI(${e.len}) crosses back above ${e.low}` :
     e.kind === "structure" ? "Close above the last confirmed swing high" :
+    e.kind === "pattern" ? `${PATTERNS[e.pattern].label}: ${PATTERNS[e.pattern].blurb.toLowerCase()}` :
     `${READERS[e.reader].label}: ${READERS[e.reader].blurb.toLowerCase()}`;
   const short =
-    e.kind === "reader" ? "The same, mirrored" :
+    e.kind === "reader" || e.kind === "pattern" ? "The same, mirrored" :
     e.kind === "rsi" ? `RSI(${e.len}) crosses back below ${e.high}` :
     e.kind === "coin_flip" ? "A coin flip says short" :
     e.kind === "open_reversal" ? `The first 30 minutes rose more than ${e.minMove}× ATR` :
@@ -287,7 +309,7 @@ export function describeRules(r: CustomRules) {
 /** Short chips for the parsed rules. */
 export function ruleChips(r: CustomRules) {
   const e = r.entry;
-  const entry = e.kind === "orb" ? `ORB ${e.minutes}m` : e.kind === "ema_cross" ? `EMA ${e.fast}/${e.slow}` : e.kind === "rsi" ? `RSI(${e.len})` : e.kind === "reader" ? READERS[e.reader].short : { pdhl_retest: "Prev day H/L · break & retest", pdhl_sweep: "Prev day H/L · sweep", vwap_cross: "VWAP cross", fvg: "FVG retest", structure: "CHoCH / BOS", narrow_orb: "Narrow day ORB", inside_orb: "Inside day ORB", gap_fade: "Gap fade", last_half: "Last half hour", coin_flip: "Coin flip", open_reversal: "First-hour reversal", opening_drive: "Opening drive", globex_break: "Overnight break" }[e.kind as "pdhl_retest"];
+  const entry = e.kind === "orb" ? `ORB ${e.minutes}m` : e.kind === "ema_cross" ? `EMA ${e.fast}/${e.slow}` : e.kind === "rsi" ? `RSI(${e.len})` : e.kind === "reader" ? READERS[e.reader].short : e.kind === "pattern" ? PATTERNS[e.pattern].short : { pdhl_retest: "Prev day H/L · break & retest", pdhl_sweep: "Prev day H/L · sweep", vwap_cross: "VWAP cross", fvg: "FVG retest", structure: "CHoCH / BOS", narrow_orb: "Narrow day ORB", inside_orb: "Inside day ORB", gap_fade: "Gap fade", last_half: "Last half hour", coin_flip: "Coin flip", open_reversal: "First-hour reversal", opening_drive: "Opening drive", globex_break: "Overnight break" }[e.kind as "pdhl_retest"];
   const stop = r.stop.kind === "atr" ? `${r.stop.mult}× ATR(${r.stop.len})` : r.stop.kind === "points" ? `SL ${r.stop.pts} pts` : r.stop.kind === "ticks" ? `SL ${r.stop.n} ticks` : r.stop.kind === "swing" ? `Swing ${r.stop.bars}` : r.stop.kind === "signal" ? "Signal-bar stop" : "Own stop";
   const tgt = r.target.kind === "r" ? `${r.target.r}:1 R` : r.target.kind === "points" ? `TP ${r.target.pts} pts` : "Own target";
   return [entry, stop, tgt, ...(r.trend !== "none" ? [r.trend === "ema200" ? "200 EMA trend" : "VWAP side"] : []), ...(r.breakEvenR ? [`BE ${r.breakEvenR}R`] : []), ...(r.maxPerDay ? [`${r.maxPerDay}/day`] : [])];
@@ -362,6 +384,8 @@ export function customDetector(bars: Bar[], anchor: Anchor, r: CustomRules, tick
   const rsiS = e.kind === "rsi" ? rsiOf(closes, e.len) : null;
   const piv = e.kind === "structure" ? pivots(bars, 3) : null;
   const readers: ReaderId[] = e.kind === "reader" ? [e.reader] : [];
+  // A pattern reads the day's levels from these same bars, so a backtest needs nothing extra.
+  const pat = e.kind === "pattern" ? { ctx: patternContext(bars, anchor, levelsFor(bars)), d: patternDetector(e.pattern) } : null;
   // Once per session per side for level-based entries.
   const taken = new Set<string>();
   // Opening range per session.
@@ -454,6 +478,11 @@ export function customDetector(bars: Bar[], anchor: Anchor, r: CustomRules, tick
     switch (e.kind) {
       case "reader": {
         const f = _internal.detectAt(ctx, i, readers);
+        return f ? plan(f.side, i, { stop: f.stop, target: f.target }) : null;
+      }
+      case "pattern": {
+        if (i < 30 || !pat!.ctx.atr[i]) return null;
+        const f = pat!.d.detect(pat!.ctx, i);
         return f ? plan(f.side, i, { stop: f.stop, target: f.target }) : null;
       }
       case "pdhl_retest": {

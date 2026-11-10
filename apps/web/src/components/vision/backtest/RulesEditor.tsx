@@ -2,7 +2,8 @@
 
 import clsx from "clsx";
 import { Sparkles } from "lucide-react";
-import { READERS, READER_ORDER, type ReaderId } from "@/lib/vision/analyze";
+import { READERS, READER_ORDER, type PatternId, type ReaderId } from "@/lib/vision/analyze";
+import { PATTERNS, PATTERN_ORDER } from "@/lib/vision/patterns";
 import { ENTRY_LABEL, describeRules, ruleChips, type CustomRules, type EntryRule, type StopRule, type TargetRule } from "@/lib/vision/custom";
 
 const ENTRY_DEFAULTS: Record<EntryRule["kind"], EntryRule> = {
@@ -23,6 +24,7 @@ const ENTRY_DEFAULTS: Record<EntryRule["kind"], EntryRule> = {
   opening_drive: { kind: "opening_drive", minMove: 1.5 },
   globex_break: { kind: "globex_break" },
   reader: { kind: "reader", reader: "dbvwap" },
+  pattern: { kind: "pattern", pattern: "asia_sweep" },
 };
 const STOP_DEFAULTS: Record<StopRule["kind"], StopRule> = { atr: { kind: "atr", mult: 1.5, len: 14 }, points: { kind: "points", pts: 20 }, ticks: { kind: "ticks", n: 40 }, swing: { kind: "swing", bars: 8 }, signal: { kind: "signal" }, plan: { kind: "plan" } };
 const STOP_LABEL: Record<StopRule["kind"], string> = { atr: "× ATR", points: "Points", ticks: "Ticks", swing: "Swing of last N bars", signal: "Signal candle", plan: "Strategy's own" };
@@ -67,6 +69,15 @@ export function RulesEditor({ rules, onChange, unknown }: { rules: CustomRules; 
               {READER_ORDER.map((r) => (
                 <option key={r} value={r}>
                   {READERS[r].label}
+                </option>
+              ))}
+            </select>
+          )}
+          {e.kind === "pattern" && (
+            <select className={sel} value={e.pattern} onChange={(x) => set({ entry: { kind: "pattern", pattern: x.target.value as PatternId }, stop: { kind: "plan" }, target: { kind: "plan" } })}>
+              {PATTERN_ORDER.map((p) => (
+                <option key={p} value={p}>
+                  {PATTERNS[p].label}
                 </option>
               ))}
             </select>

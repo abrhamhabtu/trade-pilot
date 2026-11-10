@@ -5,6 +5,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { MarketKind, Timeframe, VisionSymbolId } from '@/lib/vision/markets';
 import type { ReaderChoice, Side } from '@/lib/vision/analyze';
 import { TEMPLATES, type CustomRules, type SessionKey } from '@/lib/vision/custom';
+import type { ChartView } from '@/lib/vision/chartView';
 
 export type Venue = 'paper' | 'tradovate' | 'projectx';
 
@@ -13,6 +14,8 @@ export interface ChartSlot {
   tf: Timeframe;
   /** Which strategy reads this chart; 'auto' runs all of them. */
   reader?: ReaderChoice;
+  /** What the chart draws; unset follows the layout (clean when two share the screen). */
+  view?: ChartView;
 }
 
 export interface VisionPosition {

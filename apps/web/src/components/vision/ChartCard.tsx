@@ -2,14 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { Check, ChevronDown, FlaskConical, Play, RefreshCw, Sparkles, Square, X } from "lucide-react";
+import { Check, ChevronDown, FlaskConical, Layers, Play, RefreshCw, Sparkles, Square, X } from "lucide-react";
+import { PRESETS, type ChartView, type Density } from "@/lib/vision/chartView";
 import { READERS, READER_ORDER, analyze, readerStats, type ReaderChoice, type ReaderId, type Scan, type Side } from "@/lib/vision/analyze";
 import { buildDemo, type Demo } from "@/lib/vision/demo";
 import { useFeed, type Feed } from "@/lib/vision/feed";
+import type { DayLevels } from "@/lib/vision/levels";
+import { sessionStartIndex, useLevels } from "@/lib/vision/useLevels";
 import type { Bar } from "@/lib/pilot/market";
 import { SYMBOLS, TF_SECONDS, TIMEFRAMES, formatPrice, type Timeframe, type VisionSymbolId } from "@/lib/vision/markets";
 import type { VisionPosition, VisionTrade } from "@/store/visionStore";
-import { VisionChart, type Phase } from "./VisionChart";
+import { VisionChart, type GutterLevel, type Phase } from "./VisionChart";
 
 const SCAN_MS = 2400;
 const CALLOUT_MS = 700;
@@ -79,9 +82,11 @@ export function ChartCard({
   position,
   closed,
   tradeLabel,
+  view,
   onFocus,
   onTf,
   onReader,
+  onView,
   onClose,
   onState,
 }: {
@@ -93,7 +98,9 @@ export function ChartCard({
   position: VisionPosition | null;
   closed: VisionTrade | null;
   tradeLabel: string;
+  view: ChartView;
   onFocus: () => void;
+  onView: (v: ChartView) => void;
   onTf: (tf: Timeframe) => void;
   onReader: (r: ReaderChoice) => void;
   onClose?: () => void;
@@ -108,10 +115,13 @@ export function ChartCard({
   const [replay, setReplay] = useState<{ cursor: number; end: number } | null>(null);
   const [demo, setDemo] = useState<{ d: Demo; cursor: number; speed: number } | null>(null);
   const [demoOpts, setDemoOpts] = useState<DemoOpts>({ reader: "auto", side: "random", outcome: "random", speed: 2 });
-  const [menu, setMenu] = useState<"reader" | "demo" | null>(null);
+  const [menu, setMenu] = useState<"reader" | "demo" | "layers" | null>(null);
   const mode: ChartMode = demo ? "demo" : replay ? "replay" : "live";
   const bars = demo ? demo.d.bars.slice(0, demo.cursor) : replay ? feed.bars.slice(0, replay.cursor) : feed.bars;
   const activeReader: ReaderChoice = demo ? demo.d.reader : reader;
+  // Day levels come from their own 5m history; replay and demo bars aren't today's, so they get none.
+  const day = useLevels(symbol, tf, feed.bars);
+  const gutter = useMemo(() => (mode === "live" ? gutterLevels(day.now, sessionStartIndex(feed.bars)) : []), [day.now, mode, feed.bars.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Analyse closed bars only: recompute when a bar closes, not on every tick.
   const closedKey = `${mode}:${activeReader}:${bars.length > 1 ? `${bars.length}:${bars[bars.length - 2].t}` : ""}`;
@@ -191,15 +201,15 @@ export function ChartCard({
       const c = setup.callouts[Math.max(0, phase.revealed - 1)];
       return { title: c ? (c.n === 1 ? `Marks the ${c.title.toLowerCase()}` : c.title) : "Pattern recognised", detail: c?.detail ?? "" };
     }
-    if (setup && phase.step === "planning" && setup.outcome === "open") return { title: "Vision projects the next move", detail: `${setup.side === "long" ? "Up" : "Down"} to ${fmt(setup.target)}, a ${(((setup.target - setup.entry) / setup.entry) * 100).toFixed(2)}% move` };
+    if (setup && phase.step === "planning" && setup.outcome === "open") return { title: "Vision projects the next move", detail: `${setup.side === "long" ? "Up" : "Down"} to ${fmt(setup.target)}, a ${(((setup.target - setup.entry) / setup.entry) * 100).toFixed(2)}% move · ${matchLine(setup)}` };
     if (recentClose) return { title: recentClose.reason === "target" ? "Prediction confirmed" : recentClose.reason === "stop" ? "Stopped out" : "Position closed", detail: `${recentClose.side === "long" ? "Long" : "Short"} ${recentClose.qty} closed ${recentClose.pnl >= 0 ? "+" : "-"}$${Math.abs(recentClose.pnl).toFixed(2)}` };
     if (position) return { title: position.auto ? "Auto-executed" : "Price follows the plan", detail: `${position.side === "long" ? "Long" : "Short"} ${position.qty} filled at ${fmt(position.entry)} · stop ${fmt(position.stop)} · target ${fmt(position.target)}` };
     if (setup && setup.outcome === "target") return { title: "Prediction confirmed", detail: `Reached ${fmt(setup.target)}. Scanning for the next setup` };
     if (setup && setup.outcome === "stop") return { title: "Stopped out", detail: `The ${setup.side} setup hit ${fmt(setup.stop)}. Scanning for the next one` };
     if (setup && setup.outcome === "open")
       return setup.fresh
-        ? { title: "Your call", detail: "Take the forecast, skip it, or let auto-execute take it" }
-        : { title: `${setup.side === "long" ? "Long" : "Short"} setup in play`, detail: `Fired ${scan!.closed - 1 - setup.index} bars ago; the plan is still open` };
+        ? { title: "Your call", detail: `${matchLine(setup)}. Take it, skip it, or let auto-execute take it` }
+        : { title: `${setup.side === "long" ? "Long" : "Short"} setup in play`, detail: `Fired ${scan!.closed - 1 - setup.index} bars ago; the plan is still open · ${matchLine(setup)}` };
     if (mode === "demo") return { title: "Demo", detail: "Simulated price. The setup forms in a moment" };
     if (mode === "replay") return { title: "Replaying history", detail: "Watching the latest real setup play out. Nothing here can be traded" };
     const below = scan?.pools.below;
@@ -294,6 +304,22 @@ export function ChartCard({
         </div>
 
         <div className="relative">
+          <button
+            aria-label="Chart layers"
+            title="What the chart draws"
+            onClick={() => setMenu(menu === "layers" ? null : "layers")}
+            className={clsx("grid h-9 w-9 place-items-center rounded-full ring-1 ring-white/[0.06]", menu === "layers" ? "bg-white/[0.16] text-white" : "bg-white/[0.07] text-white/75 hover:bg-white/[0.1]")}
+          >
+            <Layers className="h-4 w-4" />
+          </button>
+          {menu === "layers" && (
+            <Popover onClose={() => setMenu(null)}>
+              <LayersMenu view={view} onView={onView} futures={sym.kind === "futures"} />
+            </Popover>
+          )}
+        </div>
+
+        <div className="relative">
           {mode === "demo" ? (
             <button onClick={() => setDemo(null)} className="flex h-9 items-center gap-1.5 rounded-full bg-[#FF8A3D] px-3 text-[13px] font-semibold text-black">
               <Square className="h-3.5 w-3.5" /> End demo
@@ -369,6 +395,8 @@ export function ChartCard({
             height={compact ? 400 : 580}
             label={mode === "demo" ? "DEMO · SIMULATED PRICE" : mode === "replay" ? "REPLAY · PAST BARS" : undefined}
             story={mode !== "live"}
+            view={view}
+            levels={gutter}
           />
         ) : (
           <div className="tp-shimmer m-3 rounded-2xl" style={{ height: compact ? 380 : 560 }} />
@@ -412,4 +440,85 @@ function Choice<T extends string | number>({ label, value, options, onChange }: 
       </div>
     </div>
   );
+}
+
+/** How the banner states a setup's record: rated, or plainly too thin to rate. */
+function matchLine(s: NonNullable<Scan["setup"]>) {
+  const h = s.history;
+  const decided = h.wins + h.losses;
+  if (h.hitRate != null) return `${Math.round(h.hitRate * 100)}% of ${decided} past matches reached target`;
+  return h.matches ? `${h.matches} past match${h.matches === 1 ? "" : "es"} here, too few to rate` : "No past matches on these bars";
+}
+
+const DENSITY: { v: Density; l: string; d: string }[] = [
+  { v: "clean", l: "Clean", d: "Pins, plan lines, prices" },
+  { v: "standard", l: "Standard", d: "Plus boxes and notes" },
+  { v: "full", l: "Full", d: "Plus projection and volume" },
+];
+
+function LayersMenu({ view, onView, futures }: { view: ChartView; onView: (v: ChartView) => void; futures: boolean }) {
+  const toggles: { k: keyof Omit<ChartView, "density">; l: string; d: string; off?: string }[] = [
+    { k: "levels", l: "Day levels", d: "Prior day, overnight, Asia, London, opening range" },
+    { k: "sessions", l: "Session shading", d: "Faint bands for Asia, London and New York", off: futures ? undefined : "Futures only" },
+    { k: "story", l: "Setup story", d: "Numbered pins on the candles that made the setup" },
+    { k: "plan", l: "Plan", d: "Entry, stop and target" },
+    { k: "projection", l: "Projection", d: "Where past matches went next", off: view.density === "full" ? undefined : "Full density only" },
+    { k: "others", l: "Other setups", d: "Other reads that fired nearby" },
+  ];
+  return (
+    <div className="p-2">
+      <p className="px-1 pb-2 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-white/40">Density</p>
+      <div className="grid grid-cols-3 gap-1">
+        {DENSITY.map((d) => (
+          <button key={d.v} onClick={() => onView({ ...PRESETS[d.v] })} className={clsx("rounded-xl px-2 py-2 text-left transition", view.density === d.v ? "bg-white text-black" : "bg-white/[0.06] text-white hover:bg-white/[0.1]")}>
+            <span className="block text-[13px] font-semibold">{d.l}</span>
+            <span className={clsx("block text-[10.5px] leading-tight", view.density === d.v ? "text-black/55" : "text-white/45")}>{d.d}</span>
+          </button>
+        ))}
+      </div>
+      <p className="px-1 pb-1 pt-3 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-white/40">Layers</p>
+      {toggles.map((t) => (
+        <button key={t.k} disabled={!!t.off} onClick={() => onView({ ...view, [t.k]: !view[t.k] })} className="flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left hover:bg-white/[0.05] disabled:opacity-40">
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13.5px] font-semibold text-white">{t.l}</span>
+            <span className="block truncate text-[11.5px] text-white/45">{t.off ?? t.d}</span>
+          </span>
+          <span className={clsx("relative h-5 w-9 shrink-0 rounded-full transition", view[t.k] && !t.off ? "bg-[#FF8A3D]" : "bg-white/15")}>
+            <span className={clsx("absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all", view[t.k] && !t.off ? "left-[18px]" : "left-0.5")} />
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The day's levels as gutter tags: highs red, lows orange, the opening range and first hour blue. */
+function gutterLevels(l: DayLevels | null, from: number): GutterLevel[] {
+  if (!l) return [];
+  const out: GutterLevel[] = [];
+  const add = (id: string, abbr: string, name: string, price: number | null, tone: GutterLevel["tone"]) => price != null && Number.isFinite(price) && out.push({ id, abbr, name, price, tone, from });
+  add("pdh", "PDH", "Prior day high", l.pdh, "red");
+  add("pdl", "PDL", "Prior day low", l.pdl, "orange");
+  add("pdc", "PDC", "Prior day close", l.pdc, "white");
+  add("onh", "ON H", "Overnight high", l.onh, "red");
+  add("onl", "ON L", "Overnight low", l.onl, "orange");
+  add("ash", "AS H", "Asia high", l.asiaH, "red");
+  add("asl", "AS L", "Asia low", l.asiaL, "orange");
+  add("lnh", "LN H", "London high", l.lonH, "red");
+  add("lnl", "LN L", "London low", l.lonL, "orange");
+  add("orh", "OR H", "Opening range high (first 15 minutes)", l.orH, "blue");
+  add("orl", "OR L", "Opening range low (first 15 minutes)", l.orL, "blue");
+  add("ibh", "IB H", "Initial balance high (first hour)", l.ibH, "blue");
+  add("ibl", "IB L", "Initial balance low (first hour)", l.ibL, "blue");
+  // Two levels at the same price say the same thing: keep the first, name both on hover.
+  const seen = new Map<number, GutterLevel>();
+  return out.filter((g) => {
+    const was = seen.get(g.price);
+    if (was) {
+      was.name = `${was.name} · ${g.name}`;
+      return false;
+    }
+    seen.set(g.price, g);
+    return true;
+  });
 }

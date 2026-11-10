@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { Check, Loader2, Sparkles, Zap } from "lucide-react";
-import { READERS, type Scan } from "@/lib/vision/analyze";
+import { infoOf, type Scan } from "@/lib/vision/analyze";
 import { formatPrice, type VisionSymbol } from "@/lib/vision/markets";
 import { useModelStore, modelReady } from "@/lib/pilot/modelStore";
 import { ChartRead } from "./ChartRead";
@@ -229,7 +229,7 @@ export function CopilotPanel({
                   {sym.label} <span className="ml-1 rounded-md bg-[#FF8A3D]/15 px-1.5 py-0.5 text-[10.5px] font-bold tracking-[0.06em] text-[#FFB27D]">{state?.mode === "demo" ? "DEMO" : "FORECAST"}</span>
                 </p>
                 <p className="mt-0.5 truncate text-[12.5px] text-[#FFB27D]">
-                  {READERS[setup.reader].short} · projected {setup.target >= setup.entry ? "+" : ""}
+                  {infoOf(setup.reader).short} · projected {setup.target >= setup.entry ? "+" : ""}
                   {(((setup.target - setup.entry) / setup.entry) * 100).toFixed(2)}% · {setup.rr.toFixed(1)}R
                 </p>
               </div>

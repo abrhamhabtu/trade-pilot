@@ -27,9 +27,13 @@ import { atr as atrOf, ema as emaOf, pivots as pivotsOf, rsi as rsiOf, type Pivo
 export type Side = "long" | "short";
 export type ReaderId = "sweep" | "dbvwap" | "sd" | "orb" | "vwappb";
 export type ReaderChoice = ReaderId | "auto";
+/** Vision's own patterns beyond the five readers (patterns.ts). Named here so the types flow one way. */
+export type PatternId = "pd_sweep" | "on_sweep" | "asia_sweep" | "orb_fail" | "ib_break" | "vwap_band" | "fvg_cont" | "bos_retest" | "squeeze";
+/** Anything that can fire a setup: a reader, a pattern, or a scout candidate. */
+export type SetupSource = ReaderId | PatternId | `scout:${string}`;
 
 export interface ReaderInfo {
-  id: ReaderId;
+  id: SetupSource;
   label: string;
   short: string;
   blurb: string;
@@ -45,6 +49,31 @@ export const READERS: Record<ReaderId, ReaderInfo> = {
   vwappb: { id: "vwappb", label: "VWAP trend pullback", short: "VWAP PB", blurb: "First tag of a sloping VWAP in trend", line: "vwap" },
 };
 export const READER_ORDER: ReaderId[] = ["dbvwap", "sd", "sweep", "orb", "vwappb"];
+
+export const isReader = (id: string): id is ReaderId => id in READERS;
+
+// Patterns and scout candidates register their names here when their modules
+// load, so anything can name a setup without this file importing them.
+const INFO = new Map<string, ReaderInfo>();
+export function registerInfo(info: ReaderInfo) {
+  INFO.set(info.id, info);
+}
+/** The name, blurb and drawing line for any setup source. */
+export function infoOf(id: SetupSource): ReaderInfo {
+  if (isReader(id)) return READERS[id];
+  return INFO.get(id) ?? { id, label: id.startsWith("scout:") ? `Research idea ${id.slice(6)}` : id, short: id.replace(/^scout:/, ""), blurb: "", line: "ema" };
+}
+
+/**
+ * When several reads fire on the same bar and side, the most specific one is
+ * shown and the rest are listed under "also": a session-level sweep says more
+ * than a generic structure break.
+ */
+export const SPECIFICITY: SetupSource[] = ["asia_sweep", "on_sweep", "pd_sweep", "orb_fail", "ib_break", "vwap_band", "fvg_cont", "bos_retest", "squeeze", ...READER_ORDER];
+export const specificity = (id: SetupSource) => {
+  const k = SPECIFICITY.indexOf(id);
+  return k < 0 ? SPECIFICITY.length : k;
+};
 
 export interface Callout {
   n: number;
@@ -76,7 +105,9 @@ export interface SetupHistory {
 
 export interface Setup {
   id: string;
-  reader: ReaderId;
+  reader: SetupSource;
+  /** Other reads that fired on the same bar and side. Agreement worth seeing, never added into the odds. */
+  also?: SetupSource[];
   side: Side;
   /** The level the setup turns on (swing, VWAP, zone edge or range edge). */
   level: number;
@@ -118,6 +149,10 @@ export interface Scan {
   pools: { below: Pivot | null; above: Pivot | null };
   setup: Setup | null;
   overview: string;
+  /** Discover mode: other reads still open from the last 30 bars, at most four. */
+  others?: Setup[];
+  /** How many more than the four shown. */
+  extra?: number;
 }
 
 const SPAN = 3;
@@ -129,7 +164,7 @@ const MIN_HISTORY = 60;
 
 export type Anchor = "rth" | "utc";
 
-interface Ctx {
+export interface Ctx {
   bars: Bar[];
   ema: number[];
   rsi: number[];
@@ -211,8 +246,8 @@ function context(bars: Bar[], anchor: Anchor): Ctx {
   return { bars, ema: emaOf(closes, 21), rsi: rsiOf(closes, 14), atr: atrOf(bars, 14), piv: pivotsOf(bars, SPAN), volAvg, vwap, sessionStart, sessionMinute, tfMinutes };
 }
 
-interface Fired {
-  reader: ReaderId;
+export interface Fired {
+  reader: SetupSource;
   side: Side;
   level: number;
   levelIndex: number;
@@ -498,7 +533,18 @@ function callouts(c: Ctx, f: Fired, fmt: (n: number) => string): Callout[] {
         { n: 2, title: "Tag of VWAP", detail: "First pullback into VWAP this leg", i: m2, price: long ? bars[m2].l : bars[m2].h, mark: "ring" },
         { n: 3, title: "Held", detail: `Closed back ${long ? "up" : "down"} in trend${spike}`, i: m3, price: bars[m3].c, mark: "ring" },
       ];
+    default:
+      return genericCallouts(c, f, fmt);
   }
+}
+
+/** For reads without their own story: what triggered it, and the plan. */
+export function genericCallouts(c: Ctx, f: Fired, fmt: (n: number) => string): Callout[] {
+  const long = f.side === "long";
+  return [
+    { n: 1, title: "Trigger", detail: `${infoOf(f.reader).label} fired on this close`, i: f.index, price: c.bars[f.index].c, mark: "ring" },
+    { n: 2, title: "Plan", detail: `${long ? "Long" : "Short"} from ${fmt(f.entry)}, stop ${fmt(f.stop)}, target ${fmt(f.target)}`, i: f.levelIndex, price: f.level, mark: "level" },
+  ];
 }
 
 // ── History ────────────────────────────────────────────────────────────────────
@@ -513,7 +559,9 @@ function replay(bars: Bar[], s: Pick<Fired, "side" | "index" | "stop" | "target"
   return { result: "open" as const, at: null };
 }
 
-function history(c: Ctx, reader: ReaderId, side: Side, upTo: number): SetupHistory {
+type Detect = (c: Ctx, i: number) => Fired | null;
+
+function history(c: Ctx, detect: Detect, side: Side, upTo: number): SetupHistory {
   const paths: number[][] = [];
   const toTarget: number[] = [];
   let wins = 0;
@@ -522,7 +570,7 @@ function history(c: Ctx, reader: ReaderId, side: Side, upTo: number): SetupHisto
   let sumR = 0;
   const seen = c.bars.slice(0, upTo + 1);
   for (let j = 30; j < upTo; j++) {
-    const s = detectAt(c, j, [reader]);
+    const s = detect(c, j);
     if (!s || s.side !== side) continue;
     const r = replay(seen, s);
     if (r.result === "target") {
@@ -599,8 +647,8 @@ function scanItems(c: Ctx, last: number, fmt: (n: number) => string, setup: Setu
   return { items: [structure, liquidity, flow, momentum], pools: { below, above } };
 }
 
-function overview(setup: Setup | null, items: ScanItem[], pools: Scan["pools"], fmt: (n: number) => string, closeIdx: number, choice: ReaderChoice) {
-  const name = choice === "auto" ? "any of your strategies" : READERS[choice].label;
+function overview(setup: Setup | null, items: ScanItem[], pools: Scan["pools"], fmt: (n: number) => string, closeIdx: number, choice: ReaderChoice, readName?: string) {
+  const name = readName ?? (choice === "auto" ? "any of your strategies" : READERS[choice].label);
   if (!setup) {
     const watch = [pools.below && `${fmt(pools.below.price)} below`, pools.above && `${fmt(pools.above.price)} above`].filter(Boolean).join(" and ");
     return `${items[0].value} structure, ${items[2].value.toLowerCase()}, momentum ${items[3].value.toLowerCase()}. No fresh signal from ${name}.${watch ? ` Liquidity rests at ${watch}.` : ""}`;
@@ -609,8 +657,8 @@ function overview(setup: Setup | null, items: ScanItem[], pools: Scan["pools"], 
   const what = setup.callouts.map((c) => c.title.toLowerCase()).join(", then ");
   const rated =
     h.hitRate !== null
-      ? ` ${READERS[setup.reader].label} fired ${h.matches} times in the loaded history; the target came before the stop ${Math.round(h.hitRate * 100)}% of the time (${h.wins} of ${h.wins + h.losses}), ${h.expectancyR! >= 0 ? "+" : ""}${h.expectancyR!.toFixed(2)}R a trade on average.`
-      : ` ${READERS[setup.reader].label} has fired only ${h.matches} time${h.matches === 1 ? "" : "s"} in the loaded history, too few to rate.`;
+      ? ` ${infoOf(setup.reader).label} fired ${h.matches} times in the loaded history; the target came before the stop ${Math.round(h.hitRate * 100)}% of the time (${h.wins} of ${h.wins + h.losses}), ${h.expectancyR! >= 0 ? "+" : ""}${h.expectancyR!.toFixed(2)}R a trade on average.`
+      : ` ${infoOf(setup.reader).label} has fired only ${h.matches} time${h.matches === 1 ? "" : "s"} in the loaded history, too few to rate.`;
   const ago = (k: number | null) => closeIdx - (k ?? closeIdx);
   const when =
     setup.outcome === "target"
@@ -620,7 +668,7 @@ function overview(setup: Setup | null, items: ScanItem[], pools: Scan["pools"], 
         : closeIdx - setup.index > 1
           ? ` It fired ${closeIdx - setup.index} bars ago and is still open.`
           : "";
-  return `${setup.side === "long" ? "Long" : "Short"} ${READERS[setup.reader].label.toLowerCase()}: ${what}.${rated} Plan: ${fmt(setup.entry)} entry, ${fmt(setup.stop)} stop, ${fmt(setup.target)} target (${setup.rr.toFixed(1)}R).${when}`;
+  return `${setup.side === "long" ? "Long" : "Short"} ${infoOf(setup.reader).label.toLowerCase()}: ${what}.${rated} Plan: ${fmt(setup.entry)} entry, ${fmt(setup.stop)} stop, ${fmt(setup.target)} target (${setup.rr.toFixed(1)}R).${when}`;
 }
 
 export interface AnalyzeOptions {
@@ -636,13 +684,33 @@ export interface AnalyzeOptions {
   minIndex?: number;
   /** Read only the setup that fired on exactly this bar (backtest trade viewer). */
   atIndex?: number;
+  /** Read with these instead of the readers (Discover, a pattern, a scout idea). Absent: exactly the readers, as before. */
+  detectors?: Detector[];
+  /** Adds what the detectors need to the context (day levels, Globex VWAP). */
+  enrich?: (c: Ctx) => Ctx;
+  /** Breaks ties between reads that fired on the same bar: higher first. */
+  rank?: (id: SetupSource) => number;
+  /** What the overview calls this read. */
+  readName?: string;
 }
+
+export interface Detector {
+  id: SetupSource;
+  info: ReaderInfo;
+  /** Method form on purpose: pattern detectors take a richer context. */
+  detect(c: Ctx, i: number): Fired | null;
+  callouts?(c: Ctx, f: Fired, fmt: (n: number) => string): Callout[];
+}
+
+/** One of the five readers as a detector. */
+export const readerDetector = (id: ReaderId): Detector => ({ id, info: READERS[id], detect: (c, i) => detectAt(c, i, [id]) });
 
 /**
  * Read the chart. `bars` may include the bar still forming as the last
  * element (`forming = true`); only closed bars are analysed.
  */
 export function analyze(all: Bar[], opts: AnalyzeOptions = {}): Scan {
+  if (opts.detectors) return analyzeWith(all, opts, opts.detectors);
   const fmt = opts.fmt ?? ((n: number) => n.toFixed(2));
   const choice = opts.reader ?? "auto";
   const readers = choice === "auto" ? READER_ORDER : [choice];
@@ -665,8 +733,8 @@ export function analyze(all: Bar[], opts: AnalyzeOptions = {}): Scan {
     if (opts.historyBars && opts.historyBars.length >= MIN_HISTORY) {
       const hb = opts.forming ? opts.historyBars.slice(0, -1) : opts.historyBars;
       const hc = context(hb, anchor);
-      h = history(hc, f.reader, f.side, hb.length - 1);
-    } else h = history(c, f.reader, f.side, f.index - 1);
+      h = history(hc, (x, j) => detectAt(x, j, [f.reader as ReaderId]), f.side, hb.length - 1);
+    } else h = history(c, (x, j) => detectAt(x, j, [f.reader as ReaderId]), f.side, f.index - 1);
     setup = {
       ...f,
       id: `${f.reader}-${f.side}-${bars[f.index].t}`,
@@ -689,8 +757,9 @@ export function readerStats(all: Bar[], opts: { forming?: boolean; anchor?: Anch
   const c = context(bars, opts.anchor ?? "utc");
   const out: Partial<Record<ReaderId, SetupHistory>> = {};
   for (const r of READER_ORDER) {
-    const longs = history(c, r, "long", bars.length - 1);
-    const shorts = history(c, r, "short", bars.length - 1);
+    const detect: Detect = (x, j) => detectAt(x, j, [r]);
+    const longs = history(c, detect, "long", bars.length - 1);
+    const shorts = history(c, detect, "short", bars.length - 1);
     const wins = longs.wins + shorts.wins;
     const losses = longs.losses + shorts.losses;
     const decided = wins + losses;
@@ -710,4 +779,70 @@ export function readerStats(all: Bar[], opts: { forming?: boolean; anchor?: Anch
   return out;
 }
 
-export const _internal = { context, detectAt };
+/**
+ * Read the chart with any set of detectors. The primary setup is the freshest
+ * one still open (ties to the higher rank, then the more specific read); other
+ * open reads from the last 30 bars come back as `others`.
+ */
+function analyzeWith(all: Bar[], opts: AnalyzeOptions, dets: Detector[]): Scan {
+  const fmt = opts.fmt ?? ((n: number) => n.toFixed(2));
+  const choice: ReaderChoice = opts.reader ?? "auto";
+  const anchor = opts.anchor ?? "utc";
+  const bars = opts.forming ? all.slice(0, -1) : all;
+  const last = bars.length - 1;
+  const base = context(bars, anchor);
+  const c = opts.enrich ? opts.enrich(base) : base;
+  if (bars.length < MIN_HISTORY)
+    return { closed: bars.length, reader: choice, ema: c.ema, vwap: c.vwap, rsi: c.rsi, atr: c.atr, items: [], pools: { below: null, above: null }, setup: null, overview: "Waiting for enough bars to read the chart." };
+  const rank = (id: SetupSource) => opts.rank?.(id) ?? 0;
+  const maxAge = opts.maxAge ?? 30;
+  const hi = opts.atIndex ?? last;
+  const lo = opts.atIndex ?? Math.max(30, last - maxAge, opts.minIndex ?? 0);
+  type Hit = { d: Detector; f: Fired; also: SetupSource[]; r: ReturnType<typeof replay> };
+  const hits: Hit[] = [];
+  for (let i = hi; i >= lo; i--) {
+    if (i < 30 || !c.atr[i]) continue;
+    const at = dets.map((d) => ({ d, f: d.detect(c, i) })).filter((x): x is { d: Detector; f: Fired } => !!x.f);
+    for (const side of ["long", "short"] as const) {
+      const same = at.filter((x) => x.f.side === side).sort((a, b) => specificity(a.d.id) - specificity(b.d.id));
+      if (!same.length) continue;
+      hits.push({ ...same[0], also: same.slice(1).map((x) => x.d.id), r: replay(bars, same[0].f, bars.length) });
+    }
+  }
+  const open = (h: Hit) => h.r.result === "open";
+  const order = (a: Hit, b: Hit) => Number(open(b)) - Number(open(a)) || b.f.index - a.f.index || rank(b.d.id) - rank(a.d.id) || specificity(a.d.id) - specificity(b.d.id);
+  hits.sort(order);
+  const toSetup = (h: Hit, withHistory: boolean): Setup => ({
+    ...h.f,
+    reader: h.d.id,
+    also: h.also.length ? h.also : undefined,
+    id: `${h.d.id}-${h.f.side}-${bars[h.f.index].t}`,
+    callouts: h.d.callouts ? h.d.callouts(c, h.f, fmt) : callouts(c, h.f, fmt),
+    history: withHistory ? history(c, (x, j) => (j < 30 || !x.atr[j] ? null : h.d.detect(x, j)), h.f.side, h.f.index - 1) : EMPTY_HISTORY,
+    outcome: h.r.result,
+    outcomeIndex: h.r.at,
+    fresh: last - h.f.index <= 1 && h.r.result === "open",
+  });
+  const primary = hits[0] ?? null;
+  const setup = primary ? toSetup(primary, true) : null;
+  const rest = hits.slice(1).filter((h) => open(h) && h.f.index >= last - 30);
+  const others = rest.slice(0, 4).map((h) => toSetup(h, false));
+  const { items, pools } = scanItems(c, last, fmt, setup && setup.outcome === "open" ? setup : null);
+  return { closed: bars.length, reader: choice, ema: c.ema, vwap: c.vwap, rsi: c.rsi, atr: c.atr, items, pools, setup, overview: overview(setup, items, pools, fmt, last, choice, opts.readName), others, extra: Math.max(0, rest.length - 4) };
+}
+
+const EMPTY_HISTORY: SetupHistory = { matches: 0, wins: 0, losses: 0, undecided: 0, hitRate: null, expectancyR: null, totalR: 0, medianBarsToTarget: null, cone: [] };
+
+/** A detector's record on the given bars, both sides: for the strategy picker and Discover's on-chart counts. */
+export function detectorStats(c: Ctx, d: Detector): SetupHistory {
+  const detect: Detect = (x, j) => (j < 30 || !x.atr[j] ? null : d.detect(x, j));
+  const longs = history(c, detect, "long", c.bars.length - 1);
+  const shorts = history(c, detect, "short", c.bars.length - 1);
+  const wins = longs.wins + shorts.wins;
+  const losses = longs.losses + shorts.losses;
+  const decided = wins + losses;
+  const sumR = longs.totalR + shorts.totalR;
+  return { matches: longs.matches + shorts.matches, wins, losses, undecided: longs.undecided + shorts.undecided, hitRate: decided >= MIN_RATED ? wins / decided : null, expectancyR: decided >= MIN_RATED ? sumR / decided : null, totalR: sumR, medianBarsToTarget: null, cone: [] };
+}
+
+export const _internal = { context, detectAt, plan, known, replay, history, callouts, SPAN, LOOKBACK };
