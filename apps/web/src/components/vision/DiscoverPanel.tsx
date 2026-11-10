@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
-import { BookOpen, ChevronDown, Eye, FlaskConical, Pin, PinOff, Settings2, Sparkles, X } from "lucide-react";
+import { BookOpen, ChevronDown, Eye, FlaskConical, Images, Pin, PinOff, Settings2, Sparkles, Target, X } from "lucide-react";
 import { isReader, type SetupSource } from "@/lib/vision/analyze";
 import { DISCOVER_DEFAULTS, fitLine, isNew, sourceLine, type ChartRead, type Dials, type Ranked, type Scenario, type Verdict } from "@/lib/vision/discover";
 import { BUCKET_LABEL, type Bucket } from "@/lib/vision/levels";
@@ -92,7 +92,7 @@ export function DiscoverPanel({
   onShow: (id: ChartRead) => void;
   live: Set<string>;
   firesHere: Map<string, number> | null;
-  onBacktest: (r: Ranked) => void;
+  onBacktest: (r: Ranked, show?: "gallery" | "drill") => void;
   dials: Dials;
   onDials: (d: Dials) => void;
 }) {
@@ -206,6 +206,12 @@ export function DiscoverPanel({
                       </Action>
                       <Action on={() => onBacktest(r)} icon={<FlaskConical className="h-3.5 w-3.5" />}>
                         Backtest
+                      </Action>
+                      <Action on={() => onBacktest(r, "gallery")} icon={<Images className="h-3.5 w-3.5" />}>
+                        See examples
+                      </Action>
+                      <Action on={() => onBacktest(r, "drill")} icon={<Target className="h-3.5 w-3.5" />}>
+                        Practise
                       </Action>
                       {!isReader(r.idea.id) && (
                         <Action on={() => onPin(r.idea.id)} active={pinnedNow} icon={pinnedNow ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}>

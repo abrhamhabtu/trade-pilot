@@ -11,6 +11,8 @@ import { useDiscover } from "@/lib/vision/useDiscover";
 import type { SessionKey } from "@/lib/vision/custom";
 import type { Bucket } from "@/lib/vision/levels";
 import { useVisionStore, type BacktestSettings } from "@/store/visionStore";
+import { runBacktest } from "@/lib/vision/backtest";
+import { FEES } from "@/lib/vision/limits";
 import { DiscoverPanel, FitChip, NewBadge, VERDICT, VerdictBadge, statLine } from "./DiscoverPanel";
 import { buildDemo, type Demo } from "@/lib/vision/demo";
 import { useFeed, type Feed } from "@/lib/vision/feed";
@@ -98,6 +100,19 @@ export interface Explain {
   /** Open Strategy test on this idea and run it. */
   test: () => void;
   pin: () => void;
+  /** The same idea, tested right here on the bars loaded. Small on purpose: a sanity check, not evidence. */
+  quick: () => QuickTest | null;
+}
+
+export interface QuickTest {
+  trades: number;
+  meanR: number;
+  winShare: number;
+  /** Cumulative R after each trade. */
+  curve: number[];
+  bars: number;
+  from: number;
+  to: number;
 }
 
 const SESSION_OF: Record<Bucket, SessionKey> = { asia: "asia", london: "london", pre: "all", "ny-open": "open", "ny-mid": "ny", "ny-pm": "ny", off: "all" };
@@ -230,10 +245,10 @@ export function ChartCard({
   const setup = scan?.setup ?? null;
   const phaseKey = `${symbol}|${tf}|${activeReader}|${read}|${setup?.id ?? "none"}|${rescan}|${mode}|${bars.length ? 1 : 0}`;
   const phase = usePhase(phaseKey, setup ? setup.callouts.length : 0);
-  const testIdea = (idea: Idea) => {
+  const testIdea = (idea: Idea, show?: "gallery" | "drill") => {
     const b = scenario?.bucket ?? null;
     const n = b ? (disc.studies.get(idea.id)?.dims.bucket[b]?.[0] ?? 0) : 0;
-    openBacktest(backtestPatch(idea, symbol, tf, b, n), { run: true });
+    openBacktest(backtestPatch(idea, symbol, tf, b, n), { run: true, tab: show === "drill" ? "replay" : "test", show });
   };
   const explain = useMemo<Explain | null>(() => {
     if (!setup) return null;
@@ -254,6 +269,14 @@ export function ChartCard({
       pinned: pinned.includes(setup.reader),
       test: () => idea && testIdea(idea),
       pin: () => togglePin(setup.reader),
+      quick: () => {
+        if (!idea || bars.length < 100) return null;
+        const closed = bars.slice(0, -1);
+        const r = runBacktest(closed, { reader: "auto", custom: idea.rules, anchor, side: idea.rules.side, pointValue: futures ? sym.pointValue!.micro : 1, contracts: 1, commission: futures ? FEES.micro : 0, slippageTicks: 1, tick: sym.tick, maxHold: 48, breakEvenR: null, maxPerDay: idea.rules.maxPerDay, skipFomc: false, skipEarly: false, vix: "any", hours: null, context: { fomc: [], early: [], vix: {} } });
+        const rs = r.trades.map((t) => (t.riskUsd ? t.pnl / t.riskUsd : 0));
+        let run = 0;
+        return { trades: rs.length, meanR: rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : 0, winShare: rs.length ? rs.filter((x) => x > 0).length / rs.length : 0, curve: rs.map((x) => (run += x)), bars: closed.length, from: closed[0].t, to: closed[closed.length - 1].t };
+      },
     };
   }, [setup?.id, rankOf, pinned, scenario?.bucket]); // eslint-disable-line react-hooks/exhaustive-deps
   // Real money only follows the five readers, or a pinned idea that is Proven here at the strict defaults.
@@ -568,9 +591,9 @@ export function ChartCard({
           }}
           live={live}
           firesHere={firesHere}
-          onBacktest={(r) => {
+          onBacktest={(r, show) => {
             setPanel(false);
-            testIdea(r.idea);
+            testIdea(r.idea, show);
           }}
           dials={dials}
           onDials={(d) => setStore({ discover: d })}

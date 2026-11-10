@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { Building2, FastForward, FolderDown, MapPin, Pause, Play, RotateCcw, SkipForward, StepForward, Wand2, X } from "lucide-react";
+import { Building2, FastForward, FolderDown, MapPin, Pause, Play, RotateCcw, Shuffle, SkipForward, StepForward, Wand2, X } from "lucide-react";
 import { sessionOf } from "@/lib/pilot/market";
 import { READERS, READER_ORDER, _internal, analyze, infoOf, type ReaderChoice, type ReaderId, type Side } from "@/lib/vision/analyze";
 import { inHours } from "@/lib/vision/backtest";
@@ -279,6 +279,12 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
     if (i + 1 - base > 3000) setBase(i + 1 - WARMUP);
     setCursor(i + 1);
   };
+  // A session picked at random from those where the strategy formed: practice without knowing what's coming.
+  const randomDay = () => {
+    if (!formed.length) return;
+    const f = formed[Math.floor(Math.random() * formed.length)];
+    jump(Math.max(WARMUP, f.first - 24));
+  };
   const jumpTo = (date: string) => {
     const i = bars.findIndex((b) => {
       const s = sessionOf(b.t);
@@ -327,6 +333,7 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
       else if (k === "s") place("short", false);
       else if (k === "x") closeNow();
       else if (k === "n") nextSetup();
+      else if (k === "r") randomDay();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -418,7 +425,10 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
               <SkipForward className="h-4 w-4" /> Next setup
             </button>
             <Seg size="sm" value={speed} onChange={setSpeed} options={SPEEDS.map((s) => ({ v: s, l: `${s}×` }))} label="Speed" />
-            <label className="ml-auto flex items-center gap-2 text-[12.5px] text-white/55">
+            <button onClick={randomDay} disabled={!formed.length} title="A random session where the strategy formed (R)" className="ml-auto flex h-10 items-center gap-1.5 rounded-full bg-white/[0.08] px-3.5 text-[13px] font-semibold text-white ring-1 ring-white/[0.06] hover:bg-white/[0.12] disabled:opacity-35">
+              <Shuffle className="h-4 w-4" /> Random day
+            </button>
+            <label className="flex items-center gap-2 text-[12.5px] text-white/55">
               Go to
               <input type="date" onChange={(e) => e.target.value && jumpTo(e.target.value)} className="rounded-lg bg-white/[0.06] px-2 py-1.5 text-[12.5px] text-white [color-scheme:dark] ring-1 ring-inset ring-white/[0.07]" />
             </label>
@@ -427,7 +437,7 @@ export function Replay({ loaded, sym, tf, anchor, reader, scenario, startAt, set
             <div className="h-full bg-gradient-to-r from-[#5AC8FA] to-[#BF5AF2] transition-[width]" style={{ width: `${Math.max(0, Math.min(1, progress)) * 100}%` }} />
           </div>
         </Card>
-        <p className="px-1 text-[12px] text-white/38">Keys: Space play/pause · → one bar · Shift → ten · B buy · S sell · X close · N next setup</p>
+        <p className="px-1 text-[12px] text-white/38">Keys: Space play/pause · → one bar · Shift → ten · B buy · S sell · X close · N next setup · R random day</p>
       </div>
 
       <div className="space-y-4 xl:sticky xl:top-4 xl:self-start">

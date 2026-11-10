@@ -22,6 +22,10 @@ import { Replay } from "./Replay";
 import { Results, type LeagueRow } from "./Results";
 import { SCENARIOS, practiceMonths, type Scenario } from "./scenarios";
 import { SetupPanel } from "./SetupPanel";
+import { QuickBar } from "./QuickBar";
+import { Matrix } from "./Matrix";
+import { Gallery } from "./Gallery";
+import { Drill } from "./Drill";
 import { Card, Pill, Seg } from "./ui";
 
 type Run = { result: BacktestResult; loaded: Loaded; settings: BacktestSettings; league: LeagueRow[] | null; verdict: Verdict | null; prop?: PropReport | null; coin?: CoinFlipReport; doctor?: DoctorReport };
@@ -46,6 +50,33 @@ export function BacktestWorkspace() {
   const [error, setError] = useState("");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [replay, setReplay] = useState<{ loaded: Loaded; settings: BacktestSettings; at?: number; scenario?: Scenario; account?: PropAccount } | null>(null);
+  const [extra, setExtra] = useState<"matrix" | "gallery" | null>(null);
+  const [replayMode, setReplayMode] = useState<"free" | "drill">("free");
+  const [drill, setDrill] = useState<{ key: string; trades: BacktestTrade[]; bars: Loaded["bars"] } | null>(null);
+  const showGallery = useVisionStore((s) => s.btShow);
+  const enterDrill = async () => {
+    if (!replay) return;
+    setReplayMode("drill");
+    const key = `${replay.loaded.key}|${replay.settings.logic}|${replay.settings.reader}|${replay.settings.text}`;
+    if (drill?.key === key) return;
+    setDrill(null);
+    const r = await runQuiet(replay.settings);
+    setDrill(r ? { key, trades: r.result.trades, bars: r.loaded.bars } : { key, trades: [], bars: replay.loaded.bars });
+  };
+  // "Practise" from Discover: straight into the drill once replay has loaded.
+  useEffect(() => {
+    if (showGallery === "drill" && replay && tab === "replay") {
+      set({ btShow: null });
+      void enterDrill();
+    }
+  }, [showGallery, replay, tab]); // eslint-disable-line react-hooks/exhaustive-deps
+  // "See examples" from Discover: the gallery opens once that run is in.
+  useEffect(() => {
+    if (showGallery === "gallery" && run && !running) {
+      setExtra("gallery");
+      set({ btShow: null });
+    }
+  }, [showGallery, run, running]); // eslint-disable-line react-hooks/exhaustive-deps
   const desk = useAccounts();
   // The newest copy of each account, for saves that land while replay runs.
   const latest = useRef(new Map<string, PropAccount>());
@@ -63,18 +94,9 @@ export function BacktestWorkspace() {
   const seq = useRef(0);
   useEffect(() => () => worker.current?.terminate(), []);
 
-  const start = useCallback(
-    async (override?: Partial<BacktestSettings>) => {
-      const s = { ...useVisionStore.getState().bt, ...override };
-      if (override) setBt(override);
-      setError("");
-      setRunning(true);
-      setProgress(null);
-      const loaded = await history.load(s);
-      if (!loaded) {
-        setRunning(false);
-        return;
-      }
+  /** The engine's options for a set of settings: one place, so every run (the test, the matrix, presets) runs the same way. */
+  const buildOptions = useCallback(
+    (s: BacktestSettings) => {
       const m = isSymbol(s.symbol) ? SYMBOLS[s.symbol] : null;
       const crypto = m?.kind === "crypto";
       const program = !crypto && s.prop.on ? programByKey(s.prop.program) : null;
@@ -106,6 +128,56 @@ export function BacktestWorkspace() {
         hours: SESSION_WINDOWS[s.session].hours,
         context: ctx,
       };
+      return { options, program, byRisk, cap, pointValue };
+    },
+    [ctx, has],
+  );
+  /** A run with no screen of its own: for the matrix and presets. Its own worker, so the main test is untouched. */
+  const quiet = useRef<Worker | null>(null);
+  const runQuiet = useCallback(
+    async (patch: Partial<BacktestSettings>): Promise<{ result: BacktestResult; prop: PropReport | null; settings: BacktestSettings; loaded: Loaded } | null> => {
+      const s = { ...useVisionStore.getState().bt, ...patch };
+      const loaded = await history.load(s);
+      if (!loaded) return null;
+      const { options, program, byRisk, cap, pointValue } = buildOptions(s);
+      quiet.current ??= new Worker(new URL("../../../lib/vision/backtest.worker.ts", import.meta.url));
+      const w = quiet.current;
+      const id = Date.now() + Math.random();
+      return new Promise((resolve) => {
+        let result: BacktestResult | null = null;
+        w.onmessage = (e: MessageEvent) => {
+          const msg = e.data;
+          if (msg.id !== id) return;
+          if (msg.type === "done") {
+            result = msg.result;
+            if (!program) resolve({ result: msg.result, prop: null, settings: s, loaded });
+          } else if (msg.type === "prop" && result) resolve({ result, prop: msg.report, settings: s, loaded });
+          else if (msg.type === "error") resolve(null);
+        };
+        w.postMessage({ id, bars: loaded.bars, options, league: false, prop: program ? { programKey: program.key, contracts: byRisk ? cap : Math.max(1, s.contracts), micro: s.micro, pointValue, stepSeconds: TF_SECONDS[s.tf], fixedSize: !byRisk } : null } satisfies BacktestRequest);
+      });
+    },
+    [history, buildOptions],
+  );
+  const stopQuiet = useCallback(() => {
+    quiet.current?.terminate();
+    quiet.current = null;
+  }, []);
+  useEffect(() => () => quiet.current?.terminate(), []);
+
+  const start = useCallback(
+    async (override?: Partial<BacktestSettings>) => {
+      const s = { ...useVisionStore.getState().bt, ...override };
+      if (override) setBt(override);
+      setError("");
+      setRunning(true);
+      setProgress(null);
+      const loaded = await history.load(s);
+      if (!loaded) {
+        setRunning(false);
+        return;
+      }
+      const { options, program, byRisk, cap, pointValue } = buildOptions(s);
       worker.current ??= new Worker(new URL("../../../lib/vision/backtest.worker.ts", import.meta.url));
       const id = ++seq.current;
       worker.current.onmessage = (e: MessageEvent) => {
@@ -134,7 +206,7 @@ export function BacktestWorkspace() {
         prop: program ? { programKey: program.key, contracts: byRisk ? cap : Math.max(1, s.contracts), micro: s.micro, pointValue, stepSeconds: TF_SECONDS[s.tf], fixedSize: !byRisk } : null,
       } satisfies BacktestRequest);
     },
-    [history, ctx, has, setBt],
+    [history, buildOptions, setBt],
   );
 
   const startReplay = async (override?: Partial<BacktestSettings>, scenario?: Scenario) => {
@@ -343,6 +415,17 @@ export function BacktestWorkspace() {
       {tab === "test" && (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
           <div className="min-w-0 space-y-3">
+            <QuickBar onRun={(patch) => start(patch)} run={runQuiet} />
+            <div className="flex flex-wrap gap-1.5">
+              <button onClick={() => setExtra(extra === "matrix" ? null : "matrix")} className={clsx("rounded-full px-3 py-1.5 text-[12.5px] font-semibold ring-1 ring-white/[0.06]", extra === "matrix" ? "bg-white text-black" : "bg-white/[0.06] text-white/75 hover:bg-white/[0.1]")}>
+                Run everywhere
+              </button>
+              <button disabled={!run?.result.trades.length} onClick={() => setExtra(extra === "gallery" ? null : "gallery")} className={clsx("rounded-full px-3 py-1.5 text-[12.5px] font-semibold ring-1 ring-white/[0.06] disabled:opacity-40", extra === "gallery" ? "bg-white text-black" : "bg-white/[0.06] text-white/75 hover:bg-white/[0.1]")}>
+                Setup gallery{run?.result.trades.length ? ` · ${run.result.trades.length}` : ""}
+              </button>
+            </div>
+            {extra === "matrix" && <Matrix settings={bt} run={runQuiet} stop={stopQuiet} onOpen={(patch) => { setExtra(null); void start(patch); }} />}
+            {extra === "gallery" && run && isSymbol(run.settings.symbol) && <Gallery trades={run.result.trades} bars={run.loaded.bars} symbol={run.settings.symbol} onOpen={replayTrade} />}
             {stale && !running && (
               <button onClick={() => start()} className="flex w-full items-center justify-between rounded-2xl bg-white/[0.05] px-4 py-2.5 text-left text-[13px] text-white/65 ring-1 ring-white/[0.06] hover:bg-white/[0.08]">
                 <span>Settings changed since this run.</span>
@@ -397,10 +480,44 @@ export function BacktestWorkspace() {
                 </button>
               )}
               {replay.scenario ? <Pill tone="cyan">Scenario · {replay.scenario.name}</Pill> : <Pill>Vision hints · {replay.settings.logic === "custom" || replay.settings.reader === "auto" ? "every Vision strategy" : READERS[replay.settings.reader].label}</Pill>}
+              <Seg
+                size="sm"
+                value={replayMode}
+                label="Replay mode"
+                onChange={(m) => (m === "drill" ? void enterDrill() : setReplayMode("free"))}
+                options={[
+                  { v: "free" as const, l: "Free play" },
+                  { v: "drill" as const, l: "Drill" },
+                ]}
+              />
               <button onClick={() => setReplay(null)} className="ml-auto rounded-full bg-white/[0.07] px-3 py-1.5 text-[12.5px] font-semibold text-white/75 hover:bg-white/[0.12]">
                 Change market or period
               </button>
             </div>
+            {replayMode === "drill" &&
+              (drill ? (
+                <Drill
+                  key={drill.key}
+                  bars={drill.bars}
+                  trades={drill.trades}
+                  name={strategyName(replay.settings)}
+                  onOpen={(t) => {
+                    setReplayMode("free");
+                    setReplay((r) => (r ? { ...r, at: Math.max(0, t.entryIndex - 40) } : r));
+                  }}
+                  onSave={async (picks) =>
+                    !!(await saved.save({
+                      item: { kind: "replay", name: `Decision drill · ${strategyName(replay.settings)} · ${replay.settings.symbol} ${replay.settings.tf}`, symbol: replay.settings.symbol, tf: replay.settings.tf, summary: { setups: picks.length, taken: picks.filter((p) => p.take).length, yourR: +picks.filter((p) => p.take).reduce((a, p) => a + p.t.r, 0).toFixed(2), allR: +picks.reduce((a, p) => a + p.t.r, 0).toFixed(2) } },
+                      settings: replay.settings,
+                      trades: picks.map((p) => flat({ ...(p.t as unknown as Record<string, unknown>), took: p.take ? 1 : 0 })),
+                      extra: { drill: true },
+                    }))
+                  }
+                />
+              ) : (
+                <p className="rounded-2xl bg-white/[0.04] p-4 text-[13.5px] text-white/55">Finding every setup in this period…</p>
+              ))}
+            {replayMode === "free" && (
             <Replay
               key={`${replay.loaded.key}:${replay.at ?? ""}:${replay.account?.id ?? ""}`}
               account={replay.account}
@@ -435,6 +552,7 @@ export function BacktestWorkspace() {
                 return !!item;
               }}
             />
+            )}
           </div>
         ) : (
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">

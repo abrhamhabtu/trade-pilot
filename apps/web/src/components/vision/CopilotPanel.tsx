@@ -9,7 +9,7 @@ import { useModelStore, modelReady } from "@/lib/pilot/modelStore";
 import { ChartRead } from "./ChartRead";
 import { PROVIDERS } from "@/lib/pilot/models";
 import type { VisionPosition, VisionTrade } from "@/store/visionStore";
-import type { ChartState, Explain } from "./ChartCard";
+import type { ChartState, Explain, QuickTest } from "./ChartCard";
 import { NewBadge, VerdictBadge } from "./DiscoverPanel";
 
 const usd = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -394,6 +394,8 @@ export { usd };
 /** What the read on screen is, in Discover's words: the idea, its verdict and sample, and what to do with it. */
 function ExplainCard({ e }: { e: Explain }) {
   const mine = isReader(e.id);
+  const [q, setQ] = useState<QuickTest | null | "none">(null);
+  useEffect(() => setQ(null), [e.id]);
   return (
     <div className="mt-3 rounded-2xl bg-white/[0.04] p-3">
       {!mine && (
@@ -417,12 +419,51 @@ function ExplainCard({ e }: { e: Explain }) {
             {e.pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />} {e.pinned ? "Unpin" : "Pin"}
           </button>
         )}
+        <button onClick={() => setQ(e.quick() ?? "none")} className="flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[12px] font-semibold text-white/85 hover:bg-white/[0.12]">
+          Test on these bars
+        </button>
         {e.playbook && (
           <a href={`/app/playbooks?playbook=${e.playbook}`} className="flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[12px] font-semibold text-white/85 hover:bg-white/[0.12]">
             <BookOpen className="h-3.5 w-3.5" /> Playbook
           </a>
         )}
       </div>
+      {q === "none" && <p className="mt-2 text-[12px] text-white/45">Not enough bars loaded to test.</p>}
+      {q && q !== "none" && <QuickResult q={q} onFull={e.test} />}
+    </div>
+  );
+}
+
+function QuickResult({ q, onFull }: { q: QuickTest; onFull: () => void }) {
+  const days = Math.max(1, Math.round((q.to - q.from) / 86_400));
+  const lo = Math.min(0, ...q.curve);
+  const hi = Math.max(0, ...q.curve);
+  const span = hi - lo || 1;
+  const d = q.curve.map((v, k) => `${k ? "L" : "M"}${((k / Math.max(1, q.curve.length - 1)) * 120).toFixed(1)},${(24 - ((v - lo) / span) * 24).toFixed(1)}`).join(" ");
+  return (
+    <div className="mt-2 rounded-xl bg-black/20 p-2.5">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1 text-[12.5px] tabular-nums text-white/75">
+          {q.trades ? (
+            <>
+              {q.trades} trades · <span className={q.meanR >= 0 ? "text-[#FFB27D]" : "text-[#FF8D85]"}>{q.meanR >= 0 ? "+" : ""}{q.meanR.toFixed(2)}R</span> each · {Math.round(q.winShare * 100)}% won
+            </>
+          ) : (
+            "It didn't fire on these bars."
+          )}
+        </div>
+        {q.curve.length > 1 && (
+          <svg width="120" height="24" aria-hidden>
+            <path d={d} fill="none" stroke={q.curve[q.curve.length - 1] >= 0 ? "#FF8A3D" : "#FF5A4E"} strokeWidth="1.5" />
+          </svg>
+        )}
+      </div>
+      <p className="mt-1 text-[11px] text-white/40">
+        {q.bars.toLocaleString("en-US")} bars, {new Date(q.from * 1000).toISOString().slice(0, 10)} to {new Date(q.to * 1000).toISOString().slice(0, 10)} (~{days} days), after fees. Far too few to call an edge.{" "}
+        <button onClick={onFull} className="font-semibold text-[#FFB27D]">
+          Full test →
+        </button>
+      </p>
     </div>
   );
 }

@@ -134,8 +134,10 @@ export interface VisionState {
   presets: BacktestPreset[];
   /** Bumped to start a backtest run without a click. */
   btRunNonce: number;
+  /** What to open with the next requested run, such as the setup gallery. */
+  btShow: 'gallery' | 'drill' | null;
   /** Open Strategy test (or Replay) with these settings, and optionally run it. */
-  openBacktest: (patch: Partial<BacktestSettings>, opts?: { run?: boolean; tab?: 'test' | 'replay' }) => void;
+  openBacktest: (patch: Partial<BacktestSettings>, opts?: { run?: boolean; tab?: 'test' | 'replay'; show?: 'gallery' | 'drill' }) => void;
   togglePin: (id: SetupSource) => void;
   set: (patch: Partial<Omit<VisionState, 'set' | 'open' | 'close' | 'handle' | 'setChart' | 'resetPaper' | 'setBt' | 'setJournal' | 'openBacktest' | 'togglePin'>>) => void;
   setBt: (patch: Partial<BacktestSettings>) => void;
@@ -184,7 +186,8 @@ export const useVisionStore = create<VisionState>()(
       guardAccount: null,
       presets: [],
       btRunNonce: 0,
-      openBacktest: (patch, opts = {}) => set((s) => ({ mode: 'backtest', btTab: opts.tab ?? 'test', bt: { ...s.bt, ...patch }, btRunNonce: opts.run ? s.btRunNonce + 1 : s.btRunNonce })),
+      btShow: null,
+      openBacktest: (patch, opts = {}) => set((s) => ({ mode: 'backtest', btTab: opts.tab ?? 'test', bt: { ...s.bt, ...patch }, btRunNonce: opts.run ? s.btRunNonce + 1 : s.btRunNonce, btShow: opts.show ?? null })),
       togglePin: (id) => set((s) => ({ pinned: s.pinned.includes(id) ? s.pinned.filter((x) => x !== id) : [...s.pinned, id] })),
       set: (patch) => set(patch),
       setChart: (index, patch) => set((s) => ({ charts: s.charts.map((c, i) => (i === index ? { ...c, ...patch } : c)) })),
@@ -226,5 +229,6 @@ export function mergeVision(saved: unknown, current: VisionState): VisionState {
     presets: Array.isArray(p.presets) ? p.presets : current.presets,
     // A run that was pending when the page closed doesn't start again on load.
     btRunNonce: 0,
+    btShow: null,
   };
 }
