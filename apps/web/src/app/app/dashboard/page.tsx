@@ -28,7 +28,6 @@ export default function DashboardPage() {
         onTimePeriodChange={data.setTimePeriod}
         isLoading={data.isLoading}
         onRefresh={data.refreshData}
-        onImport={data.openImportForSelection}
         onNavigateToRoutine={() => router.push(APP_ROUTES.routine)}
         accountId={data.selectedAccountId || undefined}
         accountBalance={data.selectedAccountBalance}

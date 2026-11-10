@@ -2,7 +2,7 @@
 
 import React from 'react';
 import clsx from 'clsx';
-import { RefreshCw, Download } from 'lucide-react';
+import { Check, LayoutGrid, RefreshCw, RotateCcw } from 'lucide-react';
 import { TimePeriod } from '../../store/tradingStore';
 import { AppButton, SegmentedControl } from '@/components/ui';
 
@@ -13,7 +13,9 @@ interface DashboardHeaderProps {
   totalTradesCount: number;
   isLoading: boolean;
   onRefresh: () => void;
-  onImport: () => void;
+  editMode: boolean;
+  onToggleEdit: () => void;
+  onResetLayout: () => void;
 }
 
 const TIME_PERIODS: TimePeriod[] = ['1D', '1W', '1M', '3M', '6M', '1Y', 'ALL'];
@@ -35,7 +37,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
   totalTradesCount,
   isLoading,
   onRefresh,
-  onImport
+  editMode,
+  onToggleEdit,
+  onResetLayout
 }) => {
   return (
     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -57,9 +61,20 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = React.memo(({
           <RefreshCw className={clsx('h-4 w-4', isLoading && 'animate-spin')} />
           <span className="text-sm">{isLoading ? 'Refreshing...' : 'Refresh Data'}</span>
         </AppButton>
-        <AppButton onClick={onImport} variant="primary" className="w-full sm:w-auto">
-          <Download className="h-4 w-4" />
-          <span className="text-sm">Import Trades from TradingView</span>
+        {editMode && (
+          <AppButton onClick={onResetLayout} variant="ghost" className="w-full sm:w-auto">
+            <RotateCcw className="h-4 w-4" />
+            <span className="text-sm">Reset</span>
+          </AppButton>
+        )}
+        <AppButton
+          onClick={onToggleEdit}
+          variant={editMode ? 'primary' : 'secondary'}
+          aria-pressed={editMode}
+          className="w-full sm:w-auto"
+        >
+          {editMode ? <Check className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+          <span className="text-sm">{editMode ? 'Done' : 'Customize'}</span>
         </AppButton>
       </div>
     </div>

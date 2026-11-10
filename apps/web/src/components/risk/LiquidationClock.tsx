@@ -26,6 +26,8 @@ const TONES = {
 } as const;
 
 const OPEN_KEY = 'tradepilot_clock_open';
+// The dev-only annotation toolbar owns the bottom-right corner; sit beside it, not under it.
+const DEV_TOOLBAR = process.env.NODE_ENV !== 'production';
 
 function LimitRow({ label, left, of, ratio, color, binds, note }: {
   label: string;
@@ -149,7 +151,7 @@ export function LiquidationClock() {
       : firmLimit ?? personalLimit;
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex flex-col items-end gap-2">
+    <div className={clsx('pointer-events-none fixed bottom-4 z-[60] flex flex-col items-end gap-2', DEV_TOOLBAR ? 'right-[76px]' : 'right-4')}>
       {/* Expanded panel: here only when asked for, never occupying the page */}
       {open && (
         <div

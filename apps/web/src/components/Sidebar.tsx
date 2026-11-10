@@ -15,7 +15,7 @@ import { JournalSwitcher } from '@/components/JournalSwitcher';
 const GROUPS: { label: string; hrefs: string[] }[] = [
   { label: 'Trade', hrefs: [APP_ROUTES.dashboard, APP_ROUTES.pilot, APP_ROUTES.vision, APP_ROUTES.calendar, APP_ROUTES.trades, APP_ROUTES.journal] },
   { label: 'Prepare', hrefs: [APP_ROUTES.playbooks, APP_ROUTES.routine, APP_ROUTES.journey, APP_ROUTES.proving] },
-  { label: 'Accounts', hrefs: [APP_ROUTES.accounts, APP_ROUTES.payout, APP_ROUTES.propfirms] },
+  { label: 'Accounts', hrefs: [APP_ROUTES.accounts, APP_ROUTES.payout, APP_ROUTES.rules] },
 ];
 const BY_HREF = new Map<string, (typeof APP_NAVIGATION)[number]>(APP_NAVIGATION.map((item) => [item.href, item]));
 
@@ -119,7 +119,7 @@ export const Sidebar: React.FC = () => {
         <nav
           ref={navRef}
           aria-label="Main"
-          className={clsx('tp-no-scrollbar relative flex-1 overflow-y-auto pb-3', sidebarCollapsed ? 'px-2 pt-3' : 'px-3 pt-5')}
+          className={clsx('tp-no-scrollbar tp-fade-bottom relative flex-1 overflow-y-auto pb-8', sidebarCollapsed ? 'px-2 pt-3' : 'px-3 pt-5')}
         >
           {pill && (
             <span

@@ -18,7 +18,7 @@ const NEWS_TONE: Record<NewsPolicy, string> = {
 
 const usd = (n: number) => `$${n.toLocaleString()}`;
 
-function SourceTag({ source }: { source: FineRule<unknown>['source'] }) {
+export function SourceTag({ source }: { source: FineRule<unknown>['source'] }) {
   return (
     <span
       className={clsx(
@@ -32,15 +32,19 @@ function SourceTag({ source }: { source: FineRule<unknown>['source'] }) {
   );
 }
 
-interface Row {
+export interface FinePrintRow {
   label: string;
   value: React.ReactNode;
   note?: string;
   source: FineRule<unknown>['source'];
 }
 
-function rowsFor(firm: PropFirm, fp: FirmFinePrint): Row[] {
-  const rows: Row[] = [
+/**
+ * A firm's fine print as rows. Pass `tierId` to answer for one account size
+ * instead of listing every size side by side.
+ */
+export function rowsFor(firm: PropFirm, fp: FirmFinePrint, tierId?: string): FinePrintRow[] {
+  const rows: FinePrintRow[] = [
     {
       label: 'News trading',
       value: <span className={NEWS_TONE[fp.news.value]}>{NEWS_LABEL[fp.news.value]}</span>,
@@ -49,17 +53,25 @@ function rowsFor(firm: PropFirm, fp: FirmFinePrint): Row[] {
     },
   ];
   if (fp.payoutCaps) {
+    const own = tierId ? fp.payoutCaps.value[tierId] : undefined;
     const caps = firm.tiers
       .filter((t) => fp.payoutCaps!.value[t.id])
       .map((t) => `${t.label} ${usd(fp.payoutCaps!.value[t.id])}`)
       .join(' · ');
-    rows.push({ label: 'Payout cap per request', value: caps, note: fp.payoutCaps.note, source: fp.payoutCaps.source });
+    rows.push({ label: 'Payout cap per request', value: own !== undefined ? usd(own) : caps, note: fp.payoutCaps.note, source: fp.payoutCaps.source });
   }
   if (fp.minPayout) rows.push({ label: 'Minimum payout', value: usd(fp.minPayout.value), source: fp.minPayout.source });
   if (fp.payoutDays) {
     const m = fp.payoutDays.value.minDayProfit;
+    const own = m !== null && typeof m !== 'number' && tierId ? m[tierId] : undefined;
     const perDay =
-      m === null ? '' : typeof m === 'number' ? ` of ${usd(m)}+` : ` (${Object.values(m).map(usd).join(' / ')}+ by size)`;
+      m === null
+        ? ''
+        : typeof m === 'number'
+          ? ` of ${usd(m)}+`
+          : own !== undefined
+            ? ` of ${usd(own)}+`
+            : ` (${Object.values(m).map(usd).join(' / ')}+ by size)`;
     rows.push({
       label: 'Days per payout',
       value: `${fp.payoutDays.value.count} winning days${perDay}`,

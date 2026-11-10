@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { GripVertical, Settings2, RotateCcw, Check } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 import clsx from 'clsx';
 import { RadarChartComponent } from '../charts/RadarChart';
 import { PLChart } from '../charts/PLChart';
@@ -32,6 +32,12 @@ interface ChartsContainerProps {
   consistencyScore: number;
   onNavigateToRoutine?: () => void;
   accountId?: string;
+  /** The dashboard lays these out as two movable sections: the calendar beside the score, and the panels grid. */
+  part: 'overview' | 'panels';
+  /** Driven by the dashboard's one Customize switch. */
+  editMode?: boolean;
+  /** Bump to put the panels back in their default order. */
+  resetSignal?: number;
 }
 
 // Each widget has a fixed width `w` (12-col units) and `rows` (masonry units,
@@ -94,10 +100,12 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
   trades,
   consistencyScore,
   onNavigateToRoutine,
-  accountId
+  accountId,
+  part,
+  editMode = false,
+  resetSignal = 0,
 }) => {
   const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
-  const [editMode, setEditMode] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const dragId = useRef<string | null>(null);
 
@@ -159,44 +167,15 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
     });
   };
 
-  const resetLayout = () => {
+  useEffect(() => {
+    if (!resetSignal) return;
     setOrder(DEFAULT_ORDER);
     persist(DEFAULT_ORDER);
-  };
+  }, [resetSignal]);
 
-  return (
-    <div className="mb-8">
-      {/* Toolbar */}
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-300">Dashboard</h2>
-        <div className="flex items-center gap-2">
-          {editMode && (
-            <button
-              onClick={resetLayout}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-100"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Reset
-            </button>
-          )}
-          <button
-            onClick={() => setEditMode((v) => !v)}
-            className={clsx(
-              'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
-              editMode ? 'bg-tp-green/15 text-tp-green' : 'border border-white/10 text-zinc-400 hover:text-zinc-100'
-            )}
-          >
-            {editMode ? <Check className="h-3.5 w-3.5" /> : <Settings2 className="h-3.5 w-3.5" />}
-            {editMode ? 'Done' : 'Customize'}
-          </button>
-        </div>
-      </div>
-
-      {editMode && (
-        <p className="mb-3 text-xs text-zinc-500">Drag any panel to rearrange your dashboard. Your layout is saved automatically.</p>
-      )}
-
-      {/* Pinned hero — calendar sizes to content; sidebar stretches to match */}
+  // Calendar sizes to content; the sidebar stretches to match.
+  if (part === 'overview') {
+    return (
       <div className="mb-6 grid grid-cols-12 items-stretch gap-4 lg:gap-6">
         <div className="col-span-12 min-w-0 lg:col-span-8">
           {nodeById.calendar}
@@ -208,7 +187,11 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
           </div>
         </div>
       </div>
+    );
+  }
 
+  return (
+    <div className="mb-8">
       <div className="grid grid-cols-12 gap-4 lg:gap-6" style={{ gridAutoRows: `${DASHBOARD_ROW_PX}px`, gridAutoFlow: 'dense' }}>
         {order.map((id) => {
           const w = WIDGETS.find((x) => x.id === id);
@@ -234,7 +217,7 @@ export const ChartsContainer: React.FC<ChartsContainerProps> = React.memo(({
                 className={clsx(
                   'h-full min-h-0 rounded-xl',
                   w.scroll ? 'overflow-y-auto custom-scrollbar' : 'overflow-hidden',
-                  editMode && 'pointer-events-none ring-2 ring-dashed ring-tp-green/30',
+                  editMode && 'pointer-events-none outline-dashed outline-2 -outline-offset-2 outline-tp-accent/40',
                   isDragging && 'opacity-50'
                 )}
               >

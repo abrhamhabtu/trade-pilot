@@ -97,17 +97,11 @@ export function AppShell({
       {showAccountSelector && (
         <div
           className={clsx(
-            'fixed top-0 right-0 z-40 p-3 transition-all duration-300 sm:p-4',
+            'tp-topbar pointer-events-none fixed top-0 right-0 z-40 p-3 transition-all duration-300 sm:p-4',
             sidebarCollapsed ? 'left-20' : 'left-64'
           )}
-          style={{
-            background:
-              theme === 'dark'
-                ? 'linear-gradient(180deg, rgb(var(--tp-base)/0.97) 0%, rgb(var(--tp-base)/0) 100%)'
-                : 'linear-gradient(180deg, rgba(240,244,252,0.97) 0%, rgba(240,244,252,0) 100%)',
-          }}
         >
-          <div className="flex justify-end min-w-0">
+          <div className="pointer-events-auto ml-auto flex w-max max-w-full min-w-0 justify-end">
             <AccountSelector />
           </div>
         </div>

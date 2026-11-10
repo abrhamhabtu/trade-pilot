@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { SetupAnatomy } from "./playbooks/SetupAnatomy";
 import { StrategyWorkspace } from "./playbooks/StrategyWorkspace";
 import { PositionSizer } from "./playbooks/PositionSizer";
 import { OptionsSizer } from "./playbooks/OptionsSizer";
+import { WorkedExample } from "./playbooks/TradeReplay";
 import { Callout, PlaybookAI } from "./playbooks/PlaybookAI";
 import React, { useState } from "react";
 import {
@@ -32,7 +32,6 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import type { PlaybookStrategy } from "./Playbooks";
-import { buildStrategyChart } from "@/lib/strategyChart";
 import { parseR } from "@/lib/futuresSpecs";
 import { SIZING_DEFAULT, TV_SETUP } from "@/lib/tradingviewSetup";
 
@@ -311,54 +310,10 @@ export const PlaybookStrategyView: React.FC<{
 
             {/* Worked examples */}
             <Section id="examples" title="Worked examples" icon={Target}>
-              <div className="space-y-5">
-                {strategy.examples.map((ex, i) => {
-                  const isWin = /\+|profit|win|base hit/i.test(ex.result);
-                  const chart = buildStrategyChart({
-                    symbol: i % 2 === 0 ? "ES" : "NQ",
-                    subtitle: ex.title,
-                    direction: i % 2 === 0 ? "Long" : "Short",
-                    variant: i % 2 === 0 ? 2 : 1,
-                  });
-                  return (
-                    <div key={i} className="overflow-hidden rounded-xl border border-white/[0.06] bg-tp-base/40">
-                      <div className="grid gap-0 lg:grid-cols-2">
-                        <figure className="border-b border-white/[0.06] lg:border-b-0 lg:border-r">
-                          <Image
-                            src={chart}
-                            alt={`Illustrative price path for ${ex.title}`}
-                            width={720}
-                            height={320}
-                            unoptimized
-                            className="h-auto w-full"
-                          />
-                          <figcaption className="px-4 py-2 text-xs text-zinc-500">
-                            Conceptual illustration · not the historical trade described
-                          </figcaption>
-                        </figure>
-                        <div className="p-5 sm:p-6">
-                          <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-                            <h4 className="text-lg font-semibold text-zinc-50">{ex.title}</h4>
-                            <span
-                              className={clsx(
-                                "rounded-full px-2.5 py-1 text-xs font-semibold",
-                                isWin ? "bg-tp-green/15 text-tp-green" : "bg-white/[0.06] text-zinc-300",
-                              )}
-                            >
-                              {ex.result}
-                            </span>
-                          </div>
-                          <p className="mb-4 text-[15px] text-zinc-400">{ex.description}</p>
-                          <dl className="space-y-3">
-                            <ExRow label="Setup" tone="blue" value={ex.setup} />
-                            <ExRow label="Entry" tone="green" value={ex.entry} />
-                            <ExRow label="Exit" tone="yellow" value={ex.exit} />
-                          </dl>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="space-y-8 divide-y divide-white/[0.06]">
+                {strategy.examples.map((ex, i) => (
+                  <WorkedExample key={i} example={ex} index={i} targetR={targetR} />
+                ))}
               </div>
             </Section>
 
@@ -572,13 +527,4 @@ const BulletCard: React.FC<{
     </div>
   );
 };
-
-const EX_TONE = { green: "text-tp-green", blue: "text-tp-blue", yellow: "text-tp-yellow" } as const;
-
-const ExRow: React.FC<{ label: string; tone: keyof typeof EX_TONE; value: string }> = ({ label, tone, value }) => (
-  <div className="grid grid-cols-[64px_1fr] gap-3">
-    <dt className={clsx("pt-0.5 text-xs font-semibold uppercase tracking-wide", EX_TONE[tone])}>{label}</dt>
-    <dd className="text-[15px] leading-relaxed text-zinc-300">{value}</dd>
-  </div>
-);
 

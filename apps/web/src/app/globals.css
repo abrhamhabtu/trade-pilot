@@ -212,6 +212,35 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 .tp-ring { animation: tpRing 1.2s var(--ease-spring) 0.15s both; }
 @media (prefers-reduced-motion: reduce) { .tp-ring { animation: none; } }
 
+@keyframes tpTick { from { transform: scaleY(0.25); opacity: 0; } }
+.tp-tick { transform-origin: bottom; animation: tpTick 0.5s var(--ease-spring) both; }
+@media (prefers-reduced-motion: reduce) { .tp-tick { animation: none; } }
+
+/* A scrolling list fades out at its bottom edge, so a cut-off row reads as "more below". */
+.tp-fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
+}
+
+/* The top bar: content blurs and dims as it slides under, with no hard edge. */
+.tp-topbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgb(var(--tp-base) / 0.9) 0%, rgb(var(--tp-base) / 0.62) 55%, rgb(var(--tp-base) / 0) 100%);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  backdrop-filter: saturate(160%) blur(18px);
+  /* Gone by the bar's bottom edge, so a sticky sub-nav parked just under it stays crisp. */
+  -webkit-mask-image: linear-gradient(180deg, #000 38%, transparent 96%);
+  mask-image: linear-gradient(180deg, #000 38%, transparent 96%);
+}
+
+.tp-backdrop:not(.dark) .tp-topbar::before {
+  background: linear-gradient(180deg, rgba(242,242,247,0.92) 0%, rgba(242,242,247,0.62) 55%, rgba(242,242,247,0) 100%);
+}
+
 @keyframes tpStageFill { from { width: 0%; } to { width: 100%; } }
 .tp-stage-fill { animation: tpStageFill linear both; }
 

@@ -8,7 +8,7 @@ import {
   Target,
   Users,
   Wallet,
-  Building2,
+  ScrollText,
   Sparkles,
   ScanEye,
   FlaskConical,
@@ -27,7 +27,7 @@ export const APP_ROUTES = {
   playbooks: '/app/playbooks',
   journal: '/app/journal',
   payout: '/app/payout',
-  propfirms: '/propfirms',
+  rules: '/app/rules',
   settings: '/app/settings',
 } as const;
 
@@ -46,7 +46,7 @@ export const APP_NAVIGATION = [
   { name: 'Trades', icon: TrendingUp, href: APP_ROUTES.trades },
   { name: 'Journal', icon: BookOpen, href: APP_ROUTES.journal },
   { name: 'Payout', icon: Wallet, href: APP_ROUTES.payout },
-  { name: 'Prop Firms', icon: Building2, href: APP_ROUTES.propfirms },
+  { name: 'Rulebook', icon: ScrollText, href: APP_ROUTES.rules },
 ] as const;
 
 export function isActiveRoute(pathname: string, href: string): boolean {
