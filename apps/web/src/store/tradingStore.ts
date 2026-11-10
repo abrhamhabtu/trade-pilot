@@ -470,7 +470,8 @@ const generateJune2025TradingData = (): Trade[] => {
   for (const dayData of tradingDays) {
     if (dayData.trades === 0) continue;
 
-    const date = new Date(dayData.date);
+    // Local noon, so a Monday stays Monday in every time zone.
+    const date = new Date(`${dayData.date.slice(0, 10)}T12:00:00`);
     if (isWeekend(date)) continue;
 
     let dailyPL = 0;

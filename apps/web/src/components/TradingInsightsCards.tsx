@@ -3,6 +3,9 @@
 import React from 'react';
 import { Trade } from '../store/tradingStore';
 import { Tooltip } from './Tooltip';
+import { weekdayOf } from '@/lib/calendarStats';
+
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 interface TradingInsightsCardsProps {
   trades: Trade[];
@@ -26,8 +29,8 @@ export const TradingInsightsCards: React.FC<TradingInsightsCardsProps> = ({ trad
 
     // Group trades by day of week
     const dayGroups = trades.reduce((acc, trade) => {
-      const date = new Date(trade.date);
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+      // From the date's text: new Date("2026-11-02") is Sunday evening west of UTC.
+      const dayName = WEEKDAYS[weekdayOf(trade.date)];
 
       if (!acc[dayName]) {
         acc[dayName] = { trades: [], totalPnl: 0 };

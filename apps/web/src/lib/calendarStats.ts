@@ -36,6 +36,11 @@ export const ymd = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pa
 export const monthKey = (y: number, m: number) => `${y}-${pad(m + 1)}`;
 /** Sunday is 0. Worked out at noon UTC, so it's the same day in every time zone. */
 export const weekdayOf = (date: string) => new Date(`${dayOf(date)}T12:00:00Z`).getUTCDay();
+/** Year and month (0-based) of the latest date, read from the text so no time zone can move it. */
+export const latestMonth = (dates: string[]): { y: number; m: number } | null => {
+  const last = dates.map(dayOf).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort().at(-1);
+  return last ? { y: Number(last.slice(0, 4)), m: Number(last.slice(5, 7)) - 1 } : null;
+};
 export const daysInMonth = (y: number, m: number) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
 export const addDays = (date: string, n: number) => new Date(Date.parse(`${dayOf(date)}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 

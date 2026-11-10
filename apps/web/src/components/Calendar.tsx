@@ -28,6 +28,7 @@ import { useDailyNotesStore, NoteImage } from '../store/dailyNotesStore';
 import { useAccountStore } from '../store/accountStore';
 import { payoutWindow } from '@/lib/payoutSchedule';
 import { localSessionDate } from '@/lib/sessionRisk';
+import { dayOf, latestMonth, monthKey } from '@/lib/calendarStats';
 import { DayReviewModal } from './calendar/DayReviewModal';
 
 
@@ -97,20 +98,19 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
       return new Date(2025, 5, 1); // Default to June 2025
     }
     
-    // Find the most recent trade date
-    const sortedDates = data
-      .map(d => new Date(d.date))
-      .sort((a, b) => b.getTime() - a.getTime());
-    
-    if (sortedDates.length > 0) {
-      const mostRecentDate = sortedDates[0];
-      return new Date(mostRecentDate.getFullYear(), mostRecentDate.getMonth(), 1);
-    }
+    // The month of the most recent trade, read from its text: new Date("2026-11-01")
+    // is Oct 31 west of UTC and would open the calendar a month early.
+    const latest = latestMonth(data.map(d => d.date));
+    if (latest) return new Date(latest.y, latest.m, 1);
     
     return new Date(2025, 5, 1); // Fallback to June 2025
   };
 
-  const [currentDate, setCurrentDate] = useState(getInitialDate());
+  // Until someone picks a month, follow the latest trade: trades can arrive after the
+  // first render (stored ones first, then synced ones), and the calendar shouldn't
+  // stay stuck on whatever month was latest at that moment.
+  const [pickedMonth, setCurrentDate] = useState<Date | null>(null);
+  const currentDate = pickedMonth ?? getInitialDate();
   // The open day lives in the URL so Back closes the review.
   const [dayParam, setSelectedDate] = useHistoryParam('day');
   const selectedDate = dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam) ? dayParam : null;
@@ -138,7 +138,7 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
   
   const goToCurrentMonth = () => {
     // Go to the month with the most recent data, or June 2025 if no data
-    setCurrentDate(getInitialDate());
+    setCurrentDate(null);
   };
   
   const formatCurrency = (value: number) => {
@@ -306,11 +306,11 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
   
   // Calculate monthly totals from actual data for the current viewing month
   // Includes both trading P&L and balance adjustments (payouts/deposits) to match TopOne
+  const viewMonth = `${monthKey(year, month)}-`;
   const monthlyTotal = useMemo(() => {
     // Sum of trading P&L
     const tradingPnL = data.reduce((sum, dayData) => {
-      const date = new Date(dayData.date);
-      if (date.getFullYear() === year && date.getMonth() === month) {
+      if (dayOf(dayData.date).startsWith(viewMonth)) {
         return sum + dayData.pnl;
       }
       return sum;
@@ -326,17 +326,15 @@ export const Calendar: React.FC<CalendarProps> = ({ data, trades, accountId }) =
     }, 0);
     
     return tradingPnL + adjustmentTotal;
-  }, [data, adjustments, year, month]);
+  }, [data, adjustments, viewMonth, year, month]);
   
   const tradingDays = data.filter(dayData => {
-    const date = new Date(dayData.date);
-    return date.getFullYear() === year && date.getMonth() === month && dayData.trades > 0;
+    return dayOf(dayData.date).startsWith(viewMonth) && dayData.trades > 0;
   }).length;
 
   // Check if current viewing month has any data
   const hasDataForMonth = data.some(dayData => {
-    const date = new Date(dayData.date);
-    return date.getFullYear() === year && date.getMonth() === month;
+    return dayOf(dayData.date).startsWith(viewMonth);
   });
 
   // Get the month name for the "This month" button

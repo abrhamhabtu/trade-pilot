@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MIN_SAMPLE, NEWS_MINUTE, addDays, buildDays, currentStreak, inMonth, localTimeOf, minuteOf, monthCsv, newsOn, pace, patterns, summarize, toReview, upcoming, weekdayOf, weekdaysLeft } from "../src/lib/calendarStats.ts";
+import { MIN_SAMPLE, NEWS_MINUTE, addDays, buildDays, currentStreak, inMonth, latestMonth, localTimeOf, minuteOf, monthCsv, newsOn, pace, patterns, summarize, toReview, upcoming, weekdayOf, weekdaysLeft } from "../src/lib/calendarStats.ts";
 
 const t = (date, netPL, time, extra = {}) => ({ date, netPL, time, outcome: netPL > 0 ? "win" : "loss", ...extra });
 
@@ -108,4 +108,17 @@ test("news times follow the trader's time zone, through daylight saving changes"
   assert.equal(localTimeOf("2026-11-10", NEWS_MINUTE.cpi, "UTC"), "1:30 pm");
   // The FOMC decision at 2 pm New York.
   assert.equal(localTimeOf("2026-12-09", NEWS_MINUTE.fomc, "America/Los_Angeles"), "11:00 am");
+});
+
+test("the calendar starts on the latest trade's month, even when that trade is on the 1st", () => {
+  const old = process.env.TZ;
+  for (const tz of ["America/Los_Angeles", "Pacific/Honolulu", "Asia/Tokyo"]) {
+    process.env.TZ = tz;
+    assert.deepEqual(latestMonth(["2026-10-30", "2026-11-01", "2026-09-15"]), { y: 2026, m: 10 }, tz);
+    assert.deepEqual(latestMonth(["2026-01-01T09:30:00"]), { y: 2026, m: 0 }, tz);
+    assert.equal(weekdayOf("2026-11-02"), 1, `${tz}: Nov 2 2026 is a Monday`);
+  }
+  process.env.TZ = old;
+  assert.equal(latestMonth([]), null);
+  assert.equal(latestMonth(["not a date"]), null);
 });
